@@ -1,0 +1,763 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修IndexedDB' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>IndexedDB</center></div><div class='banquan'>原文出处:本文由博客园博主累成一条狗提供。<br/>
+原文连接:https://www.cnblogs.com/l-y-h/p/11688035.html</div><br>
+    <h2>一、IndexedDB</h2>
+<h3>1、简介</h3>
+<p>　　随着浏览器功能增强，许多网站开始将大量数据保存在客户端，从而减少从服务器获取数据的操作，提高了响应速度。<br />　　cookie 由于大小不超过 4kb，肯定不合适。<br />　　LocalStorage 大小在 2.5 - 10 M间（不同浏览器不同，比如Chrome为 5M），且不提供索引、查找慢，也不合适。<br />　　IndexedDB 就比较合适了，是浏览器提供的本地数据库，它可以被网页脚本创建和操作。IndexedDB 允许储存大量数据，提供查找接口，还能建立索引提高查询效率。</p>
+<h3>2、特点</h3>
+<p>（1）采用键值对存储。<br />　　IndexedDB 内部采用对象仓库（object store）存放数据。所有类型的数据都可以直接存入，包括 JavaScript 对象。对象仓库中，数据以"键值对"的形式保存。</p>
+<p>（2）异步处理。<br />　　IndexedDB 操作时采用异步处理，用户可以进行其它操作。</p>
+<p>（3）支持事务。<br />　　IndexedDB 支持事务，即要么完成、要么失败，不会出现完成一半的状态。</p>
+<p>（4）存储空间大、且支持二进制存储。</p>
+<h3><br />3、相关概念</h3>
+<p>（1）数据库（IDBDatabase 对象）<br />　　管理、存储数据的仓库。IndexedDB 数据库有版本的概念。同一个时刻，只能有一个版本的数据库存在。如果要修改数据库结构（新增或删除表、索引或者主键），只能通过升级数据库版本完成。</p>
+<p>（2）对象仓库（IDBObjectStore 对象）<br />　　每个数据库都包含若干对象仓库。可以理解为一个个数据表。</p>
+<p>（3）数据记录　　<br />　　对象仓库中存储的即为数据记录，采用键值对保存。其中键唯一，值可以为任意类型。</p>
+<p>（4）索引（IDBIndex 对象）<br />　　为了提高查询效率，可以根据数据记录的主键建立索引。</p>
+<p>（5）事务（IDBTransaction 对象）<br />　　数据记录的读写和删改，都要通过事务完成。事务对象提供error、abort和complete三个事件，用来监听操作结果。</p>
+<p>（6）操作请求（IDBRequest 对象）</p>
+<p>（7）指针（ IDBCursor 对象）<br />　　可用于遍历数据。</p>
+<p>（8）主键集合（IDBKeyRange 对象）</p>
+<h3>4、vue使用indexedDB快速入门实例</h3>
+<p>（1）项目目录结构<br />　　使用vue-cli创建项目。参考：https://www.cnblogs.com/l-y-h/p/11241503.html</p>
+<p><img src="./images/IndexedDB0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;（2）完整代码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">此处，我将创建一个  &ldquo;test&rdquo; 数据库， 其中有一个 &ldquo;person&rdquo; 表（对象仓库）
+
+【main.js】
+import Vue from 'vue'
+import App from './App.vue'
+
+Vue.config.productionTip = false
+
+new Vue({
+  render: h =&gt; h(App),
+}).$mount('#app')
+
+
+
+【App.vue】
+</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">small</span><span style="color: #0000ff;">&gt;</span>添加前请先打开数据库(如数据库不存在则执行创建过程)<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">small</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="openDB"</span><span style="color: #0000ff;">&gt;</span>打开数据库<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="deleteDB"</span><span style="color: #0000ff;">&gt;</span>删除数据库<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="closeDB"</span><span style="color: #0000ff;">&gt;</span>关闭数据库<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span><span style="color: #000000;">
+        姓名：</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="name"</span><span style="color: #ff0000;"> v-model</span><span style="color: #0000ff;">="name"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span><span style="color: #000000;">
+        年龄：</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="number"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="age"</span><span style="color: #ff0000;"> min</span><span style="color: #0000ff;">=1 </span><span style="color: #ff0000;">v-model</span><span style="color: #0000ff;">="age"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span><span style="color: #000000;">
+        性别：
+        男：</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="radio"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="man"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="sex"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="male"</span><span style="color: #ff0000;"> v-model</span><span style="color: #0000ff;">="sex"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+        女：</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="radio"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="woman"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="sex"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="female"</span><span style="color: #ff0000;"> v-model</span><span style="color: #0000ff;">="sex"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="add"</span><span style="color: #0000ff;">&gt;</span>添加数据<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="get"</span><span style="color: #0000ff;">&gt;</span>获取数据<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span> 
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="foreach"</span><span style="color: #0000ff;">&gt;</span>遍历数据<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span> 
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="update"</span><span style="color: #0000ff;">&gt;</span>更新数据<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span> 
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="remove"</span><span style="color: #0000ff;">&gt;</span>删除数据<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span> 
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="searchFromIndex"</span><span style="color: #0000ff;">&gt;</span>根据索引查数据<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">br </span><span style="color: #0000ff;">/&gt;</span> 
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #008000;">&lt;!--</span><span style="color: #008000;">App </span><span style="color: #008000;">--&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    import indexedDB from </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">./indexedDB.js</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        data () {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;"> {
+                name: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">tom</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+                age: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">12</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+                sex: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">male</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+            }
+        },
+        methods: {
+            openDB() {
+                indexedDB.openDB(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">person</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, </span><span style="background-color: #f5f5f5; color: #000000;">1</span><span style="background-color: #f5f5f5; color: #000000;">)
+            },
+
+            deleteDB() {
+                indexedDB.deleteDB(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)
+            },
+            
+            closeDB() {
+                indexedDB.closeDB(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">test</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)
+            },
+            
+            add() {
+                indexedDB.add(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">person</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, {name: </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.name, age: </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.age, sex: </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.sex})
+            },
+            
+            get() {
+                indexedDB.get(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">person</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)
+            },
+            
+            foreach() {
+                indexedDB.foreach(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">person</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)
+            },
+            
+            update() {
+                indexedDB.update(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">person</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, {id: </span><span style="background-color: #f5f5f5; color: #000000;">4</span><span style="background-color: #f5f5f5; color: #000000;">, name: </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.name, age: </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.age, sex: </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.sex})
+            },
+            
+            remove() {
+                indexedDB.remove(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">person</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, </span><span style="background-color: #f5f5f5; color: #000000;">4</span><span style="background-color: #f5f5f5; color: #000000;">)
+            },
+            
+            searchFromIndex() {
+                indexedDB.searchFromIndex(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">person</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">name</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">tom</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)
+            }
+        }
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+
+
+
+
+【indexedDB.js】
+// 定义一个全局变量，用于保存数据库连接（开发中应该不会这么写，此处只是帮助理解）
+let db = null;  
+export default {
+    // indexedDB兼容
+    indexedDB: window.indexedDB || window.webkitindexedDB || window.msIndexedDB || mozIndexedDB,
+
+    // 打开数据库
+    // dbname指的是 数据库名， version 指的是 版本号
+    openDB(dbname, objectStoreName, version) {
+        // 获取当前数据库版本号
+        var version = version || 1
+
+        // 获取数据库连接，若数据库不存在，会创建数据库（异步处理，根据情况自动触发下面三个事件）
+        var request = this.indexedDB.open(dbname, version)
+
+        // 获取数据库连接失败
+        request.onerror = function(event) {
+            console.log('IndexedDB数据库打开错误')
+        }
+
+        // 获取数据库连接成功 
+        request.onsuccess = function(event, callback) {
+            db = event.target.result;
+            if (callback &amp;&amp; (typeof callback === 'function')) {
+                callback(db)
+            }
+            if (db != null) {
+                console.log('数据库打开成功')
+            }
+        }
+
+        // 创建新的储存空间（当第一次创建数据库、或者数据库版本号变化时会触发）
+        request.onupgradeneeded = function(event) {
+            console.log('数据库版本变化')
+            console.log('创建数据库' + dbname)
+            // 拿到数据库连接的结果对象
+            db = event.target.result;
+
+            // 判断当前数据库中表（对象仓库）是否存在（注意此处是数据库的表名，不是数据库名）
+            if (!db.objectStoreNames.contains(objectStoreName)) {
+                // 创建对象仓库，并设置主键自增
+                var objectStore = db.createObjectStore(objectStoreName, {
+                    keyPath: 'id',
+                    autoIncrement: true
+                })
+
+                // 创建索引（根据需要创建）
+                objectStore.createIndex('name', 'name', {
+                    unique: false
+                })
+
+                objectStore.createIndex('age', 'age', {
+                    unique: false
+                })
+
+                objectStore.createIndex('sex', 'sex', {
+                    unique: false
+                })
+            }
+        }
+
+    },
+
+    // 删除数据库
+    deleteDB: function(dbname, callback) {
+        // 删除数据库
+        var deleteQuest = this.indexedDB.deleteDatabase(dbname);
+        
+        // 成功删除
+        deleteQuest.onerror = function() {
+            console.log('删除数据库出错' + event.target.message)
+        }
+
+        // 删除失败 
+        deleteQuest.onsuccess = function() {
+            if (callback &amp;&amp; (typeof callback === 'function')) {
+                callback()
+            }
+            console.log('删除数据库成功')
+        }
+    },
+
+    // 关闭数据库 
+    closeDB: function() {
+        if (db != null) {
+            db.close()
+            db = null
+            console.log("数据库关闭")
+        }
+    },
+
+    // 添加数据
+    // 对象仓库（表名）,传入的参数
+    add: function(objectStoreName, argument) {
+        if (db != null) {
+            console.log(db)
+            
+            // 执行事务，添加数据到对象仓库（表）
+            var request = db.transaction([objectStoreName], 'readwrite')
+                .objectStore(objectStoreName)
+                .add(argument);
+
+            request.onsuccess = function(event) {
+                console.log('数据写入成功');
+            };
+
+            request.onerror = function(event) {
+                console.log('数据写入失败');
+            }
+        }
+    },
+
+    // 获取数据
+    // 对象仓库（表名）
+    get: function(objectStoreName) {
+        if (db != null){
+            console.log(db)
+            
+            // 执行事务，从对象仓库（表）中获取所有数据
+            var request = db.transaction([objectStoreName], 'readwrite')
+                .objectStore(objectStoreName).getAll()
+            
+            // 数据获取失败
+            request.onerror = function(event) {
+                console.log('事务失败')
+            }
+            
+            //数据获取成功
+            request.onsuccess = function(event) {
+                if (request.result) {
+                    // 打印所有数据
+                    console.log(request.result)
+                } else {
+                    console.log('未获得数据记录')
+                }
+            };
+        }
+    },
+    
+    // 遍历数据
+    // 对象仓库（表名）
+    foreach: function(objectStoreName) {
+        if (db != null){
+            console.log(db)
+            
+            // 执行事务，从对象仓库（表）中获取所有数据
+            var request = db.transaction([objectStoreName], 'readwrite')
+                .objectStore(objectStoreName).openCursor()
+            
+            // 数据获取失败
+            request.onerror = function(event) {
+                console.log('事务失败')
+            }
+            
+            //数据获取成功
+            request.onsuccess = function(event) {
+                let cursor = request.result
+                if (cursor) {
+                    // 遍历打印所有数据
+                    console.log(cursor)
+                    console.log(cursor.key)
+                    console.log(cursor.value.name)
+                    console.log(cursor.value.age)
+                    console.log(cursor.value.sex)
+                    cursor.continue()
+                } else {
+                    console.log('未获得数据记录')
+                }
+            };
+        }
+    },
+    
+    // 更新数据(若数据存在，则覆盖之前的数据，若数据不存在，则新增一个值)
+    // 对象仓库（表名）
+    update: function(objectStoreName, argument) {
+        if (db != null) {
+            console.log(db)
+            
+            // 执行事务，添加数据到对象仓库（表）
+            var request = db.transaction([objectStoreName], 'readwrite')
+                .objectStore(objectStoreName)
+                .put(argument);
+
+            request.onsuccess = function(event) {
+                console.log('数据更新成功');
+            };
+
+            request.onerror = function(event) {
+                console.log('数据更新失败');
+            }
+        }
+    },
+    
+    // 删除数据(若数据不存在，则不会执行删除操作)
+    // 对象仓库（表名）
+    remove: function(objectStoreName, index) {
+        if (db != null){
+            console.log(db)
+            
+            // 执行事务，从对象仓库（表）中获取所有数据
+            var request = db.transaction([objectStoreName], 'readwrite')
+                .objectStore(objectStoreName).delete(index)
+            
+            // 数据获取失败
+            request.onerror = function(event) {
+                console.log('事务失败')
+            }
+            
+            //数据获取成功
+            request.onsuccess = function(event) {
+                if (request.result) {
+                    // 遍历打印所有数据
+                    console.log(request.result)
+                } else {
+                    console.log('未获得数据记录')
+                }
+            };
+        }
+    },
+    
+    // 根据索引查值(若数据不存在，返回一个[]数组)
+    // 对象仓库（表名）
+    searchFromIndex: function(objectStoreName, index, data) {
+        if (db != null){
+            console.log(db)
+            
+            // 执行事务，从对象仓库（表）中获取所有数据
+            var request = db.transaction([objectStoreName], 'readonly')
+                .objectStore(objectStoreName).index(index).getAll(data)
+            
+            // 数据获取失败
+            request.onerror = function(event) {
+                console.log('事务失败')
+            }
+            
+            //数据获取成功
+            request.onsuccess = function(event) {
+                if (request.result) {
+                    // 遍历打印所有数据
+                    console.log(request.result)
+                } else {
+                    console.log('未获得数据记录')
+                }
+            };
+        }
+    }
+}</span></pre>
+</div>
+<p>（3）截图：<br />　　step1：初始化页面。</p>
+<p><img src="./images/IndexedDB1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　&nbsp;step2：点击 打开数据库。</p>
+<p><img src="./images/IndexedDB2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　step3：点击添加按钮</p>
+<p><img src="./images/IndexedDB3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　step4：改变数据后，再次添加</p>
+<p><img src="./images/IndexedDB4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　step5：获取数据（控制台打印）</p>
+<p><img src="./images/IndexedDB5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　step6：点击遍历数据按钮</p>
+<p><img src="./images/IndexedDB6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　</p>
+<p>　　step7：更新数据<br />　　　　以更新id=4为例，此时数据不存在，会新增。</p>
+<p><img src="./images/IndexedDB7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　当修改数据后，再次更新，则会覆盖原数据。</p>
+<p><img src="./images/IndexedDB8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　step8：根据 name 查询所有 为 tom 的数据。</p>
+<p><img src="./images/IndexedDB9.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　</p>
+<p>　　step9：删除第4条数据（根据主键来删，若主键不存在，则不会删除）。<br />　　　　先获取当前数据。</p>
+<p><img src="./images/IndexedDB10.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　执行删除后，会删除id=4（id是主键）的数据。</p>
+<p><img src="./images/IndexedDB11.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　</p>
+<p>　　step10：关闭、删除数据库<br />　　　　若先点击 删除按钮，再点击关闭按钮，则删除按钮会等关闭按钮执行后再执行。</p>
+<p><img src="./images/IndexedDB12.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　此时，test数据库被删除。</p>
+<p><img src="./images/IndexedDB13.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　</p>
+<p>（4）创建、打开数据库<br />　　需使用 indexedDB.open() 方法，返回一个 IDBRequest 对象，并可能触发三个事件（onsuccess 、onerror、onupgradeneeded    ）。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">【格式：】
+    var request = window.indexedDB.open(databaseName, version);
+
+【其中：】
+    databaseName ：为字符串，表示数据库名，不可省略。
+    version ： 为当前数据库版本，当数据库不存在时，会创建数据库，且默认为1。
+        当数据库存在时，若 version 大于当前数据库版本，则会触发数据库升级操作。
+        当version 省略时，默认为当前数据库版本。
+        
+【可能会触发的事件】
+    onsuccess 表示成功打开数据库。
+    onerror  表示打开数据库失败。
+    onupgradeneeded  表示数据库升级事件。当数据库不存在，或者数据库指定版本号大于当前版本时触发。
+    
+    
+【代码：】
+// 打开数据库
+// dbname指的是 数据库名， version 指的是 版本号
+openDB(dbname, objectStoreName, version) {
+    // 获取当前数据库版本号
+    var version = version || 1
+
+    // 获取数据库连接，若数据库不存在，会创建数据库（异步处理，根据情况自动触发下面三个事件）
+    var request = this.indexedDB.open(dbname, version)
+
+    // 获取数据库连接失败
+    request.onerror = function(event) {
+        console.log('IndexedDB数据库打开错误')
+    }
+
+    // 获取数据库连接成功 
+    request.onsuccess = function(event, callback) {
+        db = event.target.result;
+        if (callback &amp;&amp; (typeof callback === 'function')) {
+            callback(db)
+        }
+        if (db != null) {
+            console.log('数据库打开成功')
+        }
+    }
+
+    // 创建新的储存空间（当第一次创建数据库、或者数据库版本号变化时会触发）
+    request.onupgradeneeded = function(event) {
+        console.log('数据库版本变化')
+        console.log('创建数据库' + dbname)
+        // 拿到数据库连接的结果对象
+        db = event.target.result;
+
+        // 判断当前数据库中表（对象仓库）是否存在（注意此处是数据库的表名，不是数据库名）
+        if (!db.objectStoreNames.contains(objectStoreName)) {
+            // 创建对象仓库，并设置主键自增
+            var objectStore = db.createObjectStore(objectStoreName, {
+                keyPath: 'id',
+                autoIncrement: true
+            })
+
+            // 创建索引（根据需要创建）
+            objectStore.createIndex('name', 'name', {
+                unique: false
+            })
+
+            objectStore.createIndex('age', 'age', {
+                unique: false
+            })
+
+            objectStore.createIndex('sex', 'sex', {
+                unique: false
+            })
+        }
+    }
+
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>（5）添加数据<br />　　向对象仓库（表）中写入数据记录。需要通过事务完成。<br />　　注意：</p>
+<p>　　　　db之前已经声明过全局了，这里直接用（实际开发中应该不允许直接声明，可以通过回调函数来实现，有时间再补充）。<br />　　创建一个事务需要根据 对象仓库名（表名）以及操作模式（readwrite， readonly），创建事务后，通过IDBTransaction.objectStore(name)方法，拿到 IDBObjectStore 对象，再通过表格对象的add()方法，向表格写入一条记录。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">// 添加数据
+// 对象仓库（表名）,传入的参数
+add: function(objectStoreName, argument) {
+    if (db != null) {
+        console.log(db)
+        
+        // 执行事务，添加数据到对象仓库（表）
+        var request = db.transaction([objectStoreName], 'readwrite')
+            .objectStore(objectStoreName)
+            .add(argument);
+
+        request.onsuccess = function(event) {
+            console.log('数据写入成功');
+        };
+
+        request.onerror = function(event) {
+            console.log('数据写入失败');
+        }
+    }
+},</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>（6）读取数据<br />　　需要事务来操作。<br />　　可以objectStore.get(index)、objectStore.getAll()方法用于读取数据，参数index是主键的值。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">// 获取数据
+// 对象仓库（表名）
+get: function(objectStoreName) {
+    if (db != null){
+        console.log(db)
+        
+        // 执行事务，从对象仓库（表）中获取所有数据
+        var request = db.transaction([objectStoreName], 'readwrite')
+            .objectStore(objectStoreName).getAll()
+        
+        // 数据获取失败
+        request.onerror = function(event) {
+            console.log('事务失败')
+        }
+        
+        //数据获取成功
+        request.onsuccess = function(event) {
+            if (request.result) {
+                // 打印所有数据
+                console.log(request.result)
+            } else {
+                console.log('未获得数据记录')
+            }
+        };
+    }
+},</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>（7）遍历数据 <br />　　需要事务来操作。<br />　　遍历数据表格的所有记录，要使用指针对象 IDBCursor，使用objectStore.openCursor()获取。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">// 遍历数据
+// 对象仓库（表名）
+foreach: function(objectStoreName) {
+    if (db != null){
+        console.log(db)
+        
+        // 执行事务，从对象仓库（表）中获取所有数据
+        var request = db.transaction([objectStoreName], 'readwrite')
+            .objectStore(objectStoreName).openCursor()
+        
+        // 数据获取失败
+        request.onerror = function(event) {
+            console.log('事务失败')
+        }
+        
+        //数据获取成功
+        request.onsuccess = function(event) {
+            let cursor = request.result
+            if (cursor) {
+                // 遍历打印所有数据
+                console.log(cursor)
+                console.log(cursor.key)
+                console.log(cursor.value.name)
+                console.log(cursor.value.age)
+                console.log(cursor.value.sex)
+                cursor.continue()
+            } else {
+                console.log('未获得数据记录')
+            }
+        };
+    }
+},</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>（8）更新数据<br />　　需要事务来操作。<br />　　使用IDBObjectStore.put(index)方法可以更新数据，若index存在则覆盖，否则新增一个值。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">// 更新数据(若数据存在，则覆盖之前的数据，若数据不存在，则新增一个值)
+// 对象仓库（表名）
+update: function(objectStoreName, argument) {
+    if (db != null) {
+        console.log(db)
+        
+        // 执行事务，添加数据到对象仓库（表）
+        var request = db.transaction([objectStoreName], 'readwrite')
+            .objectStore(objectStoreName)
+            .put(argument);
+
+        request.onsuccess = function(event) {
+            console.log('数据更新成功');
+        };
+
+        request.onerror = function(event) {
+            console.log('数据更新失败');
+        }
+    }
+},</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>（9）删除数据<br />　　需要事务来操作。<br />　　IDBObjectStore.delete(index)方法用于删除记录，参数index是主键的值。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">// 删除数据(若数据不存在，则不会执行删除操作)
+// 对象仓库（表名）
+remove: function(objectStoreName, index) {
+    if (db != null){
+        console.log(db)
+        
+        // 执行事务，从对象仓库（表）中获取所有数据
+        var request = db.transaction([objectStoreName], 'readwrite')
+            .objectStore(objectStoreName).delete(index)
+        
+        // 数据获取失败
+        request.onerror = function(event) {
+            console.log('事务失败')
+        }
+        
+        //数据获取成功
+        request.onsuccess = function(event) {
+            if (request.result) {
+                // 遍历打印所有数据
+                console.log(request.result)
+            } else {
+                console.log('未获得数据记录')
+            }
+        };
+    }
+},</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>（10）使用索引<br />　　需要事务来操作。<br />　　根据建立的索引可以很方便的查值。IDBObjectStore.index(index)方法用于索引查找，参数index是索引的值。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">// 根据索引查值(若数据不存在，返回一个[]数组)
+// 对象仓库（表名）
+searchFromIndex: function(objectStoreName, index, data) {
+    if (db != null){
+        console.log(db)
+        
+        // 执行事务，从对象仓库（表）中获取所有数据
+        var request = db.transaction([objectStoreName], 'readonly')
+            .objectStore(objectStoreName).index(index).getAll(data)
+        
+        // 数据获取失败
+        request.onerror = function(event) {
+            console.log('事务失败')
+        }
+        
+        //数据获取成功
+        request.onsuccess = function(event) {
+            if (request.result) {
+                // 遍历打印所有数据
+                console.log(request.result)
+            } else {
+                console.log('未获得数据记录')
+            }
+        };
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>（11）删除数据库（会等事务结束再执行）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">// 删除数据库
+deleteDB: function(dbname, callback) {
+    // 删除数据库
+    var deleteQuest = this.indexedDB.deleteDatabase(dbname);
+    
+    // 成功删除
+    deleteQuest.onerror = function() {
+        console.log('删除数据库出错' + event.target.message)
+    }
+
+    // 删除失败 
+    deleteQuest.onsuccess = function() {
+        if (callback &amp;&amp; (typeof callback === 'function')) {
+            callback()
+        }
+        console.log('删除数据库成功')
+    }
+},</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>（12）关闭数据库</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">// 关闭数据库 
+closeDB: function() {
+    if (db != null) {
+        db.close()
+        db = null
+        console.log("数据库关闭")
+    }
+},</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2>二、indexedDB常用方法</h2>
+<p>　　浏览器原生提供indexedDB对象，作为开发者的操作接口。</p>
+<h3>1、indexedDB.open()</h3>
+<p>　　用于打开数据库。是一个异步操作，但是会立即返回一个IDBOpenDBRequest 对象。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">打开一个名为test、版本为1的数据库。如果该数据库不存在，则会新建该数据库。
+var openRequest = window.indexedDB.open('test', 1);
+
+触发事件：
+    success：打开成功。
+    error：打开失败。
+    upgradeneeded：第一次打开该数据库，或者数据库版本发生变化。
+
+在success中，可以通过openRequest.result属性拿到已经打开的IndexedDB数据库对象。
+在upgradeneeded中，可以传入event，通过 event.target.result 拿到已经打开的IndexedDB数据库对象。</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>2、indexedDB.deleteDatabase()</h3>
+<p>　　用于删除数据库，是一个异步操作，但会立刻返回一个IDBOpenDBRequest对象。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">删除名为test的数据库。若数据库不存在，不会报错。
+var DBDeleteRequest = window.indexedDB.deleteDatabase('test');
+
+触发事件：
+    success：删除成功。
+    error：删除失败。</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>未完待续。。。</p>
+<p><br />参考地址：<br />　　https://wangdoc.com/javascript/bom/indexeddb.html</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

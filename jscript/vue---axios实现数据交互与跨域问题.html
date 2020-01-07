@@ -1,0 +1,439 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue---axios实现数据交互与跨域问题' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue---axios实现数据交互与跨域问题</center></div><div class='banquan'>原文出处:本文由博客园博主Sunzz提供。<br/>
+原文连接:https://www.cnblogs.com/Sunzz/p/10791438.html</div><br>
+    <h1 id="通过axios实现数据请求">1. 通过axios实现数据请求</h1>
+<p>vue.js默认没有提供ajax功能的。</p>
+<p>所以使用vue的时候，一般都会使用axios的插件来实现ajax与后端服务器的数据交互。</p>
+<p>注意，axios本质上就是javascript的ajax封装，所以会被同源策略限制。</p>
+<p>下载地址：</p>
+<pre><code><code>https://unpkg.com/axios@0.18.0/dist/axios.js
+https://unpkg.com/axios@0.18.0/dist/axios.min.js
+</code></pre>
+<p>axios提供发送请求的常用方法有两个：axios.get() 和 axios.post() 。</p>
+<p>增 post</p>
+<p>删 delete</p>
+<p>改 put</p>
+<p>查 get</p>
+<pre class="javascript"><code>    // 发送get请求
+    // 参数1: 必填，字符串，请求的数据接口的url地址，例如请求地址：http://www.baidu.com?id=200
+    // 参数2：可选，json对象，要提供给数据接口的参数
+    // 参数3：可选，json对象，请求头信息
+    axios.get(&#39;服务器的资源地址&#39;,{ // http://www.baidu.com
+        params:{
+            参数名:&#39;参数值&#39;, // id: 200,
+        }
+    
+    }).then(function (response) { // 请求成功以后的回调函数
+            console.log(&quot;请求成功&quot;);
+            console.log(response);
+    
+    }).catch(function (error) {   // 请求失败以后的回调函数
+            console.log(&quot;请求失败&quot;);
+            console.log(error.response);
+    });
+
+    // 发送post请求，参数和使用和axios.get()一样。
+    // 参数1: 必填，字符串，请求的数据接口的url地址
+    // 参数2：必填，json对象，要提供给数据接口的参数,如果没有参数，则必须使用{}
+    // 参数3：可选，json对象，请求头信息
+    axios.post(&#39;服务器的资源地址&#39;,{
+        username: &#39;xiaoming&#39;,
+        password: &#39;123456&#39;
+    },{
+        responseData:&quot;json&quot;,
+    })
+    .then(function (response) { // 请求成功以后的回调函数
+      console.log(response);
+    })
+    .catch(function (error) {   // 请求失败以后的回调函数
+      console.log(error);
+    });
+
+    
+    // b&#39;firstName=Fred&amp;lastName=Flintstone&#39;</code></pre>
+<h2 id="json">1.1 json</h2>
+<p>json是 JavaScript Object Notation 的首字母缩写，单词的意思是javascript对象表示法，这里说的json指的是类似于javascript对象的一种数据格式。</p>
+<p>json的作用：在不同的系统平台，或不同编程语言之间传递数据。</p>
+<h3 id="json数据的语法">1.1.1 json数据的语法</h3>
+<p>json数据对象类似于JavaScript中的对象，但是它的键对应的值里面是没有函数方法的，值可以是普通变量，不支持undefined，值还可以是数组或者json对象。</p>
+<pre class="json"><code>// json数据的对象格式：
+{
+    &quot;name&quot;:&quot;tom&quot;,
+    &quot;age&quot;:18
+}
+
+// json数据的数组格式：
+[&quot;tom&quot;,18,&quot;programmer&quot;]</code></pre>
+<p>复杂的json格式数据可以包含对象和数组的写法。</p>
+<pre class="json"><code>{
+  &quot;name&quot;:&quot;小明&quot;,
+  &quot;age&quot;:200,
+  &quot;fav&quot;:[&quot;code&quot;,&quot;eat&quot;,&quot;swim&quot;,&quot;read&quot;],
+  &quot;son&quot;:{
+    &quot;name&quot;:&quot;小小明&quot;,
+    &quot;age&quot;:100,
+    &quot;lve&quot;:[&quot;code&quot;,&quot;eat&quot;],
+  }
+}
+
+// 数组结构也可以作为json传输数据。</code></pre>
+<p>json数据可以保存在.json文件中，一般里面就只有一个json对象。</p>
+<p>总结：</p>
+<pre class="json"><code>1. json文件的后缀是.json
+2. json文件一般保存一个单一的json数据
+3. json数据的属性不能是方法或者undefined，属性值只能：数值、字符串、json和数组
+4. json数据只使用双引号、每一个属性成员之间使用逗号隔开，并且最后一个成员没有逗号。
+   {
+      &quot;name&quot;:&quot;小明&quot;,
+      &quot;age&quot;:200,
+      &quot;fav&quot;:[&quot;code&quot;,&quot;eat&quot;,&quot;swim&quot;,&quot;read&quot;],
+      &quot;son&quot;:{
+        &quot;name&quot;:&quot;小小明&quot;,
+        &quot;age&quot;:100
+      }
+    }</code></pre>
+<p>工具：postman可以用于测试开发的数据接口。</p>
+<h3 id="js中提供的json数据转换方法">1.1.2 js中提供的json数据转换方法</h3>
+<p>javascript提供了一个JSON对象来操作json数据的数据转换.</p>
+<table>
+<thead>
+<tr class="header">
+<th>方法</th>
+<th>参数</th>
+<th>返回值</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>stringify</td>
+<td>json对象</td>
+<td>字符串</td>
+<td>json对象转成字符串</td>
+</tr>
+<tr class="even">
+<td>parse</td>
+<td>字符串</td>
+<td>json对象</td>
+<td>字符串格式的json数据转成json对象</td>
+</tr>
+</tbody>
+</table>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;script&gt;
+    // json语法
+    let humen = {
+        &quot;username&quot;:&quot;xiaohui&quot;,
+        &quot;password&quot;:&quot;1234567&quot;,
+        &quot;age&quot;:20
+    };
+
+    console.log(humen);
+    console.log(typeof humen);
+
+    // JSON对象提供对json格式数据的转换功能
+    // stringify(json对象)  # 用于把json转换成字符串
+    let result = JSON.stringify(humen);
+    console.log(result);
+    console.log(typeof result);
+
+    // parse(字符串类型的json数据)  # 用于把字符串转成json对象
+    let json_str = &#39;{&quot;password&quot;:&quot;1123&quot;,&quot;age&quot;:20,&quot;name&quot;:&quot;xiaobai&quot;}&#39;;
+    console.log(json_str)
+    console.log(typeof json_str)
+
+    let json_obj = JSON.parse(json_str);
+    console.log(json_obj);
+    console.log(typeof json_obj)
+
+    console.log(json_obj.age)
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<h2 id="ajax">1.2 ajax</h2>
+<p>ajax，一般中文称之为：&quot;阿贾克斯&quot;，是英文 “Async Javascript And Xml”的简写，译作：异步js和xml数据传输数据。</p>
+<p>ajax的作用： ajax可以让js代替浏览器向后端程序发送http请求，与后端通信，在用户不知道的情况下操作数据和信息，从而实现页面局部刷新数据/无刷新更新数据。</p>
+<p>所以开发中ajax是很常用的技术，主要用于操作后端提供的<code>数据接口</code>，从而实现网站的<code>前后端分离</code>。</p>
+<p>ajax技术的原理是实例化js的XMLHttpRequest对象，使用此对象提供的内置方法就可以与后端进行数据通信。</p>
+<h3 id="数据接口">1.2.1 数据接口</h3>
+<p>数据接口，也叫api接口，表示<code>后端提供</code>操作数据/功能的url地址给客户端使用。</p>
+<p>客户端通过发起请求向服务端提供的url地址申请操作数据【操作一般：增删查改】</p>
+<p>同时在工作中，大部分数据接口都不是手写，而是通过函数库/框架来生成。</p>
+<h3 id="ajax的使用">1.2.3 ajax的使用</h3>
+<p>ajax的使用必须与服务端程序配合使用，但是目前我们先学习ajax的使用，所以暂时先不涉及到服务端python代码的编写。因此，我们可以使用别人写好的数据接口进行调用。</p>
+<p>jQuery将ajax封装成了一个函数$.ajax()，我们可以直接用这个函数来执行ajax请求。</p>
+<table>
+<thead>
+<tr class="header">
+<th>接口</th>
+<th>地址</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>天气接口</td>
+<td>http://wthrcdn.etouch.cn/weather_mini?city=城市名称</td>
+</tr>
+<tr class="even">
+<td>音乐接口搜索</td>
+<td>http://tingapi.ting.baidu.com/v1/restserver/ting?method=baidu.ting.search.catalogSug&amp;query=歌曲标题</td>
+</tr>
+<tr class="odd">
+<td>音乐信息接口</td>
+<td>http://tingapi.ting.baidu.com/v1/restserver/ting?method=baidu.ting.song.play&amp;songid=音乐ID</td>
+</tr>
+</tbody>
+</table>
+<p>编写代码获取接口提供的数据：</p>
+<p>jQ版本</p>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script src=&quot;js/jquery-1.12.4.js&quot;&gt;&lt;/script&gt;
+    &lt;script&gt;
+    $(function(){
+        $(&quot;#btn&quot;).on(&quot;click&quot;,function(){
+            $.ajax({
+                // 后端程序的url地址
+                url: &#39;http://wthrcdn.etouch.cn/weather_mini&#39;,
+                // 也可以使用method，提交数据的方式，默认是&#39;GET&#39;，常用的还有&#39;POST&#39;
+                type: &#39;get&#39;, 
+                dataType: &#39;json&#39;,  // 返回的数据格式，常用的有是&#39;json&#39;,&#39;html&#39;,&quot;jsonp&quot;
+                data:{ // 设置发送给服务器的数据，如果是get请求，也可以写在url地址的?后面
+                    &quot;city&quot;:&#39;北京&#39;
+                }
+            })
+            .done(function(resp) {     // 请求成功以后的操作
+                console.log(resp);
+            })
+            .fail(function(error) {    // 请求失败以后的操作
+                console.log(error);
+            });
+        });
+    })
+    &lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;button id=&quot;btn&quot;&gt;点击获取数据&lt;/button&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>vue版本：</p>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script src=&quot;js/vue.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;js/axios.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id=&quot;app&quot;&gt;
+        &lt;input type=&quot;text&quot; v-model=&quot;city&quot;&gt;
+        &lt;button @click=&quot;get_weather&quot;&gt;点击获取天气&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;script&gt;
+        let vm = new Vue({
+            el:&quot;#app&quot;,
+            data:{
+                city:&quot;&quot;,
+            },
+            methods:{
+                get_weather(){
+                    // http://wthrcdn.etouch.cn/weather_mini?city=城市名称
+                    axios.get(&quot;http://wthrcdn.etouch.cn/weather_mini?city=&quot;+this.city)
+                        .then(response=&gt;{
+                            console.log(response);
+
+                        }).catch(error=&gt;{
+                            console.log(error.response)
+                    });
+                }
+            }
+        })
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>总结：</p>
+<pre class="javascript"><code>1. 发送ajax请求，要通过$.ajax()，参数是对象，里面有固定的参数名称。
+   $.ajax({
+     &quot;url&quot;:&quot;数据接口url地址&quot;,
+     &quot;method&quot;:&quot;http请求方式，前端只支持get和post&quot;,
+     &quot;dataType&quot;:&quot;设置服务器返回的数据格式，常用的json，html，jsonp，默认值就是json&quot;,
+     // 要发送给后端的数据参数，post时，数据必须写在data，get可以写在data,也可以跟在地址栏?号后面
+     &quot;data&quot;:{
+       &quot;数据名称&quot;:&quot;数据值&quot;,
+     }
+   }).then(function(resp){ // ajax请求数据成功时会自动调用then方法的匿名函数
+     console.log( resp ); // 服务端返回的数据
+   }).fail(function(error){ // ajax请求数据失败时会自动调用fail方法的匿名函数
+     console.log( error );
+   });
+   
+2. ajax的使用往往配合事件/钩子操作进行调用。
+</code></pre>
+<p>jQuery还提供了$.get 和 $post简写$.ajax的操作。</p>
+<pre class="javascript"><code>// 发送get请求
+// 参数1：数据接口的请求地址
+// 参数2：发送给接口地址的数据参数
+// 参数3：ajax请求成功以后，调用的匿名函数，匿名函数的第一个参数还是服务端返回的数据
+// 参数4：设置服务端返回的数据格式，告诉给jQuery
+$.get(&quot;test.php&quot;, { &quot;func&quot;: &quot;getNameAndTime&quot; },
+   function(data){
+     alert(data.name); // John
+     console.log(data.time); //  2pm
+   }, &quot;json&quot;);
+
+// 发送post请求
+// 参数1：数据接口的请求地址
+// 参数2：发送给接口地址的数据参数
+// 参数3：ajax请求成功以后，调用的匿名函数，匿名函数的第一个参数还是服务端返回的数据
+// 参数4：设置服务端返回的数据格式，告诉给jQuery
+$.post(&quot;test.php&quot;, { &quot;func&quot;: &quot;getNameAndTime&quot; },
+   function(data){
+     alert(data.name); // John
+     console.log(data.time); //  2pm
+   }, &quot;json&quot;);
+   </code></pre>
+<h3 id="同源策略">1.2.4 同源策略</h3>
+<p>同源策略，是浏览器为了保护用户信息安全的一种安全机制。所谓的同源就是指代通信的两个地址（例如服务端接口地址与浏览器客户端页面地址）之间比较，是否协议、域名(IP)和端口相同。不同源的客户端脚本[javascript]在没有明确授权的情况下，没有权限读写对方信息。</p>
+<p>ajax本质上还是javascript，是运行在浏览器中的脚本语言，所以会被受到浏览器的同源策略所限制。</p>
+<table>
+<thead>
+<tr class="header">
+<th>前端地址：<code>http://www.oldboy.cn/index.html</code></th>
+<th>是否同源</th>
+<th>原因</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>http://www.oldboy.cn/user/login.html</code></td>
+<td>是</td>
+<td>协议、域名、端口相同</td>
+</tr>
+<tr class="even">
+<td><code>http://www.oldboy.cn/about.html</code></td>
+<td>是</td>
+<td>协议、域名、端口相同</td>
+</tr>
+<tr class="odd">
+<td><code>https://www.oldboy.cn/user/login.html</code></td>
+<td>否</td>
+<td>协议不同 ( https和http )</td>
+</tr>
+<tr class="even">
+<td><code>http:/www.oldboy.cn:5000/user/login.html</code></td>
+<td>否</td>
+<td>端口 不同( 5000和80)</td>
+</tr>
+<tr class="odd">
+<td><code>http://bbs.oldboy.cn/user/login.html</code></td>
+<td>否</td>
+<td>域名不同 ( bbs和www )</td>
+</tr>
+</tbody>
+</table>
+<p>同源策略针对ajax的拦截，代码：</p>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script src=&quot;js/vue.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;js/axios.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id=&quot;app&quot;&gt;
+        &lt;button @click=&quot;get_music&quot;&gt;点击获取天气&lt;/button&gt;
+    &lt;/div&gt;
+    &lt;script&gt;
+        let vm = new Vue({
+            el:&quot;#app&quot;,
+            data:{},
+            methods:{
+                get_music(){
+                    axios.get(&quot;http://tingapi.ting.baidu.com/v1/restserver/ting?method=baidu.ting.search.catalogSug&amp;query=我的中国心&quot;)
+                        .then(response=&gt;{
+                            console.log(response);
+
+                        }).catch(error=&gt;{
+                            console.log(error.response)
+                    });
+                }
+            }
+        })
+    &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>上面代码运行错误如下：</p>
+<pre><code><code>Access to XMLHttpRequest at &#39;http://tingapi.ting.baidu.com/v1/restserver/ting?method=baidu.ting.search.catalogSug&amp;query=%E6%88%91%E7%9A%84%E4%B8%AD%E5%9B%BD%E5%BF%83&#39; from origin &#39;http://localhost:63342&#39; has been blocked by CORS policy: No &#39;Access-Control-Allow-Origin&#39; header is present on the requested resource.</code></pre>
+<p>上面错误，关键词：Access-Control-Allow-Origin</p>
+<p>只要出现这个关键词，就是访问受限。出现同源策略的拦截问题。</p>
+<h3 id="ajax跨域跨源方案之cors">1.2.5 ajax跨域(跨源)方案之CORS</h3>
+<p>​ CORS是一个W3C标准，全称是&quot;跨域资源共享&quot;，它允许浏览器向跨源的后端服务器发出ajax请求，从而克服了AJAX只能同源使用的限制。</p>
+<p>​ 实现CORS主要依靠<mark>后端服务器中响应数据中设置响应头信息返回</mark>的。</p>
+<p>django的视图</p>
+<p>def post(request):</p>
+<p>​ response = new Response()</p>
+<p>​ response .set_header(&quot;Access-Control-Allow-Origin&quot;,&quot;*&quot;)</p>
+<p>​ return response;</p>
+<pre><code><code>// 在响应行信息里面设置以下内容：
+Access-Control-Allow-Origin: ajax所在的域名地址
+
+Access-Control-Allow-Origin: www.oldboy.cn  # 表示只允许www.oldboy.cn域名的客户端的ajax跨域访问
+
+// * 表示任意源，表示允许任意源下的客户端的ajax都可以访问当前服务端信息
+Access-Control-Allow-Origin: *
+
+</code></pre>
+<p><img src="./images/vue---axios实现数据交互与跨域问题0.png" /></p>
+<p>总结：</p>
+<pre><code><code>0. 同源策略：浏览器的一种保护用户数据的一种安全机制。
+   浏览器会限制脚本语法不能跨源访问其他源的数据地址。
+   同源：判断两个通信的地址之间，是否协议，域名[IP]，端口一致。
+   
+   ajax：  http://127.0.0.1/index.html
+   api数据接口：  http://localhost/index
+   
+   这两个是同源么？不是同源的。是否同源的判断依据不会根据电脑来判断，而是通过协议、域名、端口的字符串是否来判断。
+   
+1. ajax默认情况下会受到同源策略的影响，一旦受到影响会报错误如下：
+     No &#39;Access-Control-Allow-Origin&#39; header is present on the requested resource
+
+2. 解决ajax只能同源访问数据接口的方式：
+   1. 在服务端的响应行中设置：
+      Access-Control-Allow-Origin: 允许访问的域名地址
+   2. jsonp
+   3. 是否服务端代理
+      思路：通过python来请求对应的服务器接口，获取到数据以后，</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

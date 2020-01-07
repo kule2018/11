@@ -1,0 +1,164 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue+ElementUI项目使用webpack输出MPA' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue+ElementUI项目使用webpack输出MPA</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11415211.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-需求分析">一. 需求分析</a></li>
+        <li><a href="#二.-原方案分析">二. 原方案分析</a></li>
+        <li><a href="#三.-多页面改造3步走">三. 多页面改造3步走</a></li>
+        <li><a href="#四.-小结">四. 小结</a></li>
+        </ul>
+    </div>
+</div>
+<blockquote>
+<p>示例代码托管在：<a href="http://www.github.com/dashnowords/blogs" class="uri">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<h2 id="一.-需求分析">一. 需求分析</h2>
+<p>为另一个项目提供可嵌入的功能单页，大部分页面使用时都是独立功能页，个别页面带有左侧边栏（相当于3-4个页面的整合形态），由于资源定位地址的限定，每个页面打包为单页后，入口<code>html</code>文件需要定制命名，且脚本和样式文件需要放在指定的路径下，公共资源地址也必须替换成特殊字符以适配母系统的调用逻辑（比如下面结构中应用<code>jquery.min.js</code>的路径可能是<code>{{publicRoot}}/{{publicLib}}/jquery.minjs</code>）。假设原工程中拥有AB这2个旧页面，现在需要开发CDE这3个页面，目录结构要求如下：</p>
+<p><img src="./images/Vue+ElementUI项目使用webpack输出MPA0.png" /></p>
+<p>蓝色部分为旧资源，绿色部分为新开发需求。</p>
+<h2 id="二.-原方案分析">二. 原方案分析</h2>
+<p>原方案采用<code>Vue+ElementUI</code>进行开发，构建过程基本是零配置的，开发效率非常高，页面风格也统一，但零配置的构建过程只能生成<code>SPA</code>模式的应用，所以原方案的做法是：</p>
+<ol>
+<li><p>将构建过程中需要定制的量提取到<code>config.js</code>文件中进行统一管理，大致形式如下：</p>
+<pre><code><code>//config.js
+module.exports = {
+    A:{
+        publicPath:&#39;{{publicRoot}}/{{publicLib}}&#39;
+        prodFileName:&#39;A.html&#39;,
+        entryKey:&#39;public/A&#39;,
+        entryPath:&#39;public/A/A.js&#39;
+    },
+    B:{
+        //...
+    }
+    //...
+}</code></pre></li>
+<li><p>开发过程中使用统一的路由文件<code>router.js</code>，打包过程中在<code>main.js</code>中引用对应页面的<code>XX.router.spa.js</code>作为路由，而将其他页面注释掉，打包时传入命令行参数<code>--key=XXX</code>,<code>key</code>值在打包脚本中被解析后从<code>config.js</code>中取出打包需要的设置参数，然后将目标页面打包为独立页面，其他页面虽然也在工程中，但并不参与打包。</p>
+<pre><code><code>// 入口文件src/main.js
+import router from &#39;./pages/C/router.spa&#39;;
+//import router from &#39;./pages/D/router.spa&#39;;
+//import router from &#39;./pages/E/router.spa&#39;;</code></pre></li>
+</ol>
+<p>上述打包过程在使用中出现了很多问题：</p>
+<ul>
+<li>公共依赖没有剥离，<code>vue</code>和<code>ElementUI</code>会被打包进每一个单页面，使得每个打包出的<code>index.js</code>几乎有1.2MB大小，这种空间浪费是没必要的。</li>
+<li>公共样式没有形成独立文件，这使得每当有样式细节发生变更，就需要手动将每个页面逐一进行重新出包。</li>
+<li>页面增多后在<code>main.js</code>中会有很多独立路由，如果开发中进行了跨页面修改，很可能在<code>main.js</code>中激活的路由为C页面路由时，打包时<code>--key</code>参数的值却传成了<code>D</code>，这种情况并不会引起报错，但事实上构建结果确实错误的。</li>
+<li>由于入口文件保持<code>main.js</code>没有变化，所以在不同页面打包时，结果都输出在<code>dist</code>目录下，需要手动与母工程中的地址去匹配，操作繁琐。</li>
+</ul>
+<h2 id="三.-多页面改造3步走">三. 多页面改造3步走</h2>
+<p>上面的问题实际上都是因为原方案将一个<strong>多页面开发需求</strong>按照<strong>单页面应用</strong>来实现而造成的，需要对自动化构建工程进行一些定制。</p>
+<p><strong>1.分离webpack配置</strong></p>
+<p>本例中开发环境和最终打包的主要差异在于路由上，开发中由于可能需要进行跨页面开发，可以使用单入口和独立路由，而进行生产环境构建时则需要输出多页面应用，所以首先要做的就是将原本的<code>webpack.config.js</code>文件拆分为<code>webpack.base.js</code>,<code>webpack.dev.js</code>,<code>webpack.prod.js</code>三个文件，<code>webpack.base.js</code>为环境无差别的配置，然后依据构建模式的不同，使用<a href="https://github.com/survivejs/webpack-merge">webpack-merge</a>插件将环境相关的配置与基本配置进行合并：</p>
+<pre><code><code>/*webpack.base.js示例*/
+const argv = require(&#39;yargs-parser&#39;)(process.argv.slice(2));
+const env_short = argv.env.all ? &#39;all&#39; : argv.p ? &#39;prod&#39;:&#39;dev&#39;;
+const webpackConfig = require(`./config/webpack.${env_short}`);//根据-p属性加载webpack的dev配置或prod配置
+const merge = require(&#39;webpack-merge&#39;);
+
+//基本配置
+const baseConfig = {
+    //....
+}
+
+//输出合并后的配置
+module.exports = merge(baseConfig, webpackConfig);</code></pre>
+<p><code>webpack.dev.js</code>保持原本的SPA开发的设置即可满足需求。</p>
+<p><strong>2. 抽离外部引用</strong></p>
+<p>本例中较大的外部应用是<code>vue</code>和<code>ElementUI</code>，很多开发者一直使用自动化脚手架工具，并没有意识到这两个库作为外部依赖该如何引入工程。公共库的抽离需要在<code>webpack</code>配置中将其填写在<code>external</code>配置项中:</p>
+<pre><code><code>module.exports = {
+ //...
+  externals:{
+      vue:&#39;Vue&#39;,
+      &#39;element-ui&#39;:&#39;ELEMENT&#39;
+  },
+  //...
+}</code></pre>
+<p><code>key</code>为引用的模块名,<code>value</code>为这个模块引入后对应的全局命名，external配置项的含义是：<strong>请不要将这个模块注入编译后的JS文件里，对于源代码里出现的任何import/require这个模块的语句，请将它保留并根据模块化标准进行依赖方式适配</strong> 。</p>
+<blockquote>
+<p>Tips:</p>
+<ol>
+<li><code>Vue</code>做为外部依赖时有很多构建包，本例中因为使用<code>webpack</code>进行了构建，没有在线编译模板的需求，所以不需要引入完整的<code>Vue</code>,而只需要引入压缩后的只包含运行时的版本<code>vue.runtime.min.js</code>即可。</li>
+<li>外部引入库时需要注意命名，比如上例中的<strong>ELEMENT</strong>，开发者通常会填写为自己在代码中使用的<strong>ElementUI</strong>而引起报错，当不确定名称时，有个简单的办法就是找一个CDN的资源看一下，通常代码最开始都是<code>UMD</code>规范的固定结构，很容易看到关键词(如下图所示)。</li>
+</ol>
+</blockquote>
+<p><img src="./images/Vue+ElementUI项目使用webpack输出MPA1.png" /></p>
+<p>然后将资源的CDN地址或是本地公共库地址加入到<code>index.html</code>中，你可以使用模板语法，然后从<code>html-webpack-plugin</code>插件实例化时传入定制参数:</p>
+<pre class="html"><code>&lt;!--html文件模板--&gt;
+&lt;body&gt;
+  &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+  &lt;script src=&quot;&lt;%= htmlWebpackPlugin.options.vue_path %&gt;&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;&lt;%= htmlWebpackPlugin.options.elementUI_path %&gt;&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;&lt;%= htmlWebpackPlugin.options.tpl_entryPath %&gt;/index.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;</code></pre>
+<pre><code><code>//webpack.prod.js
+module.exports = {
+    //...
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: &#39;src/index.html&#39;,//生成index.html时依据的模板
+      filename: &#39;.....&#39;,
+      inject:false,
+      tpl_entryPath:&#39;....&#39;,
+      vue_path:&#39;.....&#39;,
+      elementUI_path:&#39;.....&#39;,
+    }),
+    //new BundleAnalyzerPlugin()
+  ],
+}</code></pre>
+<p>最终打包后生成的<code>index.html</code>文件大致如下：</p>
+<pre class="html"><code>&lt;body&gt;
+  &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+  &lt;script src=&quot;{{publicRoot}}/{{publicLib}}/vue.min.js&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;{{publicRoot}}/{{publicLib}}/element-ui.js&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;public/A/A.js&quot;&gt;&lt;/script&gt;
+&lt;/body&gt;</code></pre>
+<p>如果第三方库从本地加载，则需要将<code>/node_modules/element-ui/lib/index.js</code>和<code>/node_modules/vue/dist/vue.runtime.min.js</code>两个依赖文件拷贝到<code>lib</code>文件夹中的对应地址，这样访问<code>index.html</code>时就可以以外部依赖的形式将其加载进来。样式文件的剥离直接使用插件完成即可，webpack4以前的版本使用<code>extract-text-webpack-plugin</code>,从4.0版本后统一使用<code>mini-css-extract-plugin</code>。</p>
+<p><strong>3. 为webpack定制多入口</strong></p>
+<p>多入口的配置是多页面应用打包的关键，由于打包结果存在嵌套目录，所以需要对<code>entry</code>对象的键值进行一些定制，打包后的路径信息是直接通过<code>key</code>值来定制的，同时需要实例化多个<code>HtmlWebpackPlugin</code>来为每一个入口文件生成一个对应的<code>index.html</code>访问入口，定制参数可以在实例化时传入：</p>
+<pre><code><code>//webpack.prod.js
+module.exports = {
+    entry:{
+        &#39;C/index&#39;:&#39;./src/pages/C/C.entry.js&#39;,
+        &#39;DESK/D/index&#39;:&#39;./src/pages/D/D.entry.js&#39;,
+        &#39;DESK/E/index&#39;:&#39;./src/pages/E/E.entry.js&#39;
+    }
+    //...
+    plugins:[
+       new HtmlWebpackPlugin({...paramsC}),
+       new HtmlWebpackPlugin({...paramsD}),
+       new HtmlWebpackPlugin({...paramsE}),
+    ]
+}</code></pre>
+<p>当然你可以将<code>entry</code>或<code>plugins</code>数组的组装过程剥离到其他文件中，然后直接引用：</p>
+<p><img src="./images/Vue+ElementUI项目使用webpack输出MPA2.png" /></p>
+<p>当然，每个页面的入口文件<code>X.entry.js</code>相当于旧方案中<code>main.js</code>文件中移除被注释掉的未启用路由信息后剩余的部分，它足以支撑每个单页独立被访问。</p>
+<h2 id="四.-小结">四. 小结</h2>
+<p>经上述改造后，在<code>dist</code>目录中输出的结构和需求中<code>public</code>目录下的结构就保持一致了，而且每个页面的<code>index.js</code>文件也缩小到了100K左右。当然你也可以使用<code>node.js</code>去编写一些自动化脚本，将后续的替换过程也自动化，或者继续对<code>webpack</code>的打包过程进行优化，本文就不再赘述了。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

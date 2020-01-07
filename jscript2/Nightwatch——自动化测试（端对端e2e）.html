@@ -1,0 +1,316 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Nightwatch——自动化测试（端对端e2e）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Nightwatch——自动化测试（端对端e2e）</center></div><div class='banquan'>原文出处:本文由博客园博主桥南小院提供。<br/>
+原文连接:https://www.cnblogs.com/wheatCatcher/p/11342821.html</div><br>
+    <p><strong>背景：</strong></p>
+<p>前端页面模拟仿真操作，目的是避免每次更新相关内容重复之前的测试操作，减少不必要的时间投入，以及校验功能的可用性。但是目前<strong>元素定位</strong>是个问题（每次页面有修改都要重设某些元素定位）</p>
+<div class="tc">
+<h2>使用Nightwatch进行E2E测试</h2>
+</div>
+<div id="G_activeMain_content" class="tl">
+<p><img src="./images/Nightwatch——自动化测试（端对端e2e）0.png" alt="" /></p>
+<h2 id="h2-e2e-"><a name="E2E测试"></a>E2E测试</h2>
+<p>不同于行为驱动测试（BDD）和单元测试独立运行并使用模拟/存根，端到端测试将试着尽可能从用户的视角，对真实系统的访问行为进行仿真。对Web应用来说，这意味着需要打开浏览器、加载页面、运行JavaScript，以及进行与DOM交互等操作。<br />然而，项目在快速迭代中不可避免的要进行一遍又一遍测试，费时又费力，而且极有可能因人工失误忽略某些环节。再者，怎么能容忍一次搞定的事非要多次重复呢？不能忍啊。万能的程序员们总会有办法解决如此循环往复的重复性工作，于是，三年前的某个月黑风高的夜晚，Nightwatch诞生了（虽然这货最新的release版本是五天之前的v0.9.14）。</p>
+<h2 id="h2-nightwatch-"><a class="reference-link" name="Nightwatch 简介"></a>Nightwatch 简介</h2>
+<p>Nightwatch.js是一个基于Node.js的端到端(e2e)测试方案，使用<a href="https://www.w3.org/TR/webdriver/">W3C WebDriver API</a>，将Web应用测试自动化。它提供了简单的语法，支持使用JavaScript和CSS选择器，来编写运行在<a title="Selenium" href="http://www.seleniumhq.org/">Selenium</a>服务器上的端到端测试。</p>
+<p>Selenium相当于一个自动化的浏览器，是用于Web应用程序测试的工具。Selenium测试直接运行在浏览器中，就像真正的用户在操作一样。支持的浏览器包括IE、Mozilla Firefox、Mozilla Suite等（其实Selenium就是一个jar包）</p>
+<blockquote>
+<p><span style="color: #888888;">目前，Selenium是JavaScript的世界里验收测试方面最流行的工具之一，类似的还有PhantomJS。二者都有其独到的方法：Selenium使用其WebDriver API，而PhantomJS使用无界面的WebKit浏览器。它们都是非常成熟的工具，都具有强大的社区支持。它们与Nightwatch之间最大的不同，主要是在于语法的简易度以及对持续集成的支持。与Nightwatch相比，Selenium和PhantomJS都拥有更加冗长的语法，这会让编码变得更庞大，而且不支持从命令行中进行开箱即用的持续集成（JUnit XML或其他标准输出）。</span></p>
+
+
+</blockquote>
+<p>p.s. Selenium和PhantomJS都是可以单独作为一种测试方案，Nightwatch是基于Selenium的一种更简洁的测试方案。</p>
+<p>p.s. WebDriver目前已经是W3C的一个规范，旨在规范浏览器的自动化行为</p>
+<p>p.s. 我是咋知道有这么个东西的？其实是Vue全家桶里给带的。</p>
+<p>Nightwatch工作时时依托于一套基于HTTP的REST API，只不过Server端不是传统意义上的后端，而是WebDriver的服务器（Selenium）,这套REST API是基于W3C WebDriver API的。<br />就像这样：</p>
+<p><img src="./images/Nightwatch——自动化测试（端对端e2e）1.png" alt="work flow" /></p>
+<p>大部分的情况下，Nightwatch执行一条命令或者断言回响WebDriver发送两个请求，第一个请求用来获取到CSS或XPath选择器选中的那个element节点，第二个请求用来发送这条命令或者断言。</p>
+<h2 id="h2-nightwatch-"><a class="reference-link" name="Nightwatch的主要特点"></a>Nightwatch的主要特点</h2>
+<ul>
+<li>语法简洁干净</li>
+<li>支持CSS选择器和XPath选择器，只要编写的测试用例符合规范，就无须再初始化其他对象和类。</li>
+<li>内置命令行测试运行器，可以按组或单个运行测试。</li>
+<li>可以持续集成</li>
+<li>易扩展</li>
+
+
+</ul>
+<h2 id="h2--nightwatch"><a class="reference-link" name="在项目中使用Nightwatch"></a>在项目中使用Nightwatch</h2>
+<p>先贴一个例子【这是用来测kz-fe中node-arch的首页的一个用例片段】</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #800000;">'</span><span style="color: #800000;">default tests</span><span style="color: #800000;">'</span><span style="color: #000000;">: function (browser) {
+      </span><span style="color: #0000ff;">const</span> devServer =<span style="color: #000000;"> browser.globals.devServerURL;
+
+      browser
+        .url(devServer)
+        .waitForElementVisible(</span><span style="color: #800000;">'</span><span style="color: #800000;">body</span><span style="color: #800000;">'</span>, <span style="color: #800080;">2000</span><span style="color: #000000;">)
+        .assert.attributeContains(</span><span style="color: #800000;">'</span><span style="color: #800000;">body</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">class</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">directory</span><span style="color: #800000;">'</span><span style="color: #000000;">) 
+        .assert.elementPresent(</span><span style="color: #800000;">'</span><span style="color: #800000;">input</span><span style="color: #800000;">'</span><span style="color: #000000;">) 
+        .assert.attributeEquals(</span><span style="color: #800000;">'</span><span style="color: #800000;">#search</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">placeholder</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">Search</span><span style="color: #800000;">'</span><span style="color: #000000;">) 
+        .assert.cssProperty(</span><span style="color: #800000;">'</span><span style="color: #800000;">#search</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">position</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">fixed</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+        .assert.elementPresent(</span><span style="color: #800000;">'</span><span style="color: #800000;">#wrapper</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+        .end()
+  }</span></pre>
+</div>
+<p>在项目中使用Nightwatch需要安装三个npm包：</p>
+<ul>
+<li>chromedrive</li>
+<li>nightwatch</li>
+<li>selenium-server</li>
+</ul>
+<p>然后需要一个配置文件：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  </span><span style="color: #800000;">"</span><span style="color: #800000;">src_folders</span><span style="color: #800000;">"</span>: [<span style="color: #800000;">"</span><span style="color: #800000;">test/e2e/specs</span><span style="color: #800000;">"</span>], <span style="color: #008000;">//</span><span style="color: #008000;"> 放测试用例</span>
+  <span style="color: #800000;">"</span><span style="color: #800000;">output_folder</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">test/e2e/reports</span><span style="color: #800000;">"</span>, <span style="color: #008000;">//</span><span style="color: #008000;"> 放测试报告</span>
+
+  <span style="color: #800000;">"</span><span style="color: #800000;">selenium</span><span style="color: #800000;">"</span><span style="color: #000000;"> : {
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">start_process</span><span style="color: #800000;">"</span> : <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">server_path</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">node_modules/selenium-server/lib/runner/selenium-server-standalone-3.3.1.jar</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">host</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">127.0.0.1</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">log_path</span><span style="color: #800000;">"</span> : <span style="color: #800000;">""</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">port</span><span style="color: #800000;">"</span> : <span style="color: #800080;">4444</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">cli_args</span><span style="color: #800000;">"</span><span style="color: #000000;"> : {
+      </span><span style="color: #800000;">"</span><span style="color: #800000;">webdriver.chrome.driver</span><span style="color: #800000;">"</span> : <span style="color: #800000;">""</span><span style="color: #000000;">
+    }
+  },
+
+  </span><span style="color: #800000;">"</span><span style="color: #800000;">test_settings</span><span style="color: #800000;">"</span><span style="color: #000000;"> : {
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">default</span><span style="color: #800000;">"</span><span style="color: #000000;"> : {
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">launch_url</span><span style="color: #800000;">"</span> : <span style="color: #800000;">"</span><span style="color: #800000;">http://localhost</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">selenium_port</span><span style="color: #800000;">"</span>  : <span style="color: #800080;">4444</span><span style="color: #000000;">,
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">selenium_host</span><span style="color: #800000;">"</span>  : <span style="color: #800000;">"</span><span style="color: #800000;">localhost</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">silent</span><span style="color: #800000;">"</span>: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">globals</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+            </span><span style="color: #800000;">"</span><span style="color: #800000;">devServerURL</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">http://localhost:8080</span><span style="color: #800000;">"</span><span style="color: #000000;">
+        }
+    },
+
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">chrome</span><span style="color: #800000;">"</span><span style="color: #000000;"> : {
+      </span><span style="color: #800000;">"</span><span style="color: #800000;">desiredCapabilities</span><span style="color: #800000;">"</span><span style="color: #000000;">: {
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">browserName</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">chrome</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+        </span><span style="color: #800000;">"</span><span style="color: #800000;">javascriptEnabled</span><span style="color: #800000;">"</span>: <span style="color: #0000ff;">true</span><span style="color: #000000;">
+      }
+    },
+
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">edge</span><span style="color: #800000;">"</span><span style="color: #000000;"> : {
+        xxxx略
+      }
+    }
+  }
+}</span></pre>
+</div>
+<p>然后就可以愉快地写测试用例了。</p>
+<h2 id="h2-nightwatch-api"><a class="reference-link" name="Nightwatch API"></a>Nightwatch API</h2>
+<p>Nightwatch API分为四个部分，分别是Expect、Assert、Commands、WebDriver Protocol</p>
+<h3 id="h3-expect"><a class="reference-link" name="Expect"></a>Expect</h3>
+<p>Expect是0.7版本的时候引入的一种BDD（行为驱动测试）风格的接口，也是为了执行断言，使用链式的语法，和直接的断言相比，expect读起来更加语义化，就像写句子（但是单词之间用的.连接的）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">this</span>.demoTest =<span style="color: #000000;"> function (browser) {
+  browser.expect.element(</span><span style="color: #800000;">'</span><span style="color: #800000;">#main</span><span style="color: #800000;">'</span><span style="color: #000000;">).to.be.present;
+  browser.expect.element(</span><span style="color: #800000;">'</span><span style="color: #800000;">#main</span><span style="color: #800000;">'</span><span style="color: #000000;">).to.be.visible;
+  browser.expect.element(</span><span style="color: #800000;">'</span><span style="color: #800000;">#main</span><span style="color: #800000;">'</span>).to.have.css(<span style="color: #800000;">'</span><span style="color: #800000;">display</span><span style="color: #800000;">'</span>).which.does.not.equal(<span style="color: #800000;">'</span><span style="color: #800000;">block</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+  browser.expect.element(</span><span style="color: #800000;">'</span><span style="color: #800000;">#q</span><span style="color: #800000;">'</span>).to.be.an(<span style="color: #800000;">'</span><span style="color: #800000;">input</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+  browser.expect.element(</span><span style="color: #800000;">'</span><span style="color: #800000;">body</span><span style="color: #800000;">'</span>).to.not.have.attribute(<span style="color: #800000;">'</span><span style="color: #800000;">data-attr</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+};</span></pre>
+</div>
+<p>Expect提供的语言连词不直接进行断言（真正的断言是末尾的那个词），可以随意组合，顺序不影响结果。</p>
+<p>to 、be 、been 、is 、that、which、and、has、have、with、at、does</p>
+<h3 id="h3-assert"><a class="reference-link" name="Assert"></a>Assert</h3>
+<p>Assert这部分包含两套有同样方法的方法库：assert和verify,其中，若是当前执行的断言没有成功，assert会停止执行剩余的断言并立即结束，verify会打印错误日志然后继续淡定的执行接下来的断言。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;"> browser
+        .url(devServer)
+        .waitForElementVisible(</span><span style="color: #800000;">'</span><span style="color: #800000;">body</span><span style="color: #800000;">'</span>, <span style="color: #800080;">2000</span><span style="color: #000000;">)
+        .assert.attributeContains(</span><span style="color: #800000;">'</span><span style="color: #800000;">body</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">class</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">directory</span><span style="color: #800000;">'</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> 属性值</span>
+        .assert.elementPresent(<span style="color: #800000;">'</span><span style="color: #800000;">input</span><span style="color: #800000;">'</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> 有当前元素</span>
+        .assert.attributeEquals(<span style="color: #800000;">'</span><span style="color: #800000;">#search</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">placeholder</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">Search</span><span style="color: #800000;">'</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> 属性值</span>
+        .assert.cssProperty(<span style="color: #800000;">'</span><span style="color: #800000;">#search</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">position</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">fixed</span><span style="color: #800000;">'</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> CSS属性值</span>
+        .assert.elementPresent(<span style="color: #800000;">'</span><span style="color: #800000;">#wrapper</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+        .end()</span></pre>
+</div>
+<p><a class="reference-link" style="font-size: 1.17em; background-color: #ffffff;" name="Commands"></a><strong><span style="font-size: 1.17em;">Commands</span></strong></p>
+<p>Commands用来在页面上执行一些命令比如点击、关掉当前窗口、清除cookie、获取到某元素的值等。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">this</span>.demoTest =<span style="color: #000000;"> function (browser) {
+
+  browser.click(</span><span style="color: #800000;">"</span><span style="color: #800000;">#main ul li a.first</span><span style="color: #800000;">"</span><span style="color: #000000;">, function(response) {
+    </span><span style="color: #0000ff;">this</span>.assert.ok(browser === <span style="color: #0000ff;">this</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Check if the context is right.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">this</span>.assert.ok(<span style="color: #0000ff;">typeof</span> response == <span style="color: #800000;">"</span><span style="color: #800000;">object</span><span style="color: #800000;">"</span>, <span style="color: #800000;">"</span><span style="color: #800000;">We got a response object.</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+  });
+  browser.clearValue(</span><span style="color: #800000;">'</span><span style="color: #800000;">input[type=text]</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+  browser.pause(</span><span style="color: #800080;">1000</span><span style="color: #000000;">);
+  browser.saveScreenshot(</span><span style="color: #800000;">'</span><span style="color: #800000;">/path/to/fileName.png</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+  browser.closeWindow();
+
+};</span></pre>
+</div>
+<p><strong>测试分类：</strong></p>
+</div>
+<p><strong>一.单元测试：</strong>站在程序员的角度测试；</p>
+<p>1、减少开发人员的重复测试时间 2、面向程序的功能模块的测试</p>
+<p><span style="color: #ff0000;"><strong>二.端对端测试：站在测试人员的角度测试</strong></span></p>
+<p>1、减少测试人员的重复测试时间 2、面向系统的功能模块的测试 3、本质是模拟用户使用系统</p>
+<p><strong>测试插件：</strong></p>
+<p><strong><a title="https://nightwatchjs.org/" href="https://nightwatchjs.org/" target="_blank">Nightwatchjs：</a></strong><a href="https://nightwatchjs.org/">https://nightwatchjs.org/</a></p>
+<p>主要包括：1、元素定位 2、断言 3、POM</p>
+<p><strong>准备工作：</strong></p>
+<p><strong>1.安装(vue3.0已经内置nigjtwatch.js):<span><span>来自</span></span><a href="https://npmjs.com/package/nightwatch" rel="nofollow"><span><span>NPM</span></span></a></strong></p>
+<div class="cnblogs_code">
+<pre><code>npm install nightwatch</pre>
+</div>
+<p><span><span>使用</span></span><a href="https://www.w3.org/TR/webdriver/" rel="nofollow"><span><span>WebDriver</span></span></a><span><span>兼容服务器来控制浏览器</span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">desiredCapabilities ： {
+  browserName ： </span>' chrome '<span style="color: #000000;">，
+  chromeOptions ： {
+    w3c ： </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+  }
+}</span></pre>
+</div>
+<p><strong>2.配置文件：package.json</strong></p>
+<div class="cnblogs_code">
+<pre><code>  "scripts"<span style="color: #000000;">: {
+    </span>"e2e": "<span style="color: #000000;">node test/e2e/runner.js --tag testDemo 
+    </span>"test": "npm run unit &amp;&amp; npm run e2e"<span style="color: #000000;">,
+    </span>"lint": "eslint --fix --ext .js,.vue src test/unit test/e2e/specs",
+  }</pre>
+</div>
+<p><strong>3.元素定位：在test/e2e/POM文件夹创建js文件</strong></p>
+<div class="cnblogs_code">
+<pre><code>const config = require('../config.js'<span style="color: #000000;">)
+module.exports </span>=<span style="color: #000000;"> {
+  url: config.host </span>+ '/admin/activityTypeManage?__test=luoganluo'<span style="color: #000000;">,
+  elements: { //对象或数组形式
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 'newAppButton': {selector: '#KP_appManage &gt; div &gt; div.el-card__body &gt; div &gt; div &gt; div.el-row &gt; div:nth-child(2) &gt; button:nth-child(1)'}, //方式1：selector</span>
+    'newBusinessButton': { locateStrategy: 'xpath', selector: '//*[@id="activityManage"]/div[1]/div/button/span' }, <span style="color: #008000;">//</span><span style="color: #008000;"> 方式2:xpath</span>
+<span style="color: #000000;">    ...
+  }
+}</span></pre>
+</div>
+<p>快速定位：</p>
+<p>1.启动本地服务npm run dev，打开浏览器按F12调试&mdash;&mdash;按ctrl+shift+C快速定位元素&mdash;&mdash;单击右键选择Copy获取选择器内容(以上2种方式）；</p>
+<p>2.路由定位：打开页面是，直接设置需要进入的页面路由即可（参数设置）</p>
+<p><img src="./images/Nightwatch——自动化测试（端对端e2e）2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong>4.断言：判断操作出现正确的结果（在test/e2e/specs文件夹创建js文件）</strong></p>
+<div class="cnblogs_code">
+<pre><code>module.exports =<span style="color: #000000;"> {
+  </span>'@tags': ['testDemo '<span style="color: #000000;">],
+  before: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (browser) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> util(browser).login()</span>
+<span style="color: #000000;">  },
+  </span>'测试demo': <span style="color: #0000ff;">function</span><span style="color: #000000;"> (browser) {
+    browser.maximizeWindow() </span><span style="color: #008000;">//</span><span style="color: #008000;">屏幕最大化</span>
+    <span style="color: #0000ff;">var</span> loginPage = browser.page.loginPage()<span style="color: #008000;">//</span><span style="color: #008000;"> 打开应用列表页面</span>
+    loginPage.navigate()<span style="color: #008000;">//</span><span style="color: #008000;">/ /打开应用列表页面</span>
+      .waitForElementVisible('@loginButton', 5000）<span style="color: #008000;">//</span><span style="color: #008000;">等待页面出现</span>
+      .click('@loginButton')<span style="color: #008000;">//</span><span style="color: #008000;"> 点击新建</span>
+      .click('@clickToShowBusinessSelect') <span style="color: #008000;">//</span><span style="color: #008000;">点击下拉选项</span>
+      .pause(500) <span style="color: #008000;">//</span><span style="color: #008000;">等待选项出现</span>
+<span style="color: #000000;">      ...
+  },
+  after: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (browser) {
+  }
+}</span></pre>
+</div>
+<p>实例：</p>
+<div class="cnblogs_code">
+<pre><code>module.exports =<span style="color: #000000;"> {
+  </span>'@tags': ['appList'<span style="color: #000000;">],
+  before: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (browser) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> util(browser).login()</span>
+<span style="color: #000000;">  },
+  </span>'测试新建业务': <span style="color: #0000ff;">function</span><span style="color: #000000;"> (browser) {
+    browser.maximizeWindow()
+    </span><span style="color: #0000ff;">var</span> appList = browser.page.appList()<span style="color: #008000;">//</span><span style="color: #008000;"> 0.1.打开应用列表页面</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> appList.assert.containsText("@newAppButton",'新建应用') //分步写：</span>
+    appList.navigate()<span style="color: #008000;">//</span><span style="color: #008000;"> 1.打开应用列表页面</span>
+      .waitForElementVisible('@appListPage', 5000<span style="color: #000000;">)
+      .assert.containsText(</span>'@appListPage', '应用列表') <span style="color: #008000;">//</span><span style="color: #008000;"> 列表页面</span>
+      .click('@newAppButton') <span style="color: #008000;">//</span><span style="color: #008000;"> 1.点击新建**********************</span>
+      .waitForElementVisible('@newListPage', 5000<span style="color: #000000;">)
+      .assert.containsText(</span>'@newListPage', '基本信息') <span style="color: #008000;">//</span><span style="color: #008000;"> 新建页面</span>
+      .setValue('@appListName', '新建应用名') <span style="color: #008000;">//</span><span style="color: #008000;">  + Number(new Date())</span>
+      .click('@appListTypeClick')<span style="color: #008000;">//</span><span style="color: #008000;"> 点击：接入方式</span>
+      .waitForElementVisible('@appListTypeSlected', 5000<span style="color: #000000;">)
+      .click(</span>'@appListTypeSlected')<span style="color: #008000;">//</span><span style="color: #008000;"> 点击选项</span>
+      .click('@appListSubmit')<span style="color: #008000;">//</span><span style="color: #008000;"> 提交新建：延时</span>
+      .pause(1000<span style="color: #000000;">)
+      .click(</span>'@appManageTab') <span style="color: #008000;">//</span><span style="color: #008000;"> 返回列表页</span>
+      .pause(2000<span style="color: #000000;">)
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> .waitForElementVisible('@editAppButton')</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .assert.containsText('@editAppButton', '查看编辑') // 编辑按钮</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .click('@editAppButton') // 2.点击编辑**********************</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .waitForElementVisible('@editListPage', 5000)</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .assert.containsText('@editListPage', '基本信息') // 编辑页面</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .click('@editListMenu') // 定位</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .waitForElementVisible('@editAppListIcon', 5000)</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .click('@editAppListIcon')</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .waitForElementVisible('@editAppListName', 5000)</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .setValue('@editAppListName', '编辑应用名') //  新的名称</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .click('@editAppListSubmit')// 提交编辑：延时</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .pause(5000)</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .click('@appManageTab') // 返回列表页</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .waitForElementVisible('@appListPage')</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> .assert.containsText('@appListPage', '应用列表') // 刷新列表：延时</span>
+      .click('@moreAppButtonClick') <span style="color: #008000;">//</span><span style="color: #008000;"> 3.点击更多（删除）**********************</span>
+      .waitForElementVisible('@delAppButtonSlected', 5000<span style="color: #000000;">)
+      .assert.containsText(</span>'@delAppButtonSlected', '删除应用'<span style="color: #000000;">)
+      .click(</span>'@delAppButtonSlected'<span style="color: #000000;">)
+      .waitForElementVisible(</span>'@delAppButtonSubmit', 5000<span style="color: #000000;">)
+      .assert.containsText(</span>'@delAppButtonSubmit', '确定'<span style="color: #000000;">)
+      .click(</span>'@delAppButtonSubmit') <span style="color: #008000;">//</span><span style="color: #008000;"> 提交1：延迟</span>
+      .pause(1000<span style="color: #000000;">)
+      .click(</span>'@delAppButtonSubmit') <span style="color: #008000;">//</span><span style="color: #008000;"> 提交2：确认删除</span>
+      .pause(3000<span style="color: #000000;">)
+  },
+  after: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (browser) {
+  }
+}</span></pre>
+</div>
+<p><strong>5.启动测试：</strong></p>
+<div class="cnblogs_code">
+<pre><code>npm run e2e</pre>
+</div>
+<p>附：常用断言语句总结</p>
+<div class="cnblogs_code">
+<pre><code>.waitForElementNotPresent('@editLoadingMask') <span style="color: #008000;">//</span><span style="color: #008000;"> 等待加载消失</span>
+<span style="color: #000000;">
+.waitForElementNotVisible(</span>'@dialogWrap') <span style="color: #008000;">//</span><span style="color: #008000;"> 等待弹框消失</span>
+<span style="color: #000000;">
+.assert.hidden(</span>'@newComDialog') <span style="color: #008000;">//</span><span style="color: #008000;">检查对话框dialog隐藏</span>
+<span style="color: #000000;">
+.assert.cssClassPresent(</span>'@switchChange', 'is-checked') <span style="color: #008000;">//</span><span style="color: #008000;">校验是否存在class属性</span>
+<span style="color: #000000;">
+.assert.cssClassNotPresent(</span>'@switchChange', 'is-checked') <span style="color: #008000;">//</span><span style="color: #008000;">没有出现这个class属性</span>
+<span style="color: #000000;">
+.assert.containsText(</span>'@newListPage', 'xxx') <span style="color: #008000;">//</span><span style="color: #008000;"> 校验元素内容是否等于xxx</span>
+<span style="color: #000000;">
+.expect.element(</span>'@firstLogProtocolTitle').text.to.not.contain('xxx') <span style="color: #008000;">//</span><span style="color: #008000;"> 内容不等于xxx</span>
+<span style="color: #000000;">
+.assert.value(</span>'@newLogProtocolInput', 'xxx'<span style="color: #000000;">) //判断当前内容是否为xxx
+
+.assert.urlContains(</span>'whiteListMock') <span style="color: #008000;">//</span><span style="color: #008000;"> 检查当前url包含whiteListMock</span></pre>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

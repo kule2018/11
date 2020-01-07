@@ -1,0 +1,142 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js处理异步的几种方式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js处理异步的几种方式</center></div><div class='banquan'>原文出处:本文由博客园博主珊瑚231提供。<br/>
+原文连接:https://www.cnblogs.com/fms-3/p/11679271.html</div><br>
+    <p>&nbsp; &nbsp; &nbsp; 一、回调函数</p>
+<p>优点：简单，方便，易用</p>
+<p>缺点：易造成回调函数地狱，回调函数中嵌套多个回调函数，因为多个异步操作造成强耦合，代码乱做一团，无法管理。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>var xhr1 = new XMLHttpRequest();
+xhr1.open('GET', 'https://www.apiopen.top/weatherApi?city=广州');
+xhr1.send();
+xhr1.onreadystatechange = function() {
+    if(this.readyState !== 4)  return;
+    if(this.status === 200) {
+        data1 = JSON.parse(this.response);
+        var xhr2 = new XMLHttpRequest();
+        xhr2.open('GET', 'https://www.apiopen.top/weatherApi?city=番禺');
+        xhr2.send();
+        xhr2.onreadystatechange = function() {
+            if(this.readyState !== 4)  return;
+            if(this.status === 200) {
+                data2 = JSON.parse(this.response);
+                console.log(data1, data2);
+            }
+        }
+    }
+};
+</pre>
+</div>
+<p>　　二、事件监听</p>
+<p>优点：与回调函数相比，事件监听实现了代码的解耦，方便代码管理</p>
+<p>缺点：使用不方便，每次都要手动地绑定和触发事件</p>
+<div class="cnblogs_Highlighter">
+<pre><code>var events=new Events();
+events.addEvent('done',function(data1){
+   var xhr=new XMLHttpRequest();
+   xhr.open('GET','请求地址') ；
+   xhr.send();
+   xhr.onreadystatechange=function(){
+          if(this.readyState!==4) return;
+          if(this.status===200){
+                 data1=JSON.parse(data1);
+                var data2=JSON.parse(this.response);
+                 console.log(data1,data2);
+          } 
+    }  
+})
+var xhr=new XMLHttpRequest();
+xhr.open('GET','请求地址&lsquo;&rsquo;)；
+xhr.send();
+xhr.onreadystatechange=function(){
+    if(this.readyState!==4){
+           return;
+    }
+     if(this.status===200){
+            events.fireEvent('done,this.response)
+     }
+}            
+</pre>
+</div>
+<p>　　三、Promise</p>
+<p>优点：将回调函数嵌套调用变成了链式调用，逻辑更强，执行顺序更清楚</p>
+<p>缺点：代码冗余，异步操作都被包裹在Promise构造函数和then方法中，主题代码不明显，语义不清楚</p>
+<div class="cnblogs_Highlighter">
+<pre><code>new Promise(function(resolve, reject) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://www.apiopen.top/weatherApi?city=广州');
+    xhr.send();
+    xhr.onreadystatechange = function() {
+        if(this.readyState !== 4)  return;
+        if(this.status === 200) return resolve(this.response);
+        reject(this.statusText);
+    };
+}).then(function(value) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://www.apiopen.top/weatherApi?city=番禺');
+    xhr.send();
+    xhr.onreadystatechange = function() {
+        if(this.readyState !== 4)  return;
+        if(this.status === 200) {
+            const data1 = JSON.parse(value);
+            const data2 = JSON.parse(this.response);
+            console.log(data1, data2);
+        }
+    };
+});
+</pre>
+</div>
+<p>　　四、async/await</p>
+<p>async函数是generrator函数的语法糖，它相当于一个自带执行器的generator函数</p>
+<p>async函数中的await接收一个Promise对象</p>
+<p>优点：最简洁，最符合语义，最接近同步代码，最适合处理多个Promise异步操作</p>
+<p>缺点：js语言自带的async执行器功能性可能没有co模块等执行器强</p>
+<div class="cnblogs_Highlighter">
+<pre><code>async function azc() {
+    const data1 = await getJSON_PM('https://www.apiopen.top/weatherApi?city=广州');
+    const data2 = await getJSON_PM('https://www.apiopen.top/weatherApi?city=番禺');
+    console.log(data1, data2);
+}
+
+azc();
+function getJSON_PM(url) {
+    return new Promise((resolve, rejext) =&gt; {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.open('GET', url);
+        xhr.responseType = "json";
+        xhr.setRequestHeader("Accept", "application/json");
+        xhr.send();
+        
+        xhr.onreadystatechange = function() {
+            if(this.readyState !== 4) return;
+            if(this.status === 200) return resolve(this.response);
+            reject(new Error(this.statusText));
+        };
+    });
+}
+</pre>
+</div>
+<p>　　参考链接：<a href="https://segmentfault.com/a/1190000018670042">https://segmentfault.com/a/1190000018670042</a></p>
+<p><a href="http://es6.ruanyifeng.com/#docs/generator-async" rel="nofollow noreferrer" target="_blank">http://es6.ruanyifeng.com/#do...</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

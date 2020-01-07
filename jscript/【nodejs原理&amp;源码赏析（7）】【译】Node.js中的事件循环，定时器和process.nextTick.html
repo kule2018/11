@@ -1,0 +1,275 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【nodejs原理&amp;源码赏析（7）】【译】Node.js中的事件循环，定时器和process.nextTick' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【nodejs原理&amp;源码赏析（7）】【译】Node.js中的事件循环，定时器和process.nextTick</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11042623.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#event-loop-是什么">Event Loop 是什么？</a></li>
+        <li><a href="#event-loop-基本解释">Event Loop 基本解释</a></li>
+        <li><a href="#事件循环阶段概览">事件循环阶段概览</a></li>
+        <li><a href="#事件循环细节">事件循环细节</a><ul>
+        <li><a href="#timers">timers</a></li>
+        <li><a href="#pending-callbacks">pending callbacks</a></li>
+        <li><a href="#poll阶段">poll阶段</a></li>
+        <li><a href="#check">check</a></li>
+        <li><a href="#close-callbacks">close callbacks</a></li>
+        </ul></li>
+        <li><a href="#setimmediate-和settimeout">　setImmediate( )和setTimeout( )</a></li>
+        <li><a href="#proess.nexttick">proess.nextTick( )</a><ul>
+        <li><a href="#理解-process.nexttick">理解 process.nextTick()</a></li>
+        <li><a href="#为什么会允许这种情况存在">为什么会允许这种情况存在？</a></li>
+        <li><a href="#process.nexttick-对比setimmediate">process.nextTick( )对比setImmediate( )</a></li>
+        <li><a href="#为什么使用process.nexttick">为什么使用process.nextTick()</a></li>
+        </ul></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/【nodejs原理&amp;源码赏析（7）】【译】Node.js中的事件循环，定时器和process.nextTick0.png" /></p>
+<blockquote>
+<p>示例代码托管在：<a href="http://www.github.com/dashnowords/blogs" class="uri">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<blockquote>
+<p>原文地址：<a href="https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick/">https://nodejs.org/en/docs/guides/event-loop-timers-and-nexttick</a></p>
+<p>如果你常年游走于<strong>Nodejs中文网</strong>，可能已经错过了官方网站上的第一手资料，<strong>Nodejs中文网</strong>并没有翻译这些非常高质量的核心文章，只提供了中文版的API文档（已经很不容易了，没有任何黑它的意思，我也是中文网的受益者），它们涵盖了Node.js中从核心概念到相关工具等等非常重要的知识，下面是博文的目录，你知道该怎么做了。</p>
+</blockquote>
+<p><img src="./images/【nodejs原理&amp;源码赏析（7）】【译】Node.js中的事件循环，定时器和process.nextTick1.png" /></p>
+<h2 id="event-loop-是什么">Event Loop 是什么？</h2>
+<p>事件循环是<code>Node.js</code>能够实现非阻塞I/O的基础，尽管JavaScript应用是单线程运行的，但是它可以将操作向下传递到系统内核去执行。</p>
+<p>大多数现代系统内核都是支持多线程的，它们可以同时在后台处理多个操作。当其中任何一个任务完成后，内核会通知<code>Node.js</code>，这样它就可以把对应的回调函数添加进<strong>poll</strong>队列，回调函数最终就能够被执行，后文中我们还会进行更详细的解释。</p>
+<h2 id="event-loop-基本解释">Event Loop 基本解释</h2>
+<p>当<code>Node.js</code>开始运行时，它就会初始化<code>Event Loop</code>，然后处理脚本文件（或者在<code>REPL</code>（<strong>read-eval-print-loop</strong>）环境中执行，本文不做深入探讨）中的异步API调用，定时器，或<code>process.nextTick</code>方法调用，然后就会开始处理事件循环（Event Loop）。</p>
+<p>下图展示了事件循环的各个阶段(每一个盒子被称为事件循环中一个“阶段”)：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（7）】【译】Node.js中的事件循环，定时器和process.nextTick2.png" /></p>
+<p>每一个阶段都维护了一个先进先出的待执行回调函数队列，尽管每一个阶段都有自己独特的处理方式，但总体来说，当事件循环进入一个具体的阶段时，它将处理与这个阶段有关的所有操作，然后执行这个阶段对应队列中的回调函数直到队列为空，或者达到了该阶段允许运行函数的数量的最大值，当满足任何一个条件时，事件循环都会进入下一个阶段，以此类推。</p>
+<p>因为任何阶段相关的操作都可能导致更多的待执行操作产生，而新事件会被内核添加进<strong>poll</strong>队列中，当<strong>poll</strong>队列中的回调函数被执行时允许继续向当前阶段的<strong>poll</strong>队列中添加新的回调函数，于是长时间运行的回调函数可能就会导致事件循环在<strong>poll</strong>阶段停留时间过长，你可以在后文的<code>timers</code>和<code>poll</code>章节查看更多的内容。</p>
+<blockquote>
+<p>提示：Windows和Unix/Linux在实现上有细小的差别，但并不影响本文的演示，不同的系统可能会存在7-8个阶段，但是最终要的阶段上图中已经展示了，这些是Node.js实际会使用到的。</p>
+</blockquote>
+<h2 id="事件循环阶段概览">事件循环阶段概览</h2>
+<ul>
+<li><code>timers</code>-本阶段执行通过<code>setTimeout( )</code>和<code>setInterval( )</code>添加的已经到时的计划任务</li>
+<li><code>pending callbacks</code>-将一些I/O回调函数延迟到下一循环执行（这里不是很确定）</li>
+<li><code>idle,prepare</code>-内部使用的阶段</li>
+<li><code>poll</code>-检查新的I/O事件；执行相关I/O的回调（除了“close回调”，“定时器回调”和<code>setImmediate( )</code>添加的回调外几乎所有其他回调函数）；node有可能会在这里产生阻塞</li>
+<li><code>check</code>-执行<code>setImmediate( )</code>添加的回调函数</li>
+<li><code>close callbacks</code>-用于关闭功能的回调函数，例如<code>socket.on('close',......)</code></li>
+</ul>
+<p>在每轮事件周期之间，<code>Node.js</code>会检查是否有处于等待中的异步I/O或定时器，如果没有的话就会关闭当前程序。</p>
+<h2 id="事件循环细节">事件循环细节</h2>
+<h3 id="timers">timers</h3>
+<p>一个timer会明确一个时间点，回调函数会在时间超过这个时间点后被执行，而不是开发者希望的精确时间。一旦定时器时间过期，回调函数就会尽可能早地被调度执行，然而操作系统的调度方式和其他的回调函数都有可能会导致某个定时器回调函数被延迟。</p>
+<p>提示：技术上来说,poll阶段控制着timers如何被执行。</p>
+<p>下面的示例中，你使用了一个100ms后过期的定时器，接着花费了95ms使用异步文件读取API异步读取了某个文件：</p>
+<pre><code><code>const fs = require(&#39;fs&#39;);
+function someAsyncOperation(callback){
+    //Assume this takes 95ms to complete
+    fs.readFile(&#39;/path/to/file&#39;,callback);
+}
+
+const timeoutScheduled = Date.now();
+
+setTimeout(()=&gt;{
+    const delay = Date.now() - timeoutScheduled;
+    
+    console.log(`${delay}ms have passed since I was scheduled`);
+},100);
+
+// do someAsyncOperation which takes 95 ms to complete
+someAsyncOperation(() =&gt; {
+  const startCallback = Date.now();
+
+  // do something that will take 10ms...
+  while (Date.now() - startCallback &lt; 10) {
+    // do nothing
+  }
+});</code></pre>
+<p>当事件循环进入poll阶段时，它的待执行队列是空的（<code>fs.readFile( )</code>还没有完成），所以它将等待一定时间（当前时间距离最快到期的定时器到期时间之间的差值）。95ms过去后，<code>fs.readFile( )</code>完成了文件读取，并花费了10ms将回调函数添加进poll的执行队列是它被执行。当回调函数执行完毕后，队列中没有更多的回调函数了，事件循环就会再次检查下一个待触发的timer是否已经到期，如果是，则事件循环就会绕回timers阶段去执行到期timer的回调函数。在这个示例中，你会看到timer从设置定时器到回调函数被触发一共花费了105ms.</p>
+<p>注意：为了避免在poll阶段阻塞事件循环，<code>libuv</code>(Node.js底层用于实现事件循环和异步特性的C语言库)设置了一个硬上限值（该值会根据系统不同而有变化），使得poll阶段只能将有限数量的回调函数添加进poll队列。</p>
+<h3 id="pending-callbacks">pending callbacks</h3>
+<p>这个阶段会执行一些系统操作的回调函数，例如一些TCP的错误。比如一个TCP的socket对象尝试连接另一个socket时收到了<code>ECONNREFUSED</code>，一些Linux系统会希望汇报这类错误，这类回调函数就会被添加在pending callbacks阶段的待执行队列中。</p>
+<h3 id="poll阶段">poll阶段</h3>
+<p>poll阶段有两个主要的功能：</p>
+<ol>
+<li>计算需要阻塞的时长，以便可以将完成的I/O添加进待执行队列</li>
+<li>执行poll队列中产生的事件</li>
+</ol>
+<p>当事件循环进入poll阶段且此时并没有待执行的timer时，会按照下述逻辑来判断：</p>
+<ul>
+<li>如果poll队列不为空，事件循环会以同步的方式逐个迭代执行队列中的回调函数直到队列耗尽，或到达系统设置的处理事件数量限制。</li>
+<li>如果poll队列为空，则按照下述逻辑继续判断：
+<ul>
+<li>如果脚本中使用<code>setImmediate( )</code>方法添加了回调函数，事件循环就会结束poll阶段，并进入check阶段来执行这些添加的回调函数。</li>
+<li>如果没有使用<code>setimmediate( )</code>添加的回调，事件循环就会等待其他回调函数被添加进队列并立即执行添加的函数。</li>
+</ul></li>
+</ul>
+<p>一旦poll队列为空，事件循环就会检查是否有已经到期的timers定时器，如果有一个或多个定时器到期，事件循环就会回到timers阶段来执行这些定时器的回调函数。</p>
+<h3 id="check">check</h3>
+<p>这个阶段允许开发者在poll阶段结束后立即执行一些回调函数。如果poll阶段出现闲置或者脚本中使用<code>setImmediate( )</code>添加了回调函数，事件循环事件循环就会主动进入check阶段而不会停下来等待。</p>
+<p><code>setImmediate( )</code>实际上是一个运行在独立阶段的特殊定时器。它通过调用<code>libuv</code>提供的API添加那些希望在poll阶段完成以后执行的回调函数。</p>
+<p>通常，随着代码的执行，事件循环最终会到达poll阶段，它会在这里等待incoming connection,request等请求事件。然而，如果一个回调函数被<code>setImmediate( )</code>添加时poll阶段处于空闲状态，它就会结束并进入check阶段而不是继续等待poll事件。</p>
+<h3 id="close-callbacks">close callbacks</h3>
+<p>如果一个socket或者句柄被突然关闭(比如调用<code>socket.destroy( )</code>)，<code>close</code>事件就会在这个阶段被发出。否则（其他形式触发的关闭）事件将会通过<code>process.nextTick( )</code>来发送。</p>
+<h2 id="setimmediate-和settimeout">　setImmediate( )和setTimeout( )</h2>
+<p><code>setImmediate( )</code>和<code>setTimeout( )</code>非常相似，但是表现却不相同。</p>
+<ul>
+<li><code>setImmediate( )</code>被设计来在当前poll阶段完成后执行一些脚本</li>
+<li><code>setTimeout( )</code>会把一个脚本添加为一定时间过去后才执行的“待执行任务”</li>
+</ul>
+<p>这两种定时器被执行的顺序依赖于调用定时器的上下文。如果都是在主模块中调用，定时器就会与process的性能相关（这也意味着它可能被同一个机器上的其他应用影响）。</p>
+<p>例如下面的脚本中，如果我们一个不包含I/O周期的程序，他们的执行次序因为受到主线程性能的影响所以无法确定：</p>
+<pre><code><code>//timeout_vs_immediate.js
+setTimeout(()=&gt;{
+    console.log(&#39;timeout&#39;);
+},0);
+
+setImmediate(()=&gt;{
+    console.log(&#39;immediate&#39;);
+})</code></pre>
+<pre><code><code>$ node timeout_vs_immediate.js
+timeout
+immediate
+
+$ node timeout_vs_immediate.js
+immediate
+timeout</code></pre>
+<p>然而，如果将这它们的调用时机放入I/O周期中，immediate回调函数就会率先被执行：</p>
+<pre><code><code>// timeout_vs_immediate.js
+const fs = require(&#39;fs&#39;);
+
+fs.readFile(__filename,()=&gt;{
+    setTimeout(()=&gt;{
+        console.log(&#39;timeout&#39;);
+    },0);
+    setImmediate(()=&gt;{
+        console.log(&#39;immediate&#39;);
+    })
+})</code></pre>
+<pre><code><code>$ node timeout_vs_immediate.js
+immediate
+timeout
+
+$ node timeout_vs_immediate.js
+immediate
+timeout</code></pre>
+<p>使用<code>setImmediate( )</code>的主要优势在于在I/O回调函数中调用时，不论程序中有多少timers，它添加的回调函数总是比其他timers更早执行。</p>
+<h2 id="proess.nexttick">proess.nextTick( )</h2>
+<h3 id="理解-process.nexttick">理解 process.nextTick()</h3>
+<p>你可能已经注意到尽管同样作为异步API的一部分，<code>process.nextTick( )</code>并没有展示在上面的图表中，因为技术层面来讲它并不是事件循环中的一部分。<code>nextTickQueue</code>队列将会在当前操作执行完后立即执行，无论当前处于事件循环的哪个阶段，这里所说的操作是指底层的C/C++句柄到待执行JavaScript代码的过渡(这句怪怪的，不知道怎么翻译，原文是 an operation is defined as a transition from the underlying C/C++ handler, and handling the JavaScript that needs to be executed)。</p>
+<p>再来看上面的图表，任何时候当你在某个阶段调用<code>process.nextTick( )</code>，所有传入的回调函数都会在event loop继续之前先被解析执行。这可能会造成非常严重的影响，因为它允许你阻塞通过递归调用<code>process.nextTick( )</code>而使得事件循环产生阻塞，是它无法到达poll阶段。</p>
+<h3 id="为什么会允许这种情况存在">为什么会允许这种情况存在？</h3>
+<p>为什么这种匪夷所思的情况要被包含在Node.js中呢？一部分是由于Node.js的设计哲学决定的，Node.js中认为API无论是否有必要，都应该异步执行，例如下面的代码示例片段：</p>
+<pre><code><code>function apiCall(arg, callback) {
+    if(typeof arg !== &#39;string&#39;)
+        return process.nextTick(callback, new TypeError(&#39;argument should be string&#39;));
+}</code></pre>
+<p>这个示例对参数进行了检查，如果参数类型是错误的，它就会将这个错误传递给回调函数。这个API允许<code>process.nextTick</code>获取添加在callback之后的其他参数，并支持以冒泡的方式将其作为callback调用时传入的参数，这样你就不必通过函数嵌套来实现了。</p>
+<p>这里我们做的事情是允许剩余的代码执行完毕后再传递一个错误给用户。通过使用<code>process.nextTick( )</code>就可以确保<code>apiCall( )</code>方法总是在剩余的代码执行完和事件循环继续进行这两个时间点之间来执行回调函数。为了达到这个目的，JS调动栈就会允许立刻执行一些回调函数并允许用户在其中递归触发调用<code>process.nextTick( )</code>，但是却不会造成爆栈（超过JavaScript引擎设置的调用栈最大容量）。</p>
+<p>这种设计哲学可能会导致一些潜在的情况。例如下面的示例：</p>
+<pre><code><code>let bar;
+
+// this has an asynchronous signature, but calls callback synchronously
+function someAsyncApiCall(callback){callback();}
+
+// the callback is called before `someAsyncApiCall` completes
+someAsyncApiCall(()=&gt;{
+    console.log(&#39;bar&#39;,bar);
+});
+
+bar = 1;</code></pre>
+<p>用户定义的<code>someAsyncApiCall( )</code>虽然从注释上看是异步的，但实际上是一个同步执行的函数。当它被调用时，回调函数和<code>someAsyncApiCall( )</code>实际上处于事件循环的同一个阶段，这里并没有任何实质上的异步行为，结果就是，回调函数尝试获取<code>bar</code>这个标识符的值尽管作用域中并没有为这个变量赋值，因为脚本剩余的部分并没有执行完毕。</p>
+<p>如果将回调函数替换为<code>process.nextTick( )</code>的形式，脚本中剩余的代码就可以执行完毕，这就使得变量和函数的初始化语句可以优先于传入的回调函数而被执行，这样做的另一个好处是它不会推动事件循环前进。这就使得用户可以在事件循环继续进行之前对一些可能的告警或者错误进行处理。比如下面的例子：</p>
+<pre><code><code>let bar;
+
+function someAsyncApiCall(callback) {
+    process.nextTick(callback);
+}
+
+someAsyncApiCall(()=&gt;{
+   console.log(&#39;bar&#39;,bar); 
+});
+
+bar = 1;</code></pre>
+<p>真实的场景中你会看到像下面这样的使用方式：</p>
+<pre><code><code>const server = net.createServer(()=&gt;{}).listen(8080);
+
+server.on(&#39;listening&#39;,()=&gt;{});</code></pre>
+<p>当端口号传入后，就会立刻被绑定。所以<code>listening</code>回调就会立即被执行，问题是<code>.on('listening')</code>这个回调的设置看起来并没有执行到。</p>
+<p>这里实际上<code>listening</code>事件的发送就是被<code>nextTick( )</code>添加到待执行队列中的，这样后面的同步代码就可以执行完毕，这样的机制使得用户可以在后文设置更多的事件监听器。</p>
+<h3 id="process.nexttick-对比setimmediate">process.nextTick( )对比setImmediate( )</h3>
+<p>这两个方法的命名令很多开发者感到迷惑。</p>
+<ul>
+<li><code>process.nextTick( )</code>会在事件循环的同一个阶段立刻触发</li>
+<li><code>setImmediate( )</code>会在下一轮事件循环触发或者说事件循环的<code>tick</code>时触发</li>
+</ul>
+<p>事实上它们实际做的事情和它们的命名应该交换一下。<code>process.nextTick( )</code>比<code>setTimeout( )</code>添加的回调要更早触发，但这种历史问题是很难去修正的，它会导致一大批npm包无法正常运作。每天还有大量的新的模块发布，这就意味着每过一天都有可能引发更多的破坏，尽管它们会造成混淆，但只能将错就错了。</p>
+<p>我们推荐开发者在开发中坚持使用<code>setImmediate( )</code>，因为它的执行时机相对更容易推测（另外它也使得代码可以兼容更多的环境例如浏览器JS）。</p>
+<h3 id="为什么使用process.nexttick">为什么使用process.nextTick()</h3>
+<p>两个最主要的理由是：</p>
+<ol>
+<li>它允许用户优先处理错误，清理任何后续阶段不再使用的资源，或者在事件循环继续进行之前尝试重新发送请求。</li>
+<li>有时也需要在调用栈并不为空时去执行一些回调函数。</li>
+</ol>
+<p>比如下面的示例：</p>
+<pre><code><code>const server = net.createServer();
+server.on(&#39;connection&#39;,conn=&gt;{});
+
+server.listen(8000);
+server.on(&#39;listening&#39;,()=&gt;{});</code></pre>
+<p>设想<code>listen()</code>在事件循环开始时先执行，但是<code>listening</code>事件的监听函数由<code>setImmediate()</code>来添加。除非传入<code>hostname</code>,否则端口不会被绑定。对于事件循环来说，它一定会到达poll阶段，如果此时已经有connection连接，那么connection事件就会在poll阶段被发出，但<code>listening</code>事件要等到check阶段能够被发出。</p>
+<p>另一个示例是执行一个构造函数，它继承了<code>EventEmitter</code>并且希望在构造函数中触发一个事件：</p>
+<pre><code><code>const EventEmitter = require(&#39;events&#39;);
+const util = require(&#39;util&#39;);
+
+function MyEmitter() {
+  EventEmitter.call(this);
+  this.emit(&#39;event&#39;);
+}
+util.inherits(MyEmitter, EventEmitter);
+
+const myEmitter = new MyEmitter();
+myEmitter.on(&#39;event&#39;, () =&gt; {
+  console.log(&#39;an event occurred!&#39;);
+});</code></pre>
+<p>你不能在构造函数中立刻就触发这个事件，因为脚本还没有执行到位这个事件添加监听函数的那一句。所以，在构造函数内部你需要使用<code>process.nextTick( )</code>来设置事件发送的语句，才可以保证事件触发时，监听器已经被注册，示例如下：</p>
+<pre><code><code>const EventEmitter = require(&#39;events&#39;);
+const util = require(&#39;util&#39;);
+
+function MyEmitter() {
+  EventEmitter.call(this);
+
+  // use nextTick to emit the event once a handler is assigned
+  process.nextTick(() =&gt; {
+    this.emit(&#39;event&#39;);
+  });
+}
+util.inherits(MyEmitter, EventEmitter);
+
+const myEmitter = new MyEmitter();
+myEmitter.on(&#39;event&#39;, () =&gt; {
+  console.log(&#39;an event occurred!&#39;);
+});</code></pre>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

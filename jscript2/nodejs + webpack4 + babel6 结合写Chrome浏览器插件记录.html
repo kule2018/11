@@ -1,0 +1,140 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修nodejs + webpack4 + babel6 结合写Chrome浏览器插件记录' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>nodejs + webpack4 + babel6 结合写Chrome浏览器插件记录</center></div><div class='banquan'>原文出处:本文由博客园博主Greensoon提供。<br/>
+原文连接:https://www.cnblogs.com/greensoon/p/11001414.html</div><br>
+    <p>最近任务不忙，有时间了看一下Chrome插件相关的东西，于是想用nodejs + webpack写一个能直出插件的小工具。</p>
+<h2>1.nodejs + babel6 + webpack4&nbsp;</h2>
+<p>在写之前，是有把它写成依赖包之类的工具的，但是现在处于编码调试阶段，各个部分还没有进行封装，只是实现了相关的功能，后续会实现预计的构想。</p>
+<p>1.nodejs部分</p>
+<p>　　nodejs部分主要实现了对manifest.json文件的解析和输出功能，对接webpack功能。这里使用了nodemon来代替webpack自身的watch功能。</p>
+<p>2.webpack4</p>
+<p>　　webpack主要应用了babel, html功能，分别对js和html进行处理，其中babel-loader让我们像开发常规web站点一样去模块化开发浏览器插件，html部分则会读取pages下所有的html页面，并进行了压缩。</p>
+<h2>2.manifest的重新规划</h2>
+<p>　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    </span>"name": "bqcrx"<span style="color: #000000;">,
+    </span>"manifest_version": 2<span style="color: #000000;">,
+    </span>"description": "create chrome extend plugin"<span style="color: #000000;">,
+    </span>"version": "1.0"<span style="color: #000000;">,
+    </span>"homepage_url": "http://hao8v.net"<span style="color: #000000;">,
+    </span>"icons"<span style="color: #000000;">: {
+        </span>"16": "img/app.png"<span style="color: #000000;">,
+        </span>"48": "img/app.png"<span style="color: #000000;">,
+        </span>"128": "img/app.png"<span style="color: #000000;">
+    },
+    </span>"scriptsAndCss"<span style="color: #000000;">: [{
+        </span>"js": ["./src/index.js"<span style="color: #000000;">],
+        </span>"position": "document_start"<span style="color: #000000;">
+    }],
+    </span>"background"<span style="color: #000000;">: {
+        </span>"scripts": ["./src/background.js"<span style="color: #000000;">]
+    },
+    </span>"opentab": <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+    </span>"browser_action"<span style="color: #000000;">: 
+    {
+        </span>"icon": "img/icon.png"<span style="color: #000000;">,
+        </span>"title": "电影巷Chrome插件测试"<span style="color: #000000;">,
+        </span>"popup": "index.html"<span style="color: #000000;">
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<h4>　　1.权限</h4>
+<p>　　　　Chrome插件里需要声明应用的权限，这里做了一个偷懒的处理，如果你声明了确切的权限，你就能获取到相关的权限，如果没有声明，那么为了防止权限不够，会给你所有的权限。</p>
+<p>　　　　</p>
+<div class="cnblogs_code">
+<pre><code>"permissions"<span style="color: #000000;">: [
+        </span>"contextMenus", <span style="color: #008000;">//</span><span style="color: #008000;"> 右键菜单</span>
+        "tabs", <span style="color: #008000;">//</span><span style="color: #008000;"> 标签</span>
+        "notifications", <span style="color: #008000;">//</span><span style="color: #008000;"> 通知</span>
+        "webRequest", <span style="color: #008000;">//</span><span style="color: #008000;"> web请求</span>
+        "webRequestBlocking"<span style="color: #000000;">,
+        </span>"storage", <span style="color: #008000;">//</span><span style="color: #008000;"> 插件本地存储</span>
+        "http://*/*", <span style="color: #008000;">//</span><span style="color: #008000;"> 可以通过executeScript或者insertCSS访问的网站</span>
+        "https://*/*" <span style="color: #008000;">//</span><span style="color: #008000;"> 可以通过executeScript或者insertCSS访问的网站</span>
+        "activeTab"<span style="color: #000000;">
+],</span></pre>
+</div>
+<p>　　1.1 右键菜单</p>
+<p>　　　　这里封装了一个简单的lib，通过export 导出了contextMenu方法,来实现右键菜单的功能。</p>
+<p>　　　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> import { contextMenu } from './lib/chrome'
+<span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #000000;">contextMenu({
+</span><span style="color: #008080;">4</span>     title: '请使用666搜索'<span style="color: #000000;">,
+</span><span style="color: #008080;">5</span>     showSelect: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;">6</span>     onclick: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">7</span>         console.log('heiheihei'<span style="color: #000000;">)
+</span><span style="color: #008080;">8</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">9</span> })</pre>
+</div>
+<p>　　1.2 tabs标签</p>
+<p>　　　　标签权限在搜索，打开标签页，标签页之间通信等方面是离不开的。</p>
+<p>　　　　这里只测试了一个简单的opentab, 其中opentab可以是true 或者 false，或者不填，为true则默认在打开新tab页时打开本人<a href="http://hao8v.net" target="_blank">个人常看电影的网站</a>, 为false或者不写则不会替换.</p>
+<p>　　</p>
+<div class="cnblogs_code">
+<pre><code>"opentab": <span style="color: #0000ff;">true</span>,</pre>
+</div>
+<p>其他权限功能还没应用。</p>
+<p>&nbsp;</p>
+<h4>　　　2.css和js</h4>
+<p>　　CSS和JS有两个部分，一种是content-script，一种是background，先说前一种。</p>
+<p>　　这里换成了scriptsAndCss字段代替，其中css和js依然是数组，css和js的路径为相对路径，生成的路径中会转化成对应的路径。</p>
+<p>　　position则对应原来的run_at,指的是注入script的时机，值分别为document_start、document_end、document_idle（空闲），默认为document_idle</p>
+<div class="cnblogs_code">
+<pre><code>"scriptsAndCss"<span style="color: #000000;">: [{
+        </span>"js": ["./src/index.js"<span style="color: #000000;">],
+        </span>"position": "document_start"<span style="color: #000000;">
+}],</span></pre>
+</div>
+<p>　　再说background, background的生命周期，是伴随整个插件存在的，里面可以访问到相应的Chrome权限能力。</p>
+<p>&nbsp;</p>
+<p>　　这里需要注意的是，content-script和页面的变量是不共享，也就是说，假如你在页面上引入了jQuery，那么你在content-script中的是无法使用jQuery的。</p>
+<p>可是我就是想用怎么办呢？有办法。</p>
+<p>　　这里提供了一个inject：</p>
+<p>　　</p>
+<div class="cnblogs_code">
+<pre><code>injects: ['./src/inject.js', './src/inject1.js']</pre>
+</div>
+<p>　　那么我们就可以在inject引入的js中，愉快的去使用页面中的变量了。</p>
+<h4>　　3.其他</h4>
+<p>　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>     "name": "bqcrx"<span style="color: #000000;">,
+</span><span style="color: #008080;">2</span>     "description": "create chrome extend plugin"<span style="color: #000000;">,
+</span><span style="color: #008080;">3</span>     "version": "1.0"<span style="color: #000000;">,
+</span><span style="color: #008080;">4</span>     "homepage_url": "http://hao8v.net"<span style="color: #000000;">,
+</span><span style="color: #008080;">5</span>     "icons"<span style="color: #000000;">: {
+</span><span style="color: #008080;">6</span>         "16": "img/app.png"<span style="color: #000000;">,
+</span><span style="color: #008080;">7</span>         "48": "img/app.png"<span style="color: #000000;">,
+</span><span style="color: #008080;">8</span>         "128": "img/app.png"
+<span style="color: #008080;">9</span>     },</pre>
+</div>
+<p>这样，就可以通过npm命令去启动开发啦~~~</p>
+<p>&nbsp;</p>
+<p>GitHub项目地址：<a href="https://github.com/Greensoon/bq-createchr" target="_blank">https://github.com/Greensoon/bq-createchr</a></p>
+<p>&nbsp;</p>
+<p>其实一开始是想写成一个vue或者react的一个库，通过组件的形式去实现更加简单方面的开发，希望有时间去推进和完成后续的功能。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

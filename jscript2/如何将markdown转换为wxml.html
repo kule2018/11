@@ -1,0 +1,505 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何将markdown转换为wxml' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何将markdown转换为wxml</center></div><div class='banquan'>原文出处:本文由博客园博主Jeff.Zhong提供。<br/>
+原文连接:https://www.cnblogs.com/edwardloveyou/p/10775834.html</div><br>
+    <p>原文地址：<a href="https://edwardzhong.github.io/2019/04/27/mdtowxml/">如何将markdown转换为wxml</a><br />
+话说我要为技术博客写一个小程序版，我的博客解决方案是 <strong>hexo + github-page</strong>，格式当然是技术控们喜欢的 <strong>markdown</strong> 了 。但小程序使用的却是独有的模版语言 <strong>WXML</strong>。我总不能把之前的文章手动转换成小程序的 <strong>wxml</strong> 格式吧，而网上也没完善的转换库，还是自己写个解析器吧。</p>
+<p>解析器最核心的部分就是字符串模式匹配，既然涉及到字符串匹配，那么就离不开正则表达式。幸好，正则表达式是我的优势之一。</p>
+<!-- more -->
+<h2 id="正则表达式">正则表达式</h2>
+<h3 id="javascript中的正则表达式">JavaScript中的正则表达式</h3>
+<p>解析器涉及到的 JavaScript 正则表达式知识</p>
+<p>RegExp 构造函数属性，其中lastMatch，rightContent在字符串截取时非常有用</p>
+<table>
+<thead>
+<tr class="header">
+<th>长属性名</th>
+<th>短属性名</th>
+<th>替换标志</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>input</td>
+<td>$_</td>
+<td></td>
+<td>最近一次要匹配的字符串。Opera未实现此属性</td>
+</tr>
+<tr class="even">
+<td>lastMatch</td>
+<td>$&amp;</td>
+<td>$&amp;</td>
+<td>最近一次的匹配项。Opera未实现此属性</td>
+</tr>
+<tr class="odd">
+<td>lastParen</td>
+<td>$+</td>
+<td></td>
+<td>最近一次匹配的捕获组。Opera未实现此属性</td>
+</tr>
+<tr class="even">
+<td>leftContext</td>
+<td>$`</td>
+<td>$`</td>
+<td>input字符串中lastMatch之前的文本</td>
+</tr>
+<tr class="odd">
+<td>rightContext</td>
+<td>$'</td>
+<td>$'</td>
+<td>Input字符串中lastMatch之后的文本</td>
+</tr>
+<tr class="even">
+<td>multiline</td>
+<td>$*</td>
+<td></td>
+<td>布尔值，表示是否所有表达式都使用多行模式。IE和Opera未实现此属性</td>
+</tr>
+<tr class="odd">
+<td></td>
+<td>$n</td>
+<td>$n</td>
+<td>分组</td>
+</tr>
+<tr class="even">
+<td></td>
+<td></td>
+<td>$$</td>
+<td>转义$</td>
+</tr>
+</tbody>
+</table>
+<ol>
+<li><p><strong>test</strong> 方法 和 <strong>RegExp</strong> 构造函数<br />
+<strong>test</strong> 方法调用后，上面的属性就会出现在 <strong>RegExp</strong> 中，不推荐使用短属性名，因为会造成代码可读性的问题，下面就是样例</p>
+<pre><code><code>var text = &quot;this has been a short summer&quot;;
+var pattern = /(.)hort/g;
+
+if (pattern.test(text)){
+    alert(RegExp.input);         // this has been a short summer
+    alert(RegExp.leftContext);   // this has been a
+    alert(RegExp.rightContext);  // summer
+    alert(RegExp.lastMatch);     // short
+    alert(RegExp.lastParen);     // s
+    alert(RegExp.multiline);     // false
+}
+
+//长属性名都可以用相应的短属性名来代替。不过由于这些短属性名大都不是有效的ECMAScript标识符，因此必须通过方括号语法来访问它们
+if (pattern.test(text)){
+    alert(RegExp.$_);
+    alert(RegExp[&quot;$`&quot;]);
+    alert(RegExp[&quot;$&#39;&quot;]);
+    alert(RegExp[&quot;$&amp;&quot;]);
+    alert(RegExp[&quot;$+&quot;]);
+    alert(RegExp[&quot;$*&quot;]);
+}</code></pre></li>
+<li><p><strong>replace</strong> 方法</p>
+<p>一般使用的是没有回调函数的简单版本，而回调函数版本则是个大杀器，及其强大</p>
+<pre><code><code>//简单替换, replace默认只进行一次替换, 如设定全局模式,  将会对符合条件的子字符串进行多次替换，最后返回经过多次替换的结果字符串.
+var regex = /(\d{4})-(\d{2})-(\d{2})/;
+&quot;2011-11-11&quot;.replace(regex, &quot;$2/$3/$1&quot;);
+
+//replace 使用回调函数自定义替换，必须启用全局模式g，因为要不断向前匹配，直到匹配完整个字符串
+//match为当前匹配到的字符串，index为当前匹配结果在字符串中的位置，sourceStr表示原字符串，
+//如果有分组，则中间多了匹配到的分组内容，match,group1(分组1)...groupN(分组n),index,sourceStr
+&quot;one two three&quot;.replace(/\bt[a-zA-Z]+\b/g, function (match,index,str) { //将非开头的单词大写
+    console.log(match,index,str);
+    return match.toUpperCase(); 
+});</code></pre></li>
+<li><p><strong>match</strong> 方法</p>
+<p>全局模式和非全局模式有显著的区别，全局模式和 exec 方法类似。</p>
+<pre><code><code>// 如果参数中传入的是子字符串或是没有进行全局匹配的正则表达式，那么match()方法会从开始位置执行一次匹配，如果没有匹配到结果，则返回null.否则则会返回一个数组,该数组的第0个元素存放的是匹配文本，返回的数组还含有两个对象属性index和input，分别表示匹配文本的起始字符索引和原字符串，还有分组属性
+var str = &#39;1a2b3c4d5e&#39;;
+console.log(str.match(/b/)); //返回[&quot;b&quot;, index: 3, input: &quot;1a2b3c4d5e&quot;]
+
+//如果参数传入的是具有全局匹配的正则表达式，那么match()从开始位置进行多次匹配，直到最后.如果没有匹配到结果，则返回null.否则则会返回一个数组，数组中存放所有符合要求的子字符串，但没有index和input属性,也没有分组属性
+var str = &#39;1a2b3c4d5e&#39;;
+str.match(/h/g); //返回null
+str.match(/\d/g); //返回[&quot;1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;4&quot;, &quot;5&quot;]
+
+var pattern = /\d{4}-\d{2}-\d{2}/g;
+var str =&quot;2010-11-10 2012-12-12&quot;;
+var matchArray = str.match(pattern);
+for(vari = 0; i &lt; matchArray.length; i++) {
+     console.log(matchArray[i]);
+}</code></pre></li>
+<li><p><strong>exec</strong> 方法</p>
+<p>与全局模式下的 <strong>match</strong> 类似，但 <strong>exec</strong> 更强大，因为返回结果包含各种匹配信息，而match全局模式是不包含具体匹配信息的。</p>
+<pre><code><code>//逐步提取,捕获分组匹配文本,必须使用全局模式g, 成功则返回数组(包含匹配的分组信息), 否则为null
+//Regex每次匹配成功后,会把匹配结束位置更新到lastIndex,下次从lastIndex开始匹配
+//如果不指定全局模式,使用while循环,会造成无穷循环
+var pattern = /(\d{4})-(\d{2})-(\d{2})/g;
+var str2 = &quot;2011-11-11 2013-13-13&quot; ;
+while ((matchArray = pattern.exec(str2)) != null) {
+  console.log( &quot;date: &quot; + matchArray[0]+&quot;start at:&quot; + matchArray.index+&quot; ends at:&quot;+         pattern.lastIndex);
+  console.log( &quot;,year: &quot; + matchArray[1]);
+  console.log( &quot;,month: &quot; + matchArray[2]);
+  console.log( &quot;,day: &quot; + matchArray[3]);
+}</code></pre></li>
+<li><p><strong>search</strong>，<strong>split</strong> 这两个比较简单的方法则不再介绍</p></li>
+</ol>
+<h3 id="正则表达式高级概念">正则表达式高级概念</h3>
+<p>正常情况下正则是从左向右进行单字符匹配，每匹配到一个字符, 就后移位置, 直到最终消耗完整个字符串， 这就是正则表达式的字符串匹配过程，也就是它会匹配字符，占用字符。相关的基本概念不再讲解，这里要讲的和字符匹配不同的概念 - 断言。</p>
+<ol>
+<li><p>断言</p>
+<p>正则中大多数结构都是匹配字符，而断言则不同，它不匹配字符，不占用字符，而只在某个位置判断左/右侧的文本是否符合要求。这类匹配位置的元素，可以称为 &quot;锚点&quot;，主要分为三类：单词边界，开始结束位置，环视。</p>
+<p>单词边界 \b 是这样的位置，一边是单词字符，一边不是单词字符，如下字符串样例所示</p>
+<pre><code><code>\brow\b   //row
+\brow     //row， rowdy
+row\b     //row， tomorow</code></pre>
+<p>^ 行开头，多行模式下亦匹配每个换行符后的位置，即行首<br />
+$ 行结束，多行模式下亦匹配每个换行符前的位置，即行尾</p>
+<pre><code><code>//js 中的 $ 只能匹配字符串的结束位置，不会匹配末尾换行符之前的换行符。但开启多行模式(m)后，^ 和 $ 则可以匹配中间的换行符。 如下例子可验证：
+
+// 默认全局模式下，^ 和 $ 直接匹配到了文本最开头和末尾，忽略了中间的换行符
+&#39;hello\nword&#39;.replace(/^|$/g,&#39;&lt;p&gt;&#39;)
+&quot;&lt;p&gt;hello
+word&lt;p&gt;&quot;
+
+// 多行模式下，同时能匹配到结束符中间的换行符
+&#39;hello\nword\nhi&#39;.replace(/^|$/mg,&#39;&lt;p&gt;&#39;)
+&quot;&lt;p&gt;hello&lt;p&gt;
+&lt;p&gt;word&lt;p&gt;
+&lt;p&gt;hi&lt;p&gt;&quot;</code></pre></li>
+<li><p>环视</p>
+<p>环视是断言中最强的存在，同样不占用字符也不提取任何字符，只匹配文本中的特定位置，与\b, ^ $ 边界符号相似；但环视更加强大，因为它可以指定位置和在指定位置处添加向前或向后验证的条件。</p>
+<p>而环视主要体现在它的不占位（不消耗匹配字符）, 因此又被称为零宽断言。所谓不占宽度，可以这样理解：</p>
+<ul>
+<li><p>环视的匹配结果不纳入数据结果；</p></li>
+<li><p>环视它匹配过的地方，下次还能用它继续匹配。</p></li>
+</ul>
+<p>环视包括顺序环视和逆序环视，javascript 在 ES 2018 才开始支持逆序环视</p>
+<ul>
+<li>(?=) 顺序肯定环视 匹配右边</li>
+<li>(?!) 顺序否定环视</li>
+<li>(?&lt;=) 逆序肯定环视 匹配左边</li>
+<li>(?&lt;!) 逆序否定环视</li>
+</ul>
+<p>来看一下具体的样例</p>
+<pre><code><code>// 获取.exe后缀的文件名，不使用分组捕获，能使捕获结果不包含.exe后缀，充分利用了环视匹配结果同时不占位的特性
+&#39;asd.exe&#39;.match(/.+(?=\.exe)/)
+=&gt; [&quot;asd&quot;, index: 0, input: &quot;asd.exe&quot;, groups: undefined]
+
+// 变种否定顺序环视，排除特定标签p/a/img，匹配html标签
+&lt;/?(?!p|a|img)([^&gt; /]+)[^&gt;]*/?&gt; 
+
+//常规逆序环视，同样利用了环视匹配不占位的特性
+/(?&lt;=\$)\d+/.exec(&#39;Benjamin Franklin is on the $100 bill&#39;)  // [&quot;100&quot;,index: 29,...]
+/(?&lt;!\$)\d+/.exec(&#39;it’s is worth about €90&#39;)                // [&quot;90&quot;, index: 21,...] 
+
+// 利用环视占位但不匹配的特性
+&#39;12345678&#39;.replace(/\B(?=(\d{3})+$)/g , &#39;,&#39;) 
+=&gt; &quot;12,345,678&quot; //分割数字</code></pre></li>
+</ol>
+<h2 id="解析器的编写">解析器的编写</h2>
+<p>正则表达式相关写得有点多，但磨刀不误砍柴工，开始进入主题</p>
+<h3 id="markdown格式">markdown格式</h3>
+<p><strong>hexo</strong> 生成的 <strong>markdwon</strong> 文件格式如下，解析器就是要把它解析成json格式的输出结果，供小程序输出 <strong>wxml</strong></p>
+<pre class="markdown"><code>---
+title: Haskell学习-functor
+date: 2018-08-15 21:27:15
+tags: [haskell]
+categories: 技术
+banner: https://upload-images.jianshu.io/upload_images/127924-be9013350ffc4b88.jpg
+---
+&lt;!-- 原文地址：[Haskell学习-functor](https://edwardzhong.github.io/2018/08/15/haskellc/) --&gt;
+## 什么是Functor
+**functor** 就是可以执行map操作的对象，functor就像是附加了语义的表达式，可以用盒子进行比喻。**functor** 的定义可以这样理解：给出a映射到b的函数和装了a的盒子，结果会返回装了b的盒子。**fmap** 可以看作是一个接受一个function 和一个 **functor** 的函数，它把function 应用到 **functor** 的每一个元素（映射）。
+
+```haskell
+-- Functor的定义
+class Functor f where
+    fmap :: (a -&gt; b) -&gt; f a -&gt; f b
+```
+&lt;!-- more --&gt;</code></pre>
+<h3 id="入口">入口</h3>
+<p>使用node进行文件操作，然后调用解析器生成json文件</p>
+<pre><code><code>const { readdirSync, readFileSync, writeFile } = require(&quot;fs&quot;);
+const path = require(&quot;path&quot;);
+const parse = require(&quot;./parse&quot;);
+
+const files = readdirSync(path.join(__dirname, &quot;posts&quot;));
+for (let p of files) {
+  let md = readFileSync(path.join(__dirname, &quot;posts&quot;, p));
+  const objs = parse(md);
+  writeFile(path.join(__dirname, &quot;json&quot;, p.replace(&#39;.md&#39;,&#39;.json&#39;)), JSON.stringify(objs), function( err ){
+    err &amp;&amp; console.log(err);
+  });
+}</code></pre>
+<p>来看一下解析器入口部分，主要分为：summary 部分，code代码部分，markdown文本部分。将文本内容的注释和空格过滤掉，但是代码部分的注释要保留。</p>
+<pre><code><code>module.exports = function analyze(str) {
+    let ret = { summary: {}, lines: [] };
+    while (str) {
+        // 空格
+        if (/^([\s\t\r\n]+)/.test(str)) {
+            str = RegExp.rightContext;
+        }
+        // summary 内容块
+        if (/^(\-{3})[\r\n]?([\s\S]+?)\1[\r\n]?/.test(str)) {
+            str = RegExp.rightContext;
+            ret.summary = summaryParse(RegExp.$2);
+            ret.num = new Date(ret.summary.date).getTime();
+        }
+        // code
+        if (/^`{3}(\w+)?([\s\S]+?)`{3}/.test(str)) {
+            const codeStr = RegExp.$2 || RegExp.$1;
+            const fn = (RegExp.$2 &amp;&amp; codeParse[RegExp.$1]) ? codeParse[RegExp.$1] : codeParse.javascript;
+            str = RegExp.rightContext;
+            ret.lines.push({ type: &quot;code&quot;, child: fn(codeStr) });
+        }
+        // 注释行
+        if (/^&lt;!--[\s\S]*?--&gt;/.test(str)) {
+            str = RegExp.rightContext;
+        }
+        // 提取每行字符串, 利用 . 不匹配换行符的特性
+        if (/^(.+)[\r\n]?/.test(str)) {
+            str = RegExp.rightContext;
+            ret.lines.push(textParse(RegExp.$1));
+        }
+    }
+    return ret;
+};</code></pre>
+<h3 id="文本内容提取">文本内容提取</h3>
+<p>summary 内容块的提取比较简单，不讲叙。还是看 <strong>markdown</strong> 文本内容的解析吧。这里匹配 <strong>markdown</strong> 常用类型，比如列表，标题h，链接a，图片img等。而返回结果的数据结构就是一个列表，列表里面可以嵌套子列表。但基本就是正则表达式提取内容，最终消耗完字符行。</p>
+<pre><code><code>function textParse(s) {
+    const trans = /^\\(\S)/; //转义字符
+    const italy = /^(\*)(.+?)\1/; //倾斜
+    const bold = /^(\*{2})(.+?)\1/; //加粗
+    const italyBold = /^(\*{3})(.+?)\1/; //倾斜和加粗
+    const headLine = /^(\#{1,6})\s+/; //h1-6
+    const unsortList = /^([*\-+])\s+/; //无序列表
+    const sortList = /^(\d+)\.\s+/; //有序列表
+    const link = /^\*?\[(.+)\]\(([^()]+)\)\*?/; //链接
+    const img = /^(?:!\[([^\]]+)\]\(([^)]+)\)|&lt;img(\s+)src=&quot;([^&quot;]+)&quot;)/; //图片
+    const text =/^[^\\\s*]+/; //普通文本
+
+    if (headLine.test(s)) return { type: &quot;h&quot; + RegExp.$1.length, text: RegExp.rightContext };
+    if (sortList.test(s)) return { type: &quot;sl&quot;, num: RegExp.$1, child: lineParse(RegExp.rightContext) };
+    if (unsortList.test(s)) return { type: &quot;ul&quot;, num: RegExp.$1, child: lineParse(RegExp.rightContext) };
+    if (img.test(s)) return { type: &quot;img&quot;, src: RegExp.$2||RegExp.$4, alt: RegExp.$1||RegExp.$3 };
+    if (link.test(s)) return { type: &quot;link&quot;, href: RegExp.$2, text: RegExp.$1 };
+    return { type: &quot;text&quot;, child: lineParse(s) };
+
+    function lineParse(line) {
+        let ws = [];
+        while (line) {
+            if (/^[\s]+/.test(line)) {
+                ws.push({ type: &quot;text&quot;, text: &quot;&amp;nbsp;&quot; });
+                line = RegExp.rightContext;
+            }
+            if (trans.test(line)) {
+                ws.push({ type: &quot;text&quot;, text: RegExp.$1 });
+                line = RegExp.rightContext;
+            }
+            if (sortList.test(line)) {
+                return { child: lineParse(RegExp.rightContext) };
+            }
+            if (unsortList.test(line)) {
+                return { child: lineParse(RegExp.rightContext) };
+            }
+            if (link.test(line)) {
+                ws.push({ type: &quot;link&quot;, href: RegExp.$2, text: RegExp.$1 });
+                line = RegExp.rightContext;
+            }
+            if (italyBold.test(line)) {
+                ws.push({ type: &quot;italybold&quot;, text: RegExp.$2 });
+                line = RegExp.rightContext;
+            }
+            if (bold.test(line)) {
+                ws.push({ type: &quot;bold&quot;, text: RegExp.$2 });
+                line = RegExp.rightContext;
+            }
+            if (italy.test(line)) {
+                ws.push({ type: &quot;italy&quot;, text: RegExp.$2 });
+                line = RegExp.rightContext;
+            }
+            if (text.test(line)) {
+                ws.push({ type: &quot;text&quot;, text: RegExp.lastMatch });
+                line = RegExp.rightContext;
+            }
+        }
+        return ws;
+    }
+}
+</code></pre>
+<h3 id="代码块显示">代码块显示</h3>
+<p>如果只是解析文本内容，还是非常简单的，但是技术博客嘛，代码块是少不了的。为了代码关键字符的颜色显示效果，为了方便阅读，还得继续解析。我博客目前使用到的语言，基本写了对应的解析器，其实有些解析器是可以共用的，比如 style方法不仅可应用到 <strong>css</strong> 上， 还可以应用到类似的预解析器上比如：<strong>scss</strong>，<strong>less</strong>。<strong>html</strong>也一样可应用到类似的标记语言上。</p>
+<pre><code><code>const codeParse = {
+  haskell(str){},
+  javascript(str){},
+  html:html,
+  css:style
+};</code></pre>
+<p>来看一下比较有代表性的 JavaScript 解析器，这里没有使用根据换行符(\n)将文本内容切割成字符串数组的方式，因为有些类型需要跨行进行联合推断，比如解析块，方法名称判断就是如此。只能将一整块文本用正则表达式慢慢匹配消耗完。最终的结果类似上面的文本匹配结果 - 嵌套列表，类型就是语法关键字，常用内置方法，字符串，数字，特殊符号等。</p>
+<p>其实根据这个解析器可以进一步扩展和抽象一下，将它作为类 C 语言族的基本框架。然后只要传递 对应语言的正则表达式规则，就能解析出不同语言的结果出来，比如 <strong>C#</strong>，<strong>java</strong>，<strong>C++</strong>，<strong>GO</strong>。</p>
+<pre><code><code>javascript(str) {
+    const comReg = /^\/{2,}.*/;
+    const keyReg = /^(import|from|extends|new|var|let|const|return|if|else|switch|case|break|continue|of|for|in|Array|Object|Number|Boolean|String|RegExp|Date|Error|undefined|null|true|false|this|alert|console)(?=([\s.,;(]|$))/;
+    const typeReg = /^(window|document|location|sessionStorage|localStorage|Math|this)(?=[,.;\s])/;
+    const regReg = /^\/\S+\/[gimuys]?/;
+    const sysfunReg = /^(forEach|map|filter|reduce|some|every|splice|slice|split|shift|unshift|push|pop|substr|substring|call|apply|bind|match|exec|test|search|replace)(?=[\s\(])/;
+    const funReg = /^(function|class)\s+(\w+)(?=[\s({])/;
+    const methodReg = /^(\w+?)\s*?(\([^()]*\)\s*?{)/;
+    const symbolReg = /^([!&gt;&lt;?|\^$&amp;~%*/+\-]+)/;
+    const strReg = /^([`&#39;&quot;])([^\1]*?)\1/;
+    const numReg = /^(\d+\.\d+|\d+)(?!\w)/;
+    const parseComment = s =&gt; {
+        const ret = [];
+        const lines = s.split(/[\r\n]/g);
+        for (let line of lines) {
+            ret.push({ type: &quot;comm&quot;, text: line });
+        }
+        return ret;
+    };
+
+    let ret = [];
+
+    while (str) {
+        if (/^\s*\/\*([\s\S]+?)\*\//.test(str)) {
+            str = RegExp.rightContext;
+            const coms = parseComment(RegExp.lastMatch);
+            ret = ret.concat(coms);
+        }
+        if (/^(?!\/\*).+/.test(str)) {
+            str = RegExp.rightContext;
+            ret.push({ type: &quot;text&quot;, child:lineParse(RegExp.lastMatch) });
+        }
+        if(/^[\r\n]+/.test(str)){
+            str=RegExp.rightContext;
+            ret.push({type:&#39;text&#39;,text:RegExp.lastMatch});
+        }
+    }
+    return ret;
+
+    function lineParse(line) {
+        let ws = [];
+        while (line) {
+            if (/^([\s\t\r\n]+)/.test(line)) {
+                ws.push({ type: &quot;text&quot;, text: RegExp.$1 });
+                line = RegExp.rightContext;
+            }
+            if (comReg.test(line)) {
+                ws.push({ type: &quot;comm&quot;, text: line });
+                break;
+            }
+            if (regReg.test(line)) {
+                ws.push({ type: &quot;fun&quot;, text: RegExp.lastMatch });
+                line = RegExp.rightContext;
+            }
+            if (symbolReg.test(line)) {
+                ws.push({ type: &quot;keyword&quot;, text: RegExp.$1 });
+                line = RegExp.rightContext;
+            }
+            if (keyReg.test(line)) {
+                ws.push({ type: &quot;keyword&quot;, text: RegExp.$1 });
+                line = RegExp.rightContext;
+            }
+            if (funReg.test(line)) {
+                ws.push({ type: &quot;keyword&quot;, text: RegExp.$1 });
+                ws.push({ type: &quot;text&quot;, text: &quot;&amp;nbsp;&quot; });
+                ws.push({ type: &quot;fun&quot;, text: RegExp.$2 });
+                line = RegExp.rightContext;
+            }
+            if (methodReg.test(line)) {
+                ws.push({ type: &quot;fun&quot;, text: RegExp.$1 });
+                ws.push({ type: &quot;text&quot;, text: &quot;&amp;nbsp;&quot; });
+                ws.push({ type: &quot;text&quot;, text: RegExp.$2 });
+                line = RegExp.rightContext;
+            }
+            if (typeReg.test(line)) {
+                ws.push({ type: &quot;fun&quot;, text: RegExp.$1 });
+                line = RegExp.rightContext;
+            }
+            if (sysfunReg.test(line)) {
+                ws.push({ type: &quot;var&quot;, text: RegExp.$1 });
+                line = RegExp.rightContext;
+            }
+            if (strReg.test(line)) {
+                ws.push({ type: &quot;var&quot;, text: RegExp.$1 + RegExp.$2 + RegExp.$1 });
+                line = RegExp.rightContext;
+            }
+            if (numReg.test(line)) {
+                ws.push({ type: &quot;var&quot;, text: RegExp.$1 });
+                line = RegExp.rightContext;
+            }
+            if (/^\w+/.test(line)) {
+                ws.push({ type: &quot;text&quot;, text: RegExp.lastMatch });
+                line = RegExp.rightContext;
+            }
+            if (/^[^`&#39;&quot;!&gt;&lt;?|\^$&amp;~%*/+\-\w]+/.test(line)) {
+                ws.push({ type: &quot;text&quot;, text: RegExp.lastMatch });
+                line = RegExp.rightContext;
+            }
+        }
+        return ws;
+    }
+}</code></pre>
+<h2 id="显示wxml">显示WXML</h2>
+<p>最后只要运行解析器，就能生成 <strong>markdown</strong> 对应的 <strong>json</strong> 文件了，然后把json加载到微信小程序的云数据库里面，剩下的显示就交由小程序完成。下面就是使用 <strong>taro</strong> 编写 <strong>jsx</strong> 显示部分</p>
+<pre><code><code>&lt;View className=&#39;article&#39;&gt;
+    {lines.map(l =&gt; (
+        &lt;Block&gt;
+        &lt;View className=&#39;line&#39;&gt;
+            {l.type.search(&quot;h&quot;) == 0 &amp;&amp; ( &lt;Text className={l.type}&gt;{l.text}&lt;/Text&gt; )}
+            {l.type == &quot;link&quot; &amp;&amp; ( &lt;Navigator className=&#39;link&#39; url={l.href}&gt; {l.text} &lt;/Navigator&gt; )}
+            {l.type == &quot;img&quot; &amp;&amp; ( &lt;Image className=&#39;pic&#39; mode=&#39;widthFix&#39; src={l.src} /&gt; )}
+            {l.type == &quot;sl&quot; &amp;&amp; ( &lt;Block&gt; 
+                &lt;Text decode className=&#39;num&#39;&gt; {l.num}.{&quot; &quot;} &lt;/Text&gt;
+                &lt;TextChild list={l.child} /&gt;
+            &lt;/Block&gt;
+            )}
+            {l.type == &quot;ul&quot; &amp;&amp; ( &lt;Block&gt; 
+                &lt;Text decode className=&#39;num&#39;&gt; {&quot; &quot;} &amp;bull;{&quot; &quot;} &lt;/Text&gt;
+                &lt;TextChild list={l.child} /&gt;
+            &lt;/Block&gt;
+            )}
+            {l.type == &quot;text&quot; &amp;&amp; l.child.length &amp;&amp; ( &lt;TextChild list={l.child} /&gt; )}
+        &lt;/View&gt;
+        {l.type == &quot;code&quot; &amp;&amp; (
+            &lt;View className=&#39;code&#39;&gt;
+            {l.child.map(c =&gt; (
+                &lt;View className=&#39;code-line&#39;&gt;
+                {c.type == &#39;comm&#39; &amp;&amp; &lt;Text decode className=&#39;comm&#39;&gt; {c.text} &lt;/Text&gt;}
+                {c.type == &#39;text&#39; &amp;&amp; c.child.map(i =&gt; (
+                    &lt;Block&gt;
+                    {i.type == &quot;comm&quot; &amp;&amp; ( &lt;Text decode className=&#39;comm&#39;&gt; {i.text} &lt;/Text&gt; )}
+                    {i.type == &quot;keyword&quot; &amp;&amp; ( &lt;Text decode className=&#39;keyword&#39;&gt; {i.text} &lt;/Text&gt; )}
+                    {i.type == &quot;var&quot; &amp;&amp; ( &lt;Text decode className=&#39;var&#39;&gt; {i.text} &lt;/Text&gt; )}
+                    {i.type == &quot;fun&quot; &amp;&amp; ( &lt;Text decode className=&#39;fun&#39;&gt; {i.text} &lt;/Text&gt; )}
+                    {i.type == &quot;text&quot; &amp;&amp; ( &lt;Text decode className=&#39;text&#39;&gt; {i.text} &lt;/Text&gt; )}
+                    &lt;/Block&gt;
+                ))}
+                &lt;/View&gt;
+            ))}
+            &lt;/View&gt;
+        )}
+        &lt;/Block&gt;
+    ))}
+&lt;/View&gt;</code></pre>
+<h2 id="后记">后记</h2>
+<p>经过这个项目的磨练，我的正则表达式的能力又上了一个台阶， 连 <strong>环视</strong> 都已经是信手拈来了😄</p>
+<h4 id="小程序预览">小程序预览</h4>
+<p><img src="./images/如何将markdown转换为wxml0.png" alt="jeffblog_weapp.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,116 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修axios统一接口管理及优化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>axios统一接口管理及优化</center></div><div class='banquan'>原文出处:本文由博客园博主ZhangCui提供。<br/>
+原文连接:https://www.cnblogs.com/zczhangcui/p/11995423.html</div><br>
+    <p>之前我写了<a href="https://www.cnblogs.com/zczhangcui/p/9347447.html" target="_blank">一篇文章</a>，分享了自己的项目中对于接口管理的方法。总结下来就是：<strong>定义接口文件--withAxios导出--调用接口方法</strong>。这样实现了接口的统一管理和调用接口的语义化与简单化。</p>
+<p>&nbsp;</p>
+<p>根据在项目的使用，发现有以下问题需要优化：</p>
+<ol>
+<li>withAxios导出的接口方法对象对编辑器来说是不透明的，所以代码提示功能缺失。</li>
+<li>同一个方法调用多次，如何保证组件总是获取到最后一次的返回信息。</li>
+</ol>
+<p>&nbsp;</p>
+<p>根据以上问题，采用了以下解决方案：</p>
+<ol>
+<li>使用typescript的泛型解决。</li>
+<li>调用同一个方法时，取消掉上次未完成的请求，这里使用axios的cancel方法。实现思路是在返回的方法对象中增加一个`${name}Cancel`的方法，保存取消上一次方法的回调，下次请求时固定调用这个取消方法以保证本次请求是当前唯一一个请求。(这里只提供axios层面的解决办法，不讨论其他办法，比如采用redux-saga的话可以使用takeLatest解决)</li>
+</ol>
+<p>&nbsp;</p>
+<p>通过代码展示一下（React项目）：</p>
+<p>service.ts</p>
+<div class="cnblogs_code">
+<pre><code>import { IApiItem } from '@/configs/api/declares'<span style="color: #000000;">;
+import withAxios from </span>'@/utils/withAxios'<span style="color: #000000;">;
+
+const api: IApiItem[] </span>=<span style="color: #000000;"> [
+  { name: </span>'getSummary', url: 'http://xx:8000/api/getSummary'<span style="color: #000000;"> },
+  { name: </span>'getDetail', url: 'http://xx:8000/api/getDetail'<span style="color: #000000;"> },
+  { name: </span>'getDetailChildren', url: 'http://xx:8000/api/getDetailChildren'<span style="color: #000000;"> },
+  { name: </span>'getCurrentUser', url: 'http://xx:8000/api/getCurrentUser'<span style="color: #000000;"> },
+];
+
+interface IProdMonitorApi {
+  getSummary: any;
+  getDetail: any;
+  getDetailChildren: any;
+  getCurrentUser: any;
+}
+
+export </span><span style="color: #0000ff;">default</span> withAxios&lt;IProdMonitorApi&gt;(api);</pre>
+</div>
+<p>&nbsp;</p>
+<p lang="en-US">withAxios.ts</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span> withAxios&lt;T&gt;(apiConfig: IApiItem[], usePassportOrigin: <span style="color: #0000ff;">boolean</span> = <span style="color: #0000ff;">false</span><span style="color: #000000;">): T {
+  const serviceMap </span>=<span style="color: #000000;"> {} as T;
+  apiConfig.map(({ name, url, method </span>= 'get', ...rest }: IApiItem) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> (serviceMap[name] = async <span style="color: #0000ff;">function</span>(data =<span style="color: #000000;"> {}) {
+      </span><span style="color: #0000ff;">if</span> (serviceMap[`${name}Cancel`] &amp;&amp; <span style="color: #0000ff;">typeof</span> serviceMap[`${name}Cancel`] === 'function'<span style="color: #000000;">) {
+        serviceMap[`${name}Cancel`]();
+      }
+
+      const source </span>=<span style="color: #000000;"> axios.CancelToken.source();
+      serviceMap[`${name}Cancel`] </span>= () =&gt;<span style="color: #000000;"> {
+        source.cancel(`已取消上次未完成请求:${name}`);
+      };
+      rest.cancelToken </span>=<span style="color: #000000;"> source.token;
+
+      let key </span>= 'params'<span style="color: #000000;">;
+      const apiMethod </span>=<span style="color: #000000;"> method.toLowerCase();
+      </span><span style="color: #0000ff;">if</span> (apiMethod === 'post' || apiMethod === 'put'<span style="color: #000000;">) {
+        key </span>= 'data'<span style="color: #000000;">;
+      }
+      let fetchUrl </span>=<span style="color: #000000;"> url;
+      </span><span style="color: #0000ff;">if</span> (url.indexOf('http') !== 0<span style="color: #000000;">) {
+        fetchUrl </span>=<span style="color: #000000;"> usePassportOrigin
+          </span>? NetworkUtils.passportOrigin +<span style="color: #000000;"> url
+          : NetworkUtils.serverOrigin </span>+<span style="color: #000000;"> url;
+      }
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> axios({
+        method,
+        url: fetchUrl,
+        [key]: data,
+        fetchName: name,
+        ...rest,
+      } as AxiosRequestConfig);
+    });
+  });
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> serviceMap;
+}
+
+export </span><span style="color: #0000ff;">default</span> withAxios;</pre>
+</div>
+<p>&nbsp;</p>
+<p>在需要使用接口的地方：</p>
+<div class="cnblogs_code">
+<pre><code>import Service from "./service.ts"<span style="color: #000000;">
+
+Service.getSummary(requestParams).then(...)</span></pre>
+</div>
+<p lang="en-US">&nbsp;</p>
+<p>说明：</p>
+<ol>
+<li>使用泛型虽然有了代码提示，但是额外增加了编码量，因为要手动维护一个方法接口，有利有弊吧，通过ts我还没有找到更好的方法。同事之前有过一个解决办法：接口管理使用对象的形式，然后withAxios修改这个对象各属性的getter，将getter指向通过axios包装后的方法，最终实现了本文相同的调用方式和代码提示，但这种方法有点hack的感觉。</li>
+<li>cancel掉上一个接口这种方式保证了数据总是来源于最后一个请求接口，但有时可能会出现问题，比如：在同一个页面需要展示两种用户：common用户和admin用户，后端给的接口是/api/v1/user，当参数type=1时为common，type=2时为admin，如果我们把这个接口定义为一个方法getUser，在这个页面会同时发出两个请求：Service.getUser({type:1})，Service.getUser({type:2}),但是，由于withAxios会取消上一个相同方法的请求，那么很可能有一个请求被取消，解决办法是在service中定义为两种方法：getCommonUser和getAdminUser，将type直接写入url中。这样也符合我们语义化的目标。</li>
+</ol>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

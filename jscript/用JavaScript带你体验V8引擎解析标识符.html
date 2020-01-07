@@ -1,0 +1,319 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用JavaScript带你体验V8引擎解析标识符' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用JavaScript带你体验V8引擎解析标识符</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/11321974.html</div><br>
+    <p><a href="https://www.cnblogs.com/QH-Jimmy/p/11160712.html" target="_blank">上一篇</a>讲了字符串的解析过程，这一篇来讲讲标识符(IDENTIFIER)的解析。</p>
+<p>先上知识点，标识符的扫描分为快解析和慢解析，一旦出现Ascii编码大于127的字符或者转义字符，会进入慢解析，略微影响性能，所以最好不要用中文、特殊字符来做变量名(不过现在代码压缩后基本不会有这种情况了)。</p>
+<p>&nbsp;</p>
+<p>每一位JavaScript的初学者在学习声明一个变量时，都会遇到标识符这个概念，定义如下。</p>
+<blockquote>
+<div>第一个字符，可以是任意Unicode字母（包括英文字母和其他语言的字母），以及美元符号（$）和下划线（_）。</div>
+<div>
+<div>第二个字符及后面的字符，除了Unicode字母、美元符号和下划线，还可以用数字0-9。</div>
+</div>
+</blockquote>
+<p>笼统来讲，v8也是通过这个规则来处理标识符，下面就来看看详细的解析过程。</p>
+<p>老规矩，代码我丢github上面，接着前面一篇的内容，进行了一些整理，将文件分类，保证下载即可运行。</p>
+<p>链接：<a href="https://github.com/pflhm2005/V8ToJS">https://github.com/pflhm2005/V8ToJS</a></p>
+<p>&nbsp;</p>
+<p>待解析字符如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span></pre>
+</div>
+<p>目的就是解析这个var关键词。</p>
+<p>首先需要完善Token映射表，添加关于标识符的内容，如下。</p>
+<div class="cnblogs_code">
+<pre><code>const TokenToAsciiMapping = (c) =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">return</span> c === '(' ? 'Token::LPAREN'<span style="color: #000000;"> : 
+  c </span>== ')' ? 'Token::RPAREN'<span style="color: #000000;"> :
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...很多很多</span>
+  c == '"' ? 'Token::STRING'<span style="color: #000000;"> :
+  c </span>== '\'' ? 'Token::STRING'<span style="color: #000000;"> :
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 标识符部分单独抽离出一个方法判断</span>
+  IsAsciiIdentifier(c) ? 'Token::IDENTIFIER'<span style="color: #000000;"> :
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...很多很多</span>
+  'Token::ILLEGAL'<span style="color: #000000;">
+};</span></pre>
+</div>
+<p>在那个超长的三元表达式中添加一个标识符的判断，由于标识符的合法字符较多，所以单独抽离一个方法做判断。</p>
+<p>方法的逻辑只要符合定义就够了，实现如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 判断给定字符(数字)是否在两个字符的范围内
+ * C++通过static_cast同时处理了char和int类型 JS就比较坑了
+ * 这个方法其实在C++超简单的 然而用JS直接炸裂
+ * @param {char} c 目标字符
+ * @param {char} lower_limit 低位字符
+ * @param {chat} higher_limit 高位字符
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+export </span><span style="color: #0000ff;">const</span> IsInRange = (c, lower_limit, higher_limit) =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> lower_limit === <span style="color: #800000;">'</span><span style="color: #800000;">string</span><span style="color: #800000;">'</span> &amp;&amp; <span style="color: #0000ff;">typeof</span> higher_limit === <span style="color: #800000;">'</span><span style="color: #800000;">string</span><span style="color: #800000;">'</span><span style="color: #000000;">) {
+    lower_limit </span>=<span style="color: #000000;"> lower_limit.charCodeAt();
+    higher_limit </span>=<span style="color: #000000;"> higher_limit.charCodeAt();
+  }
+  </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> c === <span style="color: #800000;">'</span><span style="color: #800000;">string</span><span style="color: #800000;">'</span>) c =<span style="color: #000000;"> c.charCodeAt();
+  </span><span style="color: #0000ff;">return</span> (c &gt;= lower_limit) &amp;&amp; (c &lt;=<span style="color: #000000;"> higher_limit);
+}
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 将大写字母转换为小写字母 JS没有char、int这种严格类型 需要手动搞一下
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">const</span> AsciiAlphaToLower = (c) =&gt; { <span style="color: #0000ff;">return</span> String.fromCharCode(c.charCodeAt() | <span style="color: #800080;">0x20</span><span style="color: #000000;">); }
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 数字字符判断
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">const</span> IsDecimalDigit = (c) =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">return</span> IsInRange(c, <span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">9</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+}
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 大小写字母、数字
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">const</span> IsAlphaNumeric = (c) =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">return</span> IsInRange(AsciiAlphaToLower(c), <span style="color: #800000;">'</span><span style="color: #800000;">a</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">z</span><span style="color: #800000;">'</span>) ||<span style="color: #000000;"> IsDecimalDigit(c);
+}
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 判断是否是合法标识符字符
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">const</span> IsAsciiIdentifier = (c) =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">return</span> IsAlphaNumeric(c) || c == <span style="color: #800000;">'</span><span style="color: #800000;">$</span><span style="color: #800000;">'</span> || c == <span style="color: #800000;">'</span><span style="color: #800000;">_</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>v8内部定义了很多字符相关的方法，这些只是一部分。比较有意思的是那个大写字母转换为小写，一般在JS中都是toLowerCase()一把梭，但是C++用的是位运算。</p>
+<p>方法都比较简单，可以看到，大小写字母、数字、$、_都会认为是一个合法标识符。</p>
+<p>得到一个Token::IDENTIFIER的初步标记后，会进入单个Token的解析，即Scanner::ScanSingleToken(翻上一篇)，在这里，也需要添加一个处理标识符的方法，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Scanner {
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 单个词法的解析
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  ScanSingleToken() {
+    let token </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">do</span><span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">this</span>.next().location.beg_pos = <span style="color: #0000ff;">this</span>.source_.buffer_cursor_ - 1<span style="color: #000000;">;
+      </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.c0_ &lt;<span style="color: #000000;"> kMaxAscii) {
+        token </span>= UnicodeToToken[<span style="color: #0000ff;">this</span><span style="color: #000000;">.c0_];
+        </span><span style="color: #0000ff;">switch</span><span style="color: #000000;">(token) {
+          </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+           * 在这里添加标识符的case
+           </span><span style="color: #008000;">*/</span>
+          <span style="color: #0000ff;">case</span> 'Token::IDENTIFIER'<span style="color: #000000;">:
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ScanIdentifierOrKeyword();
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">        } 
+      }
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+       * 源码中这里处理一些特殊情况
+       * 特殊情况就包括Ascii编码过大的标识符 特殊情况暂不展开
+       </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    } </span><span style="color: #0000ff;">while</span>(token === 'Token::WHITESPACE'<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+  }
+}</span></pre>
+</div>
+<p>上一篇这里只有Token::String，多加一个case就行。一般情况下，所有字符都是普通的字符，即Ascii编码小于128。如果出现类似于中文这种特殊字符，会进入下面的特殊情况处理，现在一般不会出现，这里就不做展开了。</p>
+<p>接下来就是实现标识符解析的方法，从名字可以看出，标识符分为变量、关键词两种类型，那么还是需要再弄一个映射表来做类型快速判断，先来完善上一篇留下的尾巴，字符类型映射表。</p>
+<blockquote>
+<div>里面其实还有一个映射表，叫character_scan_flag，也是对单个字符的类型判定，属于一种可能性分类。</div>
+</blockquote>
+<p>之前还以为这个表很麻烦，其实挺简单的(假的，恶心了我一中午)。表的作用如上，通过一个字符，来判断这个标识符可能是什么东西，类型总共有6种情况，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 字符类型
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+const kTerminatesLiteral </span>= 1 &lt;&lt; 0<span style="color: #000000;">;
+const kCannotBeKeyword </span>= 1 &lt;&lt; 1<span style="color: #000000;">;
+const kCannotBeKeywordStart </span>= 1 &lt;&lt; 2<span style="color: #000000;">;
+const kStringTerminator </span>= 1 &lt;&lt; 3<span style="color: #000000;">;
+const kIdentifierNeedsSlowPath </span>= 1 &lt;&lt; 4<span style="color: #000000;">;
+const kMultilineCommentCharacterNeedsSlowPath </span>= 1 &lt;&lt; 5;</pre>
+</div>
+<p>这6个枚举值分别表示：</p>
+<ul>
+<li>标识符的结束标记，比如')'、'}'等符号都代表这个标识符没了</li>
+<li>非关键词标记，比如一个标识符包含'z'字符，就不可能是一个关键字</li>
+<li>非关键词首字符标记，比如varrr的首字符是'v'，这个标识符可能是关键词(实际上并不是)</li>
+<li>字符串结束标记，上一篇有提到，单双引号、换行等都可能代表字符串结束</li>
+<li>标识符慢解析标记，一旦标识符出现转义、Ascii编码大于127的值，标记会被激活</li>
+<li>多行注释标记，参考上面那个代码的注释</li>
+</ul>
+<p>始终需要记住，这只是一种<strong>可能性类型</strong>推断，并不是断言，只能用于快速跳过某些流程。</p>
+<p>有了标记和对应定义，下面来实现这个字符类型推断映射表，如下。</p>
+<div class="cnblogs_code">
+<pre><code>const GetScanFlags = (c) =&gt;<span style="color: #000000;"> {
+  (</span>!IsAsciiIdentifier(c) ? kTerminatesLiteral : 0) |<span style="color: #000000;">
+  ((IsAsciiIdentifier(c) </span>&amp;&amp; !CanBeKeywordCharacter(c)) ? kCannotBeKeyword : 0) |<span style="color: #000000;">
+  (IsKeywordStart(c) </span>? kCannotBeKeywordStart : 0) |<span style="color: #000000;">
+  ((c </span>=== '\'' || c === '"' || c === '\n' || c === '\r' || c === '\\') ? kStringTerminator : 0) |<span style="color: #000000;">
+  (c </span>=== '\\' ? kIdentifierNeedsSlowPath : 0) |<span style="color: #000000;">
+  (c </span>=== '\n' || c === '\r' || c === '*' ? kMultilineCommentCharacterNeedsSlowPath : 0<span style="color: #000000;">)
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> UnicodeToAsciiMapping下标代表字符对应的Ascii编码 上一篇有讲</span>
+const character_scan_flags = UnicodeToAsciiMapping.map(c =&gt; GetScanFlags(c));</pre>
+</div>
+<p>对照定义，上面的方法基本上不用解释了，用到了我前面讲过的一个技巧bitmap(文盲不懂专业术语，难怪阿里一面就挂了)。由于是按照C++源码写的，上述部分工具方法还是需要挨个实现。源码用的宏，写起来一把梭，用JS还是挺繁琐的，具体代码我放github了。</p>
+<p>&nbsp;</p>
+<p>有了这个映射表，后面很多地方就很方便了，现在来实现标识符的解析方法。</p>
+<p>实现之前，来列举一下可能出现的标识符：var、vars、avr、1ab、{ '\a': 1 }、吉米(\u5409\u7c73)，这些标识符有些合法有些不合法，但是都会进入解析阶段。所以总的来说，方法首先保证可以处理上述所有情况。</p>
+<p>对于数字开头的标识符，其实在case阶段就被拦截了，虽然说数字1也会出现在一个IDENTIFIER中，但是1会首先被优先解析成'Token::Number'，有对应的方法处理这个类型，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">case</span> 'Token::STRING'<span style="color: #000000;">:
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.ScanString();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 数字开头</span>
+<span style="color: #0000ff;">case</span> 'Token::NUMBER'<span style="color: #000000;">:
+  </span><span style="color: #0000ff;">return</span> ScanNumber(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">case</span> 'Token::IDENTIFIER'<span style="color: #000000;">:
+  </span><span style="color: #0000ff;">return</span> ScanIdentifierOrKeyword();</pre>
+</div>
+<p>所以1ab这种情况不用考虑，实现方法如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Scanner::ScanIdentifierOrKeyword() {
+  </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.next().literal_chars.Start();
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.ScanIdentifierOrKeywordInner();
+}
+Scanner::ScanIdentifierOrKeywordInner() {
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 两个布尔类型的flag 
+   * 一个标记转义字符 一个标记关键词
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  let escaped </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+  let can_be_keyword </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+  </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.c0_ &lt;<span style="color: #000000;"> kMaxAscii) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 转义字符以'\'字符开头</span>
+    <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.c0_ !== '\\'<span style="color: #000000;">) {
+      let scan_flags </span>= character_scan_flags[<span style="color: #0000ff;">this</span><span style="color: #000000;">.c0_];
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这个地方比较迷 没看懂</span>
+      scan_flags &gt;&gt;= 1<span style="color: #000000;">;
+      </span><span style="color: #0000ff;">this</span>.AddLiteralChar(<span style="color: #0000ff;">this</span><span style="color: #000000;">.c0_);
+      </span><span style="color: #0000ff;">this</span>.AdvanceUntil((c0) =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当某个字符的Ascii编码大于127 进入慢解析</span>
+        <span style="color: #0000ff;">if</span>(c0 &gt;<span style="color: #000000;"> kMaxAscii) {
+          scan_flags </span>|=<span style="color: #000000;"> kIdentifierNeedsSlowPath;
+          </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 叠加每个字符的bitmap</span>
+        let char_flags =<span style="color: #000000;"> character_scan_flags[c0];
+        scan_flags </span>|=<span style="color: #000000;"> char_flags;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用bitmap识别结束标记</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;">(TerminatesLiteral(char_flags)) {
+          </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+          </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.AddLiteralChar(c0);
+          </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+      });
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 基本上都是进这里 快分支</span>
+      <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">IdentifierNeedsSlowPath(scan_flags)) {
+        </span><span style="color: #0000ff;">if</span>(!CanBeKeyword(scan_flags)) <span style="color: #0000ff;">return</span> 'Token::IDENTIFIER'<span style="color: #000000;">;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 源码返回一个新的vector容器 这里简单处理成一个字符串</span>
+        let chars = <span style="color: #0000ff;">this</span><span style="color: #000000;">.next().literal_chars.one_byte_literal();
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.KeywordOrIdentifierToken(chars, chars.length);
+      }
+      can_be_keyword </span>=<span style="color: #000000;"> CanBeKeyword(scan_flags);
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      escaped </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+      let c </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.ScanIdentifierUnicodeEscape();
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 合法变量以大小写字母_开头</span>
+      <span style="color: #0000ff;">if</span>(c === '\\' || !IsIdentifierStart(c)) <span style="color: #0000ff;">return</span> 'Token::ILLEGAL'<span style="color: #000000;">;
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.AddLiteralChar(c);
+      can_be_keyword </span>=<span style="color: #000000;"> CharCanBeKeyword(c);
+    }
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 逻辑同上 进这里代表首字符Ascii编码就过大</span>
+  <span style="color: #0000ff;">return</span><span style="color: #000000;"> ScanIdentifierOrKeywordInnerSlow(escaped, can_be_keyword);
+}</span></pre>
+</div>
+<p>感觉C++的类方法实现的写法看起来很舒服，博客里也这么写了，希望JavaScript什么时候也借鉴一下，貌似::在JS里目前还不是一个运算符，总之真香。</p>
+<p>首先可以发现，标识符的解析也用到了Literal类，之前说这是用了字符串解析并不准确，因此我修改了AdvanceUntil方法，将callback作为参数传入。启动类后，扫描逻辑如下。</p>
+<ul>
+<li>一旦字符出现Ascii编码大于127或者转义符号，扔到慢解析方法中</li>
+<li>对所有字符进行逐个遍历，方式类似于上篇的字符串解析，结束标记略有不同</li>
+<li>一般情况下不用慢解析，根据bitmap中的kCannotBeKeyword快速判断返回变量还是进入关键词解析分支</li>
+</ul>
+<p>v8中字符相关的工具方法就单独搞了一个cpp文件，里面方法非常多，后续如果是把v8全部翻译过来估计也要分好多文件了，先这样吧。</p>
+<p>先不管慢解析了，大部分情况下也不会用中文做变量，类似于zzz、jjj的变量会快速跳出，标记为"Token::IDENTIFIER"。而可能是关键词的标识符，比如上面列举的var、vars、avr，由于或多或少的具有一些关键词特征，会深入再次解析。</p>
+<p>需要说的是，从一个JavaScript使用者的角度看，关键词的识别只需要对字符串做严格对等比较就行了，比如长度3，字符顺序依次是v、a、r，那么必定是关键词var。</p>
+<p>但是v8的实现比较迷，用上了Hash，既然是v8体验文章，那么就按照源码的逻辑实现上面的KeywordOrIdentifierToken方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 跳到另外一个文件里实现</span>
+<span style="color: #000000;">Scanner::KeywordOrIdentifierToken(str, len) {
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> PerfectKeywordHash.GetToken(str, len);
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 特殊const就放这里算了
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+const MIN_WORD_LENGTH </span>= 2<span style="color: #000000;">;
+const MAX_WORD_LENGTH </span>= 10<span style="color: #000000;">;
+
+</span><span style="color: #000000;">class PerfectKeywordHash {
+  static GetToken(str, len) {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(IsInRange(len, MIN_WORD_LENGTH, MAX_WORD_LENGTH)) {
+      let key </span>= PerfectKeywordHash.Hash(str, len) &amp; 0x3f<span style="color: #000000;">;
+      </span><span style="color: #0000ff;">if</span>(len ===<span style="color: #000000;"> kPerfectKeywordLengthTable[key]) {
+        const s </span>=<span style="color: #000000;"> kPerfectKeywordHashTable[key].name;
+        let l </span>=<span style="color: #000000;"> s.length;
+        let i </span>= -1<span style="color: #000000;">;
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * C++可以直接操作指针 JS只能搞变量了
+         * 做字符严格校对 形如avr会被识别为变量
+         </span><span style="color: #008000;">*/</span>
+        <span style="color: #0000ff;">while</span>(i++ !==<span style="color: #000000;"> l) {
+          </span><span style="color: #0000ff;">if</span>(s[i] !== str[i]) <span style="color: #0000ff;">return</span> 'Token::IDENTIFIER'<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> kPerfectKeywordHashTable[key].value;
+      }
+    }
+    </span><span style="color: #0000ff;">return</span> 'Token::IDENTIFIER'<span style="color: #000000;">;
+  }
+}</span></pre>
+</div>
+<p>总体逻辑如上所示，关键词的长度目前是2-10，所以根据长度先筛一波，再v8根据传入的字符串算出了一个hash值，然后根据这个值从映射表找出对应的特征，对两者进行严格对对比，来判定这个标识符是不是一个关键词。</p>
+<p>涉及1个hash算法和2个映射表，这里把hash算法给出来，映射表实在是繁琐，有兴趣去github看吧。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * asso_values保存了Ascii编码0-127的映射
+ * 所有关键词字符都有对应的hash值 而非关键词字符都是56 比如j、k、z等等
+ * 通过运算返回一个整形
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+static Hash(str, len) {
+  const asso_values </span>=<span style="color: #000000;"> [
+    </span>56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56<span style="color: #000000;">,
+    </span>56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56<span style="color: #000000;">,
+    </span>56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56<span style="color: #000000;">,
+    </span>56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56<span style="color: #000000;">,
+    </span>56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56<span style="color: #000000;">,
+    </span>56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56<span style="color: #000000;">,
+    </span>56, 8,  0,  6,  0,  0,  9,  9,  9,  0,  56, 56, 34, 41, 0,  3<span style="color: #000000;">,
+    </span>6,  56, 19, 10, 13, 16, 39, 26, 37, 36, 56, 56, 56, 56, 56, 56<span style="color: #000000;">,
+  ];
+  </span><span style="color: #0000ff;">return</span> len + asso_values[str[1].charCodeAt()] + asso_values[str[0<span style="color: #000000;">].charCodeAt()];
+}</span></pre>
+</div>
+<p>可以看到，hash方法的内部也有一个映射表，每一个关键字符都有对应的hash值，通过前两个字符进行运算(最短的关键词就是2个字符，并且)，得到一个hash值，将这个值套到另外的table得到其理论上的长度，长度一致再进行严格比对。</p>
+<p>这个方法个人感觉有一些微妙，len主要是做一个修正，因为前两个字符一样的关键词还是蛮多的，比如说case、catch，delete、default等等，但是长度不一样，加上len可以区分。如果有一天出现前两个字符一样，且长度也一样的关键词，这个hash算法肯定要修改了，反正也不关我事咯。</p>
+<p>经过这一系列的处理，标识符的解析算是完成了，代码可以github上面下载，然后修改test文件里面传入的参数就能看到输出。</p>
+<p><img src="./images/用JavaScript带你体验V8引擎解析标识符0.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

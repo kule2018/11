@@ -1,0 +1,205 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端对base64编码的理解，原生js实现字符base64编码' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端对base64编码的理解，原生js实现字符base64编码</center></div><div class='banquan'>原文出处:本文由博客园博主JJesson提供。<br/>
+原文连接:https://www.cnblogs.com/zclub/p/11412255.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#常见对base64的认知不完全正确">常见对base64的认知(不完全正确)</a></li>
+        <li><a href="#多问一个为什么base64到底是个啥">多问一个为什么，base64到底是个啥？</a></li>
+        <li><a href="#按照我们的思路实现一下">按照我们的思路实现一下</a></li>
+        <li><a href="#到这里基本就实现了结果跟原生的方法打印的是一样的">到这里基本就实现了，结果跟原生的方法打印的是一样的</a></li>
+        <li><a href="#下一次">下一次</a></li>
+        </ul>
+    </div>
+</div>
+<p>@( 对于前端工程师来说base64图片编码到底是个什么玩意？)<br />
+****<br />
+----</p>
+<h3 id="常见对base64的认知不完全正确">常见对base64的认知(不完全正确)</h3>
+<blockquote>
+<p>首先对base64常见的认知，也是须知的必须有以下几点*</p>
+</blockquote>
+<ul>
+<li>base64是一种图片编码方式，用一长串超长的字符串表示图片</li>
+<li>在加载的时候会直接以字符串的形式加载出来，减少了图片加载的http请求</li>
+<li>正常加载服务器静态资源的时候都应该是通过http请求回来，每加载一张图片时需要发起一次http请求 ，http请求建立需要一定的时间，所以对于小图而且出现频次比较高的话，这样的成本消耗其实是特别浪费的</li>
+<li>所以一般base64编码适用于小图片，出现频次比较高的情况</li>
+</ul>
+<blockquote>
+<p>当然base64编码也有一定的缺点</p>
+</blockquote>
+<ul>
+<li>会增加图片本上的大小，对于小图来说，转码增加的大小和http请求发起的浪费时间相比还是划算的，但是对于大图和出现次数比较少的情况，这种方法就有待商榷</li>
+<li>当然上面我现在项目这种问题就很不合适，肯定需要寻求一个好的方式来解决掉这个问题</li>
+</ul>
+<hr />
+<h3 id="多问一个为什么base64到底是个啥">多问一个为什么，base64到底是个啥？</h3>
+<ul>
+<li>base64是一种编码方式，将二进制编码为64字符串组成的字符码</li>
+<li>标准的Base64并不适合直接放在URL里传输，因为URL编码器会把标准Base64中的“/”和“+”字符变为形如“%XX”的形式，而这些“%”号在存入数据库时还需要再进行转换，因为ANSI SQL中已将“%”号用作通配符。</li>
+<li>为解决此问题，可采用一种用于URL的改进Base64编码，它在末尾填充'='号，并将标准Base64中的“+”和“/”分别改成了“-”和“_”，这样就免去了在URL编解码和数据库存储时所要作的转换，避免了编码信息长度在此过程中的增加，并统一了数据库、表单等处对象标识符的格式。</li>
+<li>另有一种用于正则表达式的改进Base64变种，它将“+”和“/”改成了“!”和“-”，因为“+”,“*”以及前面在IRCu中用到的“[”和“]”在正则表达式中都可能具有特殊含义。</li>
+<li>此外还有一些变种，它们将“+/”改为“<em>-”或“.</em>”（用作编程语言中的标识符名称）或“.-”（用于XML中的Nmtoken）甚至“_:”（用于XML中的Name）。</li>
+<li>Base64要求把每三个8Bit的字节转换为四个6Bit的字节（3<em>8 = 4</em>6 = 24），然后把6Bit再添两位高位0，组成四个8Bit的字节，也就是说，转换后的字符串理论上将要比原来的长1/3。</li>
+</ul>
+<p><strong>ok，我承认以上都是百度出来了，接下来谈谈我自己的认识，哈哈</strong></p>
+<p>直接掏个例子吧，比如，原生js是自带base64的编码方法的</p>
+<pre><code><code>var b = Buffer.from(&#39;asdasds&#39;); //buffer 是js里面专门存放二进制的缓存区，暂时理解创建一个二进制变量
+var s = b.toString(&#39;base64&#39;);
+console.log(s)
+//  YXNkYXNkcw==</code></pre>
+<h3 id="按照我们的思路实现一下">按照我们的思路实现一下</h3>
+<ul>
+<li>base64是针对二进制对象进行编码，所以我们要将字符转换为二进制码</li>
+<li>base64 是用64个字符表示二进制，2的6次方 = 64，所以base64的字符其实是每6个二进制位为单位，但是一个字节是8bit，如果不满6的倍数要往 字节转换后的二进制编码后面补0，比如如果是两个个字符<br />
+'ac' =》 转换为二进制为：'0110 0001 0110 0010' =》<br />
+如果要将这两个字符进行base64编码，但是base64仅支持6位二进制转换为一个字符，<br />
+截取之后就是=》 011000 010110 0010<br />
+那最后面的4位二进制不够转码，所以会在后面默认补零</li>
+<li>补码完成之后开始转码 从000000 到111111分别对应<code>ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=</code>64个字符中的一个</li>
+<li><p>转码完成</p>
+<blockquote>
+<p>转换字符为二进制数</p>
+</blockquote></li>
+</ul>
+<pre><code><code>function toBinary (str){
+    let tempResult = [];
+    let result = [];
+    // 分割字符
+    str.split(&#39;&#39;).forEach(element =&gt; {
+        //转二进制
+        let binaryElement = element.charCodeAt().toString(2)
+        //由于js原生方法转二进制如果前面是0可能会不满8位，所以前面补0，转为8位的对应ascii码二进制
+        binaryElement = binaryElement.length === 8 ? binaryElement : (&#39;0&#39; + binaryElement)  //不足8位的二进制码在前面补0
+        tempResult.push(binaryElement);
+    });
+    let index = 0;
+    // 不满3个字符往后面补满3个字符（3个字符（24个二进制位）是6和8的最小公倍数）
+    while(tempResult.length % 3 != 0){
+        tempResult.push(&#39;00000000&#39;)
+    }
+    console.log(tempResult.length)
+    return tempResult.join(&#39;&#39;);
+}
+let binary = toBinary(&#39;asdasds&#39;);</code></pre>
+<p><strong>那么就是第一步和第二步实现了</strong></p>
+<blockquote>
+<p>二进制转 base64字符串</p>
+</blockquote>
+<pre><code><code>//将字符串存为数组
+let KEYCODE = &quot;ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=&quot;.split(&#39;&#39;); 
+
+function toBase64 (binary){
+    console.log(binary);
+    let tempResult = [];
+    let result = [];
+    let index = 0;
+    // 每6位切割二进制
+    while(index+6 &lt; binary.length){
+        tempResult.push(binary.slice(index,index+6))
+        index = index + 6 ;
+    }
+    //不满6位的前面补0
+    console.log(binary.slice(index,index+6))
+    tempResult.push((&quot;000000&quot; + binary.slice(index,index+6)).substr( -6 ));
+    tempResult.forEach(element =&gt; {
+        //将二进制转为数组下标
+        let index = parseInt(element,2);
+        //获取对应下标字符串
+        result.push(index === 0 ? &#39;=&#39; : KEYCODE[index])
+    });
+    //字符串拼接
+    return result.join(&#39;&#39;)
+}
+let a = toBase64(binary);
+console.log(a);
+
+//  YXNkYXNkcw==</code></pre>
+<h3 id="到这里基本就实现了结果跟原生的方法打印的是一样的">到这里基本就实现了，结果跟原生的方法打印的是一样的</h3>
+<p>但是也存在一些问题和改进</p>
+<ul>
+<li><p>对于中文字符和特殊字符的支持</p>
+<blockquote>
+<p>javascript中的中文都是默认utf-16编码，但是网页中编码格式基本都是UTF-8,然而即便我们用UTF-8格式保存了HTML文件，但是其中的中文字符依然是以UTF-16的形式保存的。所以我们首先要将中文字符转化为utf-8，然后再转二进制，最后即可用上面的方法进行编码<br />
+代码如下：</p>
+</blockquote>
+<pre><code><code>var utf16ToUtf8 = function (utf16Str) {
+var utf8Arr = [];
+var byteSize = 0;
+var tempList = [];
+for (var i = 0; i &lt; utf16Str.length; i++) {
+    //获取字符Unicode码值
+    var code = utf16Str.charCodeAt(i);
+
+    //如果码值是1个字节的范围，则直接写入
+    if (code &gt;= 0x00 &amp;&amp; code &lt;= 0x7f) {
+        byteSize += 1;
+        utf8Arr.push(code);
+
+        //如果码值是2个字节以上的范围，则按规则进行填充补码转换
+    } else if (code &gt;= 0x80 &amp;&amp; code &lt;= 0x7ff) {
+        byteSize += 2;
+        utf8Arr.push((192 | (31 &amp; (code &gt;&gt; 6))));
+        utf8Arr.push((128 | (63 &amp; code)))
+    } else if ((code &gt;= 0x800 &amp;&amp; code &lt;= 0xd7ff)
+        || (code &gt;= 0xe000 &amp;&amp; code &lt;= 0xffff)) {
+        byteSize += 3;
+        utf8Arr.push((224 | (15 &amp; (code &gt;&gt; 12))));
+        utf8Arr.push((128 | (63 &amp; (code &gt;&gt; 6))));
+        utf8Arr.push((128 | (63 &amp; code)))
+    } else if(code &gt;= 0x10000 &amp;&amp; code &lt;= 0x10ffff ){
+        byteSize += 4;
+        utf8Arr.push((240 | (7 &amp; (code &gt;&gt; 18))));
+        utf8Arr.push((128 | (63 &amp; (code &gt;&gt; 12))));
+        utf8Arr.push((128 | (63 &amp; (code &gt;&gt; 6))));
+        utf8Arr.push((128 | (63 &amp; code)))
+    }
+}
+var toBin = (n) =&gt; {
+if(n == 0) return &#39;0&#39;;
+    var res = &#39;&#39;;  
+    while(n != 0) {
+        res = n % 2 + res
+        n = parseInt(n / 2)
+        }  
+    return res;
+}
+utf8Arr.forEach(element =&gt; {
+   tempList.push(toBin(element)) 
+});
+return tempList.join(&#39;&#39;)
+}</code></pre></li>
+<li><p>如何对图片base64编码进行实现</p>
+<blockquote>
+<p>图片的话，要用到canvas ，将图片转换为二进制流，然后再掉用上述的编码方法</p>
+</blockquote></li>
+</ul>
+<hr />
+<h3 id="下一次">下一次</h3>
+<ul>
+<li>可以尝试图片的base64编码</li>
+<li>可以做解码过程</li>
+</ul>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

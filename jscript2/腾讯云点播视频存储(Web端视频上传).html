@@ -1,0 +1,435 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修腾讯云点播视频存储(Web端视频上传)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>腾讯云点播视频存储(Web端视频上传)</center></div><div class='banquan'>原文出处:本文由博客园博主wangzaiplus提供。<br/>
+原文连接:https://www.cnblogs.com/wangzaiplus/p/10658638.html</div><br>
+    <p><a href="https://cloud.tencent.com/document/product/266/9219">官方文档</a></p>
+<blockquote>
+<p><strong>前言</strong><br />
+所谓视频上传，是指开发者或其用户将视频文件上传到点播的视频存储中，以便进行视频处理、分发等。</p>
+</blockquote>
+<h1 id="一简介">一、简介</h1>
+<p>腾讯云点播支持如下几种视频上传方式：</p>
+<ol>
+<li>控制台上传：在点播控制台上进行操作，将本地视频上传到云点播，适用于直接管理少量视频的场景，具有方便快捷、无技术门槛的优点；</li>
+<li>服务端上传：开发者将存储在其后台服务器中的视频上传到云点播，适用于自动化、系统化的运营场景；</li>
+<li>客户端上传：终端用户将客户端本地视频上传到云点播，适用于 UGC、PGC 等场景，支持如下三端：
+<ul>
+<li><a href="https://cloud.tencent.com/document/product/266/9539">Android 端上传 SDK</a>；</li>
+<li><a href="https://cloud.tencent.com/document/product/266/13793">iOS 端上传 SDK</a>；</li>
+<li><a href="https://cloud.tencent.com/document/product/266/9239">Web 端上传 SDK</a>。</li>
+</ul></li>
+</ol>
+<p>本文将介绍第三种视频上传方式: <strong>Web客户端上传</strong></p>
+<p>所谓客户端视频上传，是指 App 的最终用户将本地视频上传到点播平台。客户端上传的整体流程如下图所示:</p>
+<p><img src="//upload-images.jianshu.io/upload_images/4931997-115ec224a5281da1.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="流程图" /></p>
+<h1 id="二思路">二、思路</h1>
+<ol>
+<li>开通服务</li>
+<li>获取云 API 密钥</li>
+<li>服务端派发签名</li>
+<li>客户端集成</li>
+</ol>
+<p><strong>说明:</strong> 前2步参照腾讯云官方文档指引自己完成, 本文着重讲解后2步代码实现</p>
+<h1 id="三最终效果">三、最终效果</h1>
+<p><img src="./images/腾讯云点播视频存储(Web端视频上传)1.png" alt="上传中" /></p>
+<p><img src="./images/腾讯云点播视频存储(Web端视频上传)2.png" alt="直接播放上传后的视频" /></p>
+<p><img src="./images/腾讯云点播视频存储(Web端视频上传)3.png" alt="控制台视频管理" /></p>
+<h1 id="四代码实现">四、代码实现</h1>
+<h2 id="服务端派发签名">1、服务端派发签名</h2>
+<p>首先, 为什么要这一步, 因为, 在客户端上传场景下，客户端是直接将视频文件上传到腾讯云点播，不需要由 App 服务端进行中转。因此，腾讯云点播必须对发起请求的客户端进行鉴权。但由于 SecretKey 的权限过大，App 不应该将此信息泄露到客户端，否则将会造成严重的安全问题。<br />
+因此，客户端在发起上传之前，必须要到 App 的签名派发服务申请上传签名，即流程图中的第1步。</p>
+<h2 id="获取签名代码">2、获取签名代码</h2>
+<p>获取签名一共只需要两个类: <strong>Signature</strong>和<strong>SignatureController</strong></p>
+<h3 id="signature">1)、Signature</h3>
+<pre><code><code>package com.cn.pinliang.admin.media.upload;
+
+import sun.misc.BASE64Encoder;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+
+public class Signature {
+    private String secretId;
+    private String secretKey;
+    private long currentTime;
+    private int random;
+    private int signValidDuration;
+
+    private static final String HMAC_ALGORITHM = &quot;HmacSHA1&quot;;
+    private static final String CONTENT_CHARSET = &quot;UTF-8&quot;;
+
+    public static byte[] byteMerger(byte[] byte1, byte[] byte2) {
+        byte[] byte3 = new byte[byte1.length + byte2.length];
+        System.arraycopy(byte1, 0, byte3, 0, byte1.length);
+        System.arraycopy(byte2, 0, byte3, byte1.length, byte2.length);
+        return byte3;
+    }
+
+    public String getUploadSignature() throws Exception {
+        String strSign;
+        String contextStr = &quot;&quot;;
+
+        long endTime = (currentTime + signValidDuration);
+        contextStr += &quot;secretId=&quot; + java.net.URLEncoder.encode(secretId, &quot;utf8&quot;);
+        contextStr += &quot;&amp;currentTimeStamp=&quot; + currentTime;
+        contextStr += &quot;&amp;expireTime=&quot; + endTime;
+        contextStr += &quot;&amp;random=&quot; + random;
+
+        try {
+            Mac mac = Mac.getInstance(HMAC_ALGORITHM);
+            SecretKeySpec secretKey = new SecretKeySpec(this.secretKey.getBytes(CONTENT_CHARSET), mac.getAlgorithm());
+            mac.init(secretKey);
+
+            byte[] hash = mac.doFinal(contextStr.getBytes(CONTENT_CHARSET));
+            byte[] sigBuf = byteMerger(hash, contextStr.getBytes(&quot;utf8&quot;));
+            strSign = new String(new BASE64Encoder().encode(sigBuf).getBytes());
+            strSign = strSign.replace(&quot; &quot;, &quot;&quot;).replace(&quot;\n&quot;, &quot;&quot;).replace(&quot;\r&quot;, &quot;&quot;);
+        } catch (Exception e) {
+            throw e;
+        }
+        return strSign;
+    }
+
+    public void setSecretId(String secretId) {
+        this.secretId = secretId;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+    }
+
+    public void setCurrentTime(long currentTime) {
+        this.currentTime = currentTime;
+    }
+
+    public void setRandom(int random) {
+        this.random = random;
+    }
+
+    public void setSignValidDuration(int signValidDuration) {
+        this.signValidDuration = signValidDuration;
+    }
+}</code></pre>
+<h3 id="signaturecontroller">2)、SignatureController</h3>
+<pre><code><code>package com.cn.pinliang.admin.controller;
+
+import com.cn.pinliang.JsonResult;
+import com.cn.pinliang.admin.media.upload.Signature;
+import com.ctt.framework.ConfigUtil;
+import com.google.common.collect.Maps;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.Map;
+import java.util.Random;
+
+@Controller
+@RequestMapping(&quot;/signature&quot;)
+public class SignatureController{
+
+    @RequestMapping(&quot;getUgcUploadSign&quot;)
+    @ResponseBody
+    public JsonResult getUgcUploadSign() {
+        String secretId = &quot;your secretId&quot;;
+        String secretKey = &quot;your secretKey&quot;;
+
+        Signature sign = new Signature();
+        sign.setSecretId(secretId);
+        sign.setSecretKey(secretKey);
+        sign.setCurrentTime(System.currentTimeMillis() / 1000);
+        sign.setRandom(new Random().nextInt(java.lang.Integer.MAX_VALUE));
+        sign.setSignValidDuration(3600 * 24 * 2);
+
+        try {
+            String signature = sign.getUploadSignature();
+            Map&lt;String, String&gt; map = Maps.newHashMap();
+            map.put(&quot;signature&quot;, signature);
+            return JsonResult.succeed(map);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return JsonResult.fail(&quot;获取签名失败&quot;);
+        }
+    }
+
+}</code></pre>
+<p>好了, 现在可以调用getUgcUploadSign获取签名了</p>
+<h2 id="客户端集成">3、客户端集成</h2>
+<h3 id="说明">1)、说明</h3>
+<p>说是客户端集成, 其实就是前端js+css+html实现视频的上传, 看了官方文档和GitHub demo, 发现有一个问题, 那就是难道每次上传视频都要copy这些代码到我们自己的页面吗, 能不能抽离出单独的js直接调用就行了? 可以, 但是:<br />
+<img src="./images/腾讯云点播视频存储(Web端视频上传)4.png" alt="problem" /></p>
+<p>所以, 我们不能直接剥离这些js, 还得封装一下才行</p>
+<h3 id="封装干货才开始">2)、封装(干货才开始)</h3>
+<blockquote>
+<p>先看下经过后面代码的封装上传视频有多么简单, 真正做到一行代码解决视频加载与上传:<br />
+<code>loadAndUploadVideo('form_id', 'teachingVideo', &quot;uploadVideo&quot;, &quot;videoFileId&quot;, 200);</code></p>
+</blockquote>
+<ul>
+<li><strong>首先, 既然要用别人的SDK, 我们得引入相关依赖才行, 在jsp页面引入:</strong></li>
+</ul>
+<pre><code><code>&lt;%--腾讯云上传视频js依赖--%&gt;
+&lt;script src=&quot;https://cdn.jsdelivr.net/npm/es6-promise@4/dist/es6-promise.auto.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.21/vue.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;https://unpkg.com/vod-js-sdk-v6&quot;&gt;&lt;/script&gt;
+&lt;%--上传进度div--%&gt;
+&lt;div class=&quot;center-in-center&quot; id=&quot;txUploadProgress&quot; style=&quot;display: none&quot;&gt;&lt;/div&gt;</code></pre>
+<p><strong>说明:</strong></p>
+<p>a. 官方文档用的是vue.js, 虽然没学过, 但好歹有点js基础, 万变不离其宗, 不会的查下相关文档就行了</p>
+<p>b. 与官方demo上传进度有点不一样的是, 我在上传时加了一层遮罩层, 页面中心显示上传进度, 所以引入了上传进度div, 总之, 根据自己实际项目需要来</p>
+<ul>
+<li><strong>然后, 在你的页面嵌入:</strong></li>
+</ul>
+<pre><code><code>                        &lt;div id=&quot;uploadVideo&quot; style=&quot;margin-left: 40px; margin-top: 20px&quot;&gt;
+                            &lt;input type=&quot;hidden&quot; id=&quot;teachingVideo&quot; value=&quot;${hotProduct.teachingVideo}&quot;/&gt;
+                            &lt;form ref=&quot;vExample&quot;&gt;
+                                &lt;input type=&quot;file&quot; style=&quot;display:none;&quot; ref=&quot;vExampleFile&quot; @change=&quot;vExampleUpload($event)&quot; id=&quot;videoFileId&quot; accept=&quot;video/mp4&quot;/&gt;
+                            &lt;/form&gt;
+                            &lt;div class=&quot;btn btn-app btn-default btn-sm pr&quot; style=&quot;width: 160px; &quot;&gt;
+                                &lt;i @click=&quot;vExampleAdd&quot; class=&quot;ace-icon fa fa-cloud-upload bigger-200&quot; style=&quot;font-size: 20px&quot;&gt;上传视频&lt;/i&gt;
+                            &lt;/div&gt;
+                        &lt;/div&gt;</code></pre>
+<p><strong>说明:</strong><br />
+调用时指定的id与此页面元素id一一对应</p>
+<ul>
+<li><strong>然后, 新建js文件, 代码:</strong></li>
+</ul>
+<pre><code><code>/**
+ * 腾讯云视频上传
+ */
+
+var progressId = &#39;txUploadProgress&#39;;// 上传进度id
+
+/**
+ * 加载和上传视频: 页面初始化时调用, 可以直接通过视频url加载视频到页面
+ * 除maxSize字段非必传外, 其他字段均必传, 否则后果自负
+ * @param formId form表单id
+ * @param name 与后端绑定的name字段, 如shortVideo字段, 此字段必须与隐藏域id字段相同, 即id name一致
+ * @param uploadVideoDivId 视频上传相关的div块id
+ * @param videoFileId 视频文件id, 此字段作用是解决vue无法再次上传相同文件的问题, 将此id值清空即可再次上传
+ * @param maxSize 文件大小, M为单位, 不传表示不限制文件大小
+ */
+function loadAndUploadVideo(formId, name, uploadVideoDivId, videoFileId, maxSize) {
+    loadVideo(uploadVideoDivId, name);
+    uploadVideo(formId, name, uploadVideoDivId, videoFileId, maxSize)
+}
+
+/**
+ * 加载视频
+ * @param uploadVideoDivId 将视频追加到此id后面
+ * @param name 根据name获取原视频值, 因此id与name字段必须相同才能拿到旧值
+ */
+function loadVideo(uploadVideoDivId, name) {
+    var oldVideoUrl = $(&quot;#&quot; + name).val();
+    if (oldVideoUrl != null &amp;&amp; oldVideoUrl != &quot;&quot;){
+        var str = &#39;&#39;;
+        str += &#39;&lt;div class=&quot;video&quot;&gt;&#39; ;
+        str += &#39;    &lt;video src=&quot;&#39;+oldVideoUrl+&#39;&quot; controls=&quot;controls&quot; &gt;&#39;;
+        str += &#39;&lt;/div&gt;&#39;;
+        $(&quot;#&quot; + uploadVideoDivId + &quot; .video&quot;).remove();
+        $(&quot;#&quot; + uploadVideoDivId).append(str);
+    }
+}
+
+/**
+ * 上传视频, 腾讯云官方demo + 改造
+ * @param formId
+ * @param name
+ * @param uploadVideoDivId
+ * @param videoFileId
+ * @param maxSize 文件大小, M为单位, 不传表示不限制文件大小
+ */
+function uploadVideo(formId, name, uploadVideoDivId, videoFileId, maxSize) {
+    // 获取签名, 腾讯云要求直接上传视频的客户端必须获取签名
+    function getSignature() {
+        var url = &quot;&quot; + ctx + &quot;signature/getUgcUploadSign.action&quot;
+        return axios.post(url).then(function (response) {
+            return response.data.data.signature
+        })
+    };
+    var app = new Vue({
+        el: &#39;#&#39; + uploadVideoDivId,
+        data: {
+            uploaderInfos: [],
+        },
+        created: function () {
+            this.tcVod = new TcVod.default({
+                getSignature: getSignature
+            })
+        },
+        methods: {
+            vExampleAdd: function () {
+                this.$refs.vExampleFile.click()
+            },
+            vExampleUpload: function (event) {
+                if (!checkVideo(event, maxSize, videoFileId)) {
+                    return;
+                }
+                onVideoSelected()
+                var self = this;
+                var videoFile = this.$refs.vExampleFile.files[0]
+                var uploader = this.tcVod.upload({
+                    videoFile: videoFile,
+                })
+                uploader.on(&#39;video_progress&#39;, function (info) {
+                    uploaderInfo.progress = info.percent;
+                    // 上传进度
+                    var percent = Math.floor(uploaderInfo.progress * 100) + &#39;%&#39;
+                    $(&quot;#&quot; + progressId).text(&quot;正在上传 : &quot; + percent)
+                })
+                uploader.on(&#39;video_upload&#39;, function (info) {
+                    uploaderInfo.isVideoUploadSuccess = true;
+                })
+                var uploaderInfo = {
+                    videoInfo: uploader.videoInfo,
+                    isVideoUploadSuccess: false,
+                    isVideoUploadCancel: false,
+                    progress: 0,
+                    fileId: &#39;&#39;,
+                    videoUrl: &#39;&#39;,
+                    cancel: function() {
+                        uploaderInfo.isVideoUploadCancel = true;
+                        uploader.cancel()
+                    },
+                }
+                this.uploaderInfos.push(uploaderInfo)
+                uploader.done().then(function(doneResult) {
+                    uploaderInfo.fileId = doneResult.fileId;
+                    return doneResult.video.url;
+                }).then(function (videoUrl) {
+                    uploaderInfo.videoUrl = videoUrl
+                    onVideoUploaded(formId, name, videoUrl, videoFileId, uploadVideoDivId);
+                })
+            }
+        },
+    })
+}
+
+/**
+ * 选择视频后显示上传进度
+ */
+function onVideoSelected() {
+    $(&quot;#&quot; + progressId).text(&quot;正在上传 : 0%&quot;)
+    $(&quot;#&quot; + progressId).show()
+    startLoadding();
+}
+
+/**
+ * 视频上传完成
+ * @param formId
+ * @param name
+ * @param videoUrl
+ * @param videoFileId
+ * @param uploadVideoDivId
+ */
+function onVideoUploaded(formId, name, videoUrl, videoFileId, uploadVideoDivId) {
+    endLoadding();
+    $(&quot;#&quot; + progressId).hide();
+    layerAlert(&quot;上传完成&quot;)
+    // 上传完成后清空fileId, 否则vue无法再次选择此文件
+    $(&quot;#&quot; + videoFileId).val(&#39;&#39;)
+    // 将上传成功后的视频url追加到表单
+    formAppendVideo(formId, name, videoUrl);
+
+    if (videoUrl != &quot;&quot;){
+        var str = &#39;&#39;;
+        str += &#39;&lt;div class=&quot;video&quot;&gt;&#39;;
+        str += &#39;    &lt;video src=&quot;&#39;+videoUrl+&#39;&quot; controls=&quot;controls&quot; &gt;&#39;;
+        str += &#39;&lt;/div&gt;&#39;;
+        $(&quot;#&quot; + uploadVideoDivId + &quot; .video&quot;).remove();
+        $(&quot;#&quot; + uploadVideoDivId).append(str);
+    }
+}
+
+/**
+ * 删除视频, 删除页面视频只需要uploadVideoDivId字段即可, 但同时还应清空form表单的videoUrl
+ * @param formId
+ * @param uploadVideoDivId
+ * @param name
+ */
+function deleteVideo(formId, uploadVideoDivId, name) {
+    $(&quot;#&quot; + uploadVideoDivId + &quot; .video&quot;).remove();
+    formAppendVideo(formId, name, null);
+}
+
+/**
+ * 追加视频url到form
+ * @param formId
+ * @param name
+ * @param videoUrl
+ */
+function formAppendVideo(formId, name, videoUrl){
+    videoUrl = null == videoUrl ? &#39;&#39; : videoUrl;
+    var form = $(&#39;#&#39; + formId);
+    var tmpInput = $(&#39;&lt;input type=&quot;hidden&quot; name=&quot;&#39;+name+&#39;&quot; value=&quot;&#39;+videoUrl+&#39;&quot; /&gt;&#39;);
+    form.append(tmpInput);
+}
+
+/**
+ * 校验视频格式和大小
+ * @param event
+ * @param maxSize 不传表示不限制文件大小
+ * @returns {boolean}
+ */
+function checkVideo(event, maxSize, videoFileId) {
+    var flag = true;
+    var accept = event.target.accept;
+    var file = event.target.files[0];
+    var type = file.type
+    if(accept.indexOf(type) == -1) {
+        layerAlert(&#39;文件格式不正确&#39;);
+        $(&quot;#&quot; + videoFileId).val(&#39;&#39;)
+        flag = false;
+    }
+    if (maxSize != undefined) {
+        if(file.size &gt; 1024 * 1024 * maxSize) {
+            layerAlert(&#39;文件不能大于&#39; + maxSize + &#39;M&#39;);
+            $(&quot;#&quot; + videoFileId).val(&#39;&#39;)
+            flag = false;
+        }
+    }
+    return flag
+}</code></pre>
+<p><strong>说明:</strong><br />
+<strong>a.</strong> 代码注释足够详细了<br />
+<strong>b.</strong> 视频上传核心代码在uploadVideo方法<br />
+稍微解释下uploadVideo方法:</p>
+<ul>
+<li>先调用SignatureController里面的getUgcUploadSign方法获取签名</li>
+<li>再通过vue定义视频文件点击、选择、上传后的事件</li>
+</ul>
+<p><strong>c.</strong> 有人会问不是上传视频吗, 为什么还有loadVideo, 因为, 编辑时进入页面不可能之前的视频就不显示吧, 所以, 初始化调用loadAndUploadVideo方法时就会将原视频嵌入到页面中了<br />
+<strong>d.</strong> 本文还加了上传视频的一些限制, 比如格式、大小之类的<br />
+<strong>e.</strong> formAppendVideo方法需要说明一下, 这个方法作用是上传视频后直接将视频url以name形式追加到表单元素, 这样就不用再form submit的时候再获取videoUrl了, 直接提交到后端, 这也是一行代码搞定视频上传的必要方法</p>
+<h3 id="使用">3)、使用</h3>
+<p>上述代码就可以实现一行代码搞定视频上传加载了, 通过在页面初始化时调用loadAndUploadVideo方法即可, 具体如下:<br />
+<strong>a:</strong> jsp页面引入相关vue js<br />
+<strong>b:</strong> jsp页面嵌入html<br />
+<strong>c:</strong> 新建js, 将上述js代码copy进去<br />
+<strong>d:</strong> 页面加载完毕初始化时调用:<br />
+<code>loadAndUploadVideo('form_id', 'teachingVideo', &quot;uploadVideo&quot;, &quot;videoFileId&quot;, 200);</code>即可</p>
+<blockquote>
+<p>结语: 本文通过参考腾讯云点播官方文档, 实现了对视频上传和加载功能的封装, 最终能够通过调用一行代码实现功能, 由于每个项目不同, 小伙伴需要根据自己实际情况修改进行代码适配, 谢谢</p>
+</blockquote>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

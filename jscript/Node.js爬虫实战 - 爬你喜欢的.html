@@ -1,0 +1,133 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Node.js爬虫实战 - 爬你喜欢的' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Node.js爬虫实战 - 爬你喜欢的</center></div><div class='banquan'>原文出处:本文由博客园博主胡哥有话说提供。<br/>
+原文连接:https://www.cnblogs.com/justbecoder/p/11358819.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>今天没有什么前言，就是想分享些关于<strong><code>爬虫</code></strong>的技术，任性。来吧，各位客官，里边请...</p>
+<h2 id="开篇第一问爬虫是什么嘞">开篇第一问：<strong><code>爬虫</code></strong>是什么嘞？</h2>
+<blockquote>
+<p>首先咱们说哈，爬虫不是“虫子”，姑凉们不要害怕。</p>
+</blockquote>
+<p><code>爬虫</code> - 一种通过一定方式按照一定规则抓取数据的操作或方法。</p>
+<h2 id="开篇第二问爬虫能做什么嘞">开篇第二问：<strong><code>爬虫</code></strong>能做什么嘞？</h2>
+<p>来来来，谈谈需求</p>
+<p><strong>产品MM：</strong></p>
+<ol>
+<li>爱豆的新电影上架了，整体电影评价如何呢？</li>
+<li>暗恋的妹子最近又失恋了，如何在她发微博的时候第一时间知道发了什么，好去呵护呢？</li>
+<li>总是在看小说的时候点到广告？总是在看那啥的时候点出来，澳xx场又上线啦？</li>
+<li>做个新闻类网站没有数据源咋办？</li>
+</ol>
+<p><strong>研发GG：</strong></p>
+<p><code>爬虫</code>随时准备为您服务！</p>
+<ol>
+<li>使用爬虫，拉取爱豆视频所有的评价，导入表格，进而分析评价</li>
+<li>使用爬虫，加上定时任务，拉取妹子的微博，只要数据有变化，接入短信或邮件服务，第一时间通知</li>
+<li>使用爬虫，拉取小说内容或xxx的视频，自己再设计个展示页，perfect！</li>
+<li>使用爬虫，定时任务，拉取多个新闻源的新闻，存储到数据库</li>
+</ol>
+<h2 id="开篇第三问爬虫如何实现嘞">开篇第三问：<strong><code>爬虫</code></strong>如何实现嘞？</h2>
+<p>实现爬虫的技术有很多，如python、Node等，今天胡哥给大家分享使用Node做爬虫：爬取小说网站-首页推荐小说</p>
+<h3 id="爬取第一步-确定目标">爬取第一步-确定目标</h3>
+<p>目标网站：https://www.23us.so<br />
+<img src="./images/Node.js爬虫实战 - 爬你喜欢的0.png" alt="目标网站" /></p>
+<p>我们要获取排行榜中六部小说的：书名、封面、以及小说书籍信息对应的地址(后续获取小说完整信息)</p>
+<h3 id="爬取第二步-分析目标特点">爬取第二步-分析目标特点</h3>
+<p>网页的内容是由HTML生成的，抓取内容就相当找到特定的HTML结构，获取该元素的值。</p>
+<p>打开<code>网页调试控制台</code>，查看元素HTML结构。</p>
+<p><img src="./images/Node.js爬虫实战 - 爬你喜欢的1.png" alt="HTML数据结构" /></p>
+<p>注意观察页面HTML的结构，排行榜推荐的小说的HTML结构是</p>
+<pre><code><code>bdo#s-dd 元素
+    dd 子元素 - 每一部小说
+        a 目录信息
+            img 封面
+        a 小说名称</code></pre>
+<h3 id="爬取第三步-弄丫的">爬取第三步-弄丫的</h3>
+<p>工具善其事必先利其器，准备好趁手的兵器！</p>
+<p><strong>superagent</strong></p>
+<blockquote>
+<p>模拟客户端发送网络请求，可设置请求参数、header头信息</p>
+</blockquote>
+<pre class="javascript"><code>npm install superagent -D</code></pre>
+<p><strong>cheerio</strong></p>
+<blockquote>
+<p>类jQuery库，可将字符串导入，创建对象，用于快速抓取字符串中的符合条件的数据</p>
+</blockquote>
+<pre class="javascript"><code>npm install cheerio -D</code></pre>
+<p><strong>项目目录：</strong></p>
+<pre class="javascript"><code>node-pachong/
+  - index.js
+  - package.json
+  - node_modules/</code></pre>
+<p><strong>上代码：</strong></p>
+<pre class="javascript"><code>// node-pachong/index.js
+/**
+ * 使用Node.js做爬虫实战
+ * author: justbecoder &lt;justbecoder@aliyun.com&gt;
+ */
+
+// 引入需要的工具包
+const sp = require(&#39;superagent&#39;);
+const cheerio = require(&#39;cheerio&#39;);
+
+// 定义请求的URL地址
+const BASE_URL = &#39;http://www.23us.so&#39;;
+
+// 1. 发送请求，获取HTML字符串
+(async () =&gt; {
+  let html = await sp.get(BASE_URL);
+  
+  // 2. 将字符串导入，使用cheerio获取元素
+  let $ = cheerio.load(html.text);
+  
+  // 3. 获取指定的元素
+  let books = []
+  $(&#39;#s_dd dd&#39;).each(function () {
+    let info = {
+      link: $(this).find(&#39;a&#39;).eq(0).attr(&#39;href&#39;),
+      name: $(this).find(&#39;a&#39;).eq(1).text(),
+      image: $(this).find(&#39;img&#39;).attr(&#39;src&#39;)
+    }
+    books.push(info)
+  })
+  console.log(books)
+})()</code></pre>
+<blockquote>
+<p><strong><code>友情提醒：</code></strong>每个网站的HTML结构是不一样，在抓取不同网站的数据时，要分析不同的解构，才能百发百中。</p>
+</blockquote>
+<p><strong>效果图：</strong><br />
+<img src="./images/Node.js爬虫实战 - 爬你喜欢的2.png" alt="打印获取的小说信息" /></p>
+<blockquote>
+<p>获取到信息之后，做接口数据返回、存储数据库，你想干啥都行...</p>
+</blockquote>
+<h2 id="源码获取">源码获取</h2>
+<p>关注<code>胡哥有话说</code>公众号，回复“爬虫”，即可获取源码地址。</p>
+<h2 id="后记">后记</h2>
+<p>以上就是胡哥今天给大家分享的内容，喜欢的小伙伴记得<strong><code>收藏</code></strong>、<strong><code>转发</code></strong>、点击右下角按钮<strong><code>在看</code></strong>，推荐给更多小伙伴呦，欢迎多多留言交流...</p>
+<blockquote>
+<p>胡哥有话说，一个有技术，有情怀的胡哥！京东开放平台首席前端攻城狮。与你一起聊聊大前端，分享前端系统架构，框架实现原理，最新最高效的技术实践！</p>
+</blockquote>
+<p>长按扫码关注，更帅更漂亮呦！关注胡哥有话说公众号，可与胡哥继续深入交流呦！</p>
+<p><img src="./images/Node.js爬虫实战 - 爬你喜欢的3.png" alt="胡哥有话说" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,339 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修koa+mysql+vue+socket.io全栈开发之数据访问篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>koa+mysql+vue+socket.io全栈开发之数据访问篇</center></div><div class='banquan'>原文出处:本文由博客园博主Jeff.Zhong提供。<br/>
+原文连接:https://www.cnblogs.com/edwardloveyou/p/10693744.html</div><br>
+    <p>原文地址：<a href="https://edwardzhong.github.io/2019/04/12/fullstack2/">koa+mysql+vue+socket.io全栈开发之数据访问篇</a></p>
+<p>后端搭起大体的框架后，接着涉及到的就是如何将数据持久化的问题，也就是对数据库进行 <strong>CURD</strong> 操作。</p>
+<p>关于数据库方案, <strong>mongodb</strong> 和 <strong>mysql</strong> 都使用过，但我选用的是 <strong>mysql</strong>，原因：</p>
+<ol>
+<li>目前为止 <strong>mysql</strong> 与 <strong>mongodb</strong> 性能相差不大，尤其是 <strong>mysql</strong> 8.0 版本，速度非常快，查询数据是 mysql 更快，写数据方面 <strong>mongodb</strong> 则更胜一筹；</li>
+<li><strong>mysql</strong> 建立 关联数据要更方便些，比如： 一对多，多对多的关系；</li>
+<li><strong>mysql</strong> 作为关系型数据库，数据一致性方面更好，尤其是事务用起来更顺手；</li>
+<li>本人对 sql 操作比较得心应手，毕竟大部分项目用得都是 <strong>mysql</strong>，而 <strong>mongodb</strong> 在正式些的项目上用的就少了，而且目前关系型数据库也在进化, <strong>postgrep</strong> 和 <strong>mysql</strong> 都已经支持 json了。</li>
+</ol>
+<!-- more -->
+<h2 id="node-mysql">node-mysql</h2>
+<p><strong>node-mysql</strong> 是用 sql 语句对 mysql 进行操作的库, 并没有使用 <a href="http://docs.sequelizejs.com/">Sequelize</a> 这种 orm。因为我对 sql 熟悉，原生开发效率高。</p>
+<h4 id="连接池">连接池</h4>
+<p>连接数据库我选用 连接池的方式，这种方式能高效的利用数据库连接</p>
+<pre><code><code>//dbPool.js
+const mysql = require(&#39;mysql&#39;);
+const dbconfig = require(&#39;../config/db&#39;);
+const log = require(&#39;../common/logger&#39;);
+let pool = null;
+
+/**
+ * get the connection pool of database
+ * 获取数据库连接池
+ */
+exports.getPool = function () {
+    if (!pool) {
+        log.info(&quot;creating pool&quot;);
+        pool = mysql.createPool(dbconfig);
+    }
+    return pool;
+}</code></pre>
+<h4 id="数据库配置文件">数据库配置文件</h4>
+<p><strong>emoji</strong> 格式要用 <strong>utf8mb4</strong> 格式存储，所以这里连接字符集选用 <strong>utf8mb4</strong>，当然客户端和数据结果集 一样也要设置为 <strong>utf8mb4</strong>。</p>
+<pre><code><code>module.exports={
+    host: &quot;localhost&quot;,
+    port: &quot;3306&quot;,
+    user: &quot;root&quot;,
+    password: &quot;jeff&quot;,
+    database: &quot;chatdb&quot;,
+    charset : &#39;utf8mb4&#39;,//utf8mb4才能保存emoji
+    multipleStatements: true,// 可同时查询多条语句, 但不能参数化传值
+    connectionLimit: 100 //连接数量
+};</code></pre>
+<h2 id="dao的编写">Dao的编写</h2>
+<p>基本的代码编写方式如下，每个方法基本都是这么一种流程，获取数据库连接，执行 sql 语句，返回结果，处理异常。</p>
+<pre><code><code>exports.queryInfo = function (params, callback){
+    pool.query(&#39;select ...&#39;, params, function (error, result, fields) {
+        if (error) {
+          log(error);
+          callback(false);
+        }
+        else callback(result)
+    }); 
+}</code></pre>
+<h4 id="exportdao">exportDao</h4>
+<p>这造成了一大堆重复的样板代码，我们需要封装它，用 <strong>JavaScript</strong> 高阶函数特性 很容易就能实现，同时加上 Promise，调用时就能方便地用 <strong>async await</strong> 了，还有日志记录功能也加上。</p>
+<pre><code><code>const pool = require(&quot;./dbPool&quot;).getPool();
+const log = require(&#39;../common/logger&#39;);
+
+/**
+ * export named query function
+ */
+const exportDao = opts =&gt; Object.keys(opts).reduce((next, key) =&gt; {
+    next[key] = (...args) =&gt; new Promise((resolve, reject) =&gt; {
+        if (opts[key]) args.unshift(opts[key]);
+        log.info(&#39;====== execute sql ======&#39;)
+        log.info(args);
+        pool.query(...args, (err, result, fields) =&gt; {// fields is useless
+            if (err) reject(err)
+            else resolve(result);
+        });
+    });
+    return next;
+}, {});</code></pre>
+<p>userDao文件为例，使用 <strong>exportDao</strong> 直接就能把里面的 key-value 对象输出为 以key 为方法名的dao方法，挂载到 <strong>module.exports</strong> 下。</p>
+<pre><code><code>const { exportDao } = require(&#39;./common&#39;);
+
+//直接就exports里面的key值对应的方法
+module.exports = exportDao({
+    sql: null,// 有些时候需要直接写sql
+    count: &#39;select count(*) as count from user where ?&#39;,
+    getUser: &#39;select * from user where ?&#39;,
+    insert: &#39;insert into user set ?&#39;,
+    update: &#39;update user set ? where id = ?&#39;,
+    delete: &#39;delete from user where ?&#39;
+});
+
+/* 最终输出格式
+module.exports = {
+  sql:() =&gt; {},
+  count:() =&gt; {},
+  ...
+}*/</code></pre>
+<h4 id="transaction">transaction</h4>
+<p>还有事务 <strong>transaction</strong> 的功能需要用到，来看一下 <strong>node-mysql</strong> 官方的例子，层层回调😢，如果每个业务都要这样编写，简直不能忍，我们还是手动封装下事务吧。</p>
+<pre><code><code>// 官方的事务样例
+pool.getConnection(function(err, connection) {
+    if (err) { throw err; }
+    connection.beginTransaction(function(err) {
+    if (err) { throw err; }
+        connection.query(&#39;INSERT INTO posts SET title=?&#39;, title, function (error, results, fields) {
+            if (error) {
+                return connection.rollback(function() {
+                    throw error;
+                });
+            }
+
+            var log = &#39;Post &#39; + results.insertId + &#39; added&#39;;
+
+            connection.query(&#39;INSERT INTO log SET data=?&#39;, log, function (error, results, fields) {
+                if (error) {
+                    return connection.rollback(function() {
+                    throw error;
+                    });
+                }
+                connection.commit(function(err) {
+                    if (err) {
+                        return connection.rollback(function() {
+                            throw err;
+                        });
+                    }
+                    console.log(&#39;success!&#39;);
+                });
+            });
+        });
+    });
+});</code></pre>
+<p>下面就是封装好的事务方法，调用参数为数组，数组项既可以是 sql 字符串，也可以是 <strong>node-mysql</strong> 中的带参数传值的数组，这才是给人用的嘛，心情好多了。推荐还是用 参数化传值，这样可以避免 sql 注入，如果确实要用sql字符串，可以调用 mysql.escape 方法对 参数 进行转换。</p>
+<pre><code><code>//调用封装后的事务
+const rets = await transaction([
+     [&quot;insert into user_group values (?,?)&quot;,[11,11]],
+     [&quot;insert into user_friend set ? &quot;,{user_id:&#39;12&#39;,friend_id:12}],
+     &#39;select * from user&#39;
+ ]);
+
+/**
+ * sql transaction 封装后的事务
+ * @param  {Array} list 
+ */
+const transaction = list =&gt; {
+    return new Promise((resolve, reject) =&gt; {
+        if (!Array.isArray(list) || !list.length) return reject(&#39;it needs a Array with sql&#39;)
+        pool.getConnection((err, connection) =&gt; {
+            if (err) return reject(err);
+            connection.beginTransaction(err =&gt; {
+                if (err) return reject(err);
+                log.info(&#39;============ begin execute transaction ============&#39;)
+                let rets = [];
+                return (function dispatch(i) {
+                    let args = list[i];
+                    if (!args) {//finally commit
+                        connection.commit(err =&gt; {
+                            if (err) {
+                                connection.rollback();
+                                connection.release();
+                                return reject(err);
+                            }
+                            log.info(&#39;============ success executed transaction ============&#39;)
+                            connection.release();
+                            resolve(rets);
+                        });
+                    } else {
+                        log.info(args);
+                        args = typeof args == &#39;string&#39; ? [args] : args;
+                        connection.query(...args, (error, ret) =&gt; {
+                            if (error) {
+                                connection.rollback();
+                                connection.release();
+                                return reject(error);
+                            }
+                            rets.push(ret);
+                            dispatch(i + 1);
+                        });
+                    }
+                })(0);
+            });
+        });
+    })
+}</code></pre>
+<h4 id="controller-调用-dao">controller 调用 dao</h4>
+<p>都封装完毕，最后就是调用， 就以apply控制器为例，其中的 <strong>apply</strong> 方法是普通调用，<strong>accept</strong> 方法则使用了事务进行处理。</p>
+<pre><code><code>const { stringFormat } = require(&#39;../common/util&#39;)
+const { transaction } = require(&#39;../daos/common&#39;)
+const applyDao = require(&#39;../daos/apply&#39;)
+
+exports.apply = async function (ctx) {
+    const form = ctx.request.body;
+    const token = await ctx.verify();
+    const ret = await applyDao.apply({ ...form, from_id: token.uid });
+    if (!ret.affectedRows) {
+        return ctx.body = {
+            code: 2,
+            message: &#39;申请失败&#39;
+        };
+    }
+    ctx.body = {
+        code: 0,
+        message: &#39;申请成功&#39;,
+        data:ret.insertId
+    };
+}
+
+exports.accept = async function (ctx) {
+    const { id, friend_id } = ctx.request.body;
+    const token = await ctx.verify();
+    const ret = await transaction([// 非用户输入的 id，没有使用 escape 进行转换。
+        [&#39;update apply set status = 1 where id = ? and to_id = ?&#39;, [id, token.uid]],
+        stringFormat(&quot;replace into user_friend values (&#39;$1&#39;,&#39;$2&#39;),(&#39;$2&#39;,&#39;$1&#39;)&quot;, token.uid, friend_id)
+    ]);
+    if (!ret[0].affectedRows || !ret[1].affectedRows) {
+        return ctx.body = {
+            code: 2,
+            message: &#39;添加好友失败&#39;
+        };
+    }
+    ctx.body = {
+        code: 0,
+        message: &#39;添加好友成功&#39;
+    };
+}</code></pre>
+<h2 id="sql脚本">sql脚本</h2>
+<p>当然还需要定义数据结构，有很多工具可以方便建表和建生产sql，这里以部分表为例，项目使用到的表要多得多。我这里还写了些无关紧要的触发器处理 数据插入时间 和数据修改时间，这是个人的习惯。完全可以不用触发器，直接在代码里面赋值，不影响使用。有用到 emoji 的数据表，记得要用 utf8mb4 格式。</p>
+<pre class="sql"><code>create database if not exists chatdb;
+use chatdb;
+
+drop table if exists `user`;
+CREATE TABLE `user` (
+  `id` char(36) NOT NULL DEFAULT &#39;&#39; COMMENT &#39;主键&#39;,
+  `name` varchar(50) DEFAULT NULL COMMENT &#39;用户名&#39;,
+  `num` int(8) DEFAULT NULL  COMMENT &#39;用户号码&#39;,
+  `salt` varchar(13) DEFAULT NULL COMMENT &#39;加密的盐&#39;,
+  `hash_password` varchar(64) DEFAULT NULL COMMENT &#39;加密后的密码&#39;,
+  `email` varchar(50) NOT NULL COMMENT &#39;email地址&#39;,
+  `nick` varchar(50) DEFAULT NULL COMMENT &#39;昵称&#39;,
+  `avatar` varchar(200) DEFAULT NULL COMMENT &#39;头像&#39;,
+  `signature` varchar(200) DEFAULT NULL COMMENT &#39;个性签名&#39;,
+  `status` tinyint(1) DEFAULT 0 COMMENT &#39;状态(0 离线 1 在线 2 隐身)&#39;,
+  `is_admin` tinyint(1) DEFAULT 0 COMMENT &#39;是否管理员&#39;,
+  `is_block` tinyint(1) DEFAULT 0 COMMENT &#39;是否禁用&#39;,
+  `create_date` int(10) unsigned DEFAULT NULL COMMENT &#39;注册时间&#39;,
+  `update_date` int(10) unsigned DEFAULT NULL COMMENT &#39;更新时间&#39;,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT=&#39;用户表&#39;; 
+
+drop table if exists `message`;
+CREATE TABLE `message` (
+  `id` int(11) NOT NULL AUTO_INCREMENT COMMENT &#39;主键&#39;,
+  `content` text NOT NULL COMMENT &#39;内容&#39;,
+  `type` tinyint(1) DEFAULT 0 COMMENT &#39;类型(0 用户 1 组群)&#39;,
+  `send_id` char(36) NOT NULL COMMENT &#39;发送用户id&#39;,
+  `receive_id` char(36) DEFAULT NULL COMMENT &#39;接收用户id&#39;,
+  `group_id` int(11) DEFAULT NULL COMMENT &#39;组id&#39;,
+  `create_date` int(10) unsigned DEFAULT NULL COMMENT &#39;创建时间&#39;,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT=&#39;消息表&#39;;
+
+drop table if exists `user_message`;
+CREATE TABLE `user_message` (
+  `user_id` char(36) DEFAULT NULL COMMENT &#39;接收用户id&#39;,
+  `send_id` char(36) NOT NULL COMMENT &#39;发送用户id&#39;,
+  `message_id` int(11) NOT NULL COMMENT &#39;消息id&#39;,
+  `is_read` tinyint(1) DEFAULT 0 COMMENT &#39;是否读过(0 没有 1 读过)&#39;,
+  PRIMARY KEY (`send_id`,`message_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT=&#39;用户消息连接表&#39;;
+
+
+-- user表insert触发器
+delimiter $$
+create trigger `user_insert` before insert on `user`
+for each ROW
+begin
+if (new.id = &#39;&#39; or new.id is null)
+    then set new.id = uuid();
+end if;
+if (new.num = 0 or new.num is null)
+    then set new.num = 1000;
+end if;
+if (new.`create_date` = 0 or new.`create_date` is null)
+    then set new.`create_date` = unix_timestamp(now());
+end if;
+if (new.`update_date` = 0 or new.`update_date` is null)
+    then set new.`update_date` = unix_timestamp(now());
+end if;
+END
+$$
+
+-- user表update触发器
+delimiter $$
+create trigger `user_update` before update on `user`
+for each ROW
+begin
+if ((new.`name` &lt;&gt; old.`name`) or (new.`name` is not null and old.`name` is null) 
+    or (new.`email` &lt;&gt; old.`email`) or (new.`email` is not null and old.`email` is null)
+    or (new.`nick` &lt;&gt; old.`nick`) or (new.`nick` is not null and old.`nick` is null)
+    or (new.`avatar` &lt;&gt; old.`avatar`) or (new.`avatar` is not null and old.`avatar` is null)
+    or (new.`signature` &lt;&gt; old.`signature`) or (new.`signature` is not null and old.`signature` is null))
+    then set new.`update_date` = unix_timestamp(now());
+end if;
+END
+$$
+
+-- message表insert触发器
+delimiter $$
+create trigger `message_insert` before insert on `message`
+for each ROW
+begin
+if (new.`create_date` = 0 or new.`create_date` is null)
+    then set new.`create_date` = unix_timestamp(now());
+end if;
+END
+$$</code></pre>
+<h2 id="后续">后续</h2>
+<p>接着就是我们的大前端部分了，将会用到 vue，vuex，请继续关注。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

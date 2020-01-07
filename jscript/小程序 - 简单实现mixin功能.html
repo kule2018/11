@@ -1,0 +1,109 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修小程序 - 简单实现mixin功能' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>小程序 - 简单实现mixin功能</center></div><div class='banquan'>原文出处:本文由博客园博主WahFung提供。<br/>
+原文连接:https://www.cnblogs.com/chanwahfung/p/11799365.html</div><br>
+    <h2>前言</h2>
+<p><span style="font-size: 16px;">在业务中有没有一个场景：多个页面需要用到一样的 data 和 method，或者生命周期都需要执行同样的操作。我们在每个页面都写上重复的代码，一但功能修改就要更新多个页面，在后期维护起来会很麻烦。</span></p>
+<p><span style="font-size: 16px;">那么有没有一个方法将同样的业务存放到一个文件中去管理呢？其实这个问题Vue已经告诉我们了，那就是Mixin功能。</span></p>
+<p><span style="font-size: 16px;"><span>Mixin是一种将可重用功能分布到组件的灵活方法。</span><span>mixin对象可以包含任何组件选项。</span><span>当组件使用mixin时，mixin中的所有选项都将被&ldquo;混合&rdquo;到组件的选项中。</span><br /></span></p>
+<h2>实现功能</h2>
+<ul>
+<li><span style="font-size: 16px;">全局<strong>mixin</strong>方法</span></li>
+<li><span style="font-size: 16px;">页面<strong>mixins</strong>选项</span></li>
+
+
+</ul>
+<h2>优先级</h2>
+<p><span style="font-size: 16px;">在合并时发生冲突的优先级</span></p>
+<p><img src="./images/小程序 - 简单实现mixin功能0.png" alt="" /></p>
+<h2>使用设计</h2>
+<p><span style="font-size: 16px;"><strong>全局mixin：</strong></span></p>
+<p><span style="font-size: 16px;"><strong><img src="./images/小程序 - 简单实现mixin功能1.png" alt="" /></strong></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>&nbsp;页面mixin：</strong></span></p>
+<p><span style="font-size: 16px;"><strong><img src="./images/小程序 - 简单实现mixin功能2.png" alt="" /></strong></span></p>
+<p><img src="./images/小程序 - 简单实现mixin功能3.png" alt="" /></p>
+<h2>实现思路</h2>
+<p><span style="font-size: 16px;">1.每个页面的Page都是一个函数，可以对Page封装，做一个代理</span></p>
+<p><span style="font-size: 16px;">2.检查是否有全局mixin，合并到页面mixins中</span></p>
+<p><span style="font-size: 16px;">3.获取页面的mixins，对data、method、lifecycle等进行合并</span></p>
+<h2>代码实现</h2>
+<div class="cnblogs_code" onclick="cnblogs_code_show('8d1501e8-c2a1-45c0-aea8-2967449eb706')"><img id="code_img_closed_8d1501e8-c2a1-45c0-aea8-2967449eb706" class="code_img_closed" src="./images/小程序 - 简单实现mixin功能4.png" alt="" /><img id="code_img_opened_8d1501e8-c2a1-45c0-aea8-2967449eb706" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('8d1501e8-c2a1-45c0-aea8-2967449eb706',event)" src="./images/小程序 - 简单实现mixin功能5.png" alt="" />
+<div id="cnblogs_code_open_8d1501e8-c2a1-45c0-aea8-2967449eb706" class="cnblogs_code_hide">
+<pre><code>const nativePage =<span style="color: #000000;"> Page
+const lifecycle </span>= ['onLoad', 'onReady', 'onShow', 'onHide', 'onUnload', 'onPullDownRefresh', 'onReachBottom', 'onShareAppMessage', 'onPageScroll'<span style="color: #000000;">]
+let globalMixin </span>= <span style="color: #0000ff;">null</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;">全局mixin方法</span>
+wx.mixin = <span style="color: #0000ff;">function</span><span style="color: #000000;">(config){
+  </span><span style="color: #0000ff;">if</span>(isType(config,'object'<span style="color: #000000;">)){
+    globalMixin </span>=<span style="color: #000000;"> config
+  }
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">原生Page代理</span>
+Page = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (config) {
+  let mixins </span>=<span style="color: #000000;"> config.mixins
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">加入全局mixin</span>
+  <span style="color: #0000ff;">if</span><span style="color: #000000;">(globalMixin){                                                         
+    (mixins </span>|| (mixins=<span style="color: #000000;">[])).unshift(globalMixin)
+  }
+  </span><span style="color: #0000ff;">if</span> (isType(mixins, 'array') &amp;&amp; mixins.length &gt; 0<span style="color: #000000;">) {
+    Reflect.deleteProperty(config, </span>'mixins'<span style="color: #000000;">)
+    merge(mixins, config)
+  }
+  nativePage(config)
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> merge(mixins, config) {
+  mixins.forEach(mixin </span>=&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">if</span> (isType(mixin, 'object'<span style="color: #000000;">)) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">合并data、生命周期以及其他数据</span>
+      Object.keys(mixin).forEach(key =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (key === 'data'<span style="color: #000000;">) {
+          config[key] </span>=<span style="color: #000000;"> Object.assign({}, mixin[key], config[key])
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (lifecycle.includes(key)) {
+          let nativeLifecycle </span>=<span style="color: #000000;"> config[key]
+          config[key] </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+            let arg </span>=<span style="color: #000000;"> Array.prototype.slice.call(arguments)
+            mixin[key].call(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">, arg)
+            </span><span style="color: #0000ff;">return</span> nativeLifecycle &amp;&amp; nativeLifecycle.call(<span style="color: #0000ff;">this</span><span style="color: #000000;">, arg)
+          }
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+          config[key] </span>=<span style="color: #000000;"> mixin[key]
+        }
+      })
+    }
+  })
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">判断类型工具</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> isType(target, type) {
+  let targetType </span>= Object.prototype.toString.call(target).slice(8, -1<span style="color: #000000;">).toLowerCase()
+  type </span>=<span style="color: #000000;"> type.toLowerCase()
+  </span><span style="color: #0000ff;">return</span> targetType ===<span style="color: #000000;"> type
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;在 app.js 引入 mixin 文件就可以使用</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

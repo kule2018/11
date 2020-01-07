@@ -1,0 +1,107 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修setInterval和setTImeout中的this指向问题' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>setInterval和setTImeout中的this指向问题</center></div><div class='banquan'>原文出处:本文由博客园博主念秋丶提供。<br/>
+原文连接:https://www.cnblogs.com/kawask/p/10893942.html</div><br>
+    <h2>问题描述：</h2>
+<p>前些天在练习写一个小例子的时候用到了定时器，发现在setInterval和setTimeout中传入函数时，函数中的this会指向window对象，如下例：</p>
+<table style="background-color: #ecece8;" border="0">
+<tbody>
+<tr>
+<td>
+<p>var num = 0;<br />function Obj (){<br />    this.num = 1,<br />    this.getNum = function(){<br />        console.log(this.num);<br />    },<br />    this.getNumLater = function(){<br />        setTimeout(function(){<br />            console.log(this.num);<br />        }, 1000)<br />    }<br />}<br />var obj = new Obj; <br />obj.getNum();//1　　打印的是obj.num，值为1<br />obj.getNumLater()//0　　打印的是window.num，值为0</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<h2>问题原因：</h2>
+<p>从上述例子中可以看到setTimeout中函数内的this是指向了window对象，这是由于<code>setTimeout()调用的代码运行在与所在函数</code>完全分离的执行环境上。这会导致这些代码中包含的&nbsp;<code>this</code>&nbsp;关键字会指向&nbsp;<code>window</code>&nbsp;(或<code>全局</code>)对象。详细可参考<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Window/setTimeout" target="_blank">MDN setTimeout</a></p>
+<h2>解决方法：</h2>
+<p>若想要让setTimeout中的this指向正确的值，可以使用以下三种比较常用的方法来使this指向正确的值：</p>
+<p><strong>1.将当前对象的this存为一个常量，定时器内的函数利用闭包来访问这个<strong>常</strong>量</strong>，如下：</p>
+<table style="background-color: #ecece8;" border="0">
+<tbody>
+<tr>
+<td>
+<p>var num = 0;<br />function Obj (){<br />    const that = this;    //将this存为一个常量，此时的this指向obj<br />    this.num = 1,<br />    this.getNum = function(){<br />        console.log(this.num);<br />    },<br />    this.getNumLater = function(){<br />        setTimeout(function(){<br />            console.log(that.num);    //利用闭包访问that，that是一个指向obj的指针<br />        }, 1000)<br />    }<br />}<br />var obj = new Obj; <br />obj.getNum();//1　　打印的是obj.num，值为1<br />obj.getNumLater()//1　　打印的是obj.num，值为1</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<p>这种方法是将当前对象的引用放在一个变量里，定时器内部的函数来访问到这个变量，自然就可以得到当前的对象。</p>
+<p><strong>2.利用bind()方法</strong></p>
+<table style="background-color: #ecece8;" border="0">
+<tbody>
+<tr>
+<td>
+<p>var num = 0;<br />function Obj (){<br />    this.num = 1,<br />    this.getNum = function(){<br />        console.log(this.num);<br />    },<br />    this.getNumLater = function(){<br />        setTimeout(function(){<br />            console.log(this.num);<br />        }.bind(this), 1000)    //利用bind()将this绑定到这个函数上<br />    }<br />}<br />var obj = new Obj; <br />obj.getNum();//1　　打印的为obj.num，值为1<br />obj.getNumLater()//1　　打印的为obj.num，值为1</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<p>bind()方法是在Function.prototype上的一个方法，当被绑定函数执行时，bind方法会创建一个新函数，并将第一个参数作为新函数运行时的this。在这个例子中，在调用setTimeout中的函数时，bind方法创建了一个新的函数，并将this传进新的函数，执行的结果也就是正确的了。关于bind方法可参考&nbsp;<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Function/bind" target="_blank">MDN bind</a></p>
+<p><strong>3. 箭头函数</strong></p>
+<table style="background-color: #ecece8;" border="0">
+<tbody>
+<tr>
+<td>
+<p>var num = 0;<br />function Obj (){<br />    this.num = 1,<br />    this.getNum = function(){<br />        console.log(this.num);<br />    },<br />    this.getNumLater = function(){<br />        setTimeout(() =&gt; {<br />            console.log(this.num);<br />        }, 1000)    //箭头函数中的this总是指向外层调用者，也就是Obj<br />    }<br />}<br />var obj = new Obj; <br />obj.getNum();//1　　打印的是obj.num，值为1<br />obj.getNumLater()//1　　打印的是obj.num，值为1</p>
+
+
+</td>
+
+
+</tr>
+
+
+</tbody>
+
+
+</table>
+<p>ES6中的箭头函数完全修复了this的指向，this总是指向词法作用域，也就是外层调用者obj，因此利用箭头函数就可以轻松解决这个问题。</p>
+<p>以上三种方法都是比较常用的，当然如果使用call或apply方法来代替bind方法，得到的结果也是正确的，但是call方法会在调用之后立即执行，那样也就没有了延时的效果，定时器也就没有用了，所以推荐使用上述方法来将this传进setTimeout和setInterval中。&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

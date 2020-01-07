@@ -1,0 +1,321 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack优化之玩转代码分割和公共代码提取' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack优化之玩转代码分割和公共代码提取</center></div><div class='banquan'>原文出处:本文由博客园博主champyin提供。<br/>
+原文连接:https://www.cnblogs.com/champyin/p/11904831.html</div><br>
+    <h1 id="前言">前言</h1>
+<p>开发多页应用的时候，如果不对webpack打包进行优化，当某个模块被多个入口模块引用时，它就会被打包多次（在最终打包出来的某几个文件里，它们都会有一份相同的代码）。当项目业务越来越复杂，打包出来的代码会非常冗余，文件体积会非常庞大。大体积文件会增加编译时间，影响开发效率；如果直接上线，还会拉长请求和加载时长，影响网站体验。作为一个追求极致体验的攻城狮，是不能忍的。所以在多页应用中优化打包尤为必要。那么如何优化webpack打包呢？</p>
+<h1 id="一概念">一、概念</h1>
+<p>在一切开始前，有必要先理清一下这三个概念：</p>
+<ul>
+<li>module: 模块，在webpack眼里，任何可以被导入导出的文件都是一个模块。</li>
+<li>chunk: chunk是webpack拆分出来的：
+<ul>
+<li>每个入口文件都是一个chunk</li>
+<li>通过 import、require 引入的代码也是</li>
+<li>通过 splitChunks 拆分出来的代码也是</li>
+</ul></li>
+<li>bundle: webpack打包出来的文件，也可以理解为就是对chunk编译压缩打包等处理后的产出。</li>
+</ul>
+<h1 id="二问题分析">二、问题分析</h1>
+<p>首先，简单分析下，我们刚才提到的打包问题：</p>
+<ul>
+<li>核心问题就是：多页应用打包后代码冗余，文件体积大。</li>
+<li>究其原因就是：相同模块在不同入口之间没有得到复用，bundle之间比较独立。</li>
+</ul>
+<p>弄明白了问题的原因，那么大致的解决思路也就出来了：</p>
+<ul>
+<li>我们在打包的时候，应该把不同入口之间，共同引用的模块，抽离出来，放到一个公共模块中。这样不管这个模块被多少个入口引用，都只会在最终打包结果中出现一次。——解决代码冗余。</li>
+<li>另外，当我们把这些共同引用的模块都堆在一个模块中，这个文件可能异常巨大，也是不利于网络请求和页面加载的。所以我们需要把这个公共模块再按照一定规则进一步拆分成几个模块文件。——减小文件体积。</li>
+<li>至于如何拆分，方式因人而异，因项目而异。我个人的拆分原则是：
+<ul>
+<li>业务代码和第三方库分离打包，实现代码分割；</li>
+<li>业务代码中的公共业务模块提取打包到一个模块；</li>
+<li>第三方库最好也不要全部打包到一个文件中，因为第三方库加起来通常会很大，我会把一些特别大的库分别独立打包，剩下的加起来如果还很大，就把它按照一定大小切割成若干模块。</li>
+</ul></li>
+</ul>
+<h1 id="optimization.splitchunks">optimization.splitChunks</h1>
+<p>webpack提供了一个非常好的内置插件帮我们实现这一需求：<code>CommonsChunkPlugin</code>。不过在 webpack4 中<code>CommonsChunkPlugin</code>被删除，取而代之的是<code>optimization.splitChunks</code>, 所幸的是<code>optimization.splitChunks</code>更强大！</p>
+<h1 id="三-实现">三、 实现</h1>
+<p>通过一个多页应用的小demo，我们一步一步来实现上述思路的配置。</p>
+<p>demo目录结构：</p>
+<pre><code><code>|--public/
+|   |--a.html
+|   |--index.html
+|--src/
+|   |--a.js
+|   |--b.js
+|   |--c.js
+|   |--index.js
+|--package.json
+|--webpack.config.js</code></pre>
+<p>代码逻辑很简单，<code>index</code>模块中引用了 <code>a</code> 和 <code>b</code> 2个模块，<code>a</code> 模块中引用了 <code>c</code> 模块和 <code>jquery</code>库，<code>b</code> 模块中也引用了 <code>c</code> 模块和 <code>jquery</code> 库，<code>c</code> 是一个独立的模块没有其他依赖。</p>
+<p>index.js代码如下：</p>
+<pre><code><code>//index.js
+import a from &#39;./a.js&#39;;
+import b from &#39;./b.js&#39;;
+function fn() {
+    console.log(&#39;index-------&#39;);
+}
+fn();</code></pre>
+<p>a.js代码如下：</p>
+<pre><code><code>//a.js
+require(&#39;./c.js&#39;);
+const $ = require(&#39;jquery&#39;)
+function fn() {
+    console.log(&#39;a-------&#39;);
+}
+module.exports = fn();</code></pre>
+<p>b.js代码如下：</p>
+<pre><code><code>//b.js
+require(&#39;./c.js&#39;);
+const $ = require(&#39;jquery&#39;)
+function fn() {
+    console.log(&#39;b-------&#39;);
+}
+module.exports = fn();</code></pre>
+<p>c.js代码如下：</p>
+<pre><code><code>//c.js
+function fn() {
+    console.log(&#39;c-------&#39;);
+}
+module.exports = fn();</code></pre>
+<h2 id="基本配置">1. 基本配置</h2>
+<p>webpack先不做优化，只做基本配置，看看效果。项目配置了2个入口，搭配<code>html-webpack-plugin</code>实现多页打包：</p>
+<pre><code><code>const path = require(&#39;path&#39;);
+const HtmlWebpackPlugin = require(&#39;html-webpack-plugin&#39;);
+
+module.exports = {
+    entry: {
+        index: &#39;./src/index.js&#39;,
+        a: &#39;./src/a.js&#39;
+    },
+    output: {
+        path: path.resolve(__dirname, &#39;dist&#39;),
+        filename: &#39;[name].js&#39;
+    },
+    plugins: [
+        new HtmlWebpackPlugin({
+            template: &#39;./public/index.html&#39;,
+            filename: &#39;index.html&#39;
+        }),
+        new HtmlWebpackPlugin({
+            template: &#39;./public/a.html&#39;,
+            filename: &#39;a.html&#39;
+        })
+    ]
+}</code></pre>
+<p>在开发模式下运行webpack：<br />
+<img src="./images/webpack优化之玩转代码分割和公共代码提取0.png" alt="webpack-normal-build.jpg" /></p>
+<p>可以看到，打包出两个html和两个体积很大的（300多K）的文件<code>a.js</code>,<code>index.js</code>。</p>
+<p>进入dist目录检查js文件：</p>
+<ul>
+<li><code>a.js</code>里包含<code>c</code>模块代码和<code>jquery</code>代码</li>
+<li><code>index.js</code>里包含<code>a</code>模块、<code>b</code>模块、<code>c</code>模块和<code>jquery</code>代码</li>
+</ul>
+<p>看，同样的代码<code>c</code>和<code>jquery</code>被打包了2遍。</p>
+<h2 id="初步添加splitchunks优化配置">2. 初步添加splitChunks优化配置</h2>
+<p>首先解决相同代码打包2次的问题，我们需要让webpack把<code>c</code>和<code>jquery</code>提取出来打包为公共模块。</p>
+<p>在webpack配置文件添加splitChunks：</p>
+<pre><code><code>//webpack.config.js
+
+optimization: {
+    splitChunks: {
+        cacheGroups: {
+            default: {
+                name: &#39;common&#39;,
+                chunks: &#39;initial&#39;
+            }
+        }
+    }
+}</code></pre>
+<h4 id="cachegroups">- cacheGroups</h4>
+<ul>
+<li><code>cacheGroups</code>是<code>splitChunks</code>配置的核心，对代码的拆分规则全在<code>cacheGroups</code>缓存组里配置。</li>
+<li>缓存组的每一个属性都是一个配置规则，我这里给他的<code>default</code>属性进行了配置，属性名可以不叫default可以自己定。</li>
+<li>属性的值是一个对象，里面放的我们对一个代码拆分规则的描述。</li>
+</ul>
+<h4 id="name">- name</h4>
+<ul>
+<li>name：提取出来的公共模块将会以这个来命名，可以不配置，如果不配置，就会生成默认的文件名，大致格式是<code>index～a.js</code>这样的。</li>
+</ul>
+<h4 id="chunks">- chunks</h4>
+<ul>
+<li>chunks：指定哪些类型的chunk参与拆分，值可以是string可以是函数。如果是string，可以是这个三个值之一：<code>all</code>, <code>async</code>, <code>initial</code>，<code>all</code> 代表所有模块，<code>async</code>代表只管异步加载的, <code>initial</code>代表初始化时就能获取的模块。如果是函数，则可以根据chunk参数的name等属性进行更细致的筛选。</li>
+</ul>
+<p>再次打包：<br />
+<img src="./images/webpack优化之玩转代码分割和公共代码提取1.png" alt="webpack-optimize-build.jpg" /></p>
+<p>可以看到<code>a.js</code>,<code>index.js</code>从300多K减少到6点几K。同时增加了一个<code>common.js</code>文件，并且两个打包入口都自动添加了<code>common.js</code>这个公共模块：<br />
+<img src="./images/webpack优化之玩转代码分割和公共代码提取2.png" alt="webpack-optimize-build2.jpg" /></p>
+<p>进入dist目录，依次查看这3个js文件：</p>
+<ul>
+<li><code>a.js</code>里不包含任何模块的代码了，只有webpack生成的默认代码。</li>
+<li><code>index.js</code>里同样不包含任何模块的代码了，只有webpack生成的默认代码。</li>
+<li><code>common.js</code>里有<code>a</code>,<code>b</code>,<code>c</code>,<code>index</code>,<code>jquery</code>代码。</li>
+</ul>
+<p>发现，提是提取了，但是似乎跟我们预料的不太一样，所有的模块都跑到<code>common.js</code>里去了。</p>
+<p>这是因为我们没有告诉webpack（<code>splitChunks</code>）什么样的代码为公共代码，<code>splitChunks</code>默认任何模块都会被提取。</p>
+<h4 id="minchunks">- minChunks</h4>
+<p><code>splitChunks</code>是自带默认配置的，而缓存组默认会继承这些配置，其中有个<code>minChunks</code>属性：</p>
+<ul>
+<li>它控制的是每个模块什么时候被抽离出去：当模块被不同entry引用的次数大于等于这个配置值时，才会被抽离出去。</li>
+<li>它的默认值是1。也就是任何模块都会被抽离出去（入口模块其实也会被webpack引入一次）。</li>
+</ul>
+<p>我们上面没有配置<code>minChunks</code>，只配置了<code>name</code>和<code>chunk</code>两个属性，所以<code>minChunks</code>的默认值 <code>1</code> 生效。也难怪所有的模块都被抽离到<code>common.js</code>中了。</p>
+<p>优化一下，在缓存组里配置<code>minChunks</code>覆盖默认值：</p>
+<pre><code><code>//webpack.config.js
+
+optimization: {
+    splitChunks: {
+        cacheGroups: {
+            default: {
+                name: &#39;common&#39;,
+                chunks: &#39;initial&#39;,
+                minChunks: 2  //模块被引用2次以上的才抽离
+            }
+        }
+    }
+}</code></pre>
+<p>然后运行webpack</p>
+<p><img src="./images/webpack优化之玩转代码分割和公共代码提取3.png" alt="webpack-optimize-build3.jpg" /></p>
+<p>可以看到有2个文件的大小发生了变化：<code>common.js</code>由314K减小到311K，<code>index.js</code>由6.22K增大到7.56K。</p>
+<p>进入dist目录查看：</p>
+<ul>
+<li><code>a.js</code>里依然不包含任何模块的代码（正常，因为<code>a</code>作为模块被<code>index</code>引入了一次，又作为入口被webpack引入了一次，所以<code>a</code>是有2次引用的）。</li>
+<li><code>index.js</code>里出现了<code>b</code>和<code>index</code>模块的代码了。</li>
+<li><code>common.js</code>里只剩<code>a</code>,<code>c</code>,和<code>jquery</code>模块的代码。</li>
+</ul>
+<p>现在我们把共同引用的模块<code>a</code>, <code>c</code>, <code>jquery</code>，从<code>a</code>和<code>index</code>这两个入口模块里抽取到<code>common.js</code>里了。有点符合我们的预期了。</p>
+<h2 id="配置多个拆分规则">3. 配置多个拆分规则</h2>
+<h3 id="实现代码分离拆分第三方库">3.1 实现代码分离，拆分第三方库</h3>
+<p>接下来，我希望公共模块<code>common.js</code>中，业务代码和第三方模块jquery能够剥离开来。</p>
+<p>我们需要再添加一个拆分规则。</p>
+<pre><code><code>//webpack.config.js
+
+optimization: {
+    splitChunks: {
+        minSize: 30,  //提取出的chunk的最小大小
+        cacheGroups: {
+            default: {
+                name: &#39;common&#39;,
+                chunks: &#39;initial&#39;,
+                minChunks: 2,  //模块被引用2次以上的才抽离
+                priority: -20
+            },
+            vendors: {  //拆分第三方库（通过npm|yarn安装的库）
+                test: /[\\/]node_modules[\\/]/,
+                name: &#39;vendor&#39;,
+                chunks: &#39;initial&#39;,
+                priority: -10
+            }
+        }
+    }
+}</code></pre>
+<p>我给cacheGroups添加了一个vendors属性（属性名可以自己取，只要不跟缓存组下其他定义过的属性同名就行，否则后面的拆分规则会把前面的配置覆盖掉）。</p>
+<h4 id="minsize">- minSize</h4>
+<p>minSize设置的是生成文件的最小大小，单位是字节。如果一个模块符合之前所说的拆分规则，但是如果提取出来最后生成文件大小比minSize要小，那它仍然不会被提取出来。这个属性可以在每个缓存组属性中设置，也可以在splitChunks属性中设置，这样在每个缓存组都会继承这个配置。这里由于我的demo中文件非常小，为了演示效果，我把minSize设置为30字节，好让公共模块可以被提取出来，正常项目中不用设这么小。</p>
+<h4 id="priority">- priority</h4>
+<p>priority属性的值为数字，可以为负数。作用是当缓存组中设置有多个拆分规则，而某个模块同时符合好几个规则的时候，则需要通过优先级属性priority来决定使用哪个拆分规则。优先级高者执行。我这里给业务代码组设置的优先级为-20，给第三方库组设置的优先级为-10，这样当一个第三方库被引用超过2次的时候，就不会打包到业务模块里了。</p>
+<h4 id="test">- test</h4>
+<p>test属性用于进一步控制缓存组选择的模块，与chunks属性的作用有一点像，但是维度不一样。test的值可以是一个正则表达式，也可以是一个函数。它可以匹配模块的绝对资源路径或chunk名称，匹配chunk名称时，将选择chunk中的所有模块。我这里用了一个正则<code>/[\\/]node_modules[\\/]/</code>来匹配第三方模块的绝对路径，因为通过npm或者yarn安装的模块，都会存放在node_modules目录下。</p>
+<p>运行一下webpack：<br />
+<img src="./images/webpack优化之玩转代码分割和公共代码提取4.png" alt="webpack-optimize-build4.jpg" /></p>
+<p>可以看到新产生了一个叫<code>vendor.js</code>的文件（name属性的值），同时<code>common.js</code>文件体积由原来的311k减少到了861bytes！</p>
+<p>进入dist目录，检查js文件：</p>
+<ul>
+<li><code>a.js</code>里不包含任何模块代码。</li>
+<li><code>common.js</code>只包含<code>a</code>和<code>c</code>模块的代码。</li>
+<li><code>index.js</code>只包含<code>b</code>和<code>index</code>模块的代码。</li>
+<li><code>vendor.js</code>只包含<code>jquery</code>模块的代码。</li>
+</ul>
+<p>现在，我们在上一步的基础上，成功从<code>common.js</code>里把第三方库<code>jquery</code>抽离出来放到了<code>vendor.js</code>里。</p>
+<h3 id="拆分指定文件">3.2 拆分指定文件</h3>
+<p>如果我们还想把项目中的某一些文件单独拎出来打包（比如工程本地开发的组件库），可以继续添加拆分规则。比如我的src下有个<code>locallib.js</code>文件要单独打包，假设<code>a.js</code>中引入了它。</p>
+<pre><code><code>//a.js
+require(&#39;./c.js&#39;);
+require(&#39;./locallib.js&#39;);  //引入自己本地的库
+const $ = require(&#39;jquery&#39;)
+function fn() {
+    console.log(&#39;a-------&#39;);
+}
+module.exports = fn();</code></pre>
+<p>可以这么配置：</p>
+<pre><code><code>//webpack.config.js
+
+optimization: {
+    splitChunks: {
+        minSize: 30,  //提取出的chunk的最小大小
+        cacheGroups: {
+            default: {
+                name: &#39;common&#39;,
+                chunks: &#39;initial&#39;,
+                minChunks: 2,  //模块被引用2次以上的才抽离
+                priority: -20
+            },
+            vendors: {  //拆分第三方库（通过npm|yarn安装的库）
+                test: /[\\/]node_modules[\\/]/,
+                name: &#39;vendor&#39;,
+                chunks: &#39;initial&#39;,
+                priority: -10
+            },
+            locallib: {  //拆分指定文件
+                test: /(src\/locallib\.js)$/,
+                name: &#39;locallib&#39;,
+                chunks: &#39;initial&#39;,
+                priority: -9
+            }
+        }
+    }
+}</code></pre>
+<p>我在缓存组下又新增了一个拆分规则，通过test正则指定我就要单独打包<code>src/locallib.js</code>文件，并且把优先级设置为-9，这样当它被多次引用时，不会进入其他拆分规则组，因为另外两个规则的优先级都比它要低。</p>
+<p>运行webpack打包后：<br />
+<img src="./images/webpack优化之玩转代码分割和公共代码提取5.png" alt="webpack-optimize-build5.jpg" /></p>
+<p>可以看到新产生了一个<code>locallib.js</code>文件。进入dist目录查看：</p>
+<ul>
+<li><code>a.js</code>里不包含任何模块代码。</li>
+<li><code>common.js</code>只包含<code>a</code>和<code>c</code>模块的代码。</li>
+<li><code>index.js</code>只包含<code>b</code>和<code>index</code>模块的代码。</li>
+<li><code>vendor.js</code>只包含<code>jquery</code>模块的代码。</li>
+<li><code>locallib.js</code>里只包含<code>locallib</code>模块的代码。</li>
+</ul>
+<p>现在我们又在上一步的基础上独立打包了一个指定的模块<code>locallib.js</code>。</p>
+<p>至此，我们就成功实现了抽离公共模块、业务代码和第三方代码剥离、独立打包指定模块。</p>
+<p>对比一下，优化前，打包出来js一共有633KB：</p>
+<p><img src="./images/webpack优化之玩转代码分割和公共代码提取6.png" alt="webpack-before-optimize.png" /></p>
+<p>优化后，打包出来js一共不到330KB：</p>
+<p><img src="./images/webpack优化之玩转代码分割和公共代码提取7.png" alt="webpack-after-optimize.png" /></p>
+<p>优化打包后的文件分类清晰，体积比优化前缩小了几乎50%，有点小完美是不是！击掌！这还只是我举的一个简单例子，在实际多页应用中，优化力度说不定还不止这么多。</p>
+<h2 id="小结">小结</h2>
+<p>webpack很强大，以上只是冰山一角，但是只要掌握了上述<code>optimization.splitChunks</code>的核心配置，我们就可以几乎随心所欲地按照自己的想法来拆分优化代码控制打包文件了，是不是很酷？玩转代码拆分，你也可以！</p>
+<blockquote>
+<p>如果觉得这些依然不能满足你的需求，还想更精(bian)细(tai)地定制打包规则，可以到<a href="https://webpack.js.org/plugins/split-chunks-plugin/#optimizationsplitchunks">webpack官网</a>查看<code>optimization.splitChunks</code>的更多配置。</p>
+</blockquote>
+<p>欢迎交流～</p>
+<p>本文的完整webpack配置和demo源码可以在这里获取：<br />
+<a href="https://github.com/yc111/webpack-optimize-demo" class="uri">https://github.com/yc111/webpack-optimize-demo</a></p>
+<p>--</p>
+<p>欢迎转载，转载请注明出处：<br />
+<a href="https://champyin.com/2019/11/15/webpack%E4%BC%98%E5%8C%96%E4%B9%8B%E7%8E%A9%E8%BD%AC%E4%BB%A3%E7%A0%81%E5%88%86%E5%89%B2%E5%92%8C%E5%85%AC%E5%85%B1%E4%BB%A3%E7%A0%81%E6%8F%90%E5%8F%96/">https://champyin.com/2019/11/15/webpack%E4%BC%98%E5%8C%96%E4%B9%8B%E7%8E%A9%E8%BD%AC%E4%BB%A3%E7%A0%81%E5%88%86%E5%89%B2%E5%92%8C%E5%85%AC%E5%85%B1%E4%BB%A3%E7%A0%81%E6%8F%90%E5%8F%96/</a></p>
+<p>本文同步发表于：<br />
+<a href="https://juejin.im/post/5dd4d73de51d4541700603e3">webpack优化之玩转代码分割和公共代码提取 | 掘金</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

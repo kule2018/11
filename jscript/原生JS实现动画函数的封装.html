@@ -1,0 +1,88 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修原生JS实现动画函数的封装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>原生JS实现动画函数的封装</center></div><div class='banquan'>原文出处:本文由博客园博主#SY提供。<br/>
+原文连接:https://www.cnblogs.com/sunyan-blog/p/12073937.html</div><br>
+    <p><span style="font-family: 'Microsoft YaHei'; font-size: 15px;">封装了一个JS方法，支持元素的基本动画：宽、高、透明度...等，也支持链式动画和同时运动。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 15px;">获取元素的属性的函数并进行了兼容性处理：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> getStyle(obj, attr) {
+</span><span style="color: #008080;">2</span>         <span style="color: #0000ff;">if</span>(obj.currentStyle){   <span style="color: #008000;">//</span><span style="color: #008000;">IE浏览器</span>
+<span style="color: #008080;">3</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> obj.currentStyle[attr];
+</span><span style="color: #008080;">4</span>         }<span style="color: #0000ff;">else</span>{    <span style="color: #008000;">//</span><span style="color: #008000;">chrome、firefox等浏览器</span>
+<span style="color: #008080;">5</span>             <span style="color: #0000ff;">return</span> getComputedStyle(obj,<span style="color: #0000ff;">null</span><span style="color: #000000;">)[attr];
+</span><span style="color: #008080;">6</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">7</span>     }</pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 15px;">动画函数：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">var</span> timer = <span style="color: #0000ff;">null</span>;  <span style="color: #008000;">//</span><span style="color: #008000;"> 声明一个timer来存储定时器</span>
+<span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> animate(obj, json, callback) {
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        clearInterval(obj.timer);
+</span><span style="color: #008080;"> 4</span>         obj.timer = setInterval(<span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;"> 5</span>             <span style="color: #008000;">/*</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #008000;">                * 当我们改变多个属性时，如果其中一个属性已经达到目标值，就会清除定时器，就会导致其他没有达到目标值的属性也会停止
+</span><span style="color: #008080;"> 7</span> <span style="color: #008000;">                * 为了解决这个问题，我们声明一个节流阀flag，让它为true
+</span><span style="color: #008080;"> 8</span> <span style="color: #008000;">                * 判断是否还有没达到目标值的属性，如果还有，就让flag为false（关闭节流阀），让定时器继续执行
+</span><span style="color: #008080;"> 9</span> <span style="color: #008000;">                * 当所有属性都达到了目标值时，才执行清除定时器那一步
+</span><span style="color: #008080;">10</span>                 <span style="color: #008000;">*/</span>
+<span style="color: #008080;">11</span>             <span style="color: #0000ff;">var</span> flag = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> attr <span style="color: #0000ff;">in</span> json) {  <span style="color: #008000;">//</span><span style="color: #008000;"> for...in...遍历对象</span>
+<span style="color: #008080;">13</span>                 <span style="color: #0000ff;">var</span> icur = 0;  <span style="color: #008000;">//</span><span style="color: #008000;"> 存储获取过来的属性值</span>
+<span style="color: #008080;">14</span>                 <span style="color: #0000ff;">if</span>(attr == 'opacity') {  <span style="color: #008000;">//</span><span style="color: #008000;"> 判断获取过来的属性是否为opacity</span>
+<span style="color: #008080;">15</span>                     icur = Math.round(parseFloat(getStyle(obj, attr)) * 100); <span style="color: #008000;">//</span><span style="color: #008000;"> float会有小误差，所以需要四舍五入一下</span>
+<span style="color: #008080;">16</span>                 } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">17</span>                     icur = parseInt(getStyle(obj, attr));  <span style="color: #008000;">//</span><span style="color: #008000;"> 获取过来的值可能带单位，所以需要用到parseInt()</span>
+<span style="color: #008080;">18</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">19</span>                 <span style="color: #0000ff;">var</span> speed = (json[attr] - icur) / 10;  <span style="color: #008000;">//</span><span style="color: #008000;"> 速度 逐渐变慢（也可以设为固定值实现匀速运动）</span>
+<span style="color: #008080;">20</span>                 speed = speed &gt; 0 ? Math.ceil(speed) : Math.floor(speed); <span style="color: #008000;">//</span><span style="color: #008000;"> speed并不总是整数，会导致和目标值不相等，所以需要对speed进行取整，大于0向上取整，小于0向下取整</span>
+<span style="color: #008080;">21</span>                 <span style="color: #0000ff;">if</span>(icur != json[attr]) {  <span style="color: #008000;">//</span><span style="color: #008000;"> 判断是否还有属性没有达到目标值</span>
+<span style="color: #008080;">22</span>                     flag = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">24</span>                 <span style="color: #0000ff;">if</span>(attr == 'opacity') {  <span style="color: #008000;">//</span><span style="color: #008000;"> opacity是没有单位的，所以在这里需要判断一下</span>
+<span style="color: #008080;">25</span>                     obj.style.filter = 'alpha(opacity = '+ (icur + speed) +')'<span style="color: #000000;">;
+</span><span style="color: #008080;">26</span>                     obj.style.opacity = (icur + speed) / 100;  <span style="color: #008000;">//</span><span style="color: #008000;"> opacity别忘了除以100</span>
+<span style="color: #008080;">27</span>                 } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">28</span>                     obj.style[attr] = icur + speed + 'px';  <span style="color: #008000;">//</span><span style="color: #008000;"> 原来的值加上速度赋值给属性</span>
+<span style="color: #008080;">29</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">31</span>             <span style="color: #0000ff;">if</span>(flag) { <span style="color: #008000;">//</span><span style="color: #008000;"> 当所有属性都达到目标值，即flag为true时，再停止定时器</span>
+<span style="color: #008080;">32</span> <span style="color: #000000;">                clearInterval(obj.timer);
+</span><span style="color: #008080;">33</span>                 callback &amp;&amp; callback();  <span style="color: #008000;">//</span><span style="color: #008000;"> 判断是否有回调函数，有的话就执行</span>
+<span style="color: #008080;">34</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">35</span>         }, 25<span style="color: #000000;">)
+</span><span style="color: #008080;">36</span>     }</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 15px;">接下来我们来测试一下：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>     <span style="color: #0000ff;">var</span> box = document.querySelector('.box'<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span>     box.addEventListener("mouseover", <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">3</span>         animate(<span style="color: #0000ff;">this</span>, {width: 300, height: 200, opacity: 100}, <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">4</span>             animate(box, {width: 200, height: 100, opacity: 30<span style="color: #000000;">});
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">6</span>     });</pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 15px;">结果如下：</span></p>
+<p><img src="./images/原生JS实现动画函数的封装0.png" alt="" width="582" height="281" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

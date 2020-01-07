@@ -1,0 +1,75 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js安全类型检测' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js安全类型检测</center></div><div class='banquan'>原文出处:本文由博客园博主斜杠人生提供。<br/>
+原文连接:https://www.cnblogs.com/yunnex-xw/p/11281657.html</div><br>
+    <p>背景： 都知道js内置的类型检测，大多数情况下是不太可靠的，例如：&nbsp; typeof&nbsp; 、&nbsp;instanceof&nbsp;</p>
+<p>&nbsp;</p>
+<p>typeof 返回一个未经计算的操作数的类型， 可以发现所有对象都是返回object&nbsp; （null是空指针即空对象）</p>
+<p>&nbsp;</p>
+<p><img src="./images/js安全类型检测0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>instanceof&nbsp;:&nbsp; 用于测试构造函数的prototype属性是否出现在对象的原型链中的任何位置 （简单理解： 左侧检测的对象是否可以沿着原型链找到与右侧构造函数原型属性相等位置）&nbsp; 后面会附上模拟方法。</p>
+<p>缺点：</p>
+<p>1、instanceof&nbsp;与全局作用域有关系，<code>[] instanceof window.frames[0].Array</code>&nbsp;会返回<code>false</code>，因为&nbsp;<code>Array.prototype !== window.frames[0].Array.prototype</code></p>
+<p>&nbsp;</p>
+<p>2、Object派生出来的子类都是属于Obejct&nbsp; &nbsp; []&nbsp;instanceof Array&nbsp; []&nbsp;instanceof Object&nbsp; 都是true</p>
+<p>&nbsp;</p>
+<p>instanceof 模拟实现：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>  <span style="color: #0000ff;">function</span><span style="color: #000000;"> instanceOf(left, right) {
+</span><span style="color: #008080;"> 2</span>       let leftValue =<span style="color: #000000;"> left.__proto__
+</span><span style="color: #008080;"> 3</span>       let rightValue =<span style="color: #000000;"> right.prototype
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">       console.log(leftValue,rightValue)
+</span><span style="color: #008080;"> 5</span>        <span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 6</span>          <span style="color: #0000ff;">if</span> (leftValue === <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 7</span>           <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span>
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">         }
+</span><span style="color: #008080;"> 9</span>          <span style="color: #0000ff;">if</span> (leftValue ===<span style="color: #000000;"> rightValue) {
+</span><span style="color: #008080;">10</span>            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span>
+<span style="color: #008080;">11</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">12</span>         leftValue =<span style="color: #000000;"> leftValue.__proto__
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">     }
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>      let a =<span style="color: #000000;"> {};
+</span><span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span>      console.log(instanceOf(a, Array))</pre>
+</div>
+<p>&nbsp;</p>
+<p>安全类型检测方法：&nbsp;</p>
+<p>背景： 任何值上调用 Object <span style="color: #ff0000;">原生</span>的 toString()方法，都会返回一个[object NativeConstructorName]格式的字符串。</p>
+<p>NativeConstructorName&nbsp; ===&gt; 原生构造函数名 (即是它爸的名字，并非爷爷（Object）的名字)</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> isArray(value){ 
+ </span><span style="color: #0000ff;">return</span> Object.prototype.toString.call(value) == "[object Array]"<span style="color: #000000;">; 
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> isFunction(value){ 
+ </span><span style="color: #0000ff;">return</span> Object.prototype.toString.call(value) == "[object Function]"<span style="color: #000000;">; 
+} 
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> isRegExp(value){ 
+ </span><span style="color: #0000ff;">return</span> Object.prototype.toString.call(value) == "[object RegExp]"<span style="color: #000000;">; 
+}</span></pre>
+</div>
+<p>为啥直接用实例对象的toString方法不可以呢？ 这是因为在其他构造函数下，将toString方法进行了重写。 例如： [1,2].toString()&nbsp; ===&gt;&nbsp; "1,2"</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

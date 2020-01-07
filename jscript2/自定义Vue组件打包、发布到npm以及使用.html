@@ -1,0 +1,107 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修自定义Vue组件打包、发布到npm以及使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>自定义Vue组件打包、发布到npm以及使用</center></div><div class='banquan'>原文出处:本文由博客园博主灭灭提供。<br/>
+原文连接:https://www.cnblogs.com/eightFlying/p/publishToNpm.html</div><br>
+    <blockquote>
+<p><span style="color: #c0c0c0;">本文将帮助：将自己写的Vue组件打包到npm进行代码托管，以及正常发布之后如何使用自己的组件。</span></p>
+</blockquote>
+<p><span style="color: #c0c0c0;">　　本文讲述的仅仅是最基础的实现，其他复杂的操作需要非常熟悉webpack的相关知识，作者将继续学习。</span></p>
+<hr />
+<p><span style="color: #c0c0c0;">　　先附上大佬的文献：<a href="https://blog.csdn.net/qq_40513881/article/details/82494958"><span style="color: #c0c0c0;">https://blog.csdn.net/qq_40513881/article/details/82494958</span></a></span></p>
+<p><span style="color: #c0c0c0;">　　按照大佬文中写的一步步操作，够细心的话基本可以一步到位。下面总结一下发布步骤：</span></p>
+<p><span style="color: #c0c0c0;">　　1. 利用Vue的脚手架新建一个简易版的Vue项目my-project：</span></p>
+<p><span style="color: #c0c0c0;">　　vue <span class="hljs-keyword">init webpack-simple my-project -&gt; cd&nbsp;my-project -&gt; npm i -&gt; npm run dev</span></span></p>
+<p><span class="hljs-keyword" style="color: #c0c0c0;">　　2. 编写组件：</span></p>
+<p><span class="hljs-keyword" style="color: #c0c0c0;">　　src下新建myPlugin文件夹用于存放所以开发的组件 -&gt; 为每一个组件创建一个文件夹，其中存放一个vue组件文件和一个index.js配置文件 -&gt; 在myPlugin下的最外层创建一个入口配置文件 -&gt;<span style="color: #ff0000;"> 为每个人vue组件文件中加上一个name属性</span></span></p>
+<p><span class="hljs-keyword" style="color: #c0c0c0;">　　3. 测试组件：</span></p>
+<p><span class="hljs-keyword" style="color: #c0c0c0;">　　在app.vue中测试一下自己的组件可不可以用</span></p>
+<p><span class="hljs-keyword" style="color: #c0c0c0;">　　4. 编写配置文件</span></p>
+<p><span class="hljs-keyword" style="color: #c0c0c0;">　　为刚刚加入的每个组件文件夹中的index.js放入如下代码：（其中ldcPagination为组件名）</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #c0c0c0;">import ldcPagination from './index.vue';
+ldcPagination.install = Vue =&gt; Vue.component(ldcPagination.name, ldcPagination);//.name就是开始说的vue文件暴露出来的name名，ldcPagination整个组件
+export default ldcPagination;</span></pre>
+</div>
+<p><span style="color: #c0c0c0;">　　为myPlugin下index.js放入如下代码：（其中ldcPagination为组件名，多个组件直接在components数组中加入并在最后输出出来就行）（<span style="color: #ff0000;">引入的公共样式文件等都可以放这个文件中</span>）</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #c0c0c0;">import ldcPagination from './Pagination/index.js';
+const components = [
+    ldcPagination
+]
+const install = function(Vue, opts = {}) {
+    components.forEach(component =&gt; {
+        Vue.component(component.name, component);
+    });
+}
+if (typeof window !== 'undefined' &amp;&amp; window.Vue) {
+  install(window.Vue);
+}
+ 
+export default {
+    install,
+    ldcPagination
+}</span></pre>
+</div>
+<p><span style="color: #c0c0c0;">　　5. 改写webpack.config.js配置文件</span></p>
+<p><span style="color: #c0c0c0;">　　将其中的输入输出换成如下代码：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #c0c0c0;">var path = require('path')
+var webpack = require('webpack')
+const NODE_ENV = process.env.NODE_ENV;
+module.exports = {
+//entry: './src/main.js',
+//output: {
+//      path: path.resolve(__dirname, './dist'),
+//      publicPath: '/dist/',
+//      filename: 'build.js'
+//    },
+     entry: NODE_ENV == 'development' ? './src/main.js' : './src/myPlugin/index.js',
+     output: {
+         path: path.resolve(__dirname, './dist'),
+         publicPath: '/dist/',//路径
+         filename: 'ldc-ui.js',//打包之后的名称
+         library: 'ldc-ui', // 指定的就是你使用require时的模块名
+         libraryTarget: 'umd', // 指定输出格式
+         umdNamedDefine: true // 会对 UMD 的构建过程中的 AMD 模块进行命名。否则就使用匿名的 define
+     },
+...
+}</span></pre>
+</div>
+<p><span style="color: #c0c0c0;">　　6. 发布前准备</span></p>
+<p><span style="color: #c0c0c0;">　　<span style="color: #ff0000;">改写package.json中的private为false</span>，加入<span class="hljs-string">"main": <span class="hljs-string">"dist/ldc-ui.js", 其他的自定义 -&gt; 新建.npmignore文件忽略不需要上传的文件如</span></span>.*&nbsp;*.md&nbsp;*.yml&nbsp;build/&nbsp;node_modules/&nbsp;src/&nbsp;<span class="hljs-built_in">test/</span></span></p>
+<p><span class="hljs-built_in" style="color: #c0c0c0;">　　7. 发布</span></p>
+<p><span class="hljs-built_in" style="color: #c0c0c0;">　　npm run build 打包 -&gt; 注册npm账号 -&gt; npm login 登录 -&gt; npm publish 发布</span></p>
+<p><span style="color: #c0c0c0;">&nbsp;</span></p>
+<blockquote>
+<p><span style="background-color: initial; color: #c0c0c0;">　　<span style="color: #ff0000;">可能出现问题</span>：</span></p>
+<p><span style="background-color: initial; color: #c0c0c0;">1. 登录源错误，&nbsp;npm config get registry 可查看当前登录源，npm config set registry=http://registry.npmjs.org 可切换到正确的登录源</span></p>
+<p><span style="background-color: initial; color: #c0c0c0;">2. 版本号不能重复</span></p>
+<p><span style="background-color: initial; color: #c0c0c0;">3. 图片资源打包后无法使用，所以自己的组件中不要使用</span></p>
+<p><span style="color: #c0c0c0;"><span style="background-color: initial;">　　</span><span style="color: #ff0000;">使用组件方式</span>：</span></p>
+<p><span style="color: #c0c0c0;">1. npm i xxx -D</span></p>
+<p><span style="color: #c0c0c0;">2. import&nbsp;XXX from&nbsp;'xxx'</span></p>
+<p><span style="color: #c0c0c0;">3. const { A, B } = XXX</span></p>
+<p><span style="color: #c0c0c0;">4. 在Vue中注册 components: { A, B }</span></p>
+</blockquote>
+<p class="hljs-ln-line"><span style="color: #c0c0c0;">&nbsp;</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

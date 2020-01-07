@@ -1,0 +1,152 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用d3.v5实现折线图与面积图' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用d3.v5实现折线图与面积图</center></div><div class='banquan'>原文出处:本文由博客园博主feiquan提供。<br/>
+原文连接:https://www.cnblogs.com/feiquan/p/10759393.html</div><br>
+    <p>d3最新是V5版的，比起V2的API变动了不少，写下我实现过程</p>
+<p><span style="font-size: 18px;"><strong>效果图：</strong></span></p>
+<p><strong>面积图：</strong></p>
+<p><img src="./images/使用d3.v5实现折线图与面积图0.png" alt="" /></p>
+<p><strong>折线图：</strong></p>
+<p><img src="./images/使用d3.v5实现折线图与面积图1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>目录结构：</strong></span></p>
+<p>&nbsp;<img src="./images/使用d3.v5实现折线图与面积图2.png" alt="" /></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('acec210f-7dc4-4101-93a5-7af8cdd9f913')"><img id="code_img_closed_acec210f-7dc4-4101-93a5-7af8cdd9f913" class="code_img_closed" src="./images/使用d3.v5实现折线图与面积图3.png" alt="" /><img id="code_img_opened_acec210f-7dc4-4101-93a5-7af8cdd9f913" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('acec210f-7dc4-4101-93a5-7af8cdd9f913',event)" src="./images/使用d3.v5实现折线图与面积图4.png" alt="" />
+<div id="cnblogs_code_open_acec210f-7dc4-4101-93a5-7af8cdd9f913" class="cnblogs_code_hide">
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;link href="css/style.css" media="screen" rel="stylesheet" type="text/css"/&gt;
+    &lt;title&gt;Linechart1&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div id="container"&gt;&lt;/div&gt;
+
+    &lt;script src="https://d3js.org/d3.v5.min.js"&gt;&lt;/script&gt;
+    &lt;script src="js/index.js"&gt;&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">index.html</span></div>
+<p>&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e9d37d06-9110-4a51-a38b-d791ea87becc')"><img id="code_img_closed_e9d37d06-9110-4a51-a38b-d791ea87becc" class="code_img_closed" src="./images/使用d3.v5实现折线图与面积图3.png" alt="" /><img id="code_img_opened_e9d37d06-9110-4a51-a38b-d791ea87becc" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e9d37d06-9110-4a51-a38b-d791ea87becc',event)" src="./images/使用d3.v5实现折线图与面积图4.png" alt="" />
+<div id="cnblogs_code_open_e9d37d06-9110-4a51-a38b-d791ea87becc" class="cnblogs_code_hide">
+<pre><code><span style="color: #000000;">#container{
+    background: #ddd;
+    width: 500px;
+    height: 250px;
+}
+
+path{
+    fill: none;
+    stroke: steelblue;
+    stroke</span>-width: 2<span style="color: #000000;">;
+}
+
+.domain ,.tick line{
+    stroke:gray;
+    stroke</span>-width: 1<span style="color: #000000;">;
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">style.css</span></div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> width=500,height=250<span style="color: #000000;">,
+    margin</span>={left:50,top:30,right:20,bottom:20<span style="color: #000000;">},
+    g_width</span>=width-margin.left-<span style="color: #000000;">margin.right,
+    g_height</span>=height-margin.top-<span style="color: #000000;">margin.bottom;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">svg</span>
+d3.select("#container").append("svg"<span style="color: #000000;">)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">width,height</span>
+    .attr("width"<span style="color: #000000;">,width)
+    .attr(</span>"height"<span style="color: #000000;">,height)
+
+</span><span style="color: #0000ff;">var</span> g=d3.select("svg"<span style="color: #000000;">)
+    .append(</span>"g"<span style="color: #000000;">)
+    .attr(</span>"transform","translate("+margin.left+","+margin.top+")"<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">var</span> data=[1,8,5,6,8,9,3,5,2<span style="color: #000000;">]
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Scale</span>
+<span style="color: #0000ff;">var</span> scale_x=<span style="color: #000000;">d3.scaleLinear()
+    .domain([</span>0,data.length-1<span style="color: #000000;">])
+    .range([</span>0<span style="color: #000000;">,g_width]);
+</span><span style="color: #0000ff;">var</span> scale_y=<span style="color: #000000;">d3.scaleLinear()
+    .domain([</span>0<span style="color: #000000;">,d3.max(data)])
+    .range([g_height,</span>0<span style="color: #000000;">]);
+
+</span><span style="color: #339966;">//画线函数
+var line_generator= d3.line()
+    .x(function (d,i) {
+        return scale_x(i);
+    })
+    .y(function (d) {
+        return scale_y(d);
+    })
+    .curve(d3.curveMonotoneX)
+    // .curve(d3.curveMonotoneX) // apply smoothing to the line
+
+//画路径
+g.append("path")
+    .attr("d",line_generator(data)) //d="M1,0L20,40.....  d-path data</span>
+
+<span style="color: #ff0000;">// //画面积函数
+// var area_generator= d3.area()
+//     .x(function (d,i) {
+//         return scale_x(i);
+//     })
+//     .y0(g_height)
+//     .y1(function (d) {
+//         return scale_y(d);
+//     })
+//     .curve(d3.curveMonotoneX)
+//
+// //画面积
+// g.append("path")
+//     .attr("d",area_generator(data)) //d="M1,0L20,40.....  d-path data
+//     .style("fill","steelblue")</span>
+
+
+<span style="color: #008000;">//</span><span style="color: #008000;">X轴</span>
+g.append("g"<span style="color: #000000;">)
+    .call(d3.axisBottom(scale_x))
+    .attr(</span>"transform","translate(0,"+g_height+")"<span style="color: #000000;">)
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">Y轴</span>
+g.append("g"<span style="color: #000000;">)
+    .call(d3.axisLeft(scale_y))
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">y轴文字</span>
+g.append("text"<span style="color: #000000;">)
+    .text(</span>"Price($)"<span style="color: #000000;">)
+    .attr(</span>"transform","rotate(-90)"<span style="color: #000000;">)
+    .attr(</span>"dy","1em"<span style="color: #000000;">)
+    .attr(</span>"text-anchor","end")</pre>
+</div>
+<p>其中，使用红色部分，注释绿色部分是面积图</p>
+<p>　　使用绿色部分，注释红色部分是折线图</p>
+<p>　　data数组是数据来源。</p>
+<p>&nbsp;</p>
+<p>参考教程：https://www.imooc.com/learn/103</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,134 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修写一个色值深浅排序方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>写一个色值深浅排序方法</center></div><div class='banquan'>原文出处:本文由博客园博主xy2370提供。<br/>
+原文连接:https://www.cnblogs.com/xya-b/p/11684271.html</div><br>
+    <p>核心：var grayLevel = r<em>0.299 + g</em>0.587 + b*0.114; 根据当前颜色的灰度判断颜色深浅。</p>
+<h5 id="步骤一-转换色值为rgb格式">步骤一： 转换色值为rgb格式</h5>
+<ol>
+<li><p><strong>hex2rgb: hex格式是16进制,转换为rgb其实就是16进制转换为10进制，较为简单。</strong></p>
+<pre><code><code>    function hex2rgb(color) {
+      color = color.slice(1);
+      var rgb = &quot;&quot;;
+      for(var i = 0; i &lt; color.length; i += 2 ) {
+        var end = i+2
+        rgb += parseInt(color.slice(i, end), 16).toString()+&quot;,&quot;;
+      }
+      rgb = rgb.slice(0, rgb.length-1)
+      rgb = &quot;rgb(&quot;+rgb+&quot;)&quot;
+      return rgb;
+    }</code></pre></li>
+<li><p><strong>hel2rgb: hel格式似乎前端不怎么用的样子， 格式 ：hsl(208, 0.36, 0.39)</strong><br />
+h: hue(色相) 在带有色相角度的值域里[0, 360]中对应的色相角度。<br />
+s: Saturation (饱和度)<br />
+l: Lightness (亮度)</p>
+基本步骤：
+<ol>
+<li>转换h,s,light为[0-1]中的值。</li>
+<li>if (s == 0) ==&gt; r,g,b = light; 表明此时颜色是非彩色，或灰色的；</li>
+<li>否则， 根据light判断, temp2 = light &lt; 0.5 ? light * (1ight + s) : light + s - light * s;</li>
+<li>temp1 = 2 * light - temp2;</li>
+<li>获取r,g, b<br />
+r = h + 1/3;<br />
+g = h;<br />
+b = h - 1/3;</li>
+<li>对rgb进行判断；</li>
+</ol>
+<pre><code><code> function getMid(str) {
+   var left = str.indexOf(&#39;(&#39;)+1;
+   var right = str.indexOf(&#39;)&#39;);
+   return str.slice(left, right);
+ }
+ function hel2rgb(color) {
+   var arr = getMid(color).split(&#39;,&#39;);
+   var r, g, b;
+   var h = toNum((arr[0] / 360)+&#39;&#39; ), s = toNum(arr[1]), light = toNum(arr[2]); // h(色相) s(饱和度) l(亮度)
+   var temp2, temp1;
+   if (s == 0) {
+     r = g = b = light;
+   } else {
+     temp2 = light &lt; 0.5 ? light * (1 + s) : light + s - light * s;
+     temp1 = 2 * light - temp2;
+
+     var h2rgb = function(p, q, t) {
+       if (t &lt; 0) t += 1;
+       if (t &gt; 1) t -= 1;
+       if (t &lt; 1/6) return p + (q - p) * 6 * t;
+       if (t &lt; 1/2) return q;
+       if (t &lt; 2/3) return p + (q - p) * (2/3 - t) * 6;
+       return p
+     }
+     r = h2rgb(temp1, temp2, h + 1/3);
+     g = h2rgb(temp1, temp2, h);
+     b = h2rgb(temp1, temp2, h - 1/3);
+   }
+   return  &quot;rgb(&quot; + Math.round(r * 255) + &#39;,&#39; + Math.round(g * 255) + &#39;,&#39; + Math.round(b * 255)+&#39;)&#39;;
+ }
+ function toNum(str) {
+   var rex = /[0-9]+/g;
+   if(str.indexOf(&#39;%&#39;) &gt; 0) {
+       return (str.match(rex)[0]) / 100;
+   } else {
+     if(typeof(+str) === &quot;number&quot;) {
+       return +str;
+     }
+   }
+ }</code></pre></li>
+</ol>
+<h5 id="步骤二-获取颜色灰色值">步骤二： 获取颜色灰色值：</h5>
+<p>之前已经将颜色转换为rgb,通过核心公式获取颜色灰度值，从而进行判断。</p>
+<pre><code><code>  function isRgb(color) {
+    return /^rgb/.test(color)
+  }
+  function isHex(color) {
+    return /(^#[0-9A-F]{6}$)|(^#[0-9A-F]{3}$)/i.test(color)
+  }
+  function isHsl(color) {
+    return /^hsl/.test(color);
+  }
+  function grayLevel (color) {
+    color = isRgb(color) 
+      ? color 
+      : isHex(color) 
+        ? hextoRgb(color)
+        : hslToRgb(color);
+    var arr = getMid(color).split(&#39;,&#39;)
+    var r = arr[0], g = arr[1], b = arr[2];
+    return r*0.299 + g*0.587 + b*0.114
+  }</code></pre>
+<h5 id="步骤三-排序">步骤三： 排序</h5>
+<pre><code><code>  function sortColor(colors) {
+    return  colors.sort(function(a, b){
+      return grayLevel(b) - grayLevel(a)
+    })
+  }
+  
+  //调用
+  var color = [&#39;rgb(255,153,153)&#39;, &#39;rgb(246,162,144)&#39;, &#39;rgb(236,172,134)&#39;, &#39;rgb(227,181,125)&#39;, &#39;rgb(218,190,116)&#39;, &#39;rgb(209,199,107)&#39;, &#39;rgb(199,209,97)&#39;, &#39;rgb(190,218,88)&#39;, &#39;rgb(181,227,79)&#39;, &#39;rgb(172,236,70)&#39;, &#39;rgb(162,246,60)&#39;]
+  var result = sortColor(color)
+  var div = &#39;&#39;
+  for(; i &lt; color.length ; i++) {
+   div += &#39;&lt;div style=&quot;width: 100px; height: 50px; background: &#39;+result[i]+&#39;&quot;&gt;&#39;+result[i]+&#39;&lt;/div&gt;&#39;
+  }
+  $(&#39;.main&#39;).append(div);</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

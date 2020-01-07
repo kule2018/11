@@ -1,0 +1,98 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修redux源码学习笔记 - combineReducers' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>redux源码学习笔记 - combineReducers</center></div><div class='banquan'>原文出处:本文由博客园博主Shapeying提供。<br/>
+原文连接:https://www.cnblogs.com/shapeY/p/10746371.html</div><br>
+    <p><a href="https://www.cnblogs.com/shapeY/p/10728585.html">上一篇</a>有了解到，reducer函数的两个为：当前state和此次dispatch的action。</p>
+<p>state的结构是<code>JavaScript对象</code>，每个key都可以代表着不同意义的数据。比如说</p>
+<pre><code><code>    {
+        lists:object,
+        type:string
+    }</code></pre>
+<p>lists管理列表数据，type管理选中的类型。此时就需要考虑将state分为不同的子树，每次子树数据对应一个reducer子函数，单独管理对应的state。但是<code>createStore(reducer,preloadedState)</code>函数接收的reducer必须为单一个函数。这个时候就需要用到<code>combinReducers函数</code>，它的作用是把<strong>多个reducer函数合并成一个最终的reducer函数</strong>。</p>
+<h2 id="combinereducersreducers">combineReducers(reducers)</h2>
+<p>看一下<code>combineReducers函数</code>实现的核心代码，以下代码删掉了异常提示和处理部分，只保留了关键部分。</p>
+<pre><code><code>export default function combineReducers(reducers) {
+  //过滤掉参数中，value不是function的
+  const reducerKeys = Object.keys(reducers)
+  const finalReducers = {}
+  for (let i = 0; i &lt; reducerKeys.length; i++) {
+    const key = reducerKeys[i]
+
+    if (typeof reducers[key] === &#39;function&#39;) {
+      finalReducers[key] = reducers[key]
+    }
+  }
+  // 处理后的reducers对象的所有key值
+  const finalReducerKeys = Object.keys(finalReducers)
+
+  // 返回合并后的reducer函数，她接收的参数和普通的reducer函数一致。
+  // 这里的state是完整的数据结构，而单一的reducer函数接收的只是它管理的那个子树
+  return function combination(state = {}, action) {
+
+    let hasChanged = false
+    const nextState = {}
+    // 有action分派时，对所有的子reducer都触发
+    // 因为action有type字段，所以还是会触发到对应的之reducer函数
+    for (let i = 0; i &lt; finalReducerKeys.length; i++) {
+      const key = finalReducerKeys[i]
+      const reducer = finalReducers[key]
+      // 对应的子树数据
+      const previousStateForKey = state[key]
+      // 调用对应的reduer函数，返回子树数据的更新结果
+      const nextStateForKey = reducer(previousStateForKey, action)
+      
+      // 子树数据同步到state中
+      nextState[key] = nextStateForKey
+      // 标记数据是否发生变化，只要有一个子树改变了就算数据已改变
+      hasChanged = hasChanged || nextStateForKey !== previousStateForKey
+    }
+    // 返回state数据
+    return hasChanged ? nextState : state
+  }
+}</code></pre>
+<p><code>combineReducers</code>接收的reducers是<strong>value为子reducer函数的对象</strong>。对象的<strong>key值可以和函数名一致，也可以不同</strong>。返回的state的key值和reducers对象的key值是保持一致的。</p>
+<p>所以当createStore(reducer,preloadedState)中的reducer函数是combineReducers合并成的，<strong>传入初始状态时，要注意state的keys要和reducers一致</strong>。</p>
+<p>可见<code>combineReducers</code>主要的功能，就是<strong>把action传入到所有的子reducer函数遍历一次，同时处理state的切片和合并</strong>。</p>
+<p>当然这里少了很多异常校验部分的代码，有兴趣可以查阅详细源码。</p>
+<h2 id="实例">实例</h2>
+<pre><code><code>/* reducer */
+import {combineReducers} from &#39;redux&#39;;
+import testAsync from &#39;./testasync&#39;;
+import todoList from &#39;./todolist&#39;;
+
+const reducer = combineReducers({
+    testAsync,
+    todoList
+});
+
+export default reducer;
+
+/* store */
+import {createStore} from &#39;redux&#39;;
+import reducer from &#39;./reducer/index&#39;;
+
+let store = createStore(reducer)</code></pre>
+<p><code>{testAsync,todoList}</code>即是reducer函数对象，key和函数名一样。<code>{a:testAsync,b:todoList}</code>写成这样也可以。</p>
+<p>state的获取，更新和单一的reducer函数一样，<a href="https://www.cnblogs.com/shapeY/p/10728585.html">上一篇</a>已做过介绍。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

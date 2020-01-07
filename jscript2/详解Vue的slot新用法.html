@@ -1,0 +1,352 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修详解Vue的slot新用法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>详解Vue的slot新用法</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/vue-slot.html</div><br>
+    <p><strong>摘要：</strong> 理解Vue插槽。</p>
+<ul>
+<li>作者：前端小智</li>
+<li>原文：<a href="https://segmentfault.com/a/1190000019702966">vue 2.6 中 slot 的新用法</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<p><strong>为了保证的可读性，本文采用意译而非直译。</strong></p>
+<p>最近发布不久的Vue 2.6，使用插槽的语法变得更加简洁。 对插槽的这种改变让我对发现插槽的潜在功能感兴趣，以便为我们基于Vue的项目提供可重用性，新功能和更清晰的可读性。 真正有能力的插槽是什么？</p>
+<p>如果你是Vue的新手，或者还没有看到2.6版的变化，请继续阅读。也许学习插槽的最佳资源是Vue自己的文档，但是我将在这里给出一个纲要。</p>
+<p>想阅读更多优质文章请<a href="https://github.com/qq449245884/xiaozhi">猛戳GitHub博客</a>,一年百来篇优质文章等着你！</p>
+<h3 id="插槽是什么">插槽是什么？</h3>
+<p>插槽是Vue组件的一种机制，它允许你以一种不同于严格的父子关系的方式组合组件。插槽为你提供了一个将内容放置到新位置或使组件更通用的出口。从一个简单的例子开始：</p>
+<pre><code><code>// frame.vue
+&lt;template&gt;
+  &lt;div class=&quot;frame&quot;&gt;
+    &lt;slot&gt;&lt;/slot&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</code></pre>
+<p>这个组件最外层是一个<code>div</code>。假设<code>div</code>的存在是为了围绕其内容创建一个样式框架。这个组件可以通用地用于将框架包围在wq你想要的任何内容上，来看看它是怎么用的。这里的<code>frame</code>组件指的是我们刚才做的组件。</p>
+<pre><code><code>// app.vue
+&lt;template&gt;
+  &lt;frame&gt;&lt;img src=&quot;an-image.jpg&quot;&gt;&lt;/frame&gt;
+&lt;/template&gt;</code></pre>
+<p>在开始和结束<code>frame</code>标记之间的内容将插入到插槽所在的<code>frame</code>组件中，替换<code>slot</code>标记。这是最基本的方法。还可以简单地通过填充指定要放入槽中的默认内容</p>
+<pre><code><code>// frame.vue
+&lt;template&gt;
+  &lt;div class=&quot;frame&quot;&gt;
+    &lt;slot&gt;如果这里没有指定任何内容，这就是默认内容&lt;/slot&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</code></pre>
+<p>所以现在如果我们这样使用它：</p>
+<pre><code><code>// app.vue
+&lt;template&gt;
+  &lt;frame /&gt;
+&lt;/template&gt;</code></pre>
+<p>“<strong>如果这里没有指定任何内容，这就是默认内容</strong>”是默认内容，但是如果像以前那样使用它，默认文本将被<code>img</code>标记覆盖。</p>
+<h3 id="多个命名的插槽">多个/命名的插槽</h3>
+<p>可以向组件添加多个插槽，但是如果这样做了，那么除了其中一个之外，其他所有插槽都需要有名称。如果有一个没有名称的槽，它就是默认槽。下面是如何创建多个插槽：</p>
+<pre><code><code>// titled-frame.vue
+&lt;template&gt;
+  &lt;div class=&quot;frame&quot;&gt;
+    &lt;header&gt;&lt;h2&gt;
+      &lt;slot name=&quot;header&quot;&gt;Title&lt;/slot&gt;
+    &lt;/h2&gt;&lt;/header&gt;
+    &lt;slot&gt;如果这里没有指定任何内容，这就是默认内容&lt;/slot&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</code></pre>
+<p>我们保留了相同的默认槽，但这次我们添加了一个名为<code>header</code>的槽，可以在其中输入标题，用法如下：</p>
+<pre><code><code>// app.vue
+&lt;template&gt;
+  &lt;titled-frame&gt;
+    &lt;template v-slot:header&gt;
+      &lt;!-- The code below goes into the header slot --&gt;
+      My Image’s Title
+    &lt;/template&gt;
+    &lt;!-- The code below goes into the default slot --&gt;
+    &lt;img src=&quot;an-image.jpg&quot;&gt;
+  &lt;/titled-frame&gt;
+&lt;/template&gt;</code></pre>
+<p>就像之前一样，如果我们想将内容添加到默认槽中，只需将其直接放在<code>titled-frame</code>组件中。但是，要将内容添加到命名槽中，我们需要用<code>v-slot</code>指令将代码包裹在在<code>template</code>标记中。在<code>v-slot</code>之后添加冒号<code>(:)</code>，然后写出要传递内容的<code>slot</code>的名称。</p>
+<p>注意，<code>v-slot</code>是<code>Vue 2.6</code>的新版本，所以如果你使用的是旧版本，则需要阅读<a href="https://vuejs.org/v2/guide/components-slots.html#Named-Slots">关于不推荐的slot语法的文档。</a></p>
+<h3 id="作用域插槽">作用域插槽</h3>
+<p>还需要知道的另一件事是插槽可以将数据/函数传递给他们的孩子。 为了证明这一点，我们需要一个完全不同的带有插槽的示例组件：创建一个组件，该组件将当前用户的数据提供给其插槽：</p>
+<pre><code><code>// current-user.vue
+&lt;template&gt;
+  &lt;span&gt;
+    &lt;slot v-bind:user=&quot;user&quot;&gt;
+      {{ user.lastName }}
+    &lt;/slot&gt;
+  &lt;/span&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+export default {
+  data () {
+    return {
+      user: ...
+    }
+  }
+}
+&lt;/script&gt;</code></pre>
+<p>该组件有一个名为<code>user</code>的属性，其中包含关于用户的详细信息。默认情况下，组件显示用户的姓，但请注意，它使用<code>v-bind</code>将用户数据绑定到<code>slot</code>。这样，我们就可以使用这个组件向它的后代提供用户数据</p>
+<pre><code><code>// app.vue
+&lt;template&gt;
+  &lt;current-user&gt;
+    &lt;template v-slot:default=&quot;slotProps&quot;&gt;{{ slotProps.user.firstName }}&lt;/template&gt;    
+  &lt;/current-user&gt;
+&lt;/template&gt;</code></pre>
+<p>为了访问传递给<code>slot</code>的数据，我们使用v-slot指令的值指定作用域变量的名称。</p>
+<p>这里有几点需要注意：</p>
+<ul>
+<li>我们指定了<code>default</code>的名称，但是不需要为默认槽指定名称。相反，我们可以使用v<code>-slot=&quot;slotProps&quot;</code>。</li>
+<li>不需要使用<code>slotProps</code>作为名称，可以随便叫它什么。</li>
+<li>如果只使用默认槽，可以跳过内部<code>template</code>标记，直接将<code>v-slot</code>指令放到当前<code>current-user</code>上。</li>
+<li>可以使用对象解构来创建对作用域插槽数据的直接引用，而不是使用单个变量名。换句话说，可以使用<code>v-slot=&quot;{user}&quot;</code>代替<code>v-slot=&quot;slotProps&quot;</code>，然后可以直接使用<code>user</code>而不是<code>slotProps.user</code>。</li>
+</ul>
+<p>所以，上面的例子可以这样重写</p>
+<pre><code><code>// app.vue
+&lt;template&gt;
+  &lt;current-user v-slot=&quot;{user}&quot;&gt;
+    {{ user.firstName }}
+  &lt;/current-user&gt;
+&lt;/template&gt;</code></pre>
+<p>还有几点要记住：</p>
+<ul>
+<li>可以使用<code>v-bind</code>指令绑定多个值。</li>
+<li>也可以将函数传递到作用域槽。许多库使用它来提供可重用的函数组件。</li>
+<li><code>v-slot</code> 的别名是<code>#</code>。因此，可以用<code>#header=&quot;data&quot;</code> 来代替 <code>v-slot:header=&quot;data&quot;</code>。还可以使用 <code>#header</code>来代替 <code>v-slot:header</code>(前提:不是作用域插槽时)。对于默认插槽，在使用别名时需要<strong>指定默认名称</strong>。换句话说，需要这样写 <code>#default=&quot;data&quot;</code> 而不是<code>#=&quot;data&quot;</code>。</li>
+</ul>
+<p>可以从<a href="https://vuejs.org/v2/guide/components-slots.html">文档</a>中了解更多的细节，但这足以帮助你理解在本文剩下部分中讨论的内容。</p>
+<h3 id="你能用插槽做什么">你能用插槽做什么？</h3>
+<p>插槽不是为了一个目的而构建的，或者至少如果它们是，它们已经超越了最初的意图，成为做许多不同事物的强大工具。</p>
+<h3 id="可重用的模式">可重用的模式</h3>
+<p>组件总是被设计为可重用的，但是某些模式对于使用单个“普通”组件来实施是不切实际的，因为为了自定义它，需要的<code>props</code> 数量可能过多或者需要通过<code>props</code>传递大部分内容或其它组件。</p>
+<p>插槽可用包裹外部的HTML标签或者组件，并允许其他HTML或组件放在具名插槽对应名称的插槽上。</p>
+<p>对于的第一个例子，从简单的东西开始:一个按钮。假设咱们的团队正在使用 Bootstrap。使用Bootstrap，按钮通常与基本的<code>“btn”</code>类和指定颜色的类绑定在一起，比如<code>“btn-primary”</code>。你还可以添加<code>size</code>类，比如<code>'btn-lg'</code>。</p>
+<p>为了简单起见，现在让我们假设你的应用使用<code>btn</code>、<code>btn-primary</code>和<code>btn-lg</code>。你不希望总是必须在按钮上写下这三个类，或者你不相信新手会记得写下这三个类。</p>
+<p>在这种情况下，可以创建一个自动包含所有这三个类的组件，但是如何允许自定义内容？ prop 不实用，因为允许按钮包含各种HTML，因此我们应该使用一个插槽。</p>
+<pre><code><code>&lt;!-- my-button.vue --&gt;
+&lt;template&gt;
+  &lt;button class=&quot;btn btn-primary btn-lg&quot;&gt;
+    &lt;slot&gt;Click Me!&lt;/slot&gt;
+  &lt;/button&gt;
+&lt;/template&gt;</code></pre>
+<p>现在我们可以在任何地方使用它，无论你想要什么内容</p>
+<pre><code><code>&lt;!-- 使用 my-button.vue --&gt;
+&lt;template&gt;
+  &lt;my-button&gt;
+    &lt;img src=&quot;/img/awesome-icon.jpg&quot;&gt; 我是小智！
+  &lt;/my-button&gt;
+&lt;/template&gt;</code></pre>
+<p>当然，你可以选择比按钮更大的东西。 坚持使用Bootstrap，让我们看一个模态：</p>
+<pre><code><code>&lt;!-- my-modal.vue --&gt;
+&lt;template&gt;
+&lt;div class=&quot;modal&quot; tabindex=&quot;-1&quot; role=&quot;dialog&quot;&gt;
+  &lt;div class=&quot;modal-dialog&quot; role=&quot;document&quot;&gt;
+    &lt;div class=&quot;modal-content&quot;&gt;
+      &lt;div class=&quot;modal-header&quot;&gt;
+        &lt;slot name=&quot;header&quot;&gt;&lt;/slot&gt;
+        &lt;button type=&quot;button&quot; class=&quot;close&quot; data-dismiss=&quot;modal&quot; aria-label=&quot;Close&quot;&gt;
+          &lt;span aria-hidden=&quot;true&quot;&gt;×&lt;/span&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;modal-body&quot;&gt;
+        &lt;slot name=&quot;body&quot;&gt;&lt;/slot&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;modal-footer&quot;&gt;
+        &lt;slot name=&quot;footer&quot;&gt;&lt;/slot&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;/template&gt;</code></pre>
+<p>现在，使用它：</p>
+<pre><code><code>&lt;!-- 使用 my-modal.vue --&gt;
+&lt;template&gt;
+  &lt;my-modal&gt;
+    &lt;template #header&gt;
+      &lt;h5&gt;大家最棒!&lt;/h5&gt;
+    &lt;/template&gt;
+    &lt;template #body&gt;
+      &lt;p&gt;大家加油&lt;/p&gt;
+    &lt;/template&gt;
+    &lt;template #footer&gt;
+      &lt;em&gt;大家好样的!&lt;/em&gt;
+    &lt;/template&gt;
+  &lt;/my-modal&gt;
+&lt;/template&gt;</code></pre>
+<p>上述类型的插槽用例显然非常有用，但它可以做得更多。</p>
+<p><strong>代码部署后可能存在的BUG没法实时知道，事后为了解决这些BUG，花了大量的时间进行log 调试，这边顺便给大家推荐一个好用的BUG监控工具 <a href="https://www.fundebug.com/?utm_source=xiaozhi">Fundebug</a>。</strong></p>
+<h3 id="复用函数">复用函数</h3>
+<p>Vue组件并不完全是关于HTML和CSS的。它们是用JavaScript构建的，所以也是关于函数的。插槽对于一次性创建函数并在多个地方使用功能非常有用。让我们回到模态示例并添加一个关闭模态的函数</p>
+<pre><code><code>&lt;!-- my-modal.vue --&gt;
+&lt;template&gt;
+&lt;div class=&quot;modal&quot; tabindex=&quot;-1&quot; role=&quot;dialog&quot;&gt;
+  &lt;div class=&quot;modal-dialog&quot; role=&quot;document&quot;&gt;
+    &lt;div class=&quot;modal-content&quot;&gt;
+      &lt;div class=&quot;modal-header&quot;&gt;
+        &lt;slot name=&quot;header&quot;&gt;&lt;/slot&gt;
+        &lt;button type=&quot;button&quot; class=&quot;close&quot; data-dismiss=&quot;modal&quot; aria-label=&quot;Close&quot;&gt;
+          &lt;span aria-hidden=&quot;true&quot;&gt;×&lt;/span&gt;
+        &lt;/button&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;modal-body&quot;&gt;
+        &lt;slot name=&quot;body&quot;&gt;&lt;/slot&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;modal-footer&quot;&gt;        
+        &lt;slot name=&quot;footer&quot; :closeModal=&quot;closeModal&quot;&gt;&lt;/slot&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+export default {
+  //...
+  methods: {
+    closeModal () {
+      // 关闭对话框时，需要做的事情
+    }
+  }
+}
+&lt;/script&gt;</code></pre>
+<p>当使用此组件时，可以向<code>footer</code>添加一个可以关闭模态的按钮。 通常，在Bootstrap模式的情况下，可以将<code>data-dismiss =“modal”</code>添加到按钮来进行关闭。</p>
+<p>但我们希望隐藏Bootstrap 特定的东西。 所以我们传递给他们一个他们可以调用的函数，这样使用者就不会知道我们有使用 Bootstrap 的东西。</p>
+<pre><code><code>&lt;!-- 使用 my-modal.vue --&gt;
+&lt;template&gt;
+  &lt;my-modal&gt;
+    &lt;template #header&gt;
+      &lt;h5&gt;Awesome Interruption!&lt;/h5&gt;
+    &lt;/template&gt;
+    &lt;template #body&gt;
+      &lt;p&gt;大家加油！&lt;/p&gt;
+    &lt;/template&gt;
+    &lt;template #footer=&quot;{closeModal}&quot;&gt;
+      &lt;button @click=&quot;closeModal&quot;&gt;
+        点我可以关闭烦人的对话框
+      &lt;/button&gt;
+    &lt;/template&gt;
+  &lt;/my-modal&gt;
+&lt;/template&gt;</code></pre>
+<h3 id="无渲染组件">无渲染组件</h3>
+<p>最后，可以利用你所知道的关于使用插槽来传递可重用函数的知识，并剥离所有HTML，只使用插槽。这就是无渲染组件的本质:一个只提供函数而不包含任何HTML的组件。</p>
+<p>使组件真正无渲染可能有点棘手，因为需要编写<code>render</code>函数而不是使用模板来消除对根元素的依赖，但它可能并不总是必要的。 来看看一个先使用模板的简单示例：</p>
+<pre><code><code>&lt;template&gt;
+  &lt;transition name=&quot;fade&quot; v-bind=&quot;$attrs&quot; v-on=&quot;$listeners&quot;&gt;
+    &lt;slot&gt;&lt;/slot&gt;
+  &lt;/transition&gt;
+&lt;/template&gt;
+&lt;style&gt;
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+.fade-enter, .fade-leave-to {
+  opacity: 0;
+}
+&lt;/style&gt;</code></pre>
+<p>这是一个无渲染组件的奇怪例子，因为它甚至没有任何JavaScript。这主要是因为我们正在创建一个内置无渲染函数的预配置可重用版本:<code>transition</code>。</p>
+<p>是的，Vue有内置的无渲染组件。这个特殊的例子取自Cristi Jora的一篇关于<a href="https://vuejsdevelopers.com/2018/02/26/vue-js-reusable-transitions/">可重用transition</a>的文章，展示了一种创建无渲染组件的简单方法，该组件可以标准化整个应用程序中使用的 <code>transition</code>。</p>
+<p>对于我们的另一个示例，我们将创建一个组件来处理切换 Promise 的不同状态中显示的内容: pending、resolved 和 failed。这是一种常见的模式，虽然它不需要很多代码，但是如果没有为了可重用性而提取逻辑，它会使很多组件变得混乱。</p>
+<pre><code><code>&lt;!-- promised.vue --&gt;
+&lt;template&gt;
+  &lt;span&gt;
+    &lt;slot  name=&quot;rejected&quot;  v-if=&quot;error&quot; :error=&quot;error&quot;&gt;&lt;/slot&gt;
+    &lt;slot  name=&quot;resolved&quot;  v-else-if=&quot;resolved&quot; :data=&quot;data&quot;&gt;&lt;/slot&gt;
+    &lt;slot  name=&quot;pending&quot;  v-else&gt;&lt;/slot&gt;
+  &lt;/span&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+export  default {
+  props: {
+    promise:  Promise
+  },
+
+  data: () =&gt; ({
+    resolved:  false,
+    data:  null,
+    error:  null
+  }),  
+
+  watch: {
+    promise: {
+      handler (promise) {
+        this.resolved  =  false
+        this.error  =  null
+
+        if (!promise) {
+          this.data  =  null
+          return
+        }
+
+        promise.then(data  =&gt; {
+          this.data  =  data
+          this.resolved  =  true
+        })
+        .catch(err  =&gt; {
+          this.error  =  err
+          this.resolved  =  true
+        })
+      },
+      immediate:  true
+    }
+  }
+}
+&lt;/script&gt;</code></pre>
+<p>这是怎么回事,小老弟?首先，请注意，该组件接收一个Promise 类型参数。在<code>watch</code>部分中，监听<code>promise</code>的变化，当<code>promise</code>发生变化时，清除状态，然后调用 then 并 catch promise，当 promise 成功完成或失败时更新状态。</p>
+<p>然后，在模板中，我们根据状态显示一个不同的槽。请注意，我们没有保持它真正的无渲染，因为我们需要一个根元素来使用模板。我们还将<code>data</code>和<code>error</code>传递到相关的插槽范围。</p>
+<pre><code><code>&lt;template&gt;
+  &lt;div&gt;
+    &lt;promised :promise=&quot;somePromise&quot;&gt;
+      &lt;template #resolved=&quot;{ data }&quot;&gt;
+        Resolved: {{ data }}
+      &lt;/template&gt;
+      &lt;template #rejected=&quot;{ error }&quot;&gt;
+        Rejected: {{ error }}
+      &lt;/template&gt;
+      &lt;template #pending&gt;
+          请求中...
+      &lt;/template&gt;
+    &lt;/promised&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+...
+</code></pre>
+<p>我们将<code>somePromise</code>传递给无渲染组件。 然后等待它完成，对于 <code>pending</code> 的插槽，显示“请求中...”。 如果成功，显示“Resolved：对应的值”。 如果失败，显示“已Rejected：失败的原因”。 现在我们不再需要跟踪此组件中的<code>promise</code>的状态，因为该部分被拉出到它自己的可重用组件中。</p>
+<p>那么，我们可以做些什么来绕过<code>promised.vue</code>中的插槽？ 要删除它，我们需要删除<code>template</code>部分并向我们的组件添加<code>render</code>函数：</p>
+<pre class="javascript"><code>render () {
+  if (this.error) {
+    return this.$scopedSlots[&#39;rejected&#39;]({error: this.error})
+  }
+
+  if (this.resolved) {
+    return this.$scopedSlots[&#39;resolved&#39;]({data: this.data})
+  }
+
+  return this.$scopedSlots[&#39;pending&#39;]()
+}</code></pre>
+<p>这里没有什么太复杂的。我们只是使用一些<code>if</code>块来查找状态，然后返回正确的作用域<code>slot</code>(通过<code>this.$ scopedslot ['SLOTNAME'](…)</code>)，并将相关数据传递到<code>slot</code>作用域。当你不使用模板时，可以跳过使用<code>.vue</code>文件扩展名，方法是将JavaScript从<code>script</code>标记中提取出来，然后将其放入<code>.js</code>文件中。在编译这些Vue文件时，这应该会给你带来非常小的性能提升。</p>
+<h3 id="总结">总结</h3>
+<p>Vue的插槽将基于组件的开发提升到了一个全新的水平，虽然本文已经展示了许多可以使用插槽的好方法，但还有更多的插槽。欢迎留言讨论。</p>
+<p><strong>代码部署后可能存在的BUG没法实时知道，事后为了解决这些BUG，花了大量的时间进行log 调试，这边顺便给大家推荐一个好用的BUG监控工具 <a href="https://www.fundebug.com/?utm_source=xiaozhi">Fundebug</a>。</strong></p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家免费试用！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

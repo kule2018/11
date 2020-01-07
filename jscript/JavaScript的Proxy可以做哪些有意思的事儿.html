@@ -1,0 +1,287 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript的Proxy可以做哪些有意思的事儿' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript的Proxy可以做哪些有意思的事儿</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/how-to-use-javascript-proxy.html</div><br>
+    <p><strong>摘要：</strong> 神奇而有趣的Proxy。</p>
+<ul>
+<li>原文：<a href="https://segmentfault.com/a/1190000015009255">拿Proxy可以做哪些有意思的事儿</a></li>
+<li>作者：贾顺名</li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<h3 id="proxy是什么">Proxy是什么</h3>
+<p>首先，我们要清楚，<code>Proxy</code>是什么意思，这个单词翻译过来，就是 <strong>代理</strong>。</p>
+<p>可以理解为，有一个很火的明星，开通了一个微博账号，这个账号非常活跃，回复粉丝、到处点赞之类的，但可能并不是真的由本人在维护的。</p>
+<p>而是在背后有一个其他人 or 团队来运营，我们就可以称他们为代理人，因为他们发表的微博就代表了明星本人的意思。</p>
+<p><em>P.S. 强行举例子，因为本人不追星，只是猜测可能会有这样的运营团队</em></p>
+<p>这个代入到<code>JavaScript</code>当中来，就可以理解为对<code>对象</code>或者<code>函数</code>的代理操作。</p>
+<h3 id="javascript中的proxy">JavaScript中的Proxy</h3>
+<p>Proxy是ES6中提供的新的API，可以用来定义对象各种基本操作的自定义行为 （在文档中被称为traps，我觉得可以理解为一个针对对象各种行为的钩子），拿它可以做很多有意思的事情，在我们需要对一些对象的行为进行控制时将变得非常有效。</p>
+<h3 id="proxy的语法">Proxy的语法</h3>
+<p>创建一个<code>Proxy</code>的实例需要传入两个参数</p>
+<ol>
+<li><code>target</code> 要被代理的对象，可以是一个<code>object</code>或者<code>function</code></li>
+<li><code>handlers</code>对该代理对象的各种操作行为处理</li>
+</ol>
+<pre><code><code>let target = {}
+let handlers = {} // do nothing
+let proxy = new Proxy(target, handlers)
+
+proxy.a = 123
+
+console.log(target.a) // 123</code></pre>
+<p>在第二个参数为空对象的情况下，基本可以理解为是对第一个参数做的一次浅拷贝<br />
+<em>（Proxy必须是浅拷贝，如果是深拷贝则会失去了代理的意义）</em></p>
+<h3 id="traps各种行为的代理">Traps(各种行为的代理)</h3>
+<p>就像上边的示例代码一样，如果没有定义对应的<code>trap</code>，则不会起任何作用，相当于直接操作了<code>target</code>。</p>
+<p>当我们写了某个<code>trap</code>以后，在做对应的动作时，就会触发我们的回调函数，由我们来控制被代理对象的行为。</p>
+<p>最常用的两个<code>trap</code>应该就是<code>get</code>和<code>set</code>了。</p>
+<p>早年<code>JavaScript</code>有着在定义对象时针对某个属性进行设置<code>getter</code>、<code>setter</code>：</p>
+<pre><code><code>let obj = {
+  _age: 18,
+  get age ()  {
+    return `I&#39;m ${this._age} years old`
+  },
+  set age (val) {
+    this._age = Number(val)
+  }
+}
+
+console.log(obj.age) // I&#39;m 18 years old
+obj.age = 19
+console.log(obj.age) // I&#39;m 19 years old</code></pre>
+<p>就像这段代码描述的一样，我们设置了一个属性<code>_age</code>，然后又设置了一个<code>get age</code>和<code>set age</code>。</p>
+<p>然后我们可以直接调用<code>obj.age</code>来获取一个返回值，也可以对其进行赋值。</p>
+<p>这么做有几个缺点：</p>
+<ol>
+<li>针对每一个要代理的属性都要编写对应的<code>getter</code>、<code>setter</code>。</li>
+<li>必须还要存在一个存储真实值的<code>key</code><em>（如果我们直接在getter里边调用this.age则会出现堆栈溢出的情况，因为无论何时调用this.age进行取值都会触发getter）</em>。</li>
+</ol>
+<p><code>Proxy</code>很好的解决了这两个问题：</p>
+<pre><code><code>let target = { age: 18, name: &#39;Niko Bellic&#39; }
+let handlers = {
+  get (target, property) {
+    return `${property}: ${target[property]}`
+  },
+  set (target, property, value) {
+    target[property] = value
+  }
+}
+let proxy = new Proxy(target, handlers)
+
+proxy.age = 19
+console.log(target.age, proxy.age)   // 19,          age : 19
+console.log(target.name, proxy.name) // Niko Bellic, name: Niko Bellic</code></pre>
+<p>我们通过创建<code>get</code>、<code>set</code>两个<code>trap</code>来统一管理所有的操作，可以看到，在修改<code>proxy</code>的同时，<code>target</code>的内容也被修改，而且我们对<code>proxy</code>的行为进行了一些特殊的处理。</p>
+<p>而且我们无需额外的用一个<code>key</code>来存储真实的值，因为我们在<code>trap</code>内部操作的是<code>target</code>对象，而不是<code>proxy</code>对象。</p>
+<h3 id="拿proxy来做些什么">拿Proxy来做些什么</h3>
+<p>因为在使用了<code>Proxy</code>后，对象的行为基本上都是可控的，所以我们能拿来做一些之前实现起来比较复杂的事情。</p>
+<p>在下边列出了几个简单的适用场景。</p>
+<h3 id="解决对象属性为undefined的问题">解决对象属性为undefined的问题</h3>
+<p>在一些层级比较深的对象属性获取中，如何处理<code>undefined</code>一直是一个痛苦的过程，如果我们用<code>Proxy</code>可以很好的兼容这种情况。</p>
+<pre><code><code>(() =&gt; {
+  let target = {}
+  let handlers = {
+    get: (target, property) =&gt; {
+      target[property] = (property in target) ? target[property] : {}
+      if (typeof target[property] === &#39;object&#39;) {
+        return new Proxy(target[property], handlers)
+      }
+      return target[property]
+    }
+  }
+  let proxy = new Proxy(target, handlers)
+  console.log(&#39;z&#39; in proxy.x.y) // false (其实这一步已经针对`target`创建了一个x.y的属性)
+  proxy.x.y.z = &#39;hello&#39;
+  console.log(&#39;z&#39; in proxy.x.y) // true
+  console.log(target.x.y.z)     // hello
+})()</code></pre>
+<p>我们代理了<code>get</code>，并在里边进行逻辑处理，如果我们要进行<code>get</code>的值来自一个不存在的<code>key</code>，则我们会在<code>target</code>中创建对应个这个<code>key</code>，然后返回一个针对这个<code>key</code>的代理对象。</p>
+<p>这样就能够保证我们的取值操作一定不会抛出<code>can not get xxx from undefined</code><br />
+但是这会有一个小缺点，就是如果你确实要判断这个<code>key</code>是否存在只能够通过<code>in</code>操作符来判断，而不能够直接通过<code>get</code>来判断。</p>
+<h3 id="普通函数与构造函数的兼容处理">普通函数与构造函数的兼容处理</h3>
+<p>如果我们提供了一个<code>Class</code>对象给其他人，或者说一个<code>ES5</code>版本的构造函数。<br />
+如果没有使用<code>new</code>关键字来调用的话，<code>Class</code>对象会直接抛出异常，而<code>ES5</code>中的构造函数<code>this</code>指向则会变为调用函数时的作用域。<br />
+我们可以使用<code>apply</code>这个<code>trap</code>来兼容这种情况：</p>
+<pre><code><code>class Test {
+  constructor (a, b) {
+    console.log(&#39;constructor&#39;, a, b)
+  }
+}
+
+// Test(1, 2) // throw an error
+let proxyClass = new Proxy(Test, {
+  apply (target, thisArg, argumentsList) {
+    // 如果想要禁止使用非new的方式来调用函数，直接抛出异常即可
+    // throw new Error(`Function ${target.name} cannot be invoked without &#39;new&#39;`)
+    return new (target.bind(thisArg, ...argumentsList))()
+  }
+})
+
+proxyClass(1, 2) // constructor 1 2</code></pre>
+<p>我们使用了<code>apply</code>来代理一些行为，在函数调用时会被触发，因为我们明确的知道，代理的是一个<code>Class</code>或构造函数，所以我们直接在<code>apply</code>中使用<code>new</code>关键字来调用被代理的函数。</p>
+<p>以及如果我们想要对函数进行限制，禁止使用<code>new</code>关键字来调用，可以用另一个<code>trap</code>:<code>construct</code></p>
+<pre><code><code>function add (a, b) {
+  return a + b
+}
+
+let proxy = new Proxy(add, {
+  construct (target, argumentsList, newTarget) {
+    throw new Error(`Function ${target.name} cannot be invoked with &#39;new&#39;`)
+  }
+})
+
+proxy(1, 2)     // 3
+new proxy(1, 2) // throw an error</code></pre>
+<h3 id="用proxy来包装fetch">用Proxy来包装fetch</h3>
+<p>在前端发送请求，我们现在经常用到的应该就是<code>fetch</code>了，一个原生提供的API。<br />
+我们可以用<code>Proxy</code>来包装它，使其变得更易用。</p>
+<pre><code><code>let handlers = {
+  get (target, property) {
+    if (!target.init) {
+      // 初始化对象
+      [&#39;GET&#39;, &#39;POST&#39;].forEach(method =&gt; {
+        target[method] = (url, params = {}) =&gt; {
+          return fetch(url, {
+            headers: {
+              &#39;content-type&#39;: &#39;application/json&#39;
+            },
+            mode: &#39;cors&#39;,
+            credentials: &#39;same-origin&#39;,
+            method,
+            ...params
+          }).then(response =&gt; response.json())
+        }
+      })
+    }
+
+    return target[property]
+  }
+}
+let API = new Proxy({}, handlers)
+
+await API.GET(&#39;XXX&#39;)
+await API.POST(&#39;XXX&#39;, {
+  body: JSON.stringify({name: 1})
+})</code></pre>
+<p>对<code>GET</code>、<code>POST</code>进行了一层封装，可以直接通过<code>.GET</code>这种方式来调用，并设置一些通用的参数。</p>
+<h3 id="实现一个简易的断言工具">实现一个简易的断言工具</h3>
+<p>写过测试的各位童鞋，应该都会知道断言这个东西<br />
+<code>console.assert</code>就是一个断言工具，接受两个参数，如果第一个为<code>false</code>，则会将第二个参数作为<code>Error message</code>抛出。<br />
+我们可以使用<code>Proxy</code>来做一个直接赋值就能实现断言的工具。</p>
+<pre><code><code>let assert = new Proxy({}, {
+  set (target, message, value) {
+    if (!value) console.error(message)
+  }
+})
+
+assert[&#39;Isn\&#39;t true&#39;] = false      // Error: Isn&#39;t true
+assert[&#39;Less than 18&#39;] = 18 &gt;= 19  // Error: Less than 18</code></pre>
+<h3 id="统计函数调用次数">统计函数调用次数</h3>
+<p>在做服务端时，我们可以用<code>Proxy</code>代理一些函数，来统计一段时间内调用的次数。<br />
+在后期做性能分析时可能会能够用上：</p>
+<pre><code><code>function orginFunction () {}
+let proxyFunction = new Proxy(orginFunction, {
+  apply (target, thisArg. argumentsList) {
+    log(XXX)
+
+    return target.apply(thisArg, argumentsList)
+  }
+})
+
+</code></pre>
+<h3 id="全部的traps">全部的traps</h3>
+<p>这里列出了<code>handlers</code>所有可以定义的行为 <em>(traps)</em>：</p>
+<blockquote>
+<p>具体的可以查看<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy">MDN-Proxy</a><br />
+里边同样有一些例子</p>
+</blockquote>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">traps</th>
+<th style="text-align: left;">description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">get</td>
+<td style="text-align: left;">获取某个<code>key</code>值</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">set</td>
+<td style="text-align: left;">设置某个<code>key</code>值</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">has</td>
+<td style="text-align: left;">使用<code>in</code>操作符判断某个<code>key</code>是否存在</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">apply</td>
+<td style="text-align: left;">函数调用，仅在代理对象为<code>function</code>时有效</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ownKeys</td>
+<td style="text-align: left;">获取目标对象所有的<code>key</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">construct</td>
+<td style="text-align: left;">函数通过实例化调用，仅在代理对象为<code>function</code>时有效</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">isExtensible</td>
+<td style="text-align: left;">判断对象是否可扩展，<code>Object.isExtensible</code>的代理</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">deleteProperty</td>
+<td style="text-align: left;">删除一个<code>property</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">defineProperty</td>
+<td style="text-align: left;">定义一个新的<code>property</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">getPrototypeOf</td>
+<td style="text-align: left;">获取原型对象</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">setPrototypeOf</td>
+<td style="text-align: left;">设置原型对象</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">preventExtensions</td>
+<td style="text-align: left;">设置对象为不可扩展</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">getOwnPropertyDescriptor</td>
+<td style="text-align: left;">获取一个自有属性 <em>（不会去原型链查找）</em> 的属性描述</td>
+</tr>
+</tbody>
+</table>
+<h3 id="参考资料">参考资料</h3>
+<ul>
+<li><a href="https://medium.com/@alonronin/magic-methods-in-javascript-meet-proxy-65e6305f4d3e">Magic Methods in JavaScript? Meet Proxy!</a></li>
+<li><a href="https://medium.com/dailyjs/how-to-use-javascript-proxies-for-fun-and-profit-365579d4a9f8">How to use JavaScript Proxies for Fun and Profit</a></li>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy">MDN-Proxy</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

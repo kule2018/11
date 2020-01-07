@@ -1,0 +1,188 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript深入浅出第1课：箭头函数中的this究竟是什么鬼？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript深入浅出第1课：箭头函数中的this究竟是什么鬼？</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/arrow-function-this.html</div><br>
+    <p><strong>《JavaScript 深入浅出》系列</strong>：</p>
+<ul>
+<li><a href="https://blog.fundebug.com/2019/06/18/arrow-function-this/">JavaScript 深入浅出第 1 课：箭头函数中的 this 究竟是什么鬼？</a></li>
+<li><a href="https://blog.fundebug.com/2019/06/25/javascript-first-class-function/">JavaScript 深入浅出第 2 课：函数是一等公民是什么意思呢？</a></li>
+</ul>
+<h3 id="普通函数与箭头函数">普通函数与箭头函数</h3>
+<p><strong><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/function">普通函数</a>指的是用function定义的函数：</strong></p>
+<pre><code><code>var hello = function () {
+    console.log(&quot;Hello, Fundebug!&quot;);
+}</code></pre>
+<p><strong><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions">箭头函数</a>指的是用=&gt;定义的函数：</strong></p>
+<pre><code><code>var hello = () =&gt; {
+    console.log(&quot;Hello, Fundebug!&quot;);
+}</code></pre>
+<p>JavaScript箭头函数与普通函数不只是写法上的区别，它们还有一些微妙的不同点，其中一个不同点就是this。</p>
+<blockquote>
+<p>箭头函数没有自己的this值，箭头函数中所使用的this来自于函数作用域链。</p>
+</blockquote>
+<p>这句话很简单，不过听着稍微有点莫名其妙，得从头说起。</p>
+<h3 id="this到底是什么">this到底是什么？</h3>
+<p>关于this的文章也够多了，有时候越描越黑，我就不再添乱了，我只负责搬运一下MDN文档：<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this">this</a>，感兴趣的可以仔细阅读一下，我摘录一些最重要的话就好了。</p>
+<blockquote>
+<p>A function's this keyword behaves a little differently in JavaScript compared to other languages. It also has some differences between strict mode and non-strict mode.</p>
+</blockquote>
+<p>JavaScript是一门比较奇特的语言，它的this与其他语言不一样，并且它的取值还取决于代码是否为严格模式(&quot;use strict&quot;)。</p>
+<p><strong>this的值是什么？</strong></p>
+<blockquote>
+<p>The JavaScript context object in which the current code is executing.</p>
+</blockquote>
+<p>this就是代码执行时当前的context object。</p>
+<p><strong>Global context</strong></p>
+<blockquote>
+<p>In the global execution context (outside of any function), this refers to the global object whether in strict mode or not.</p>
+</blockquote>
+<p>代码没有在任何函数中执行，而是在全局作用域中执行时，this的值就是global对象，对于浏览器来说，this就是window。</p>
+<p>这一条规则还是比较容易接受的。</p>
+<p><strong>Function context</strong></p>
+<blockquote>
+<p>Inside a function, the value of this depends on how the function is called.</p>
+</blockquote>
+<p>函数中的this值取决于这个函数是怎样被调用的，这一条规则就有点变态了，也是很容易出BUG的地方。</p>
+<p>另外，this的值还与函数是否为严格模式(&quot;use strict&quot;)有关，这就非常的丧心病狂了...</p>
+<p>大家如果好奇的话，出门左转看MDN文档，我多说无益，只说明一种简单的情况。</p>
+<p><strong>As an object method</strong></p>
+<blockquote>
+<p>When a function is called as a method of an object, its this is set to the object the method is called on.</p>
+</blockquote>
+<p>当函数作为对象的方法被调用时，它的this值就是该对象。</p>
+<pre><code><code>var circle = {
+    radius: 10,
+    getRadius() {
+        console.log(this.radius);
+    }
+};
+
+circle.getRadius(); // 打印 10</code></pre>
+<h3 id="self-this">self = this？</h3>
+<p>当我们需要在对象方法中嵌套一个内层函数时，this就会给我们带来实际的困扰了，大家应该写过这样的代码：</p>
+<pre><code><code>// 使用临时变量self
+var circle = {
+    radius: 10,
+    outerDiameter() {
+        var self = this;
+        var innerDiameter = function() {
+            console.log(2 * self.radius);
+        };
+        innerDiameter();
+    }
+};
+
+circle.outerDiameter(); // 打印20</code></pre>
+<p>outerDiameter函数是circle对象的方法，因此其this值就是circle对象。</p>
+<p>那我们直接写<code>this.radius</code>多好啊，可惜不能这么写，因为内层函数innerDiameter并不会继承外层函数outerDiameter的this值。outerDiameter函数的this值就是circle对象，this.radius等于10。</p>
+<p>但是，<strong>innerDiameter函数的this值不是circle对象</strong>，那它到底是啥？它是innerDiameter函数执行时当前的context object，这个context object又是啥？其实我也晕了，所以不妨测试一下：</p>
+<pre><code><code>// innerDiameter函数中的this是window
+var circle = {
+    radius: 10,
+    outerDiameter() {
+        var innerDiameter = function() {
+            console.log(this === window);
+        };
+        innerDiameter();
+    }
+};
+
+circle.outerDiameter(); // 打印true</code></pre>
+<p>innerDiameter函数中的this是window，为啥是window这个不去管它，反正不是circle对象。</p>
+<p>因此，如果我们直接在innerDiameter函数中使用this的话，就出问题了：</p>
+<pre><code><code>// 使用普通函数
+var circle = {
+    radius: 10,
+    outerDiameter() {
+        var innerDiameter = function() {
+            console.log(2 * this.radius);
+        };
+        innerDiameter();
+    }
+};
+
+circle.outerDiameter(); // 打印NaN</code></pre>
+<p>于是，我们不得不使用一个临时变量self将外层函数outerDiameter的this值搬运到内层函数innerDiameter。</p>
+<h3 id="bindthis">.bind(this)</h3>
+<p>我们也可以使用<code>.bind(this)</code>来规避this变来变去的问题：</p>
+<pre><code><code>// 使用.bind(this)
+var circle = {
+    radius: 10,
+    outerDiameter() {
+        var innerDiameter = function() {
+            console.log(2 * this.radius);
+        };
+        innerDiameter = innerDiameter.bind(this);
+        innerDiameter();
+    }
+};
+
+circle.outerDiameter(); // 打印20</code></pre>
+<p>但是，无论是使用临时变量self，还是使用.bind(this)，都不是什么很简洁的方式。</p>
+<p>总之，普通函数的this取值多少有点奇怪，尤其当我们采用面向对象的方式编程时，很多时候都需要用到this，大多数时候我们都不会去使用.bind(this)，而是使用临时变量self或者that来搬运this的取值，写起来当然不是很爽，而且一不小心就会写出BUG来。</p>
+<p>正如<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/Arrow_functions#No_separate_this">MDN文档</a>所说：</p>
+<blockquote>
+<p>Until arrow functions, every new function defined its own this value based on how the function was called。This proved to be less than ideal with an object-oriented style of programming.</p>
+</blockquote>
+<h3 id="箭头函数">箭头函数</h3>
+<p>箭头函数的this取值，规则非常简单，因为this在箭头函数中，可以看做一个普通变量。</p>
+<blockquote>
+<p>An arrow function does not have its own this. The this value of the enclosing lexical scope is used; arrow functions follow the normal variable lookup rules.</p>
+</blockquote>
+<p>箭头函数没有自己的this值，箭头函数中所使用的this都是来自函数作用域链，它的取值遵循普通普通变量一样的规则，在函数作用域链中一层一层往上找。</p>
+<p>有了箭头函数，我只要遵守下面的规则，this的问题就可以基本上不用管了：</p>
+<ul>
+<li>对于需要使用<code>object.method()</code>方式调用的函数，使用普通函数定义，不要使用箭头函数。对象方法中所使用的this值有确定的含义，指的就是object本身。</li>
+<li>其他情况下，全部使用箭头函数。</li>
+</ul>
+<pre><code><code>// 使用箭头函数
+var circle = {
+    radius: 10,
+    outerDiameter() {
+        var innerDiameter = () =&gt; {
+            console.log(2 * this.radius);
+        };
+        innerDiameter();
+    }
+};
+
+circle.outerDiameter(); // 打印20</code></pre>
+<p>对于内层函数innerDiameter，它本身并没有this值，其使用的this来自作用域链，来自更高层函数的作用域。innerDiameter的外层函数outerDiameter是普通函数，它是有this值的，它的this值就是circle对象。因此，innerDiameter函数中所使用的this来自outerDiameter函数，其值为circle对象。</p>
+<h3 id="结论">结论</h3>
+<p>JavaScript是Brendan Eich花了10天时间设计出来的，因此各种莫名其妙的特性，this也算是其中一个奇葩。好在这些年ECMAScript标准发展很快也很稳定，每年撸一个新的标准，多少可以弥补一下JS的先天不足。</p>
+<p>箭头函数对于this取值规则的简化，其实也就是为了少给大家添乱，谁能记得住普通函数this取值的那么多条条框框啊。。。</p>
+<p>另外，MDN文档绝对是一个宝藏，大家可以多看看。</p>
+<p>关于JS，我打算开始写一个系列的博客，大家还有啥不太清楚的地方？不妨留言一下，我可以研究一下，然后再与大家分享一下。也大家欢迎添加我的个人微信(KiwenLau)，我是<a href="https://www.fundebug.com/">Fundebug</a>的技术负责人，一个对JS又爱又恨的程序员。</p>
+<h3 id="参考">参考</h3>
+<ul>
+<li><a href="https://hacks.mozilla.org/2015/06/es6-in-depth-arrow-functions/">ES6 In Depth: Arrow functions</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/this#As_an_object_method">MDN文档 - this</a></li>
+</ul>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+<p><img src="./images/JavaScript深入浅出第1课：箭头函数中的this究竟是什么鬼？0.png" /></p>
+<h3 id="版权声明">版权声明</h3>
+<p>转载时请注明作者<a href="https://blog.fundebug.com/">Fundebug</a><br />
+以及本文地址：<a href="https://blog.fundebug.com/2019/06/18/arrow-function-this/" class="uri">https://blog.fundebug.com/2019/06/18/arrow-function-this/</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

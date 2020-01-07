@@ -1,0 +1,113 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Node学习之（第二章：http模块）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Node学习之（第二章：http模块）</center></div><div class='banquan'>原文出处:本文由博客园博主pubdreamcc提供。<br/>
+原文连接:https://www.cnblogs.com/dreamcc/p/10805263.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>继续上一节的探讨，今天我们来聊聊Node中怎么搭建一个简单的web服务器。平时大家在撸码的过程中，经常需要向服务器发送请求，然后服务器接受请求，响应数据。今天我们就来自己手写一个简单服务器，根据前端请求，我们来响应相关数据。</p>
+<h2 id="开始">开始</h2>
+<p>开启一个本地服务器需要Node.js中<code>http</code>核心模块，至于核心模块是什么，我会在接下来的章节中和大家解释，也欢迎大家持续关注我的前端Node.js的学习之旅。</p>
+<ol>
+<li>http--模块提供了搭建本地服务器的API,首先我们在项目中引入；</li>
+</ol>
+<pre><code><code>let http = require(&#39;http&#39;)</code></pre>
+<p>引入之后我们利用http.createServer()方法得到一个服务器实例。</p>
+<pre><code><code>let server = http.createServer() // createServer()方法返回一个server实例，所以我们需要一个变量来接收
+</code></pre>
+<ol>
+<li>经过以上两步，我们已经搭建好了一个服务器实例，然后我们给服务器实例绑定接收<code>request</code>的事情处理函数，代码如下：</li>
+</ol>
+<pre><code><code>server.on(&#39;request&#39;, (req, res) =&gt; {
+  console.log(req.url) // 获取到请求的路径（请求路径永远以“/”开头）
+})
+
+// 给服务器绑定接收请求的处理事件，当服务器接收到客户端发送的请求后，会调用后面的处理函数，处理函数接收两个参数：请求信息对象，响应信息对象。</code></pre>
+<ol>
+<li>绑定监听端口号，开启服务器。代码如下：</li>
+</ol>
+<pre><code><code>server.listen(3000, () =&gt; {
+  console.log(&#39;服务器开启成功，可以通过访问http://127.0.0.1:3000/来获取数据~~&#39;)
+})
+
+// server.listen()用来绑定监听的端口号，可以传入第二个参数，当服务器开启成功后，触发后面的回调函数
+</code></pre>
+<ol>
+<li>最后看到的效果如下图所示：</li>
+</ol>
+<p><img src="./images/Node学习之（第二章：http模块）0.png" /></p>
+<p>我们看到请求路径被打印在了CMD窗口中。</p>
+<p>好了，经过这简单的操作是不是已经完成了一个服务器的简单搭建，接下来我们来实现一个需求：</p>
+<ul>
+<li><p>当我们访问“<a href="http://127.0.0.1:3000/login" class="uri">http://127.0.0.1:3000/login</a>”, 服务器返回 “login page”</p></li>
+<li><p>当我们访问“<a href="http://127.0.0.1:3000/register" class="uri">http://127.0.0.1:3000/register</a>”, 服务器返回 “register page”</p></li>
+<li><p>当我们访问“<a href="http://127.0.0.1:3000/" class="uri">http://127.0.0.1:3000/</a>”, 服务器返回 “index page”</p></li>
+<li><p>当我们访问“<a href="http://127.0.0.1:3000/product" class="uri">http://127.0.0.1:3000/product</a>”, 服务器返回 <strong>产品信息列表</strong></p></li>
+</ul>
+<p>我们实现这个需求，只需要在绑定服务器监听的事件处理函数中获取到用户的请求路径，然后根据不同路径返回不同数据即可，这个也不难。详情代码看下：</p>
+<pre><code><code>let http = require(&#39;http&#39;)
+let server = http.createServer()
+
+server.on(&#39;request&#39;, (req, res) =&gt; {
+  let url = req.url //得到请求的路径 （请求的路径永远以‘/’开头）
+  if (url === &#39;/&#39;) {
+    res.end(&#39;index page&#39;)
+  } else if (url === &#39;/login&#39;) {
+    res.end(&#39;login page&#39;)
+  } else if (url === &#39;/register&#39;) {
+    res.end(&#39;register page&#39;)
+  } else if (url === &#39;/product&#39;){
+    let arr = [
+      {
+        name: &#39;iphone X&#39;,
+        price: 8888
+      },
+      {
+        name: &#39;iphone 7&#39;,
+        price: 4320
+      }
+    ]
+    // 响应的数据类型必须是字符串或者二进制数据
+    res.end(JSON.stringify(arr))
+  } else {
+    res.end(&#39;404 NOT found&#39;)
+  }
+})
+
+server.listen(3000, () =&gt; {
+  console.log(&#39;服务器启动成功了，，可以访问http://127.0.0.1:3000/啦&#39;)
+})</code></pre>
+<p>最后实现的效果图如下：</p>
+<p><img src="./images/Node学习之（第二章：http模块）1.png" /></p>
+<p>我们看到我们请求不同的路径，服务器给我们返回了不同的内容，并且显示在了网页中。</p>
+<h2 id="说明">说明</h2>
+<p>本仓库是自己Node.js学习过程的真实记录，以后会每天更新一些新的知识点，希望可以对想要学Node.js的同学有一些帮助，欢迎star，你们的点赞是我更新的持久动力。同时如果你觉得本仓库中的一些知识点有错误也可以issue我，方便后期我订正！</p>
+<blockquote>
+<p>本仓库同时在博客园和掘金更新，欢迎写博客的朋友一起学习交流。</p>
+</blockquote>
+<p><strong>博客园</strong></p>
+<p><a href="https://www.cnblogs.com/dreamcc/">找我</a></p>
+<p><strong>掘金</strong></p>
+<p><a href="https://juejin.im/user/5ca1d53451882543f252db97/posts">找我</a></p>
+<p><strong>GitHub</strong></p>
+<p><a href="https://github.com/pubdreamcc/Node.js">找我</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,349 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修RxJS——可观察的对象（Observable）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>RxJS——可观察的对象（Observable）</center></div><div class='banquan'>原文出处:本文由博客园博主沉睡的木木夕提供。<br/>
+原文连接:https://www.cnblogs.com/ms27946/p/RxJS-Observable.html</div><br>
+    <h1 id="可观察的observable">可观察的（Observable）</h1>
+<p>可观察集合（Observables）是多值懒推送集合。它们填补了下面表格的空白：</p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th>SINGLE</th>
+<th>MULTIPLE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Pull</td>
+<td>Function</td>
+<td>Iterator</td>
+</tr>
+<tr class="even">
+<td>Push</td>
+<td>Promise</td>
+<td>Observable</td>
+</tr>
+</tbody>
+</table>
+<p>举个例子，下面是一个可观察对象，当它被订阅的时候立即推送值 1,2,3，并且值 4 在订阅调用之后的一秒传递过去，然后完成：</p>
+<pre><code><code>import { Observable } from &#39;rxjs&#39;;
+
+const Observable = new Observable(subscriber =&gt; {
+    subscripber.next(1);
+    subscripber.next(2);
+    subscripber.next(3);
+    setTimeout(() =&gt; {
+        subscripber.next(4);
+        subscripber.complete();
+    }, 1000);
+});</code></pre>
+<p>为了调用 Observable 以及看到这些值，我们需要订阅它：</p>
+<pre><code><code>import { Observable } from &#39;rxjs&#39;;
+
+const observable = new Observable(subscriber =&gt; {
+    subscripber.next(1);
+    subscripber.next(2);
+    subscripber.next(3);
+    setTimeout(() =&gt; {
+        subscripber.next(4);
+        subscripber.complete();
+    }, 1000);
+});
+
+console.log(&#39;just before subscribe&#39;);
+observable.subscribe({
+    next(x) { console.log(&#39;got value &#39;+ x); },
+    error(err) { console.log(&#39;something wrong occurred: &#39; + err); },
+    complete() { console.log(&#39;done&#39;); }
+});
+console.log(&#39;just after subscribe&#39;);</code></pre>
+<p>它执行会打印如下内容：</p>
+<pre class="c"><code>just before subscribe
+got value 1
+got value 2
+got value 3
+just after subscribe
+got value 4
+done</code></pre>
+<h1 id="pull-vs-push">Pull vs Push</h1>
+<p><code>Pull</code> 和 <code>Push</code> 是两个不同的协议，他们描述了数据生产者如何与数据消费者通信。</p>
+<p>什么是 <code>Pull</code>？在 Pull 系统，消费者决定何时从数据生产者接收数据。生产者自己也不知道数据什么时候推送给消费者。所有的 javascript 函数都是一个 Pull 系统。函数是数据的生产者，并且这个调用函数的代码通过从它调用中“提取（pulling）”一个返回值来消耗数据。</p>
+<p>ES2015 介绍了<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/function*">生成器函数和迭代器</a> （function* ）其他类型的 Pull 系统。调用 <code>iterator.next</code> 的代码是消费者，从迭代器（生产者）中 “提取” 出多个值。</p>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th>Producer</th>
+<th>Consumer</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Pull</td>
+<td>被动：请求时生成数据</td>
+<td>主动：决定数据何时请求</td>
+</tr>
+<tr class="even">
+<td>Push</td>
+<td>主动：在自己的空间生成数据</td>
+<td>被动：响应接收到的数据</td>
+</tr>
+</tbody>
+</table>
+<p>什么是 Push？Push 系统，生成者决定何时发送数据给消费者。消费者是不知道数据是何时接收的。</p>
+<p>在如今的 javascript 中 Pull 系统中最通用的类型是 Promises。一个 Promise（生产者）派送一个被解析的值到已经注册的回调函数（消费者）中，但是不像函数，Promise 它负责准确的确定这个值何时被 “推送” 到回调函数。</p>
+<p>RxJS 介绍了 Observables，新的 Push 系统。一个可观察的对象是多个值的生产者，“推送” 他们到 Observables（消费者）。</p>
+<ul>
+<li>函数是一种延迟计算，调用同步返回一个值</li>
+<li>生成器是一种延迟计算，在迭代中同步返回 0 到 无穷值（可能的）。</li>
+<li>Promise 是一个计算，它可能（也有能不会）最后返回一个值</li>
+<li>Observable 是一个延迟计算的，它能同步或异步返回 0 到 无穷值（可能）从它们被调用的那刻开始</li>
+</ul>
+<h1 id="observables-函数一般化">Observables 函数一般化</h1>
+<p>与流行的说法相反，Observables 不像事件驱动器那样，也不像多个值的 Promise。Observables 也许行为像事件驱动器在有些例子中，即在他们使用 RxJS Subjects 多播时，通常它们不像事件驱动。</p>
+<blockquote>
+<p>Observables 像一个无参的函数，但是它们允许生成多个值。</p>
+</blockquote>
+<p>考虑下面代码：</p>
+<pre><code><code>function foo()
+{
+    console.log(&#39;Hello&#39;);
+    return 42;
+}
+
+const x = foo.call();   //same as foo()
+console.log(x);
+const y = foo.call();
+console.log(y);</code></pre>
+<p>我们期望能看到如下输出：</p>
+<pre class="c"><code>&quot;Hello&quot;
+42
+&quot;Hello&quot;
+42</code></pre>
+<p>你可以根据上面的行为用 Observables 写相同的行为：</p>
+<pre><code><code>import { Observable } from &#39;rxjs&#39;;
+const foo = new Observable(subscriber =&gt; {
+    console.log(&#39;Hello&#39;);
+    subscriber.next(42);
+});
+
+foo.subscriber(x =&gt; {
+    console.log(x);
+});
+foo.subscriber(y =&gt; {
+    console.log(y);
+});</code></pre>
+<p>同样会有相同的输出：</p>
+<pre class="c#"><code>&quot;Hello&quot;
+42
+&quot;Hello&quot;
+42</code></pre>
+<p>这两个函数发生的都是延迟计算。如果你不调用函数，<code>console.log('Hello')</code> 是不会触发的。Observables 同样也是如此，如果你不 “call” 它（通过 <code>subscribe</code>）<code>console.log('Hello')</code> 将不会触发。另外，“calling” 或者 “subscribing” 是一个隔离的操作：两个函数调用触发两个独立的副作用，并且两个 Observable 订阅触发两个副作用。与此相反，事件驱动器它会共享副作用，并且无论订阅存不存在都会执行，Observable 不会共享执行并都是延迟的。</p>
+<blockquote>
+<p>订阅（Subscribing）一个可观察的对象（Observable）跟调用一个函数是类似的。</p>
+</blockquote>
+<p>Observable 和 函数之间的区别是什么呢？Observable 能随着时间返回多个值，还有一些是函数不能做的。比如你不能这么做：</p>
+<pre><code><code>function foo()
+{
+    console.log(&#39;hello&#39;);
+    return 42;
+    return 100; //死代码。永远不会发生这行
+}</code></pre>
+<p>函数只能返回一个值。Observable 就能做到这个：</p>
+<pre><code><code>import { Observable } from &#39;rxjs&#39;;
+
+const foo = new Observable(subscribe =&gt; {
+    console.log(&#39;Hello&#39;);
+    subscriber.next(42);
+    subscriber.next(100);   //返回值
+    subscriber.next(200);   //同样还是返回值
+})
+
+console.log(&#39;before&#39;);
+foo.subscribe(x =&gt; {
+    console.log(x);
+});
+console.log(&#39;after&#39;);</code></pre>
+<p>同步输出：</p>
+<pre class="c#"><code>&quot;before&quot;
+&quot;before&quot;
+42
+100
+200
+&quot;after&quot;</code></pre>
+<p>你也能异步返回这些值：</p>
+<pre class="c#"><code>import { Observable } from &#39;rxjs&#39;;
+
+const foo = new Observable(subscriber =&gt; {
+    console.log(&#39;hello&#39;);
+    subscriber.next(42);
+    subscriber.next(100);
+    subscriber.next(200);
+    setTimeout(() =&gt; {
+        subscriber.next(300);   //异步
+    },1000);
+});
+
+console.log(&#39;before&#39;);
+foo.subscribe(x =&gt; {
+  console.log(x);
+});
+console.log(&#39;after&#39;);</code></pre>
+<p>输出：</p>
+<pre><code><code>&quot;before&quot;
+&quot;Hello&quot;
+42
+100
+200
+&quot;after&quot;
+300</code></pre>
+<p><strong>结论：</strong></p>
+<ul>
+<li><code>func.call()</code> 意思是说 “同步给我一个值”</li>
+<li><code>observable.subscribe()</code> 意思是说 “给我任何数值，不管同步还是异步”</li>
+</ul>
+<h1 id="深入解析-observable">深入解析 Observable</h1>
+<p>Observables 是通过 <code>new Observable</code> 或一个创建操作符建立的，由观察者订阅，执行去推送 <code>next / error / complete</code> 通知到观察者（Observer），并且他们的执行也许会被处理。这里有 4 个方面都编码在可观察的（Observable）实例对象中，但是有一些方面与其他类型相关，比如 Observer 和 Subscription。</p>
+<p>核心的 Observable 概念如下：</p>
+<ul>
+<li>创建可观察的（Observables）对象</li>
+<li>订阅 Observables</li>
+<li>执行 Observables</li>
+<li>释放 Observables</li>
+</ul>
+<h2 id="创建-observables">创建 Observables</h2>
+<p><code>Observable</code> 有个带一个参数的构造函数：<code>subscribe</code> 函数。</p>
+<p>下面的例子是创建一个 Observable，来向订阅者每秒发送一个字符串 ‘hi’。</p>
+<pre><code><code>import { Observable } from &#39;rxjs&#39;;
+
+const observable = new Observable(subscribe =&gt; {
+    const id = setInterval(() =&gt; {
+        subscribe.next(&#39;hi&#39;)
+    },1000);
+});</code></pre>
+<blockquote>
+<p>Observables 能通过实例化创建。但是多数情况下，observables 都是通过使用创建函数创建的，比如 <code>of,from,interval</code> 等。</p>
+</blockquote>
+<p>在上面的例子，<code>subscribe</code> 函数部分来订阅 Observable 是最重要的。让我们来看看订阅者订阅的意思。</p>
+<h2 id="订阅-observables">订阅 Observables</h2>
+<p>Observable 的实例对象 <code>observable</code> 在例子中能够被订阅，像这样：</p>
+<pre><code><code>observable.subscribe(x =&gt; console.log(x));</code></pre>
+<p><code>observable.subscribe</code> 和 在实例化 <code>new Observable(function subscribe(subscriber){...})</code> 中的 <code>subscribe</code> 有相同的名字这不是巧合。在库中，它们是不同的，出于特定目的你可以考虑他们的概念是一致的。</p>
+<p>这个展示了 <code>subscribe</code> 怎样调用是不会在多个可观察对象的相同可观察对象之间共享。当观察者 Observer 调用 <code>observable.subscribe</code>，<code>new Observable(function subscribe(subscriber) {...})</code> 中的函数 <code>subscribe</code> 运行在给定的订阅器上运行。</p>
+<blockquote>
+<p>订阅一个可观察者对象（Observable）就像调用一个函数，在数据将被传递到的地方提供一个回调函数。</p>
+</blockquote>
+<p>这对于事件处理 API 来说是彻底不同的，像 <code>addEventListener</code> / <code>removeEventListener</code>。通过 <code>observable.subscribe</code>,给定的观察者是不会作为侦听者注册到可观察对象（Observable）中去。Observable 甚至不会维护已经附加进来的列表。</p>
+<p>调用 <code>subscribe</code> 是一种简单的方式来开始一个 “可观察的执行” 以及传递值或是传递执行的可观察的事件。</p>
+<h2 id="执行-observables">执行 Observables</h2>
+<p>在代码 <code>new Observable(function subscribe(subscriber){...})</code> 代码里表示一个 &quot;可观察的执行&quot;，是一个延迟执行，它只发生在每个观察者（Observer）订阅的时候。这个执行多次会生成多个值，无论同步还是异步。</p>
+<p>这里有三个类型的值在可观察者执行时传递：</p>
+<ul>
+<li>&quot;Next&quot; 通知：发送一个值，比如数字类型，字符串类型以及对象等</li>
+<li>&quot;Error&quot; 通知：发送一个 Javascript 错误或异常</li>
+<li>&quot;Complete&quot; 通知：不会发送任何值</li>
+</ul>
+<p>&quot;Next&quot; 通知是最重要的并且是最常用的类型：它们表示一个数据被传递到订阅者的行为。&quot;Error&quot; 和 &quot;Complete&quot; 通知可能只发生一次在可观察的对象执行期间，它们只能发生一个。</p>
+<p>在调用 Observable 语法或契约中，这些约束表现得最好，写成一个正则表达式：</p>
+<pre class="c#"><code>next*(error|complete)?</code></pre>
+<blockquote>
+<p>在 Observable 执行中，下一个通知可以从 0 发送到无穷。如一个 Error 或是 Complete 被发送了，那么在之后就不会有任何东西被发送：</p>
+<pre><code><code>import { Observable } from &#39;rxjs&#39;;
+
+const observable = new Observable(function subscribe(subscriber){
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.next(3);
+    subscriber.complete();
+});</code></pre>
+</blockquote>
+<p>Observables 严格遵守 Observable 契约，所以下面这段代码将不会传递到 Next 通知 4：</p>
+<pre><code><code>import { Observable } from &#39;rxjs&#39;;
+
+const observable = new Observable(function subscribe(subscriber){
+    subscriber.next(1);
+    subscriber.next(2);
+    subscriber.next(3);
+    subscriber.complete();
+    subscriber.next(4);//这里永远都不会执行。因为已经complete
+})</code></pre>
+<p>这种方法是好的，在 <code>subscriber</code> 中通过 <code>try/catch</code> 代码块包装任何代码，它将传递一个 Error 通知，如果捕捉到异常的话。</p>
+<pre><code><code>import { Observable } from &#39;rxjs&#39;;
+
+const observable = new Observable(function subscribe(subscriber){
+    try{
+        subscriber.next(1);
+        subscriber.next(2);
+        subscriber.next(3);
+        subscriber.complete();
+    } catch (err) {
+        subscriber.error(err);  //传递一个错误对象，如果捕捉到异常的话。
+    }
+});</code></pre>
+<h2 id="释放-observable-执行">释放 Observable 执行</h2>
+<p>由于 Observaber 执行可能会无穷，并且共同的就是观察者（Observer）想要在有限的时间放弃这个执行，所以我们需要一个 api 来取消执行。由于每个执行在一个 Observer 都是独有的，一旦 Observer 做完了接收数据，为了避免浪费计算以及内存资源，那么它就必须有一种方式来停止执行。</p>
+<p>当 <code>observable.subscribe</code> 被调用时，观察者（Observer）被附加到最新创建的 Observable 执行。Subscription 它也返回一个对象：</p>
+<pre><code><code>const subscription = observable.subscribe(x =&gt; console.log(x));</code></pre>
+<p>Subscription 表示正在执行，有一个最小的 api，这个 api 允许你取消执行。关于 <a href="https://rxjs.dev/guide/subscription">Subscription</a> 这里可以阅读更多。通过 <code>subscription.unsubcribe()</code> 你可以取消正在执行中的执行。</p>
+<pre><code><code>import { from } from &#39;rxjs&#39;;
+
+const observable = from([10,20,30]);
+const subscription = observable.subscribe(x =&gt; console.log(x));
+//之后
+subscribe.unsubscribe();</code></pre>
+<blockquote>
+<p>当你订阅的时候，你会得到一个 Subscription，它表示正在执行的执行。仅仅调用 <code>unsubscribe</code> 取消执行。</p>
+</blockquote>
+<p>每个 Observable 必须定义怎么去释放执行的资源，当我们使用 <code>create</code> 创建 Observable 时。你可以通过返回一个自定义的 <code>ubsubcribe</code> 方法做到这个。</p>
+<p>举个例子，这里展示了我们通过 <code>setInterval 清除一个间隔执行</code>：</p>
+<pre><code><code>const observable = new Observable(function subscribe(subscriber){
+    //根据间隔资源
+    const intervalId = setInterval(() =&gt; {
+        subscribe,next(&#39;hi&#39;)
+    },1000);
+    
+    //提供一个方法来取消以及释放间隔资源。
+    return function unsubscribe()
+    {
+        clearInterval(intervaleId);
+    }
+})</code></pre>
+<p>由此可见 <code>observable.subscribe</code> 相似 <code>new Observable(function subscribe(subscriber){...})</code>，我们从 <code>subscribe</code> 返回 <code>unsubscribe</code>，在概念上等同于 <code>subscribe.unsubscribe</code>。实际上，如果我们移除围绕 ReactiveX 概念的类型，剩下的 JavaScript 代码就不在陌生了。</p>
+<pre><code><code>function subscribe(subscriber)
+{
+    const intervalId = setInterval(() =&gt; {
+        subscribe.next(&#39;hi&#39;);
+    },1000);
+    
+    return function unsubscribe(){
+        clearInterval(intervalId);
+    }
+}
+
+const unsubscribe = subscribe({next: (x) =&gt; console.log(x)});
+
+//最后
+unsubscriber(); //释放资源</code></pre>
+<p>我们使用的 RxJS 类型，如 Observable，Observer，Subscription 的理由是更安全的获得（例如 Obscervable 契约）以及 Operators（操作符）的组合性。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

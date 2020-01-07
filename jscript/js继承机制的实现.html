@@ -1,0 +1,171 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js继承机制的实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js继承机制的实现</center></div><div class='banquan'>原文出处:本文由博客园博主scriptLiu提供。<br/>
+原文连接:https://www.cnblogs.com/liuyilong/p/11715365.html</div><br>
+    <h2 id="js继承机制的实现">js继承机制的实现</h2>
+<hr />
+<h4 id="继承的概念">1. 继承的概念</h4>
+<ol>
+<li>说明继承的最经典的例子：几何形状。实际上，几何形状只有两种，即椭圆形（是圆形的）和多边形（具有一定数量的边）。圆是椭圆的一种，它只有一个焦点。三角形、矩形和五边形都是多边形的一种，具有不同数量的边。正方形是矩形的一种，所有的边等长。这就构成了一种完美的继承关系。</li>
+<li>在该实例中，我想阐述的并不是继承的含义，而是说明几个关键词，即：<strong>基类</strong> <strong>子类</strong> <strong>超类</strong> 的含义。</li>
+<li><p>在该实例中，圆形是椭圆形的子类，椭圆形是圆形的超类(父类)；同样，三角形（Triangle）、矩形（Rectangle）和五边形（Pentagon）都是多边形的子类，多边形是它们的超类。<br />
+<img src="./images/js继承机制的实现0.png" title="继承关系图" alt="继承关系图" /><br />
+***</p>
+<h4 id="继承的方式">2. 继承的方式</h4></li>
+<li>对象冒充</li>
+</ol>
+<pre><code><code>    // 父类 ClassA
+    function ClassA(aColor){
+        this.color = aColor;
+        this.showColor = function(){
+            console.log(this.color);
+        }
+    }
+    // 子类 ClassB
+    function ClassB(bColor,bName){
+        this.newMethod = ClassA;    //  函数名ClassA只是指向函数的指针，所以这里是将this.newMethod也指向ClassA这个函数，所以函数ClassB就拥有了函数ClassA的方法和属性
+        this.newMethod(bColor);
+        delete this.newMethod;  //  该操作使得实例化的对象不需要多次继承同一个函数了，因为继承一次就可以了。注意：新增的属性和方法最好都写在 删除对另一个函数引用的后面，因为如果在前面定义的话，如果父类刚好有该属性或者方法你就会把父类的属性和方法                             给覆盖掉。
+        this.name = bName;
+        this.sayName = function(){
+            console.log(this.name);
+        }
+    }
+    // --------------------------------------
+    var objA = new ClassA(&quot;blue&quot;);
+    var objB = new ClassB(&quot;red&quot;, &quot;John&quot;);
+    objA.showColor();   //  blue
+    objB.showColor();   //  red
+    objB.sayName();     //  John</code></pre>
+<ul>
+<li>对象冒充还可以实现多重继承<br />
+例如，如果存在两个类 ClassX 和 ClassY，ClassZ 想继承这两个类，可以使用下面的代码：</li>
+</ul>
+<pre><code><code>    function ClassZ() {
+        this.newMethod = ClassX;
+        this.newMethod();
+        delete this.newMethod;
+
+        this.newMethod = ClassY;
+        this.newMethod();
+        delete this.newMethod;
+    }</code></pre>
+<pre><code><code>   这里存在一个弊端，如果存在两个类 ClassX 和 ClassY 具有同名的属性或方法，ClassY 具有高优先级。因为它从后面的类继承。除这点小问题之外，用对象冒充实现多重继承机制轻而易举。</code></pre>
+<hr />
+<ol>
+<li>call、apply方法(和对象冒充类似)<br />
+<strong>call、apply这两个方法的使用方法和原理在上一个博客写了，可以去参考一下</strong></li>
+</ol>
+<pre><code><code>    // call方法
+    function ClassA(acolor){
+        this.color = acolor;
+        this.showColor = function(){
+            console.log(this.color);    
+        }
+    }
+    function ClassB(bcolor){
+        ClassA.call(this,bcolor);   //  这里的this指的是ClassB实例化的对象，让this调用函数ClassA，达到继承效果。第二个参数是对应ClassA的参数
+    }
+    var objA = new ClassA(&#39;blue&#39;);
+    var objB = new ClassB(&#39;red&#39;);
+    objA.showColor();   //  blue
+    objB.showColor();   //  red</code></pre>
+<pre><code><code>    function ClassA(acolor){
+        this.color = acolor;
+        this.showColor = function(){
+            console.log(this.color);    
+        }
+    }
+    function ClassB(bcolor){
+        // ClassA.apply(this,Array(bcolor));
+        ClassA.apply(this, arguments);      //  这里使用上面的或者arguments都可以，arguments代表的是实参的类数组对象
+    }
+    var objA = new ClassA(&#39;blue&#39;);
+    var objB = new ClassB(&#39;red&#39;);
+    objA.showColor();   //  blue
+    objB.showColor();   //  red</code></pre>
+<hr />
+<ol>
+<li>原型链的方式</li>
+</ol>
+<pre><code><code>    function ClassA() {}
+
+    ClassA.prototype.color = &quot;blue&quot;;
+    ClassA.prototype.sayColor = function () {
+        alert(this.color);
+    };
+
+    function ClassB() {}
+
+    ClassB.prototype = new ClassA();    //  这是关键</code></pre>
+<p>原型方式的神奇之处在于“ClassB.prototype = new ClassA()”代码行。这里，把 ClassB 的 prototype 属性设置成 ClassA 的实例。这很有意思，因为想要 ClassA 的所有属性和方法，但又不想逐个将它们 ClassB 的 prototype 属性进行手动链接。还有比把 ClassA 的实例赋予 prototype 属性更好的方法吗？<br />
+<strong>与对象冒充相似，子类的所有属性和方法都必须出现在 prototype 属性被赋值后，因为在它之前赋值的所有方法都会被删除。为什么？因为 prototype 属性被替换成了新对象，添加了新方法的原始对象将被销毁。所以，为 ClassB 类添加 name 属性和 sayName() 方法的代码如下：</strong></p>
+<pre><code><code>    function ClassB() {
+    }
+
+    ClassB.prototype = new ClassA();
+
+    ClassB.prototype.name = &quot;zjy&quot;;
+    ClassB.prototype.sayName = function () {
+        alert(this.name);
+    };</code></pre>
+<p>测试代码如下：</p>
+<pre><code><code>    var objA = new ClassA();
+    var objB = new ClassB();
+    objA.color = &quot;blue&quot;;
+    objB.color = &quot;red&quot;;
+    objB.name = &quot;John&quot;;
+    objA.sayColor();    //  blue
+    objB.sayColor();    //  red
+    objB.sayName();     //  John</code></pre>
+<hr />
+<ol>
+<li>原型链和对象冒充混合使用<br />
+<strong>用对象冒充的方法继承构造函数的属性，再用原型链的方式继承构造函数的方法。</strong></li>
+</ol>
+<pre><code><code>    // 父类
+    function ClassA(acolor){//  之所以方法通过原型链来定义是因为方法多数都是对象共享的，如果放在构造函数内部的话，多个实例化对象就会产生多个同样的方法，所以为了减少这样的浪费，将方法通过原型链定义，这样即满足了共享的原则也实现了重复利用不会浪费。不管在内部定义方法还是通过原型链定义，都可以通过其他构造函数的原型链继承到。
+        this.color = acolor;
+    }
+    ClassA.prototype.showColor = function(){    //属性在构造函数内定义，方法通过原型定义
+        console.log(this.color);
+    }
+    // 子类
+    function ClassB(bcolor,name){
+        ClassA.call(this,bcolor);   //  通过call()对象冒充的方式继承构造函数的属性
+        this.name = name;
+    }
+    ClassB.prototype = new ClassA();    //  通过原型链的方式继承构造函数的方法
+    ClassB.prototype.showName = function(){
+        console.log(this.name);
+    }</code></pre>
+<p>测试代码如下：</p>
+<pre><code><code>    var objA = new ClassA(&#39;blue&#39;);
+    var objB = new ClassB(&#39;red&#39;,&#39;tom&#39;);
+    objA.showColor();   //  blue
+    objB.showColor();   //  red
+    objB.showName();    //  tom</code></pre>
+<hr />
+<h3 id="本博客参考了w3cschool相关的解释和代码链接地址如下-w3cschool">本博客参考了w3cschool相关的解释和代码，链接地址如下 <a href="https://www.w3cschool.cn/ecmascript/bwu91q7q.html">w3cschool</a></h3>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

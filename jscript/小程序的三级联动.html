@@ -1,0 +1,1158 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修小程序的三级联动' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>小程序的三级联动</center></div><div class='banquan'>原文出处:本文由博客园博主云扬四海提供。<br/>
+原文连接:https://www.cnblogs.com/rolandlee/p/10756542.html</div><br>
+    <h2 id="项目中经常遇到要选择城市用到三级联动的方式">项目中经常遇到要选择城市。用到三级联动的方式</h2>
+<ul>
+<li>微信小程序的 <code>picker</code> 组件 <code>mode=date</code> 是三级联动的，但是无法自定义，这让我们心痛不已，值得我们欣慰的 picker-view 组件是可以自定义添加多个选项，但还是无法联动。既然这样那就自己写一个联动。</li>
+<li>做到如下图所示：</li>
+<li>分为动态获取地址</li>
+<li>引用静态文件获取地址</li>
+</ul>
+<p><img src="./images/小程序的三级联动0.png" /></p>
+<!--more-->
+<ul>
+<li>addressAdd.wxml</li>
+</ul>
+<pre><code><code>&lt;view class=&quot;add-address&quot;&gt;
+  &lt;view class=&quot;add-form&quot;&gt;
+    &lt;view class=&quot;form-item&quot;&gt;
+      &lt;input class=&quot;input&quot; bindinput=&quot;bindinputName&quot; placeholder=&quot;姓名&quot; value=&quot;{{address.name}}&quot; /&gt;
+    &lt;/view&gt;
+    &lt;view class=&quot;form-item&quot;&gt;
+      &lt;input class=&quot;input&quot; bindinput=&quot;bindinputMobile&quot; value=&quot;{{address.mobile}}&quot; placeholder=&quot;手机号码&quot; /&gt;
+    &lt;/view&gt;
+    &lt;view class=&quot;form-item&quot;&gt;
+      &lt;input class=&quot;input&quot; bindinput=&quot;bindinputAddress&quot; value=&quot;{{address.address}}&quot; placeholder=&quot;详细地址&quot; /&gt;
+    &lt;/view&gt;
+    &lt;view class=&quot;form-item&quot;  bindtap=&#39;select&#39;&gt;
+      &lt;view class=&quot;weui-cell__bd&quot;&gt;
+        {{areaInfo}}
+      &lt;/view&gt;
+    &lt;/view&gt;
+
+    &lt;view class=&quot;form-default&quot;&gt;
+      &lt;text bindtap=&quot;bindIsDefault&quot; class=&quot;default-input {{address.isDefault == 1 ? &#39;selected&#39; : &#39;&#39;}}&quot;&gt;设为默认地址&lt;/text&gt;
+    &lt;/view&gt;
+  &lt;/view&gt;
+
+  &lt;view class=&quot;btns&quot;&gt;
+    &lt;button class=&quot;cannel&quot; bindtap=&quot;cancelAddress&quot;&gt;取消&lt;/button&gt;
+    &lt;button class=&quot;save&quot; bindtap=&quot;saveAddress&quot;&gt;保存&lt;/button&gt;
+  &lt;/view&gt;
+&lt;/view&gt;
+&lt;view class=&quot;bg-mask&quot; bindtap=&quot;cancelSelectRegion&quot; wx:if=&quot;{{openSelectRegion}}&quot;&gt;&lt;/view&gt;
+
+
+
+&lt;view class=&quot;picker-view&quot; animation=&quot;{{animationAddressMenu}}&quot; style=&quot;visibility:{{addressMenuIsShow ? &#39;visible&#39;:&#39;hidden&#39;}}&quot;&gt;
+  &lt;!-- 确认取消按钮 --&gt;
+  &lt;view class=&#39;btn&#39;&gt;
+    &lt;text catchtap=&quot;cityCancel&quot;&gt;取消&lt;/text&gt;
+    &lt;text style=&quot;float: right&quot; catchtap=&quot;citySure&quot;&gt;确定&lt;/text&gt;
+  &lt;/view&gt;
+  &lt;!-- 选择地址 --&gt;
+  &lt;picker-view class=&#39;cont&#39; bindchange=&quot;cityChange&quot; value=&quot;{{value}}&quot; wx:key=&quot;&quot;&gt;
+    &lt;!-- 省 --&gt;
+    &lt;picker-view-column&gt;
+      &lt;view wx:for=&quot;{{provinces}}&quot; class=&quot;picker-item&quot; wx:key=&quot;{{index}}&quot;&gt;{{item.area}}&lt;/view&gt;
+    &lt;/picker-view-column&gt;
+    &lt;!-- 市 --&gt;
+    &lt;picker-view-column&gt;
+      &lt;view wx:for=&quot;{{citys}}&quot; class=&quot;picker-item&quot; wx:key=&quot;index&quot;&gt;{{item.area}}&lt;/view&gt;
+    &lt;/picker-view-column&gt;
+    &lt;!-- 区 --&gt;
+    &lt;picker-view-column&gt;
+      &lt;view wx:for=&quot;{{areas}}&quot; class=&quot;picker-item&quot; wx:key=&quot;index&quot;&gt;{{item.area}}&lt;/view&gt;
+    &lt;/picker-view-column&gt;
+  &lt;/picker-view&gt;
+&lt;/view&gt;</code></pre>
+<ul>
+<li>addressAdd.wxss</li>
+</ul>
+<pre><code><code>page{
+    height: 100%;
+    background: #f4f4f4;
+}
+.add-address .add-form{
+    background: #fff;
+    width: 100%;
+    height: auto;
+    overflow: hidden;
+}
+
+.add-address .form-item{
+    height: 116rpx;
+    padding-left: 31.25rpx;
+    border-bottom: 1px solid #d9d9d9;
+    display: flex;
+    align-items: center;
+    padding-right: 31.25rpx;
+}
+
+.add-address .input{
+    flex: 1;
+    height: 44rpx;
+    line-height: 44rpx;
+    overflow: hidden;
+}
+
+.add-address .form-default{
+    border-bottom: 1px solid #d9d9d9;
+    height: 96rpx;
+    background: #fafafa;
+    padding-top: 28rpx;
+    font-size: 28rpx;
+}
+
+.default-input{
+    margin: 0 auto;
+    display: block;
+    width: 240rpx;
+    height: 40rpx;
+    padding-left: 50rpx;
+    line-height: 40rpx;
+    background: url(http://yanxuan.nosdn.127.net/hxm/yanxuan-wap/p/20161201/style/img/sprites/checkbox-sed825af9d3-a6b8540d42.png) 1rpx -448rpx no-repeat;
+    background-size: 38rpx 486rpx;
+    font-size: 28rpx;
+}
+
+.default-input.selected{
+    background: url(http://yanxuan.nosdn.127.net/hxm/yanxuan-wap/p/20161201/style/img/sprites/checkbox-sed825af9d3-a6b8540d42.png) 0 -192rpx no-repeat;
+    background-size: 38rpx 486rpx;
+}
+
+.add-address .btns{
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    overflow: hidden;
+    display: flex;
+    height: 100rpx;
+    width: 100%;
+}
+
+.add-address .cannel,.add-address .save{
+    flex: 1;
+    height: 100rpx;
+    text-align: center;
+    line-height: 100rpx;
+    font-size: 28rpx;
+    color: #fff;
+    border:none;
+    border-radius: 0;
+}
+
+.add-address .cannel{
+    background: #3F3F3F;
+}
+
+.add-address .save{
+    background: #a78845;
+}
+
+
+.region-select{
+  width: 100%;
+  height: 600rpx;
+  background: #fff;
+  position: fixed;
+  z-index: 10;
+  left:0;
+  bottom: 0;
+}
+
+.region-select .hd{
+  height: 108rpx;
+  width: 100%;
+  border-bottom: 1px solid #f4f4f4;
+  padding: 46rpx 30rpx 0 30rpx;
+}
+
+.region-select .region-selected{
+  float: left;
+  height: 60rpx;
+  display: flex;
+}
+
+.region-select .region-selected .item{
+  max-width: 140rpx;
+  margin-right: 30rpx;
+  text-align: left;
+  line-height: 60rpx;
+  height: 100%;
+  color: #333;
+  font-size: 28rpx;
+  overflow: hidden;
+      text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.region-select .region-selected .item.disabled{
+  color: #999;
+}
+
+.region-select .region-selected .item.selected{
+  color: #a78845;
+}
+
+.region-select .done{
+  float: right;
+  height: 60rpx;
+  width: 60rpx;
+  border: none;
+  background: #fff;
+  line-height: 60rpx;
+  text-align: center;
+  color: #333;
+  font-size: 28rpx;
+}
+
+.region-select .done.disabled{
+  color: #999;
+}
+
+.region-select .bd{
+  height: 492rpx;
+  width: 100%;
+  padding: 0 30rpx;
+}
+
+.region-select .region-list{
+  height: 492rpx;
+}
+
+.region-select .region-list .item{
+  width: 100%;
+  height: 104rpx;
+  line-height: 104rpx;
+  text-align: left;
+  color: #333;
+  font-size: 28rpx;
+}
+
+.region-select .region-list .item.selected{
+  color: #b4282d;
+}
+
+
+.bg-mask{
+  height: 100%;
+  width: 100%;
+  background: rgba(0, 0, 0, 0.4);
+  position: fixed;
+  top:0;
+  left:0;
+  z-index: 8;
+}
+
+
+
+
+.picker-view {
+    width: 100%;
+    display: flex;
+    z-index:12;
+    background-color: #fff;
+    /* background: rgba(0, 0, 0, .2); */
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: fixed;
+    bottom: 0;
+    left: 0rpx;
+    height: 40vh;
+}
+.btn {
+    width: 100%;
+    height: 90rpx;
+    padding: 0 24rpx;
+    box-sizing: border-box;
+    line-height: 90rpx;
+    text-align: center;
+    display: flex;
+    background: rgba(255,255,255,.8);
+    justify-content: space-between;
+}
+.cont {
+    width: 100%;
+    height: 389rpx;
+}
+.picker-item {
+    line-height: 70rpx;
+    margin-left: 5rpx;
+    margin-right: 5rpx;
+    text-align: center;
+}
+.address {
+    width: 100%;
+    height: 90rpx;
+    line-height: 90rpx;
+    text-align: center;
+    border-bottom: 1rpx solid #f1f1f1;
+}</code></pre>
+<ul>
+<li>addressAdd.js (分两个版本一个是动态获取的 <code>就是选择的时候动态向后台获取内容</code> 下方是动态获取的例子：)</li>
+</ul>
+<pre><code><code>var util = require(&#39;../../../utils/util.js&#39;);
+var api = require(&#39;../../../config/api.js&#39;);
+
+var app = getApp();
+Page({
+  data: {
+    addressId: 0,
+    openSelectRegion: false,
+    regionType: 1,
+    selectRegionDone: false,
+    szxqList: [],
+    szxq: {
+      id: &quot;&quot;,
+      name: &quot;请选择小区&quot;
+    },
+    szdsList: [],
+    szds: {
+      id: &quot;&quot;,
+      name: &quot;&quot;
+    },
+    fanghao: &quot;&quot;,
+    animationAddressMenu: {},
+    addressMenuIsShow: false,
+    value: [0, 0, 0],
+    provinces: [],
+    citys: [],
+    areas: [],
+    areaInfo: &#39;&#39;,
+    areaJson: {}
+  },
+  bindinputMobile(event) {
+    let address = this.data.address;
+    address.mobile = event.detail.value;
+    this.setData({
+      address: address
+    });
+  },
+  bindinputName(event) {
+    let address = this.data.address;
+    address.name = event.detail.value;
+    this.setData({
+      address: address
+    });
+  },
+  bindinputAddress(event) {
+    let address = this.data.address;
+    address.address = event.detail.value;
+    this.setData({
+      address: address
+    });
+  },
+  bindIsDefault() {
+    let address = this.data.address;
+    address.isDefault = !address.isDefault;
+    this.setData({
+      address: address
+    });
+  },
+  getAddressDetail() {
+    let that = this;
+    // util.request(api.AddressDetail, {
+    //   id: that.data.addressId
+    // }).then(function(res) {
+    //   if (res.errno === 0) {
+    //     if (res.data) {
+    //       that.setData({
+    //         address: res.data
+    //       });
+    //     }
+    //   }
+    // });
+  },
+
+  wxChooseAddress() {
+    let that = this;
+    let address = this.data.address;
+    // 用户已经同意小程序使用地址功能
+    wx.chooseAddress({
+      success: function(res) {
+        address.provinceId = 99999;
+        address.cityId = 88888;
+        address.areaId = 77777;
+        address.name = res.userName;
+        address.mobile = res.telNumber;
+        address.provinceName = res.provinceName;
+        address.cityName = res.cityName;
+        address.areaName = res.countyName;
+        address.address = res.provinceName + res.cityName + res.countyName + res.detailInfo;
+
+        that.setData({
+          address: address,
+        });
+      }
+    });
+  },
+
+  wxAddress() {
+    let that = this;
+    // 可以通过 wx.getSetting 先查询一下用户是否授权了 &quot;scope.address&quot; 这个 scope
+    wx.getSetting({
+      success(res) {
+        if (!res.authSetting[&#39;scope.address&#39;]) {
+          wx.authorize({
+            scope: &#39;scope.address&#39;,
+            success() {
+              that.wxChooseAddress();
+            }
+          })
+        } else {
+          that.wxChooseAddress();
+        }
+      }
+    })
+  },
+
+  onLoad: function(options) {
+    let that = this;
+    // 页面初始化 options为页面跳转所带来的参数
+    console.log(options);
+    if (options.id &amp;&amp; options.id != 0) {
+      this.setData({
+        addressId: options.id
+      });
+      this.getAddressDetail();
+    } else {
+      that.wxAddress();
+    }
+  },
+
+
+  onReady: function() {
+
+  },
+
+  cancelAddress() {
+    wx.navigateBack();
+  },
+  saveAddress() {
+    console.log(this.data.address);
+    let address = this.data.address;
+
+    if (address.name == &#39;&#39;) {
+      util.showErrorToast(&#39;请输入姓名&#39;);
+
+      return false;
+    }
+
+    if (address.mobile == &#39;&#39;) {
+      util.showErrorToast(&#39;请输入手机号码&#39;);
+      return false;
+    }
+
+
+    if (address.areaId == 0) {
+      util.showErrorToast(&#39;请输入省市区&#39;);
+      return false;
+    }
+
+    if (address.address == &#39;&#39;) {
+      util.showErrorToast(&#39;请输入详细地址&#39;);
+      return false;
+    }
+
+    let that = this;
+
+  },
+  onShow: function() {
+
+    // 获取所在栋数
+    var animation = wx.createAnimation({
+      duration: 500,
+      timingFunction: &#39;linear&#39;,
+    })
+    this.animation = animation
+
+    const that = this
+
+    // 获取所在地区
+    console.log()
+    util.getAreaReq().then(provinces =&gt; {
+      util.getAreaReq(provinces[0].code).then(citys =&gt; {
+        util.getAreaReq(citys[0].code).then(areas =&gt; {
+
+          that.setData({
+            provinces: provinces,
+            citys: citys,
+            areas: areas,
+            areaJson: {
+              provinces: {
+                id: 40,
+                name: &quot;广东省&quot;
+              },
+              citys: {
+                id: 4006,
+                name: &quot;河源市&quot;
+              },
+              areas: {
+                id: 400602,
+                name: &quot;源城区&quot;
+              }
+            }
+          })
+
+
+          var areas = that.data.areaJson.areas.name == null ? &quot;&quot; : that.data.areaJson.areas.name
+          var areaInfo = that.data.areaJson.provinces.name + &#39;·&#39; + that.data.areaJson.citys.name + &#39;·&#39; + areas
+
+
+          that.setData({
+            areaInfo: areaInfo,
+          })
+        })
+      })
+    })
+   
+  },
+
+  // 点击所在地区弹出选择框
+  select: function(e) {
+    // 如果已经显示，不在执行显示动画
+    if (this.data.addressMenuIsShow) {
+      return false
+    } else {
+      // 执行显示动画
+      this.startAddressAnimation(true)
+    }
+  },
+
+  // 处理省市县联动逻辑
+  cityChange: function(e) {
+    // console.log(this.data.provinces)
+    var value = e.detail.value
+    var provinces = this.data.provinces
+    var citys = this.data.citys
+    var areas = this.data.areas
+    var provinceNum = value[0]
+    var cityNum = value[1]
+    var countyNum = value[2]
+    var that = this;
+    // console.log(provinces)
+    // 如果省份选择项和之前不一样，表示滑动了省份，此时市默认是省的第一组数据，
+    if (this.data.value[0] != provinceNum) {
+      var id = provinces[provinceNum].id
+      // console.log(citys[cityNum])
+
+      util.getAreaReq(provinces[provinceNum].code).then(citys =&gt; {
+          util.getAreaReq(citys[0].code).then(areas =&gt; {
+
+            this.setData({
+              value: [provinceNum, 0, 0],
+              citys: citys,
+              areas: areas,
+              areaJson: {
+                provinces: {
+                  id: provinces[provinceNum].code,
+                  name: provinces[provinceNum].area
+                },
+                citys: {
+                  id: citys[0].code,
+                  name: citys[0].area
+                },
+                areas: {
+                  id: areas.length &gt; 0 ? areas[0].code : null,
+                  name: areas.length &gt; 0 ? areas[0].area : null,
+                }
+              }
+            })
+          })
+        })
+
+
+    } else if (this.data.value[1] != cityNum) {
+      // 滑动选择了第二项数据，即市，此时区显示省市对应的第一组数据
+      var id = citys[cityNum].id
+
+      util.getAreaReq(citys[cityNum].code).then(areas =&gt; {
+          this.setData({
+            value: [provinceNum, cityNum, 0],
+            areas: areas,
+            areaJson: {
+              provinces: {
+                id: provinces[provinceNum].code,
+                name: provinces[provinceNum].area
+              },
+              citys: {
+                id: citys[cityNum].code,
+                name: citys[cityNum].area
+              },
+              areas: {
+                id: areas.length &gt; 0 ? areas[0].code : null,
+                name: areas.length &gt; 0 ? areas[0].area : null,
+              }
+            }
+          })
+       
+        })
+
+    } else {
+      // 滑动选择了区
+
+      this.setData({
+        value: [provinceNum, cityNum, countyNum],
+        areaJson: {
+          provinces: {
+            id: provinces[provinceNum].code,
+            name: provinces[provinceNum].area
+          },
+          citys: {
+            id: citys[cityNum].code,
+            name: citys[cityNum].area
+          },
+          areas: {
+            id: areas[countyNum].code,
+            name: areas[countyNum].area
+          }
+        }
+      })
+      // console.log(that.data.areaJson)
+    }
+  },
+
+  // 执行动画
+  startAddressAnimation: function(isShow) {
+    if (isShow) {
+      // vh是用来表示尺寸的单位，高度全屏是100vh
+      this.animation.translateY(0 + &#39;vh&#39;).step()
+    } else {
+      this.animation.translateY(40 + &#39;vh&#39;).step()
+    }
+    this.setData({
+      animationAddressMenu: this.animation.export(),
+      addressMenuIsShow: isShow,
+    })
+  },
+  // 点击地区选择取消按钮
+  cityCancel: function(e) {
+    this.startAddressAnimation(false)
+  },
+  // 点击地区选择确定按钮
+  citySure: function(e) {
+    var that = this
+    var city = that.data.city
+    var value = that.data.value
+    this.startAddressAnimation(false)
+    // console.log(that.data.areaJson)
+    var areas = that.data.areaJson.areas.name == null ? &quot;&quot; : that.data.areaJson.areas.name
+    // 将选择的城市信息显示到输入框
+    var areaInfo = that.data.areaJson.provinces.name + &#39;·&#39; + that.data.areaJson.citys.name + &#39;·&#39; + areas
+
+
+    that.setData({
+      areaInfo: areaInfo,
+    })
+  },
+  onHide: function() {
+    // 页面隐藏
+
+  },
+  onUnload: function() {
+    // 页面关闭
+
+  }
+});</code></pre>
+<ul>
+<li>需要使用外部js（utils） 自己封装的一个工具</li>
+</ul>
+<pre><code><code>var api = require(&#39;../config/api.js&#39;);
+var app = getApp();
+var user = require(&#39;./user.js&#39;);
+
+/**
+ * 封装微信的的request
+ */
+function request(url, data = {}, method = &quot;GET&quot;) {
+  return new Promise(function(resolve, reject) {
+
+    user.checkLogin().then(res =&gt; {
+
+    }).catch(() =&gt; {
+      wx.switchTab({
+        url: &#39;/pages/ucenter/index/index?show=true&#39;
+      });
+    });
+
+    wx.request({
+      url: url,
+      data: data,
+      method: method,
+      header: {
+        &#39;Content-Type&#39;: &#39;application/x-www-form-urlencoded&#39;,
+        &#39;Cookie&#39;: &quot;token=&quot; + wx.getStorageSync(&#39;token&#39;) + &quot;;&quot; + wx.getStorageSync(&#39;sessionid&#39;),
+        &#39;X-Requested-With&#39;: &quot;XMLHttpRequest&quot;
+      },
+      success: function(res) {
+        if (res.statusCode == 400) {
+          user.loginByWeixin().then(res =&gt; {
+            app.globalData.hasLogin = true;
+
+          });
+          wx.redirectTo({
+            url: &#39;/pages/index/index&#39;
+          });
+          wx.showToast({
+            title: &#39;已经重新登录&#39;,
+          })
+        }
+        if (res.header[&quot;Set-Cookie&quot;]) {
+          wx.setStorageSync(&quot;sessionid&quot;, res.header[&quot;Set-Cookie&quot;])
+        }
+        if (res.statusCode == 200) {
+
+          if (res.data.errno == 501) {
+
+          } else {
+            resolve(res);
+          }
+        } else {
+
+          reject(res);
+        }
+
+      },
+      fail: function(err) {
+        reject(err)
+      }
+    })
+  });
+}
+
+
+
+function getAreaReq(id) {
+  const that = this;
+  return new Promise(function(resolve, reject) {
+    that.request(&quot;****&quot;, JSON.stringify({
+ 
+    }), &quot;post&quot;).then(response =&gt; {
+      console.log(response.data.rs_data)
+
+      resolve(response.data.rs_data);
+
+    })
+  })
+}
+
+
+module.exports = {
+  request,
+  getAreaReq 
+};</code></pre>
+<ul>
+<li>使用静态获取的时候。js如下</li>
+</ul>
+<pre><code><code>var util = require(&#39;../../../utils/util.js&#39;);
+var api = require(&#39;../../../config/api.js&#39;);
+var area = require(&#39;../../../config/area.js&#39;);
+
+var app = getApp();
+Page({
+  data: {
+    address: {
+      id: 0,
+      provinceId: 0,
+      cityId: 0,
+      areaId: 0,
+      address: &#39;&#39;,
+      name: &#39;&#39;,
+      mobile: &#39;&#39;,
+      isDefault: 0,
+      provinceName: &#39;&#39;,
+      cityName: &#39;&#39;,
+      areaName: &#39;&#39;
+    },
+    addressId: 0,
+    openSelectRegion: false,
+    regionType: 1,
+    selectRegionDone: false,
+    szxqList: [],
+    szxq: {
+      id: &quot;&quot;,
+      name: &quot;请选择小区&quot;
+    },
+    szdsList: [],
+    szds: {
+      id: &quot;&quot;,
+      name: &quot;&quot;
+    },
+    fanghao: &quot;&quot;,
+    animationAddressMenu: {},
+    addressMenuIsShow: false,
+    value: [0, 0, 0],
+    provinces: [],
+    citys: [],
+    areas: [],
+    areaInfo: &#39;&#39;,
+    areaJson: {}
+  },
+  bindinputMobile(event) {
+    let address = this.data.address;
+    address.mobile = event.detail.value;
+    this.setData({
+      address: address
+    });
+  },
+  bindinputName(event) {
+    let address = this.data.address;
+    address.name = event.detail.value;
+    this.setData({
+      address: address
+    });
+  },
+  bindinputAddress(event) {
+    let address = this.data.address;
+    address.address = event.detail.value;
+    this.setData({
+      address: address
+    });
+  },
+  bindIsDefault() {
+    let address = this.data.address;
+    address.isDefault = !address.isDefault;
+    this.setData({
+      address: address
+    });
+  },
+  getAddressDetail() {
+    let that = this;
+    util.request(api.AddressDetail, {
+      id: that.data.addressId
+    }).then(function(res) {
+      if (res.errno === 0) {
+        if (res.data) {
+          that.setData({
+            address: res.data
+          });
+        }
+      }
+    });
+  },
+
+  wxChooseAddress() {
+    let that = this;
+    let address = this.data.address;
+    // 用户已经同意小程序使用地址功能
+    wx.chooseAddress({
+      success: function(res) {
+        address.provinceId = 99999;
+        address.cityId = 88888;
+        address.areaId = 77777;
+        address.name = res.userName;
+        address.mobile = res.telNumber;
+        address.provinceName = res.provinceName;
+        address.cityName = res.cityName;
+        address.areaName = res.countyName;
+        address.address = res.provinceName + res.cityName + res.countyName + res.detailInfo;
+
+        that.setData({
+          address: address,
+        });
+      }
+    });
+  },
+
+  wxAddress() {
+    let that = this;
+    // 可以通过 wx.getSetting 先查询一下用户是否授权了 &quot;scope.address&quot; 这个 scope
+    wx.getSetting({
+      success(res) {
+        if (!res.authSetting[&#39;scope.address&#39;]) {
+          wx.authorize({
+            scope: &#39;scope.address&#39;,
+            success() {
+              that.wxChooseAddress();
+            }
+          })
+        } else {
+          that.wxChooseAddress();
+        }
+      }
+    })
+  },
+
+  onLoad: function(options) {
+    let that = this;
+    // 页面初始化 options为页面跳转所带来的参数
+    console.log(options);
+    if (options.id &amp;&amp; options.id != 0) {
+      this.setData({
+        addressId: options.id
+      });
+      this.getAddressDetail();
+    } else {
+      that.wxAddress();
+    }
+  },
+
+
+  onReady: function() {
+
+  },
+
+  cancelAddress() {
+    wx.navigateBack();
+  },
+  saveAddress() {
+    console.log(this.data.address);
+    let address = this.data.address;
+
+    if (address.name == &#39;&#39;) {
+      util.showErrorToast(&#39;请输入姓名&#39;);
+
+      return false;
+    }
+
+    if (address.mobile == &#39;&#39;) {
+      util.showErrorToast(&#39;请输入手机号码&#39;);
+      return false;
+    }
+
+
+    if (address.areaId == 0) {
+      util.showErrorToast(&#39;请输入省市区&#39;);
+      return false;
+    }
+
+    if (address.address == &#39;&#39;) {
+      util.showErrorToast(&#39;请输入详细地址&#39;);
+      return false;
+    }
+
+    if (!check.isValidPhone(address.mobile)) {
+      util.showErrorToast(&#39;手机号不正确&#39;);
+      return false;
+    }
+  },
+  onShow: function() {
+
+    // 获取所在栋数
+    var animation = wx.createAnimation({
+      duration: 500,
+      timingFunction: &#39;linear&#39;,
+    })
+    this.animation = animation
+
+
+
+    util.request(&quot;https://www.xaibox.com/czbb/interface/dataInfo.php&quot;, JSON.stringify({
+      &quot;param_key&quot;: {
+        &quot;info_mode&quot;: &quot;getcity_jd&quot;
+      },
+      &quot;secret_key&quot;: &quot;047709aaa7df22205d818bf4c1707458&quot;
+    }), &quot;post&quot;).then(response =&gt; {
+      console.log(response)
+
+      that.setData({
+        szxqList: response.data.rs_data
+      })
+      that.setData({
+        szxq: response.data.data[0]
+      })
+      that.setData({
+        szds: response.data.data[0][&#39;buildingList&#39;][&#39;0&#39;]
+      })
+      that.setData({
+        szdsList: response.data.data[0][&#39;buildingList&#39;]
+      })
+
+    })
+    // 获取所在地区
+
+
+
+    that.setData({
+      provinces: areajs,
+      citys: areajs[0].children,
+      areas: areajs[0].children ? areajs[0].children[0].children : [],
+      areaJson: {
+        provinces: {
+          id: 40,
+          name: &quot;广东省&quot;
+        },
+        citys: {
+          id: 4006,
+          name: &quot;河源市&quot;
+        },
+        areas: {
+          id: 400602,
+          name: &quot;源城区&quot;
+        }
+      }
+    })
+
+
+    var areas = that.data.areaJson.areas.name == null ? &quot;&quot; : that.data.areaJson.areas.name
+    var areaInfo = that.data.areaJson.provinces.name + &#39;·&#39; + that.data.areaJson.citys.name + &#39;·&#39; + areas
+
+
+    that.setData({
+      areaInfo: areaInfo,
+    })
+  },
+
+  // 点击所在地区弹出选择框
+  select: function(e) {
+    // 如果已经显示，不在执行显示动画
+    if (this.data.addressMenuIsShow) {
+      return false
+    } else {
+      // 执行显示动画
+      this.startAddressAnimation(true)
+    }
+  },
+
+  // 处理省市县联动逻辑
+  cityChange: function(e) {
+    // console.log(this.data.provinces)
+    var value = e.detail.value
+    var provinces = this.data.provinces
+    var citys = this.data.citys
+    var areas = this.data.areas
+    var provinceNum = value[0]
+    var cityNum = value[1]
+    var countyNum = value[2]
+    var that = this;
+    // console.log(provinces)
+    // 如果省份选择项和之前不一样，表示滑动了省份，此时市默认是省的第一组数据，
+    if (this.data.value[0] != provinceNum) {
+      var id = provinces[provinceNum].id
+      // console.log(citys[cityNum])
+      this.setData({
+        value: [provinceNum, 0, 0],
+        citys: provinces[provinceNum].children,
+        areas: provinces[provinceNum].children ? provinces[provinceNum].children[0].children : [],
+        areaJson: {
+          provinces: {
+            id: provinces[provinceNum].code,
+            name: provinces[provinceNum].area
+          },
+          citys: {
+            id: provinces[provinceNum].children[0].code,
+            name: provinces[provinceNum].children[0].area
+          },
+          areas: {
+            id: citys[cityNum].children.length &gt; 0 ? citys[cityNum].children[0].code : null,
+            name: citys[cityNum].children.length &gt; 0 ? citys[cityNum].children[0].area : null
+          }
+        }
+      })
+
+
+    } else if (this.data.value[1] != cityNum) {
+      // 滑动选择了第二项数据，即市，此时区显示省市对应的第一组数据
+      var id = citys[cityNum].id
+
+      this.setData({
+        value: [provinceNum, cityNum, 0],
+        areas: citys[cityNum].children,
+        areaJson: {
+          provinces: {
+            id: provinces[provinceNum].code,
+            name: provinces[provinceNum].area
+          },
+          citys: {
+            id: citys[cityNum].code,
+            name: citys[cityNum].area
+          },
+          areas: {
+            id: citys[cityNum].children.length &gt; 0 ? citys[cityNum].children[0].code : null,
+            name: citys[cityNum].children.length &gt; 0 ? citys[cityNum].children[0].area : null
+          }
+        }
+      })
+    } else {
+      // 滑动选择了区
+
+      this.setData({
+        value: [provinceNum, cityNum, countyNum],
+        areaJson: {
+          provinces: {
+            id: provinces[provinceNum].code,
+            name: provinces[provinceNum].area
+          },
+          citys: {
+            id: citys[cityNum].code,
+            name: citys[cityNum].area
+          },
+          areas: {
+            id: areas[countyNum].code,
+            name: areas[countyNum].area
+          }
+        }
+      })
+      // console.log(that.data.areaJson)
+    }
+  },
+
+  // 执行动画
+  startAddressAnimation: function(isShow) {
+    if (isShow) {
+      // vh是用来表示尺寸的单位，高度全屏是100vh
+      this.animation.translateY(0 + &#39;vh&#39;).step()
+    } else {
+      this.animation.translateY(40 + &#39;vh&#39;).step()
+    }
+    this.setData({
+      animationAddressMenu: this.animation.export(),
+      addressMenuIsShow: isShow,
+    })
+  },
+  // 点击地区选择取消按钮
+  cityCancel: function(e) {
+    this.startAddressAnimation(false)
+  },
+  // 点击地区选择确定按钮
+  citySure: function(e) {
+    var that = this
+    var city = that.data.city
+    var value = that.data.value
+    this.startAddressAnimation(false)
+    // console.log(that.data.areaJson)
+    var areas = that.data.areaJson.areas.name == null ? &quot;&quot; : that.data.areaJson.areas.name
+    // 将选择的城市信息显示到输入框
+    var areaInfo = that.data.areaJson.provinces.name + &#39;·&#39; + that.data.areaJson.citys.name + &#39;·&#39; + areas
+
+    that.setData({
+      areaInfo: areaInfo,
+    })
+  },
+  onHide: function() {
+    // 页面隐藏
+
+  },
+  onUnload: function() {
+    // 页面关闭
+
+  }
+});</code></pre>
+<ul>
+<li>静态获取三级联动 的话则需要文件<a href="https://images-roland.oss-cn-shenzhen.aliyuncs.com/blog/area.js">area.js</a>点击下载</li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

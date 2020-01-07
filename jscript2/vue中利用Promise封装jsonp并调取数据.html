@@ -1,0 +1,119 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue中利用Promise封装jsonp并调取数据' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue中利用Promise封装jsonp并调取数据</center></div><div class='banquan'>原文出处:本文由博客园博主王梓瑞提供。<br/>
+原文连接:https://www.cnblogs.com/wangzirui98/p/11039021.html</div><br>
+    <p>Promise就是一个给一步操作提供的容器，在这个容器里，有两个阶段无法改变的阶段，第一个阶段就是Pending(进行)，第二个阶段就是结果阶段，包含Fulfilled(成功)、Rejected(失败)两个结果。</p>
+<p>这两个结果不会改变。然后结果结束后就会用then来执行相应的结果。</p>
+<pre><code><code>new Promise((resolve,reject)=&gt;{
+  相应操作
+  if(异步操作成功){
+    resolve(value)
+  }else{
+    reject(error)
+  }
+}).then(value=&gt;{
+  // 成功后操作
+}，error=&gt;{
+  // 失败后操作     
+})
+</code></pre>
+<p>用Promise封装jsonp方法</p>
+<pre><code><code>import originJSONP from &#39;jsonp&#39;
+// 这时候Url是不带参数的，我们让data变成参数，data在具体定义获取具体内容的时候再单独配置
+export default function jsonp(url, data, option) {
+  // 看url是否有问号的意思就是只在第一次加参数的时候加一个问号，剩下就是加&amp;
+  url += (url.indexOf(&#39;?&#39;) &lt; 0 ? &#39;?&#39; : &#39;&amp;&#39;) + param(data)
+  return new Promise((resolve, reject) =&gt; {
+    originJSONP(url, option, (err, data) =&gt; {
+      if (!err) {
+        resolve(data)
+      } else {
+        reject(err)
+      }
+    })
+  })
+}
+// 将data数据遍历，前提data是一个数组
+function param(data) {
+  let url = &#39;&#39;
+  for (var k in data) {
+    let value = data[k] !== undefined ? data[k] : &#39;&#39;
+    url += `&amp;${k} = ${encodeURIComponent(value)}`
+  }
+  //删除第一个&amp;符号
+  return url ? url.substring(1) : &#39;&#39;
+}
+</code></pre>
+<p>定义一个重复比较多的配置文件config.js</p>
+<pre><code><code>export const commonParams = {
+  g_tk: 5381,
+  inCharset: &#39;utf-8&#39;,
+  outCharset: &#39;utf-8&#39;,
+  notice: 0,
+  format: &#39;jsonp&#39;
+}
+
+// jsonp默认的options就是jsonpCallback
+export const options = {
+  param: &#39;jsonpCallback&#39;
+}
+export const ERR_OK = 0
+</code></pre>
+<p>然后再进行获取页面方法的封装</p>
+<pre><code><code>import jsonp from &#39;common/js/jsonp&#39;
+import { commonParams, options } from &#39;./config&#39;
+export function getRecommend() {
+  // 获取qq音乐的地址
+  const url =
+    &#39;https://c.y.qq.com/musichall/fcgi-bin/fcg_yqqhomepagerecommend.fcg&#39;
+  // object.assign()方法来合并commonParams对象和后面的对象
+  const data = Object.assign({}, commonParams, {
+    platform: &#39;h5&#39;,
+    uin: 0,
+    needNewCode: 1
+  })
+  // 最后返回的是
+  return jsonp(url, data, options)
+}</code></pre>
+<p>再相应组件中进行调用</p>
+<pre><code><code>&lt;script&gt;
+import { getRecommend } from &#39;api/recommend&#39;
+import { ERR_OK } from &#39;api/config&#39;
+export default {
+  created() {
+    this._getRecommend()
+  },
+  methods: {
+    _getRecommend() {
+      getRecommend().then(res =&gt; {
+        if (res.code === ERR_OK) {
+          console.log(res.data.slider)
+        }
+      })
+    }
+  }
+}
+&lt;/script&gt;</code></pre>
+<p>然后就可以在控制台获得数据了</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

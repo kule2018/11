@@ -1,0 +1,223 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Javascript模块化开发3——Grunt之预处理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Javascript模块化开发3——Grunt之预处理</center></div><div class='banquan'>原文出处:本文由博客园博主Jingle Guo提供。<br/>
+原文连接:https://www.cnblogs.com/studynote/p/11890088.html</div><br>
+    <h1 id="一grunt预处理简述">一、grunt预处理简述</h1>
+<p>grunt的注册任务函数本身会对传入的参数和配置对象里的相关属性进行一定的预处理，方便任务函数进行操作。<br />
+grunt的registerTask方法和registerMultiTask方法会进行不同的预处理。</p>
+<h1 id="二预处理参数">二、预处理参数</h1>
+<p>grunt命令通过grunt taskname:arg1:arg2形式的脚本来传入参数。<br />
+grunt会给task对象增加nameArgs属性，其值为&quot;taskname:arg1:arg2&quot;<br />
+grunt会给task对象增加name属性，其值为&quot;taskname&quot;<br />
+grunt会给task对象增加args属性，registerTask方法下其值为 [ 'arg1', 'arg2' ]，registerMultiTask方法下其值为 ['arg2' ]<br />
+grunt会给task对象增加flags属性，registerTask方法下其值为 [ arg1:true, arg2:true ]，registerMultiTask方法下其值为 [arg2::true]<br />
+grunt会将args作为参数传给任务的执行函数，registerTask方法下会将arg1，arg2作为执行函数的参数，registerMultiTask方法下会将arg2作为执行函数的参数。</p>
+<h1 id="三registertask预处理配置对象">三、registerTask预处理配置对象</h1>
+<p>grunt会为task对象新增options方法，该方法可以用来获取配置参数下与task名称对应属性下options属性中的值。例如</p>
+<pre><code><code>module.exports = function(grunt) {
+    grunt.initConfig({
+        hello: {
+            options: {
+                who: &#39;Kate&#39;
+            }
+        }
+    });
+    grunt.registerTask(&quot;hello&quot;, function() {
+        var options = this.options({ who: &#39;unknown&#39; });
+       console.log(&#39;hello,&#39;+options.who); //hello,Kate
+    });
+};</code></pre>
+<h1 id="四registermultitask预处理配置对象">四、registerMultiTask预处理配置对象</h1>
+<p>grunt会为task对象新增options方法，该方法除了会获取配置参数下与task名称对应属性下options属性中的值，其值还会进一步被目标级的options对象的属性覆盖，例如</p>
+<pre><code><code>module.exports = function(grunt) {
+  grunt.initConfig({
+    hello: {
+      options: {
+        who: &#39;Kate&#39;
+      },
+      Jingle:{
+        options: {
+          who: &#39;Jingle&#39;
+        }
+      }
+    }
+  });
+  grunt.registerMultiTask(&quot;hello&quot;, function() {
+    var options = this.options({ who: &#39;unknown&#39; });
+    console.log(&#39;hello,&#39;+options.who); //hello,Jingle
+  });
+};</code></pre>
+<p>复合任务会依次执行其所包含的所有除了options以外的已命名的子属性。相应的，注册复合任务的方法也会依次预处理除了options以外的已命名的子属性。<br />
+每轮任务中，grunt会为task对象赋予target属性，target属性值为配置对象当前正被遍历的目标的名称。data属性值为配置对象当前正被遍历的目标对应的数据。如上例中，在子任务Log:Jingle中，target为Jingle，data为：</p>
+<pre><code><code>{
+  options: {
+    who: &#39;Jingle&#39;
+  }
+}</code></pre>
+<p>由于大多的任务都是执行文件操作，Grunt的注册复合任务的方法中会尽量的将data进一步处理，将其支持的各种格式自动标准化为一个唯一的格式：文件数组格式并将其赋值给任务对象的files属性。<br />
+Grunt支持如下的文件模式：</p>
+<h2 id="最简格式">1.最简格式</h2>
+<p>这个是定义文件数组的最简单的模式，直接定义文件字符串或文件名数组，对应files[0].src, target属性值对应files[0].dest。该格式不支持附加属性。</p>
+<h2 id="简洁格式">2.简洁格式</h2>
+<p>简洁格式（Compact Format）允许单独定义src或dest，支持附加属性，直接对应files[0]。</p>
+<h2 id="文件对象格式">3.文件对象格式</h2>
+<p>文件对象格式（Files Object Format）支持多个src-dest映射，属性名是目标文件，属性值是源文件。可利用该格式指定多个映射，但是不支持附加属性。</p>
+<h2 id="文件数组格式">4.文件数组格式</h2>
+<p>文件数组格式（Files Array Format）是files属性所使用的格式，支持附加属性，如果不设置expand为true，则相当于将data直接赋值给files。</p>
+<h2 id="实例">5.实例</h2>
+<pre><code><code>module.exports = function(grunt) {
+  grunt.initConfig({
+    Log: {
+      jian1:&quot;1.txt&quot;, //最简格式
+      jian2:[&quot;1.txt&quot;,&quot;2.txt&quot;], //最简格式
+      compact:{dest:&quot;/dist&quot;,prop1:true}, //简洁格式
+      fileobject: { //文件对象格式
+        files: {
+          &#39;dest/a.js&#39;: [&#39;src/aa.js&#39;, &#39;src/aaa.js&#39;],
+          &#39;dest/a1.js&#39;: [&#39;src/aa1.js&#39;, &#39;src/aaa1.js&#39;]
+        }
+      },
+      filearray: {  //文件数组格式
+        files: [
+          {src: [&#39;src/a.js&#39;, &#39;src/b.js&#39;], dest: &#39;dest/a/&#39;, nonull:true,prop1:true},
+          {src: [&#39;src/a1.js&#39;, &#39;src/b1.js&#39;], dest: &#39;dest/a1/&#39;, filter: &#39;isFile&#39;}
+        ]
+      }
+    }
+  });
+  grunt.registerMultiTask(&quot;Log&quot;, function() {
+    console.log(this.files); 
+  });
+};</code></pre>
+<p>输出为：</p>
+<pre><code><code>[
+  {
+    src: [Getter],
+    dest: &#39;jian1&#39;,
+    orig: { src: [Array], dest: &#39;jian1&#39; }
+  }
+]
+
+Running &quot;Log:jian2&quot; (Log) task
+[
+  {
+    src: [Getter],
+    dest: &#39;jian2&#39;,
+    orig: { src: [Array], dest: &#39;jian2&#39; }
+  }
+]
+
+Running &quot;Log:compact&quot; (Log) task
+[
+  {
+    dest: [ &#39;1.txt&#39; ],
+    prop1: true,
+    orig: { dest: &#39;/dist&#39;, prop1: true }
+  }
+]
+
+Running &quot;Log:fileobject&quot; (Log) task
+[
+  {
+    src: [Getter],
+    dest: &#39;dest/a.js&#39;,
+    orig: { src: [Array], dest: &#39;dest/a.js&#39; }
+  },
+  {
+    src: [Getter],
+    dest: &#39;dest/a1.js&#39;,
+    orig: { src: [Array], dest: &#39;dest/a1.js&#39; }
+  }
+]
+
+Running &quot;Log:filearray&quot; (Log) task
+[
+  {
+    src: [Getter],
+    dest: &#39;dest/a/&#39;,
+    nonull: true,
+    prop1: true,
+    orig: { src: [Array], dest: &#39;dest/a/&#39;, nonull: true, prop1: true }
+  },
+  {
+    src: [Getter],
+    dest: &#39;dest/a1/&#39;,
+    filter: &#39;isFile&#39;,
+    orig: { src: [Array], dest: &#39;dest/a1/&#39;, filter: &#39;isFile&#39; }
+  }
+]</code></pre>
+<h1 id="五动态构建文件数组">五、动态构建文件数组</h1>
+<p>当你希望处理大量的单个文件时，可以通过匹配和一些替换操作来动态构建一个文件列表。只有Compact和Files Array文件映射格式支持这种动态构建文件数组的方式，这时需要在src中增加一些通配符，并附加一些额外的属性，最重要的是，我们需要将expand设置为true来开启这种操作。grunt默认支持的属性有：</p>
+<h2 id="src必须">1.src(必须)</h2>
+<p>定义源文件。可为字符串或数组，可包含通配符。<br />
+简单常用通配符如下：</p>
+<ul>
+<li>*匹配任意数量的字符，但不匹配 /</li>
+<li>?匹配单个字符，但不匹配 /</li>
+<li>**匹配任意数量的字符，包括 /，只要它是路径中唯一的一部分</li>
+<li>{}允许使用一个逗号分割的字符列表,用来匹配字符列表中的任一个字符，如{a,b}匹配a或者b</li>
+<li>!在模式的开头用于排除该匹配模式所匹配的任何文件，例如</li>
+</ul>
+<pre><code><code>// 除bar.js之外的所有的.js文件，按字母顺序排序：
+{src: [&#39;foo/*.js&#39;, &#39;!foo/bar.js&#39;], dest: ...}
+// 按字母顺序排序的所有.js文件，但是bar.js在最后。
+{src: [&#39;foo/*.js&#39;, &#39;!foo/bar.js&#39;, &#39;foo/bar.js&#39;], dest: ...}</code></pre>
+<h2 id="dest必须">2.dest(必须)</h2>
+<p>目标文件路径前缀。只能为字符串</p>
+<h2 id="cwd">3.cwd</h2>
+<p>所有src指定的匹配都将相对于此处指定的路径（但不包括此路径）</p>
+<pre><code><code>{cwd:&#39;foo&#39;, src: [&#39;*.js&#39;, &#39;!bar.js&#39;], dest: ...}</code></pre>
+<p>相当于</p>
+<pre><code><code>{src: [&#39;foo/*.js&#39;, &#39;!foo/bar.js&#39;], dest: ...}</code></pre>
+<h2 id="ext">4.ext</h2>
+<p>对于生成的dest路径中所有实际存在文件，均使用这个属性值替换扩展名。</p>
+<h2 id="extdot">5.extDot</h2>
+<p>用于指定标记扩展名的英文点号的所在位置。可以赋值 'first' （扩展名从文件名中的第一个英文点号开始） 或 'last' （扩展名从最后一个英文点号开始），默认值为 'first'。</p>
+<h2 id="flatten">6.flatten</h2>
+<p>从生成的dest路径中移除所有的路径部分。</p>
+<h2 id="rename">7.rename</h2>
+<p>对每个匹配的src文件调用这个函数(在重命名后缀和移除路径之后)。dest和匹配的src路径将被作为参数传入，此函数应该返回一个新的dest值。 如果相同的dest返回不止一次，那么，每个返回此值的src来源都将被添加到一个数组中作为源列表。</p>
+<h2 id="filter">8.filter</h2>
+<p>filter属性对匹配到的源文件进行过滤，去除不符合条件的源文件。<br />
+filter属性可定义为任意一个有效的fs.Stats方法名：</p>
+<pre><code><code>grunt.initConfig({
+  clean: {
+    foo: {
+      src: [&#39;tmp/**/*&#39;],
+      filter: &#39;isFile&#39;,
+    },
+  },
+});</code></pre>
+<p>或者定义你自己的filter函数，通过返回true或者false来保留或者过滤文件。下面的例子会将字符串长度小于4的文件名过滤掉：</p>
+<pre><code><code>grunt.initConfig({
+  clean: {
+    foo: {
+      src: [&#39;tmp/**/*&#39;],
+      filter: function(filepath) {
+        return filepath.length &gt;= 4;
+      },
+    },
+  },
+});</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

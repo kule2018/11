@@ -1,0 +1,223 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【nodejs原理&amp;源码赏析（9）】用node-ssh实现轻量级自动化部署' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【nodejs原理&amp;源码赏析（9）】用node-ssh实现轻量级自动化部署</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11293667.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-需求描述">一. 需求描述</a></li>
+        <li><a href="#二.-预备知识">二. 预备知识</a><ul>
+        <li><a href="#ip端口访问">IP+端口访问</a></li>
+        <li><a href="#域名访问">域名访问</a></li>
+        </ul></li>
+        <li><a href="#三.-nodejs应用的手动部署">三. Nodejs应用的手动部署</a></li>
+        <li><a href="#四.-基于nodejs的自动部署">四. 基于nodejs的自动部署</a><ul>
+        <li><a href="#package.json中的scripts">4.1 package.json中的scripts</a></li>
+        <li><a href="#自动化发布脚本deploy.js">4.2 自动化发布脚本deploy.js</a></li>
+        <li><a href="#远端脚本deploy.sh">4.3 远端脚本deploy.sh</a></li>
+        </ul></li>
+        <li><a href="#五.-小结">五. 小结</a></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/【nodejs原理&amp;源码赏析（9）】用node-ssh实现轻量级自动化部署0.png" /></p>
+<blockquote>
+<p>示例代码托管在：<a href="http://www.github.com/dashnowords/blogs" class="uri">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<h2 id="一.-需求描述">一. 需求描述</h2>
+<p>前端工程出包后实现简易的自动化部署。</p>
+<h2 id="二.-预备知识">二. 预备知识</h2>
+<p>网站的建设可以使用任何自己熟悉的框架，三大框架都有自己的官方<code>Cli</code>工具，从代码编写到生成可用于生产环境部署的包基本都有自动化命令，各个打包工具也在<strong>零配置</strong>的追求上做了很多工作。本篇中从得到一个生产环境的包以后开始，对站点部署的相关知识进行一些介绍。</p>
+<p>首先你需要一个Web服务器，常见的有:</p>
+<ul>
+<li><code>Nginx</code></li>
+<li><code>Tomcat</code></li>
+<li><code>Apache</code>或相关集成环境
+<ul>
+<li><code>XAMMP</code>【<code>Apache</code>+<code>MySQL</code>+<code>PHP</code>+<code>PERL</code> 】</li>
+<li><code>LAMP</code>【<code>Linux</code>+<code>Apache</code>+<code>MySQL</code>+<code>PHP</code>】</li>
+</ul></li>
+<li><code>nodejs</code>或相关框架+守护进程
+<ul>
+<li><code>Express</code></li>
+<li><code>Koa2</code></li>
+</ul></li>
+</ul>
+<p>以上任何一种在服务器上运行起来后都可以担任<strong>Web服务器</strong>的角色，只是具备的扩展功能和应用场景有区别，<code>Nginx</code>基本上是正式环境部署的首选方案。常见的基本部署方案如下：</p>
+<h3 id="ip端口访问">IP+端口访问</h3>
+<p>使用访问，可直接访问对应端口的服务，部署方式相对简单：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（9）】用node-ssh实现轻量级自动化部署1.png" /></p>
+<h3 id="域名访问">域名访问</h3>
+<p>使用域名访问时，通常会使用A记录进行解析，它只能映射到80端口（https时映射到443），这时就需要使用反向代理将<code>80</code>端口的请求分发到本地不同的内部端口来访问对应服务：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（9）】用node-ssh实现轻量级自动化部署2.png" /></p>
+<p>本例中使用<code>域名+IP</code>的方式进行部署。</p>
+<h2 id="三.-nodejs应用的手动部署">三. Nodejs应用的手动部署</h2>
+<p><img src="./images/【nodejs原理&amp;源码赏析（9）】用node-ssh实现轻量级自动化部署3.png" /></p>
+<p>以<code>Express</code>为例，步骤如下：</p>
+<ol>
+<li>首先通过<code>yarn global add express-generator</code>或<code>npm install express-generator -g</code>全局安装脚手架</li>
+<li>完成后在工作目录通过命令行<code>express mydemo --ejs</code>生成一个使用<code>ejs</code>作为模板渲染引擎的<code>express</code>工程</li>
+<li>命令行输入<code>cd mydemo &amp;&amp; yarn</code>或<code>cd mydemo &amp;&amp; npm install</code>安装依赖</li>
+<li>在<code>/bin/www</code>文件中修改端口号为期望的端口号（自动生成的是80端口），例如<code>3001</code></li>
+<li>将前端工程build出的包整体复制粘贴到<code>/public</code>目录中</li>
+<li>此时在本地工程根目录下输入<code>npm start</code>后，在浏览器中<code>http://localhost:3001</code>就可以访问到网站了</li>
+<li>使用FTP工具(如<code>FlashFxp</code>或<code>FileZilla Client</code>等)连接到部署机器，将<code>mydemo</code>目录压缩为<code>zip</code>包后上传到服务器指定目录。</li>
+<li>使用SSH工具(如<code>Xshell</code>或<code>MobaXter</code>)登录远程机器，假设为<code>linux</code>系统，输入<code>unzip mydemo.zip</code>解压压缩包，然后<code>cd mydemo</code>进入服务端工程，输入<code>npm start</code>即可在服务器上开启Web服务，通过<code>ip地址:3001</code>就可以访问到网站。</li>
+<li>但是如果此时<code>SSH</code>工具断开连接，就会发现<code>express</code>应用无法继续访问了，所以还需要一个守护进程来维持应用的启动状态，在服务端通过<code>npm install pm2 -g</code>来安装<code>nodejs</code>应用的部署管理模块，它可以实现多应用管理、Hook更新、自动重启等等许多常用功能，详细信息可以访问 <a href="http://pm2.keymetrics.io/">【PM2官方网站】</a>。</li>
+<li>最后，在工程根目录输入<code>pm2 start ./bin/www</code>即可以后台模式运行应用。</li>
+</ol>
+<h2 id="四.-基于nodejs的自动部署">四. 基于nodejs的自动部署</h2>
+<h3 id="package.json中的scripts">4.1 package.json中的scripts</h3>
+<p>了解了手动部署的过程后，就可以通过自动化脚本来实现后续的更新和部署。<code>nodejs</code>工程的自动化是依赖于<code>package.json</code>文件中的<code>scripts</code>配置项来实现的，例如使用<code>vue-cli</code>搭建的工程中就会带有：</p>
+<pre><code><code>{
+    ...
+    &quot;scripts&quot;: {
+        &quot;serve&quot;: &quot;vue-cli-service serve&quot;,
+        &quot;build&quot;: &quot;vue-cli-service build&quot;,
+        &quot;lint&quot;: &quot;vue-cli-service lint&quot;
+      },
+    ...
+}</code></pre>
+<p>在项目根目录下打开命令行，输入<code>npm run [script-key]</code>或者<code>yarn [script-key]</code>（<code>[script-key]</code>指上面示例中的serve,build,lint这些键名），就会执行对应的<code>scripts[key]</code>对应的命令。我们先添加一条用于自动部署的脚本指令:</p>
+<pre><code><code>{
+    ...
+    &quot;scripts&quot;: {
+        &quot;build&quot;: &quot;vue-cli-service build&quot;,
+        &quot;deploy&quot; &quot;node ./scripts/deploy/deploy.js&quot;
+      },
+    ...
+}</code></pre>
+<p>当输入<code>npm run deploy</code>或<code>yarn deploy</code>时，实际上就相当于用node去执行<code>./scripts/deploy/deploy.js</code>这个脚本，其中就编写了自动化发布的指令。<code>scripts</code>还提供了生命周期钩子，比如你对接的是一个测试环境，希望每次build后自动发布，就可以使用<strong>post</strong>钩子来实现：</p>
+<pre><code><code>{
+    ...
+    &quot;scripts&quot;: {
+        &quot;build&quot;: &quot;vue-cli-service build&quot;,
+        &quot;postbuild&quot;:&quot;npm run deploy&quot;,
+        &quot;deploy&quot; &quot;node ./scripts/deploy/deploy.js&quot;
+      },
+    ...
+}</code></pre>
+<p>这样每次build执行完毕后，就会自动执行<code>npm run deploy</code>，也就是运行发布的脚本。</p>
+<h3 id="自动化发布脚本deploy.js">4.2 自动化发布脚本deploy.js</h3>
+<p>自动化发布脚本需要完成这样几个任务：</p>
+<ul>
+<li>将打包出的<code>dist</code>压缩为<code>zip</code>包</li>
+<li>使用SSH连接部署服务器，将<code>zip</code>包发上去</li>
+<li>上传完毕后，启动事先写好后续任务并放在服务器上的<code>shell</code>脚本来完成剩余的工作</li>
+</ul>
+<p>涉及的几个模块包括实现SSH连接的<code>node-ssh</code>模块（底层是<code>ssh2</code>模块，这个模块是一个Promise封装），用于制作<code>zip</code>压缩包的<code>archiver</code>模块。<code>node-ssh</code>提供了上传本地目录的方法，但实际使用过程中发现并不稳定，从告警信息来看是<code>node-stream</code>模块在传送时将不同格式的文件转换为流时可能会出现异常，实测大约有一半概率触发，尝试修改了一些配置参数并未解决，所以采用<code>archiver</code>模块先压缩为单个文件后再进行上传。</p>
+<p>参考代码如下：</p>
+<pre><code><code>const path = require(&#39;path&#39;);
+const archiver =require(&#39;archiver&#39;);
+const fs = require(&#39;fs&#39;);
+const node_ssh = require(&#39;node-ssh&#39;);
+const ssh = new node_ssh();
+const srcPath = path.resolve(__dirname,&#39;../../dist&#39;);
+const configs = require(&#39;./config&#39;);
+
+console.log(&#39;开始压缩dist目录...&#39;);
+startZip();
+
+//压缩dist目录为public.zip
+function startZip() {
+    var archive = archiver(&#39;zip&#39;, {
+        zlib: { level: 5 } //递归扫描最多5层
+    }).on(&#39;error&#39;, function(err) {
+        throw err;//压缩过程中如果有错误则抛出
+    });
+    
+    var output = fs.createWriteStream(__dirname + &#39;/public.zip&#39;)
+     .on(&#39;close&#39;, function(err) {
+         /*压缩结束时会触发close事件，然后才能开始上传，
+           否则会上传一个内容不全且无法使用的zip包*/
+         if (err) {
+            console.log(&#39;关闭archiver异常:&#39;,err);
+            return;
+         }
+         console.log(&#39;已生成zip包&#39;);
+         console.log(&#39;开始上传public.zip至远程机器...&#39;);
+         uploadFile();
+     });
+
+    archive.pipe(output);//典型的node流用法
+    archive.directory(srcPath,&#39;/public&#39;);//将srcPach路径对应的内容添加到zip包中/public路径
+    archive.finalize();
+}
+
+//将dist目录上传至正式环境
+function uploadFile() {
+    ssh.connect({ //configs存放的是连接远程机器的信息
+        host: configs.host,
+        username: configs.user,
+        password: configs.password,
+        port:22 //SSH连接默认在22端口
+    }).then(function () {
+        //上传网站的发布包至configs中配置的远程服务器的指定地址
+        ssh.putFile(__dirname + &#39;/public.zip&#39;, configs.path).then(function(status) {
+                console.log(&#39;上传文件成功&#39;);
+                console.log(&#39;开始执行远端脚本&#39;);
+                startRemoteShell();//上传成功后触发远端脚本
+          }).catch(err=&gt;{
+             console.log(&#39;文件传输异常:&#39;,err);
+             process.exit(0);
+          });
+    }).catch(err=&gt;{
+        console.log(&#39;ssh连接失败:&#39;,err);
+        process.exit(0);
+    });
+}
+
+//执行远端部署脚本
+function startRemoteShell() {
+    //在服务器上cwd配置的路径下执行sh deploy.sh脚本来实现发布
+    ssh.execCommand(&#39;sh deploy.sh&#39;, { cwd:&#39;/usr/bin/XXXXX&#39; }).then(function(result) {
+        console.log(&#39;远程STDOUT输出: &#39; + result.stdout)
+        console.log(&#39;远程STDERR输出: &#39; + result.stderr)
+        if (!result.stderr){
+            console.log(&#39;发布成功!&#39;);
+            process.exit(0);
+        }
+    });
+}</code></pre>
+<h3 id="远端脚本deploy.sh">4.3 远端脚本deploy.sh</h3>
+<p>当发布包上传至远程服务器后，剩余的工作在远端来完成就可以了，你只需要将后续的工作写进<code>shell</code>脚本并放在对应的目录里就可以了，本例中<code>deploy.sh</code>放在了服务端项目目录<code>/mydemo</code>中。示例如下（由于是自用系统，不考虑灰度发布等，直接暴力删除静态目录public,然后替换为新的包）：</p>
+<pre class="powershell"><code>#!/bin/bash
+cd /usr1/AAA/mydemo
+#删除原静态资源目录
+rm -rf public
+cd /usr1/AAA
+#解压新的包
+unzip public.zip
+#将解压出的public目录移动到服务端程序目录BBB中
+mv public ./mydemo</code></pre>
+<blockquote>
+<p>提示：</p>
+<p>如果脚本文件是在windows下编写的，请注意将编辑器中的回车换行改为<code>LF</code>，windows下通常默认是<code>CRLF</code>，这可能会导致脚本在linux机器上无法正常执行。</p>
+</blockquote>
+<p>至此，一个简易的自动化部署就做完了。你只需要在本地输入<code>npm run deploy</code>，后续的工作就会自动执行。</p>
+<h2 id="五.-小结">五. 小结</h2>
+<p>本篇只是一个简易的自动化部署流程，由于部署环境没有外网所以暂时无法借助通用的自动化流水线实现全自动的<code>DevOps</code>流程。<code>PM2</code>实际上还有非常多实用的功能，可以管理多个不同的应用实例，以集群模式运行实例，或者预设发布流程，可以直接响应<code>Web Hook</code>并对接指定的代码仓，在根目录下建立<code>ecosystem.config.js</code>配置文件就可以添加更多配置来指定<code>pm2</code>的表现，感兴趣的读者可以研究一下。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

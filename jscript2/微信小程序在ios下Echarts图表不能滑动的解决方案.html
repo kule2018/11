@@ -1,0 +1,106 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信小程序在ios下Echarts图表不能滑动的解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信小程序在ios下Echarts图表不能滑动的解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主韩子卢提供。<br/>
+原文连接:https://www.cnblogs.com/vvjiang/p/11161103.html</div><br>
+    <h2 id="问题现象">问题现象</h2>
+<p>这个问题的现象说起来很简单。</p>
+<p>小程序页面中有一篇很长的文章，内部有一个Echarts图表，手指上下滑动观看内容。</p>
+<p>但是手指滑动区域在Echarts图表上时，页面却不能滑动了。</p>
+<p>如下图：<br />
+<img src="./images/微信小程序在ios下Echarts图表不能滑动的解决方案0.png" /></p>
+<h2 id="追踪问题原因">追踪问题原因</h2>
+<p>因为在小程序上渲染图表用到的是<a href="https://github.com/ecomfe/echarts-for-weixin/blob/master/pages/index/index.wxml">echarts-for-weixin</a>这个组件,而这个组件确实不支持一些Echarts功能。</p>
+<p>所以最开始我怀疑是这个组件的问题，认为它把我的滑动事件给吞了。</p>
+<p>为了确认这个问题，我直接在这个组件ec-canvas旁加了个兄弟节点view，然后用绝对定位将其覆盖在ec-canvas，这样滑动的时候就会滑动到我的view上而不是ec-canvas。</p>
+<p><img src="./images/微信小程序在ios下Echarts图表不能滑动的解决方案1.png" /></p>
+<p>但是结果在ios下，还是不能滑动。</p>
+<p>于是我给这个view的加了个背景色，在ios下的真机调试时发现，ec-canvas组件还是在view上面。</p>
+<p>不论是加大view上的z-index值，还是将absolute改为fixed，反正ec-canvas组件所渲染的图表就是在view上面，而没有被view遮挡。</p>
+<p>这个ec-canvas组件是如此出众，无论什么都遮盖不了它的风采。</p>
+<p>而导致它如此出众的原因就是：图表是一个canvas组件，而小程序中canvas是一个原生组件。</p>
+<p>接下来就让我们看看小程序中使用原生组件的限制。</p>
+<h2 id="小程序的原生组件使用限制">小程序的原生组件使用限制</h2>
+<p>这里先附上链接：<a href="https://developers.weixin.qq.com/miniprogram/dev/component/native-component.html#%E5%8E%9F%E7%94%9F%E7%BB%84%E4%BB%B6%E7%9A%84%E4%BD%BF%E7%94%A8%E9%99%90%E5%88%B6">小程序原生组件使用限制</a>。</p>
+<p>让我们看看关键的地方：</p>
+<p><img src="./images/微信小程序在ios下Echarts图表不能滑动的解决方案2.png" /></p>
+<p>也就是说canvas这类原生组件就是比view这种非原生的组件层级高。</p>
+<h2 id="用cover-view来解决">用cover-view来解决？</h2>
+<p>为了解决原生组件层级最高的限制。小程序专门提供了 cover-view 和 cover-image 组件，可以覆盖在部分原生组件上面。这两个组件也是原生组件。</p>
+<p>我将原来的兄弟view组件替换为了cover-view组件，然后希望达到可以滑动的效果。</p>
+<p>虽然此时cover-view组件已经可以覆盖在canvas上了，但是依然不能滑动。</p>
+<p>关于这个问题，我们可以认为小程序的所有组件都是放在webview中，而原生组件在webview中用的是占位符。</p>
+<p>在滚动时，获取原生组件占位符的位置，再改变原生组件的位置。（如果仔细观察，会发现这些原生组件有时会产生一些奇怪的抖动，这一点可以佐证这个论点。）</p>
+<p>所以ios下，我们手指在canvas和cover-view这类原生组件上滑动时，事件是不会传导到webview上的，页面也就不会滑动。</p>
+<h2 id="最终解决方案">最终解决方案</h2>
+<p>对于这个问题，因为我这边和echarts的交互比较少，所以我的解决方案就是在echarts渲染完毕后将它替换为一张图片。</p>
+<p>如果我更新了数据，那么就重新放出echarts，等它渲染完毕后，再次替换为一张图片。</p>
+<p>由于公司代码不适合放出，所以我搞了个简易版的代码放在这里。</p>
+<p>wxml文件关键代码：</p>
+<pre><code><code>&lt;view class=&quot;echart-container&quot;&gt;
+  &lt;image wx:if=&quot;{{echartImgSrc!==&#39;&#39;}}&quot; src=&quot;{{echartImgSrc}}&quot; class=&#39;echart-img&#39;&gt;&lt;/image&gt;
+  &lt;ec-canvas wx:if=&quot;{{echartImgSrc===&#39;&#39;}}&quot; id=&quot;mychart-dom-pie&quot; canvas-id=&quot;mychart-pie&quot; ec=&quot;{{ ec }}&quot; bind:init=&quot;echartInit&quot;&gt;&lt;/ec-canvas&gt;
+&lt;/view&gt;</code></pre>
+<p>js文件关键代码：</p>
+<pre><code><code>Page({
+  data: {
+    ec: {
+    },
+    echartImgSrc: &#39;&#39;
+  },
+  initChart(canvas, width, height) {
+    const chart = echarts.init(canvas, null, {
+      width: width,
+      height: height
+    });
+    canvas.setChart(chart);
+
+    var option = {
+      // ...
+    };
+    chart.on(&#39;finished&#39;, () =&gt; {
+      this.selectComponent(&#39;#mychart-dom-pie&#39;).canvasToTempFilePath({
+        success: res =&gt; {
+          this.setData({
+            echartImgSrc: res.tempFilePath
+          })
+        },
+        fail: res =&gt; console.log(&#39;转换图片失败&#39;, res)
+      });
+    })
+    chart.setOption(option);
+    return chart;
+  },
+
+  echartInit(e) {
+    this.initChart(e.detail.canvas, e.detail.width, e.detail.height);
+  }
+});</code></pre>
+<h2 id="总结">总结</h2>
+<p>总的来说，解决起来还算简单。</p>
+<p>但是对于和Echarts有很多交互的场景，这个方案就未必那么好实现了。</p>
+<p>从这个问题入手，我对微信小程序原生组件的玩法有了更多的认识。</p>
+<p>更深入一点的认识就是，微信小程序当下对原生组件的这种处理更像是在一件普通的布衣上贴上貂皮补丁。</p>
+<p>虽然考虑到了原生组件所带来的性能优势，但是同样也会引发大量的问题，对于这件衣服的整体表现而言这些貂皮补丁恐怕并不见得是件好事。</p>
+<p>希望以后小程序能从根本上解决这种问题吧。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

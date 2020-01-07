@@ -1,0 +1,421 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Webpack探索【15】--- 基础构建原理详解（模块如何被组建&amp;如何加载）&amp;源码解读' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Webpack探索【15】--- 基础构建原理详解（模块如何被组建&amp;如何加载）&amp;源码解读</center></div><div class='banquan'>原文出处:本文由博客园博主゛墨メ冰ミ提供。<br/>
+原文连接:https://www.cnblogs.com/zhaoweikai/p/10945771.html</div><br>
+    <p>本文主要说明Webpack模块构建和加载的原理，对构建后的源码进行分析。</p>
+<h2>&nbsp;一 说明</h2>
+<p>本文以一个简单的示例，通过对构建好的bundle.js源码进行分析，说明Webpack的基础构建原理。</p>
+<p>本文使用的Webpack版本是4.32.2版本。</p>
+<p>注意：之前也分析过Webpack3.10.0版本构建出来的bundle.js，通过和这次的Webpack 4.32.2版本对比，核心的构建原理基本一致，只是将模块索引id改为文件路径和名字、模块代码改为了eval(moduleString)执行的方式等一些优化改造。</p>
+<h2>二 示例</h2>
+<p><strong>1）Webpack.config.js文件内容：</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> const path = require('path'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> module.exports =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 4</span>     entry: './src/index.js'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">    output: {
+</span><span style="color: #008080;"> 6</span>         filename: 'bundle.js'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 7</span>         path: path.resolve(__dirname, 'dist'<span style="color: #000000;">)
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">    },
+</span><span style="color: #008080;"> 9</span>     mode: 'development' <span style="color: #008000;">//</span><span style="color: #008000;"> 'production' 用于配置开发还是发布模式</span>
+<span style="color: #008080;">10</span> };</pre>
+</div>
+<p><strong>2）创建src文件夹，添加入口文件index.js:</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> import moduleLog from './module.js'<span style="color: #000000;">;
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> document.write('index.js loaded.'<span style="color: #000000;">);
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> moduleLog();</pre>
+</div>
+<p><strong>3）在src目录下创建module.js文件：</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> export <span style="color: #0000ff;">default</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">2</span>     document.write('module.js loaded.'<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> }</pre>
+</div>
+<p>4）package.json文件内容：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 2</span>   "name": "webpack-demo"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 3</span>   "version": "1.0.0"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 4</span>   "description": ""<span style="color: #000000;">,
+</span><span style="color: #008080;"> 5</span>   "main": "index.js"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span>   "scripts"<span style="color: #000000;">: {
+</span><span style="color: #008080;"> 7</span>     "test": "echo \"Error: no test specified\" &amp;&amp; exit 1"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 8</span>     "webpack": "webpack"
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">10</span>   "keywords"<span style="color: #000000;">: [],
+</span><span style="color: #008080;">11</span>   "author": ""<span style="color: #000000;">,
+</span><span style="color: #008080;">12</span>   "license": "ISC"<span style="color: #000000;">,
+</span><span style="color: #008080;">13</span>   "devDependencies"<span style="color: #000000;">: {
+</span><span style="color: #008080;">14</span>     "webpack": "^4.32.2"<span style="color: #000000;">,
+</span><span style="color: #008080;">15</span>     "webpack-cli": "^3.3.2"
+<span style="color: #008080;">16</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">17</span>   "dependencies"<span style="color: #000000;">: {
+</span><span style="color: #008080;">18</span>     "lodash": "^4.17.4"
+<span style="color: #008080;">19</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">20</span> }</pre>
+</div>
+<h2>三 执行构建</h2>
+<p>执行构建命令：npm run webpack</p>
+<p>在dist目录下生成的bundle.js源码如下（下边代码是将注释去掉、压缩的代码还原后的代码）：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (modules) {
+</span><span style="color: #008080;">  2</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> The module cache</span>
+<span style="color: #008080;">  3</span>     <span style="color: #0000ff;">var</span> installedModules =<span style="color: #000000;"> {};
+</span><span style="color: #008080;">  4</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> The require function</span>
+<span style="color: #008080;">  5</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> __webpack_require__(moduleId) {
+</span><span style="color: #008080;">  6</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Check if module is in cache</span>
+<span style="color: #008080;">  7</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (installedModules[moduleId]) {
+</span><span style="color: #008080;">  8</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> installedModules[moduleId].exports;
+</span><span style="color: #008080;">  9</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 10</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Create a new module (and put it into the cache)</span>
+<span style="color: #008080;"> 11</span>         <span style="color: #0000ff;">var</span> module = installedModules[moduleId] =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 12</span> <span style="color: #000000;">            i: moduleId,
+</span><span style="color: #008080;"> 13</span>             l: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 14</span> <span style="color: #000000;">            exports: {}
+</span><span style="color: #008080;"> 15</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;"> 16</span> 
+<span style="color: #008080;"> 17</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Execute the module function</span>
+<span style="color: #008080;"> 18</span> <span style="color: #000000;">        modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+</span><span style="color: #008080;"> 19</span> 
+<span style="color: #008080;"> 20</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Flag the module as loaded</span>
+<span style="color: #008080;"> 21</span>         module.l = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 22</span> 
+<span style="color: #008080;"> 23</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Return the exports of the module</span>
+<span style="color: #008080;"> 24</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> module.exports;
+</span><span style="color: #008080;"> 25</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 26</span> 
+<span style="color: #008080;"> 27</span> 
+<span style="color: #008080;"> 28</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> expose the modules object (__webpack_modules__)</span>
+<span style="color: #008080;"> 29</span>     __webpack_require__.m =<span style="color: #000000;"> modules;
+</span><span style="color: #008080;"> 30</span> 
+<span style="color: #008080;"> 31</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> expose the module cache</span>
+<span style="color: #008080;"> 32</span>     __webpack_require__.c =<span style="color: #000000;"> installedModules;
+</span><span style="color: #008080;"> 33</span> 
+<span style="color: #008080;"> 34</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> define getter function for harmony exports</span>
+<span style="color: #008080;"> 35</span>     __webpack_require__.d = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (exports, name, getter) {
+</span><span style="color: #008080;"> 36</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">__webpack_require__.o(exports, name)) {
+</span><span style="color: #008080;"> 37</span>             Object.defineProperty(exports, name, {enumerable: <span style="color: #0000ff;">true</span><span style="color: #000000;">, get: getter});
+</span><span style="color: #008080;"> 38</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;"> 40</span> 
+<span style="color: #008080;"> 41</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> define __esModule on exports</span>
+<span style="color: #008080;"> 42</span>     __webpack_require__.r = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (exports) {
+</span><span style="color: #008080;"> 43</span>         <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> Symbol !== 'undefined' &amp;&amp;<span style="color: #000000;"> Symbol.toStringTag) {
+</span><span style="color: #008080;"> 44</span>             Object.defineProperty(exports, Symbol.toStringTag, {value: 'Module'<span style="color: #000000;">});
+</span><span style="color: #008080;"> 45</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 46</span>         Object.defineProperty(exports, '__esModule', {value: <span style="color: #0000ff;">true</span><span style="color: #000000;">});
+</span><span style="color: #008080;"> 47</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;"> 48</span> 
+<span style="color: #008080;"> 49</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> create a fake namespace object</span>
+<span style="color: #008080;"> 50</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 1: value is a module id, require it</span>
+<span style="color: #008080;"> 51</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 2: merge all properties of value into the ns</span>
+<span style="color: #008080;"> 52</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 4: return value when already ns object</span>
+<span style="color: #008080;"> 53</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 8|1: behave like require</span>
+<span style="color: #008080;"> 54</span>     __webpack_require__.t = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (value, mode) {
+</span><span style="color: #008080;"> 55</span>         <span style="color: #0000ff;">if</span> (mode &amp; 1) value =<span style="color: #000000;"> __webpack_require__(value);
+</span><span style="color: #008080;"> 56</span>         <span style="color: #0000ff;">if</span> (mode &amp; 8) <span style="color: #0000ff;">return</span><span style="color: #000000;"> value;
+</span><span style="color: #008080;"> 57</span>         <span style="color: #0000ff;">if</span> ((mode &amp; 4) &amp;&amp; <span style="color: #0000ff;">typeof</span> value === 'object' &amp;&amp; value &amp;&amp; value.__esModule) <span style="color: #0000ff;">return</span><span style="color: #000000;"> value;
+</span><span style="color: #008080;"> 58</span>         <span style="color: #0000ff;">var</span> ns = Object.create(<span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">        __webpack_require__.r(ns);
+</span><span style="color: #008080;"> 60</span>         Object.defineProperty(ns, 'default', {enumerable: <span style="color: #0000ff;">true</span><span style="color: #000000;">, value: value});
+</span><span style="color: #008080;"> 61</span>         <span style="color: #0000ff;">if</span> (mode &amp; 2 &amp;&amp; <span style="color: #0000ff;">typeof</span> value != 'string') <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> key <span style="color: #0000ff;">in</span> value) __webpack_require__.d(ns, key, <span style="color: #0000ff;">function</span><span style="color: #000000;"> (key) {
+</span><span style="color: #008080;"> 62</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> value[key];
+</span><span style="color: #008080;"> 63</span>         }.bind(<span style="color: #0000ff;">null</span><span style="color: #000000;">, key));
+</span><span style="color: #008080;"> 64</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> ns;
+</span><span style="color: #008080;"> 65</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;"> 66</span> 
+<span style="color: #008080;"> 67</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> getDefaultExport function for compatibility with non-harmony modules</span>
+<span style="color: #008080;"> 68</span>     __webpack_require__.n = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (module) {
+</span><span style="color: #008080;"> 69</span>         <span style="color: #0000ff;">var</span> getter = module &amp;&amp; module.__esModule ?
+<span style="color: #008080;"> 70</span>             <span style="color: #0000ff;">function</span><span style="color: #000000;"> getDefault() {
+</span><span style="color: #008080;"> 71</span>                 <span style="color: #0000ff;">return</span> module['default'<span style="color: #000000;">];
+</span><span style="color: #008080;"> 72</span> <span style="color: #000000;">            } :
+</span><span style="color: #008080;"> 73</span>             <span style="color: #0000ff;">function</span><span style="color: #000000;"> getModuleExports() {
+</span><span style="color: #008080;"> 74</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> module;
+</span><span style="color: #008080;"> 75</span> <span style="color: #000000;">            };
+</span><span style="color: #008080;"> 76</span>         __webpack_require__.d(getter, 'a'<span style="color: #000000;">, getter);
+</span><span style="color: #008080;"> 77</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> getter;
+</span><span style="color: #008080;"> 78</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;"> 79</span> 
+<span style="color: #008080;"> 80</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> Object.prototype.hasOwnProperty.call</span>
+<span style="color: #008080;"> 81</span>     __webpack_require__.o = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (object, property) {
+</span><span style="color: #008080;"> 82</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> Object.prototype.hasOwnProperty.call(object, property);
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;"> 84</span> 
+<span style="color: #008080;"> 85</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> __webpack_public_path__</span>
+<span style="color: #008080;"> 86</span>     __webpack_require__.p = ""<span style="color: #000000;">;
+</span><span style="color: #008080;"> 87</span> 
+<span style="color: #008080;"> 88</span> 
+<span style="color: #008080;"> 89</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> Load entry module and return exports</span>
+<span style="color: #008080;"> 90</span>     <span style="color: #0000ff;">return</span> __webpack_require__(__webpack_require__.s = "./src/index.js"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">})
+</span><span style="color: #008080;"> 92</span> <span style="color: #008000;">/*</span><span style="color: #008000;">**********************************************************************</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 93</span> <span style="color: #000000;">({
+</span><span style="color: #008080;"> 94</span>     "./src/index.js": (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (module, __webpack_exports__, __webpack_require__) {
+</span><span style="color: #008080;"> 95</span>         "use strict"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 96</span> 
+<span style="color: #008080;"> 97</span> <span style="color: #000000;">        __webpack_require__.r(__webpack_exports__);
+</span><span style="color: #008080;"> 98</span>         <span style="color: #0000ff;">var</span> _module_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/module.js"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 99</span>         document.write('index.js loaded.'<span style="color: #000000;">);
+</span><span style="color: #008080;">100</span>         Object(_module_js__WEBPACK_IMPORTED_MODULE_0__["default"<span style="color: #000000;">])();
+</span><span style="color: #008080;">101</span> <span style="color: #000000;">    }),
+</span><span style="color: #008080;">102</span> 
+<span style="color: #008080;">103</span>     "./src/module.js": (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (module, __webpack_exports__, __webpack_require__) {
+</span><span style="color: #008080;">104</span>         "use strict"<span style="color: #000000;">;
+</span><span style="color: #008080;">105</span> 
+<span style="color: #008080;">106</span> <span style="color: #000000;">        __webpack_require__.r(__webpack_exports__);
+</span><span style="color: #008080;">107</span>         __webpack_exports__["default"] = (<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">108</span>             document.write('module.js loaded.'<span style="color: #000000;">);
+</span><span style="color: #008080;">109</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">110</span> <span style="color: #000000;">    })
+</span><span style="color: #008080;">111</span> });</pre>
+</div>
+<h2>四 源码解读</h2>
+<p>bundle.js整个代码实际就是一个自执行函数，当在html中加载该文件时，就是执行该自执行函数。</p>
+<p>大概结构如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (modules) {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> The module cache</span>
+<span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> installedModules =<span style="color: #000000;"> {};
+</span><span style="color: #008080;"> 4</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> The require function</span>
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> __webpack_require__(moduleId) {...}
+</span><span style="color: #008080;"> 6</span>     
+<span style="color: #008080;"> 7</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> expose the modules object (__webpack_modules__)</span>
+<span style="color: #008080;"> 8</span>     __webpack_require__.m =<span style="color: #000000;"> modules;
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> expose the module cache</span>
+<span style="color: #008080;">11</span>     __webpack_require__.c =<span style="color: #000000;"> installedModules;
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> define getter function for harmony exports</span>
+<span style="color: #008080;">14</span>     __webpack_require__.d = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (exports, name, getter) {...};
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> define __esModule on exports</span>
+<span style="color: #008080;">17</span>     __webpack_require__.r = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (exports) {...};
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> create a fake namespace object</span>
+<span style="color: #008080;">20</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 1: value is a module id, require it</span>
+<span style="color: #008080;">21</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 2: merge all properties of value into the ns</span>
+<span style="color: #008080;">22</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 4: return value when already ns object</span>
+<span style="color: #008080;">23</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 8|1: behave like require</span>
+<span style="color: #008080;">24</span>     __webpack_require__.t = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (value, mode) {...};
+</span><span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> getDefaultExport function for compatibility with non-harmony modules</span>
+<span style="color: #008080;">27</span>     __webpack_require__.n = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (module) {...};
+</span><span style="color: #008080;">28</span>     
+<span style="color: #008080;">29</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> Object.prototype.hasOwnProperty.call</span>
+<span style="color: #008080;">30</span>     __webpack_require__.o = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (object, property) {...};
+</span><span style="color: #008080;">31</span>     
+<span style="color: #008080;">32</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> __webpack_public_path__</span>
+<span style="color: #008080;">33</span>     __webpack_require__.p = ""<span style="color: #000000;">;
+</span><span style="color: #008080;">34</span>     
+<span style="color: #008080;">35</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> Load entry module and return exports</span>
+<span style="color: #008080;">36</span>     <span style="color: #0000ff;">return</span> __webpack_require__(__webpack_require__.s = "./src/index.js"<span style="color: #000000;">);
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">})
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">({
+</span><span style="color: #008080;">39</span>     "./src/index.js": (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (module, __webpack_exports__, __webpack_require__) {...}),
+</span><span style="color: #008080;">40</span>     "./src/module.js": (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (module, __webpack_exports__, __webpack_require__) {...})
+</span><span style="color: #008080;">41</span> });</pre>
+</div>
+<h3>4.1 自执行函数的参数解读</h3>
+<p>该参数是一个对象，对象属性的key就是入口模块和它引用的所有模块文件的路径和名字组合。整个代码有多少文件被引入，就会有多少个属性对应。属性key对应的值是一个函数。该函数的内容具体是什么，后边会单独分析。</p>
+<h3>4.2 自执行函数体解读</h3>
+<p>自执行函数主要做了下边几件事：</p>
+<p><strong>1）定义了installedModules缓存模块的对象变量</strong></p>
+<p>该变量用于存储被加载过的模块相关信息。该对象的属性结构如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> installedModules =<span style="color: #000000;"> {
+</span><span style="color: #008080;">2</span>     "./src/index.js"<span style="color: #000000;">: {
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">        i: moduleId,
+</span><span style="color: #008080;">4</span>         l:<span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">        exports: {...}
+</span><span style="color: #008080;">6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">7</span> }</pre>
+</div>
+<p>installedModules对象的属性key就是模块的id，跟参数对象的key一样。</p>
+<p>属性对象中有三个属性：</p>
+<p>i：模块id，目前看和key是一样的。</p>
+<p>l：标识该模块是否已经加载过。目前感觉这个变量没啥用，只有加载过的模块才会存到该变量中吧？可能还有其它用途，有待发现。</p>
+<p>exports：加载完模块后的，模块导出的值都放在这个变量中。</p>
+<p><strong>2）定义了__webpack_require__函数，以及该函数上的各种属性</strong></p>
+<p>该函数是Webpack的最核心的函数，类似于RequireJS的require方法。用于文件模块的加载和执行。</p>
+<p>详细内容会在下边专门讲到。</p>
+<p><strong>3）通过__webpack_require__函数加载入口模块</strong></p>
+<p>传入的参数是模块id，"./src/index.js"是入口模块的id标识。在这里正是启动了入口模块的加载。</p>
+<h3>4.3&nbsp;<strong>__webpack_require__函数源码解读</strong></h3>
+<p>该函数的源码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> __webpack_require__(moduleId) {
+</span><span style="color: #008080;"> 2</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Check if module is in cache</span>
+<span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;"> (installedModules[moduleId]) {
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> installedModules[moduleId].exports;
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 6</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Create a new module (and put it into the cache)</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">var</span> module = installedModules[moduleId] =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            i: moduleId,
+</span><span style="color: #008080;"> 9</span>             l: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            exports: {}
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Execute the module function</span>
+<span style="color: #008080;">14</span> <span style="color: #000000;">        modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Flag the module as loaded</span>
+<span style="color: #008080;">17</span>         module.l = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">18</span> 
+<span style="color: #008080;">19</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Return the exports of the module</span>
+<span style="color: #008080;">20</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> module.exports;
+</span><span style="color: #008080;">21</span>     }</pre>
+</div>
+<p>该函数主要做了如下几件事：</p>
+<p>1）判断该模块是否已经加载过了：如果已经加载过了，从installedModules缓存中找到该模块信息，并将之前加载该模块时保存的exports信息返回。</p>
+<p>2）如果该模块没有被加载过：创建一个模块对象，用于保存该模块的信息，并将该模块存储到installedModules缓存变量中，该模块对象的属性详细见前边说明。</p>
+<p>3）加载该模块的代码。modules是整个bundle.js文件中自执行函数的参数，详细见上边说明。注意：执行该模块的代码函数时，传入三个参数：模块信息对象、模块导出内容存储对象、__webpack_require__函数。将该函数传入的原因是：加载的当前模块，可能会依赖其它模块，需要__webpack_require__继续加载其它模块。</p>
+<p>4）将该模块标识为已加载过的。</p>
+<p>5）返回模块的导出值。</p>
+<h3><strong>4.4&nbsp;</strong><strong>__webpack_require__函数的属性源码解读</strong></h3>
+<p>该函数上定义了很多属性，各个属性的作用如下（英文是源码的原始注解，这里没有删除）：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> expose the modules object (__webpack_modules__)</span>
+<span style="color: #008080;"> 2</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 保存整个所有模块的原始信息，modules是整个bundle.js文件中自执行函数的参数，详细见上边说明。</span>
+<span style="color: #008080;"> 3</span> __webpack_require__.m =<span style="color: #000000;"> modules;
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #008000;">//</span><span style="color: #008000;"> expose the module cache</span>
+<span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 保存所有已加载模块的信息，具体见上边说明</span>
+<span style="color: #008080;"> 7</span> __webpack_require__.c =<span style="color: #000000;"> installedModules;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">//</span><span style="color: #008000;"> define getter function for harmony exports</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 工具函数：给对应的exports对象上创建name属性</span>
+<span style="color: #008080;">11</span> __webpack_require__.d = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (exports, name, getter) {
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">__webpack_require__.o(exports, name)) {
+</span><span style="color: #008080;">13</span>         Object.defineProperty(exports, name, {enumerable: <span style="color: #0000ff;">true</span><span style="color: #000000;">, get: getter});
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span> <span style="color: #008000;">//</span><span style="color: #008000;"> define __esModule on exports</span>
+<span style="color: #008080;">18</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 给缓存中加载过的模块导出对象中，添加__esModule属性。</span>
+<span style="color: #008080;">19 </span><span style="color: #008000;">//</span><span style="color: #008000;"> TODO：具体这个属性的其它用途，待研究</span>
+<span style="color: #008080;">21</span> __webpack_require__.r = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (exports) {
+</span><span style="color: #008080;">22</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> Symbol !== 'undefined' &amp;&amp;<span style="color: #000000;"> Symbol.toStringTag) {
+</span><span style="color: #008080;">23</span>         Object.defineProperty(exports, Symbol.toStringTag, {value: 'Module'<span style="color: #000000;">});
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">25</span>     Object.defineProperty(exports, '__esModule', {value: <span style="color: #0000ff;">true</span><span style="color: #000000;">});
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">27</span> 
+<span style="color: #008080;">28</span> <span style="color: #008000;">//</span><span style="color: #008000;"> create a fake namespace object</span>
+<span style="color: #008080;">29</span> <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 1: value is a module id, require it</span>
+<span style="color: #008080;">30</span> <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 2: merge all properties of value into the ns</span>
+<span style="color: #008080;">31</span> <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 4: return value when already ns object</span>
+<span style="color: #008080;">32</span> <span style="color: #008000;">//</span><span style="color: #008000;"> mode &amp; 8|1: behave like require</span>
+<span style="color: #008080;">33</span> <span style="color: #008000;">//</span><span style="color: #008000;"> TODO: 待研究该函数作用，后续研究完补充</span>
+<span style="color: #008080;">34</span> __webpack_require__.t = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (value, mode) {
+</span><span style="color: #008080;">35</span>     <span style="color: #0000ff;">if</span> (mode &amp; 1) value =<span style="color: #000000;"> __webpack_require__(value);
+</span><span style="color: #008080;">36</span>     <span style="color: #0000ff;">if</span> (mode &amp; 8) <span style="color: #0000ff;">return</span><span style="color: #000000;"> value;
+</span><span style="color: #008080;">37</span>     <span style="color: #0000ff;">if</span> ((mode &amp; 4) &amp;&amp; <span style="color: #0000ff;">typeof</span> value === 'object' &amp;&amp; value &amp;&amp; value.__esModule) <span style="color: #0000ff;">return</span><span style="color: #000000;"> value;
+</span><span style="color: #008080;">38</span>     <span style="color: #0000ff;">var</span> ns = Object.create(<span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">    __webpack_require__.r(ns);
+</span><span style="color: #008080;">40</span>     Object.defineProperty(ns, 'default', {enumerable: <span style="color: #0000ff;">true</span><span style="color: #000000;">, value: value});
+</span><span style="color: #008080;">41</span>     <span style="color: #0000ff;">if</span> (mode &amp; 2 &amp;&amp; <span style="color: #0000ff;">typeof</span> value != 'string'<span style="color: #000000;">)
+</span><span style="color: #008080;">42</span>         <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> key <span style="color: #0000ff;">in</span> value) __webpack_require__.d(ns, key, <span style="color: #0000ff;">function</span><span style="color: #000000;"> (key) {
+</span><span style="color: #008080;">43</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> value[key];
+</span><span style="color: #008080;">44</span>         }.bind(<span style="color: #0000ff;">null</span><span style="color: #000000;">, key));
+</span><span style="color: #008080;">45</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> ns;
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">47</span> 
+<span style="color: #008080;">48</span> <span style="color: #008000;">//</span><span style="color: #008000;"> getDefaultExport function for compatibility with non-harmony modules</span>
+<span style="color: #008080;">49</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 工具函数：创建一个获取模块返回值的函数</span>
+<span style="color: #008080;">50</span> __webpack_require__.n = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (module) {
+</span><span style="color: #008080;">51</span>     <span style="color: #0000ff;">var</span> getter = module &amp;&amp; module.__esModule ?
+<span style="color: #008080;">52</span>         <span style="color: #0000ff;">function</span><span style="color: #000000;"> getDefault() {
+</span><span style="color: #008080;">53</span>             <span style="color: #0000ff;">return</span> module['default'<span style="color: #000000;">];
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">        } :
+</span><span style="color: #008080;">55</span>         <span style="color: #0000ff;">function</span><span style="color: #000000;"> getModuleExports() {
+</span><span style="color: #008080;">56</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> module;
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">58</span>     __webpack_require__.d(getter, 'a'<span style="color: #000000;">, getter);
+</span><span style="color: #008080;">59</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> getter;
+</span><span style="color: #008080;">60</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">61</span> 
+<span style="color: #008080;">62</span> <span style="color: #008000;">//</span><span style="color: #008000;"> Object.prototype.hasOwnProperty.call</span>
+<span style="color: #008080;">63</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 工具函数：判断一个对象是否存在一个属性</span>
+<span style="color: #008080;">64</span> __webpack_require__.o = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (object, property) {
+</span><span style="color: #008080;">65</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> Object.prototype.hasOwnProperty.call(object, property);
+</span><span style="color: #008080;">66</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">67</span> 
+<span style="color: #008080;">68</span> <span style="color: #008000;">//</span><span style="color: #008000;"> __webpack_public_path__</span>
+<span style="color: #008080;">69</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 基础路径，这个在有些时候非常有用（例如：懒加载时），具体后续补充</span>
+<span style="color: #008080;">70</span> __webpack_require__.p = "";</pre>
+</div>
+<p>通过上边的属性可以看出，通过__webpack_require__函数，可以获取到所有信息。</p>
+<h3>&nbsp;4.5 入口文件./src/index.js源码解读</h3>
+<p>上边分析自执行函数中，最主要的一行代码就是通过__webpack_require__函数加载了入口文件。</p>
+<div class="cnblogs_code">
+<pre><code>__webpack_require__(__webpack_require__.s = "./src/index.js")</pre>
+</div>
+<p>./src/index.js源码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> "./src/index.js": (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (module, __webpack_exports__, __webpack_require__) {
+</span><span style="color: #008080;">2</span>         "use strict"<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span> <span style="color: #000000;">        __webpack_require__.r(__webpack_exports__);
+</span><span style="color: #008080;">5</span>         <span style="color: #0000ff;">var</span> _module_js__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__("./src/module.js"<span style="color: #000000;">);
+</span><span style="color: #008080;">6</span>         document.write('index.js loaded.'<span style="color: #000000;">);
+</span><span style="color: #008080;">7</span>         Object(_module_js__WEBPACK_IMPORTED_MODULE_0__["default"<span style="color: #000000;">])();
+</span><span style="color: #008080;">8</span> })</pre>
+</div>
+<p>主要做了如下几件事：</p>
+<p>1）调用__webpack_require__.r方法，具体参考上边说明。</p>
+<p>2）通过__webpack_require__调用依赖的模块"./src/module.js"，并将该模块的exports存入_module_js__WEBPACK_IMPORTED_MODULE_0__ 变量。</p>
+<p>3）执行index.js自身代码。</p>
+<p>可以看出，相比index.js源码，添加和修改了一些代码，源码中通过ES6的import导入模块方式改为了__webpack_require__方法。</p>
+<h3>4.6 引用模块./src/module.js源码解读</h3>
+<p>在上边入口模块index.js中，通过__webpack_require__加载了module.js模块。</p>
+<p>该模块源码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> "./src/module.js": (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (module, __webpack_exports__, __webpack_require__) {
+</span><span style="color: #008080;">2</span>         "use strict"<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span> <span style="color: #000000;">        __webpack_require__.r(__webpack_exports__);
+</span><span style="color: #008080;">5</span>         __webpack_exports__["default"] = (<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">6</span>             document.write('module.js loaded.'<span style="color: #000000;">);
+</span><span style="color: #008080;">7</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">8</span> })</pre>
+</div>
+<p>主要做了如下几件事：</p>
+<p>1）调用__webpack_require__.r方法，具体参考上边说明。</p>
+<p>2）将导出值存入缓存该模块信息对象的exports属性对象中。</p>
+<p>到此，bundle.js的所有源码已解读完毕。</p>
+<h2>五 基础构建&amp;加载原理说明</h2>
+<p>从上边源码解读中，可以看出，整个构建过程如下：</p>
+<p>1.将所有文件和内容存入自执行函数的参数对象；</p>
+<p>2.通过__webpack_require__方法加载入口文件；</p>
+<p>3.将加载了的文件信息缓存；</p>
+<p>4.如果当前加载的文件依赖其它文件，就通过__webpack_require__继续加载其它文件；</p>
+<p>5.直到入口文件执行完毕。</p>
+<p>下边是一个简单的原理图，画的比较简陋：</p>
+<p><img src="./images/Webpack探索【15】--- 基础构建原理详解（模块如何被组建&amp;如何加载）&amp;源码解读0.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,75 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Electron使用时拦截HTTP请求的解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Electron使用时拦截HTTP请求的解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主cxyao提供。<br/>
+原文连接:https://www.cnblogs.com/Amar/p/11051016.html</div><br>
+    <h2>背景</h2>
+<p>最近在做一个Web和Electron共用一份代码的工程，由于使用到了第三方的库（我们是在线地图），该库的认证方式是请求时加key，并且它在后台会校验referer。</p>
+<p>于是问题就来了，Electron是运行在本地的，http请求的时候，是不会带有授权Web站点的referer的。导致认证失败，无法调用所需的api接口。</p>
+<h2>分析</h2>
+<p>既然HTTP请求发送的时候不带referer，那么我们给他加上去，是不是就可以了呢？</p>
+<h2>对策</h2>
+<h3>方法1：自定义HTTP协议，在发送请求时，补上referer</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 注册自定义协议</span>
+protocol.registerStandardSchemes(['app', '自定义协议'], { secure: <span style="color: #0000ff;">true</span><span style="color: #000000;"> })
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 自定义协议的具体实现</span>
+protocol.registerHttpProtocol('自定义协议', (req, cb) =&gt;<span style="color: #000000;"> {
+        cb({
+            url: &ldquo;特定的url地址&rdquo;,
+            referrer: </span>"http://被授权的referrer头信息"<span style="color: #000000;">
+        })
+    })
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 发送请求时可以使用 自定义协议：//url地址 的形式来发送请求       </span></pre>
+</div>
+<pre><code>发送请求时可以使用 自定义协议：//url地址 的形式来发送请求。当然，我们这个例子里面只是追加了referrer，其实根据实际需求还可以做很多其它事情。<br />相关api文档：<a href="https://electronjs.org/docs/api/protocol#protocolregisterhttpprotocolscheme-handler-completion">https://electronjs.org/docs/api/protocol#protocolregisterhttpprotocolscheme-handler-completion<br /><br /></a></pre>
+<h3>方法2：修改窗口会话中发送请求前的行为</h3>
+<p>本来以为方法1以及很完美的解决了问题，但是，在自定义协议认证成功后，在api的使用过程中，api内部主动发送了http请求，这时的api请求没有使用自定义协议，再次认证失败了。于是我想到有个办法，很天真的认为可以解决问题。<span style="color: #ff0000;"><strong>失败的做法如下：</strong></span></p>
+<div class="cnblogs_code">
+<pre><code>    protocol.interceptHttpProtocol("http", (req, cb) =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 此处可以追加url是否匹配的逻辑判断</span>
+<span style="color: #000000;">        cb({
+            url:req.url,
+            referrer: </span>"http://授权的referrer头信息"<span style="color: #000000;">
+        })
+    })</span></pre>
+</div>
+<p>&nbsp;</p>
+<pre><code>相关api文档：<a href="https://electronjs.org/docs/api/protocol#protocolintercepthttpprotocolscheme-handler-completion">https://electronjs.org/docs/api/protocol#protocolintercepthttpprotocolscheme-handler-completion<br /><br /></a></pre>
+<p>我直接拦截了原生的http协议，追加referrer信息，发生的结果是，http-&gt;截获http-&gt;修改后发送http-&gt;截获http-&gt;修改后发送http-&gt;......<strong><span style="color: #ff0000;">发生了无限循环！！！</span></strong></p>
+<p>&nbsp;</p>
+<p>于是只能另辟蹊径，寻找其余解决方案。发现了webquest的行为可以捕获。于是在onBeforeSendHeaders的时机，追加Referer信息。<strong><span style="color: #ff0000;">正确的做法如下：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>   <span style="color: #008000;">//</span><span style="color: #008000;"> 需要拦截的URL地址 </span>
+   const xxx_filter =<span style="color: #000000;"> {
+        urls: [</span>"https://*.xxx.com/*", "http://*.yyy.com/*"<span style="color: #000000;">]
+    }    
+   session.defaultSession.webRequest.onBeforeSendHeaders(xxx_filter, (details, callback) </span>=&gt;<span style="color: #000000;"> {
+        details.requestHeaders[</span>'Referer'] = 'http://授权的referer头信息'<span style="color: #000000;">
+        callback({ requestHeaders: details.requestHeaders });
+    })</span></pre>
+</div>
+<p>&nbsp;</p>
+<pre><code>相关api文档：<a href="https://electronjs.org/docs/api/web-request" target="_blank">https://electronjs.org/docs/api/web-request<br /><br /></a></pre>
+<h2>总结</h2>
+<p>通过对webrequest的捕获，解决了本次的问题，并且把自定义协议那个案也可以替换掉。webrequest还有好几个阶段的行为可以自定义，可以适用于不同场景的需求。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

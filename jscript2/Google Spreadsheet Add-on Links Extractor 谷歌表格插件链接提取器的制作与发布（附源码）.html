@@ -1,0 +1,87 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Google Spreadsheet Add-on Links Extractor 谷歌表格插件链接提取器的制作与发布（附源码）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Google Spreadsheet Add-on Links Extractor 谷歌表格插件链接提取器的制作与发布（附源码）</center></div><div class='banquan'>原文出处:本文由博客园博主Grandyang提供。<br/>
+原文连接:https://www.cnblogs.com/grandyang/p/10836860.html</div><br>
+    <p><br></p>
+<h2 id="引言">引言</h2>
+<p>为什么想到制作这么一个插件呢，是因为博主在更新微信公众号【刷尽天下】的后台数据库时，需要有博客园题目帖子的链接，那么就要从这篇帖子 <a href="https://www.cnblogs.com/grandyang/p/4606334.html">LeetCode All in One 题目讲解汇总(持续更新中...)</a> 中提取各个题目的链接。之前博主都是使用的都是Excel的插件 <a href="https://www.extendoffice.com/product/kutools-for-excel.html">Kutools</a> 来完成的，但是这个插件不是免费的，而且只能在 Windows 下使用，对于博主这样的 Mac 控来说，十分的不方便。想着 Mac 下应该也有类似的插件吧，结果搜了半天，没搜到合适的。突然灵机一动，对啊，为何不去试试 Google Sheets，这上面应该可以提取链接吧，结果令博主更加失望，Google Sheets 感觉提供的功能比 Excel 还要少，但是好在有一个插件商店，那么就上去搜索吧，看到了一个名为 <a href="https://chrome.google.com/webstore/detail/extract-drive-links/klonacpfbangpegffkdopiilfdhgjhgo?utm_source=permalink">Extract Drive Links</a> 的插件，但貌似它是提取文件的链接，而不是数据的链接，而且更加坑爹的是，这个插件使用不了，显示：</p>
+<blockquote>
+<p>This app has not been verified yet by Google in order to use Google Sign In.</p>
+</blockquote>
+<p>该插件作者好像没有让谷歌验证，从而使用不了。无奈了，只能上网搜索一下，看大家有没有什么好的解决方案没。果然有人跟我遇到过同样的问题，参见这个帖子 <a href="https://webapps.stackexchange.com/questions/89557/extract-the-link-text-and-url-from-a-hyperlinked-cell#comment85786_89557">Extract the link text and URL from a hyperlinked cell</a>。而且还提供了脚本，博主试了一下，可以使用，但是用户体验不太好，对于非码农用户不友善，那么为啥不能自己写一个 User-friendly 的插件供大家使用呢，说干就干，下面就开始了插件的开发之旅了。</p>
+<p><br></p>
+<h2 id="插件开发">插件开发</h2>
+<p>第一步当然是找资料了啊，搜了搜 <a href="https://developers.google.com/apps-script/reference/spreadsheet/">Google Sheets Add-ons 开发的官方文档</a>, 里面有开放给开发者能调用的 API，一定是需要的。还找到了关于插件发布的一些文档，到发布的时候再研究吧，现在东西都没有，看这些也没啥意义。然后就是去 Github 上找找相关的项目看看了，大概找了几个，但是发现和我想做的并不太相关，并没有太大的参考价值，还不如直接去研究开发文档呢。</p>
+<p>在查阅了一些资料后，大概明白了 Google Docs 的插件的脚本语言使用的是 Google Script，是一种基于 Javascript 的语言，只要写过 Javascript，都没啥太大的问题，就是 js 的语法调用 Google Docs 特定的 API 就行了。</p>
+<p>在具体开始实现之前，明确自己的需求，我希望能让用户来输入特定的区间，然后把该区间内的所有链接都提取出来，显示到特定的位置。那么整个就是分为三步：</p>
+<ol>
+<li><p>弹出输入框，让用户输入，并获得输入结果。</p></li>
+<li><p>进行链接的提取。</p></li>
+<li><p>找到特定的位置并显示。</p></li>
+</ol>
+<p>其中第一和第三步是服务于用户体验的，第二步是本插件的核心，所以优先来实现吧。提取链接的原理是什么呢，就是从 Formula 中的超链接里提取。不管是 Google Sheets 还是 Excel，点击任意一个位置，上面都有一个 fx 显示框，那里就是显示 Formula 的地方，而链接就是显示在那里的，例如：</p>
+<p><code>=HYPERLINK(&quot;https://www.google.com/&quot;,&quot;Google&quot;)</code></p>
+<p>这个就表示文字为 <code>Google</code> 并且含有的超链接为 <code>https://www.google.com/</code>。提取的方法就是通过字符串的正则匹配来完成的，关于算法的部分这里就不细说了，博主之后会将源码放到 Github 上，有兴趣的童鞋可以自行研究。</p>
+<p>博主还遇到了一个问题，就是直接从网页上拷贝过来的富文本 Rich Text，并不会直接在 Formula 中显示超链接，虽然其确实包含了超链接。而 Formula 中却只显示了 Text，上网搜了一下，好像是个普遍存在的问题，参见 <a href="https://webapps.stackexchange.com/questions/95134/paste-value-only-without-formula-for-hyperlinks">Paste value only without formula for hyperlinks</a>。这就很头疼了，因为要提取的链接是从 Formula 中来的。博主想了一个手动的解决方案，对于每个单元格，进行如下操作：</p>
+<ol>
+<li>右击单元格，选择菜单中的编辑链接 Edit Link。</li>
+<li>点击应用 Apply。</li>
+</ol>
+<p>这样超链接就会出现在 Formula 中了，当然这只是个临时的解决方案，因为当数据量很大的时候，也会十分的不方便。这里请求各位看官大神们一起来想解决方案啊。</p>
+<p>最重要的一步完成了之后，剩下的两步就比较简单了，弹出输入数据框的实现参见的是官方文档 <a href="https://developers.google.com/apps-script/guides/dialogs">Dialogs and Sidebars in G Suite Documents</a>，而找特定的位置显示看的是 StackOverFlow 上的一个贴子 <a href="http://script%20to%20have%20google%20sheets%20jump%20to%20the%20next%20available%20row%20in%20column%20a%20automatically/?">Script to have Google Sheets jump to the next available row in column A automatically?</a>。</p>
+<p><br></p>
+<h2 id="发布">发布</h2>
+<p>好，到此为止，插件就开发完成了，博主也自己测试过了，没啥大问题，下面就是准备发布了，谁知开发只用了不到一天的时候，研究如何发布却用了整整三天，实在是不合理啊，Google 把发布过程整的实在是太复杂了，而且各种文档，各种链接，跳来跳去的，看的是眼花缭乱的，这里就来稍微吐个槽吧。</p>
+<p>首先，当然是要去看关于插件发布的官方文档了 <a href="https://developers.google.com/gsuite/add-ons/how-tos/publish-overview">Publishing add-ons</a>，大概发现有两个发布的地方，一个是 Chrome Web Store，一个是 G Suite Marketplace，博主一想，咱这做的属于 G Suite 插件，不是 Chrome 插件，按道理说一改是发布到 G Suite Marketplace 上，但后来才发现实际上这里是个坑，需要在两个平台上同时发布。</p>
+<p>然后博主就在研究如何发布到 G Suite Marketplace 上，遇到的第一个麻烦事就是需要一个 Google Verified 的网站，谁还会为了个这个小的插件去搞个服务器搭个网站啊，但是人家非要在 Google Search Console 上进行网站验证，验证方法五花八门，什么在服务器上传 Html 文件啊，或使用 Html tag 啊，或者使用 Google Analytics 啊之类的，受不鸟了。后来，博主总算发现了一个捷径，就是使用 Google Sites 创建的网页可以自动被验证，后来又发现只用使用老版的 Google Sites 创建的网页才能成功被验证，新版的貌似有点问题，然后在网页上介绍这个插件，截图什么的，这个总共花了博主不少时间。</p>
+<p>之后要做的就是申请 OAuth 验证，这个可能是 Google 后来增加的步骤，像引言中提到的那个插件貌似就是没有进行这个验证，从而无法使用，这个主要就是要制作一个插件的 Logo，各种尺寸的大小，于是就用 Photoshop 做了一个，然后还要整个什么隐私条款 Privicay Policy，博主就在网上找了个模版改了改。这个 OAuth 验证申请的审核时间还不短，耐心的等待吧。</p>
+<p>接下来就是激活和配置 <a href="https://developers.google.com/gsuite/marketplace/sdk">G Suite Marketplace SDK</a> 了，这个也挺烦的，还得做个 banner 图片，就是在插件商店显示的图片，于是又用 Photoshop 整了一个，还要三种不同尺寸且不等比例的 banner，我也是呵呵呵了，还要写什么服务条款 Terms of Service，整整整，全都整，要啥整啥。</p>
+<p>配置完成了之后又遇到了一个坑，因为配置下面有一个发布界面，填好了所有的信息之后，怎么都发布不了，因为 Publish 按钮一直都是灰色的不可点击状态，后来上网搜原因，终于在 Google Issue Tracker 上找了相关的帖子 <a href="https://issuetracker.google.com/issues/127774772">Add-on publish form not working</a>，还好博主之前在狗家实习过，对 bugnaizer 还是比较熟悉的，一位好心的 Googler 告诉博主应该先上传到 Chrome Web Store 上，在 CWS 上发布之后，G Suite Marketplace 上就可以自动发布了。</p>
+<p>好，接下来就去 Chrome Developer Dashboard 上发布吧，上传了项目后等待审核，第二天就有 Googler 联系了，说我的这个插件的 idea 挺有趣，但是 OAuth 审核还没下来，还不能发布，又指出了 UI 中的一个拼写错误，嗯嗯，审核的很仔细啊，给这位 Googler 的敬业精神点个赞。然后就是去跟 OAuth 的审核人员进行漫长的沟通，后来还需要做一个视频来展示如何使用的各个 scope，反正超级麻烦。博主一度都不想发布了，但是后来的某一天，突然就通过了。精神为之一振，于是马上就告诉了插件的审核人员，第二天就成功的发布到了 Chrome Web Store 上了。</p>
+<p><br></p>
+<h2 id="改进">改进</h2>
+<p>最后再说一下需要设法改进的地方，那就是只有当链接在 Formula 中存在的时候，本插件才能提取出来。而直接从其他网页上拷贝过来的富文本虽然包含链接，但是 Formula 中可能没有显示，博主提出的临时解决方案是右击单元格，选择编辑链接 Edit Link，然后点确定，这样链接就会出现在 Formula 中。但是加入有很多行，这样的操作就不是很高效，需要想一种解决方案。但是 Google 并没有提供操作 Edit Link 的 API，所以我们貌似没法通过代码来使得链接出现在 Formula 中。博主一时也没想出好的解决方法，希望各位看官大神有好的方法一定要告诉博主啊～</p>
+<p><br></p>
+<h2 id="后记">后记</h2>
+<p>终于成功的发布了这个小插件，开发只用了一天，发布持续了一个多月，也是醉了，不过最终能在 Chrome Web Store 中看到自己的插件，还是蛮有成就感的。有了这个发布经验，以后再做点啥应该就会更顺心一些吧~</p>
+<p><br></p>
+<h2 id="源码">源码</h2>
+<p>项目代码已经上传到了Github上，喜欢的话请给博主一颗小星星哈 ^.^：</p>
+<p><a href="https://github.com/grandyang/links-extractor" class="uri">https://github.com/grandyang/links-extractor</a></p>
+<p>Chrome 应用商店地址:</p>
+<p><a href="https://chrome.google.com/webstore/detail/links-extractor/mhafjmjohbgmdabjlbdjnppgljbfkljn" class="uri">https://chrome.google.com/webstore/detail/links-extractor/mhafjmjohbgmdabjlbdjnppgljbfkljn</a></p>
+<p><br></p>
+<h3 id="参考资料">参考资料</h3>
+<p><a href="https://www.cnblogs.com/grandyang/p/4606334.html" class="uri">https://www.cnblogs.com/grandyang/p/4606334.html</a></p>
+<p><a href="https://www.extendoffice.com/product/kutools-for-excel.html" class="uri">https://www.extendoffice.com/product/kutools-for-excel.html</a></p>
+<p><a href="https://chrome.google.com/webstore/detail/extract-drive-links/klonacpfbangpegffkdopiilfdhgjhgo?utm_source=permalink" class="uri">https://chrome.google.com/webstore/detail/extract-drive-links/klonacpfbangpegffkdopiilfdhgjhgo?utm_source=permalink</a></p>
+<p><a href="https://webapps.stackexchange.com/questions/89557/extract-the-link-text-and-url-from-a-hyperlinked-cell#comment85786_89557" class="uri">https://webapps.stackexchange.com/questions/89557/extract-the-link-text-and-url-from-a-hyperlinked-cell#comment85786_89557</a></p>
+<p><a href="https://developers.google.com/apps-script/reference/spreadsheet/" class="uri">https://developers.google.com/apps-script/reference/spreadsheet/</a></p>
+<p><a href="https://webapps.stackexchange.com/questions/95134/paste-value-only-without-formula-for-hyperlinks" class="uri">https://webapps.stackexchange.com/questions/95134/paste-value-only-without-formula-for-hyperlinks</a></p>
+<p><a href="https://developers.google.com/apps-script/guides/dialogs" class="uri">https://developers.google.com/apps-script/guides/dialogs</a></p>
+<p><a href="http://script%20to%20have%20google%20sheets%20jump%20to%20the%20next%20available%20row%20in%20column%20a%20automatically/?">http://script%20to%20have%20google%20sheets%20jump%20to%20the%20next%20available%20row%20in%20column%20a%20automatically/?</a></p>
+<p><a href="https://developers.google.com/gsuite/add-ons/how-tos/publish-overview" class="uri">https://developers.google.com/gsuite/add-ons/how-tos/publish-overview</a></p>
+<p><a href="https://developers.google.com/gsuite/marketplace/sdk" class="uri">https://developers.google.com/gsuite/marketplace/sdk</a></p>
+<p><a href="https://issuetracker.google.com/issues/127774772" class="uri">https://issuetracker.google.com/issues/127774772</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

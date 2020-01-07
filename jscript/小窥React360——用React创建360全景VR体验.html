@@ -1,0 +1,175 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修小窥React360——用React创建360全景VR体验' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>小窥React360——用React创建360全景VR体验</center></div><div class='banquan'>原文出处:本文由博客园博主venoral提供。<br/>
+原文连接:https://www.cnblogs.com/venoral/p/10914222.html</div><br>
+    <p><span style="font-size: 18px;"><strong>前言&nbsp; &nbsp;</strong></span></p>
+<p>混迹VR届的发烧友兼开发者们一定不要错过这款FaceBook推出的跨端VR开发框架&mdash;&mdash;React360，称为360全景体验框架更为准确，因为其前身是FaceBook和Oculus2017年发布的一个叫作&ldquo;Racet VR&rdquo;的JS库，用来在web端创建3D和VR体验。后来Oculus使用该框架的原生C++版本构建自己部分应用，随着时间推移，由于要求框架解决不同需求，项目的APIs开始发生分叉。为了避免两个系统的混淆，开源框架重命名为React360，这更好地反映它的使用场景：创建横跨PC，移动端，VR设备上的沉浸式360体验。</p>
+<p>可以先看一下官方示例效果，这是一个稍复杂的应用，加入了3D模型，在3D模型和2D面板间共享数据。</p>
+<p><img src="./images/小窥React360——用React创建360全景VR体验0.png" alt="" width="645" height="318" /></p>
+<p><span style="font-size: 18px;"><strong>体验</strong></span></p>
+<p><strong>工作原理</strong></p>
+<p>官方提供了构建工具react-360-cli，内部使用和ReactNative一样的打包工具Metro，基于JS Bundle在自己的JS Runtime中进行解析，通过事件机制与客户端通信，其实该框架还有很多方面相像或依赖于RN。构建一个React360应用程序需要完成两部分，需要渲染的Raect组件和Runtime定义（这种角色划分直接借鉴于React Native）。这也很清楚地反映出React360的工作流程，可以参见下图：<br /><img src="./images/小窥React360——用React创建360全景VR体验1.png" alt="" width="607" height="313" />（工作流程图）</p>
+<p>基于JavaScript Core/V8引擎，React360提供了Runtime需要的APIs，在客户端（头戴设备，移动端，浏览器等）完成构建界面，web端的渲染底层依赖于Three.js，这是业界较为成熟的3D图形框架，一般需要手动设置3D网格和纹理，而框架中的react-360-web模块隐藏了这些细节。当创建了新的React组件，框架会指示Runtime将它们添加到3D场景中，当用户提供输入将作为事件通过Runtime传递给React，这两部分相互合作形成一个凝合系统。如果想在系统中分享数据，就需要借助框架提供的Native Modules。</p>
+<p>需要注意的是，由于JS运作在浏览器中是单线程的，应用中任何阻碍行为都有可能造成渲染延迟，这对于VR这种即时性很强的体验是十分致命的，所以框架将React组件和渲染过程放在分离的上下文中情有可原。</p>
+<p>默认情况下，React360使用Web Worker执行你的React代码，而不是标准浏览器，这就意味着在组件定义的文件中访问不到原生window.location这类APIs。并不是严格意义上的无法访问，事实上当你打印window对象时React360提供了一个DedicatedWorkerGlobalScope类型实例，它包装了window的一些内容。</p>
+<p><strong>Surfaces</strong><br />Surfaces实际上是一个载体，允许你添加2D内容到3D场景，开发者依据像素定义Surfaces宽高，React360获取信息产生合适尺寸的对象，官方介绍了两种类型的Surfaces，Cylinder和Flat。一个Cylinder Surface让2D内容投射到半径为4m的Cylinder内部，其实是假想的圆柱模式。一个Flat Surface位于4m半径的球体外侧，一个假想的球体模式。APIs也提供了像yaw（垂摇），pitch（纵摇），roll（横摇）这些物体自由度控制信息。</p>
+<p><img src="./images/小窥React360——用React创建360全景VR体验2.png" alt="" width="569" height="311" /></p>
+<p>为了将React组建附着在Surface上，需要使用AppRegistry注册组件，又一次与ReactNative相似。这会告知Runtime你的组件通过id字段被唯一确定。</p>
+<div class="cnblogs_code">
+<pre><code>AppRegistry.registerComponent('MyAppName', () =&gt; MyAppName);</pre>
+</div>
+<p>同时在Runtime文件中引用。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">r360.renderToSurface(
+  r360.createRoot(</span>'MyAppName'<span style="color: #000000;">),
+  r360.getDefaultSurface(),
+  </span>'default' <span style="color: #008000;">/*</span><span style="color: #008000;"> 可选项，引用的surface的名称 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+);</span></pre>
+</div>
+<p><strong>Components</strong></p>
+<p>官方提供了呈现2D，3D内容的展示组件和交互按钮组件。</p>
+<ul>
+<li>View：UI构建最基本的元素，被用来组织实体或其他View元素，也是输入事件的容器。</li>
+<li>Image：呈现2D图像</li>
+<li>ENtity：渲染3D对象，支持obj，mtl，gltf格式文件</li>
+<li>VrButton：是一个实用程序类，是捕获事件的包装器。可以检测各种输入设备上单击类型操作，这是通过一个可以监听按键事件的内部状态机做到的。</li>
+</ul>
+<p><strong>Layout</strong>&nbsp;</p>
+<p>支持2D Surface布局，完全以Flexbox格式布局，又是一个和RN相似的点。支持3D Space布局，使用Entity组件时候，通过transform完成3D对象放置，x轴指向用户右侧，y轴指向上方，z轴指向用户后方。</p>
+<p><strong>APIs<br /></strong>官方提供了常见的APIs，例如来自React Native的Animated；键值对存储系统AsyncStorage；值得一提的是提供的ControllerInfo可以被用来响应控制器的connect/disconnect事件，获取关于所连接的游戏手柄和控制器的静态信息，比如唯一标识符，按钮，轴数等信息。环境API Environment用来改变场景的背景，包括图片，音频，视频。</p>
+<p><strong>实例解读<br /></strong></p>
+<p>利用react-360-cli生成的项目中主要有这三个文件：</p>
+<ul>
+<li>index.js：放置应用的主要代码，React组件的地方，在这里可以组织拆分多个组件</li>
+<li>client.js：也就是Runtime的配置，这部分连接浏览器环境和React应用。根据代码示例看到主要完成三件事：（1）创建React360一个新实例，加载并附加React代码到DOM特定位置，这里也是传递初始化选项的地方。（2）将你的代码挂载到3D场景中，在index.js中声明的挂载点附着在应用程序的默认曲面。（3）添加背景信息，这个部分可选，允许代码仍在加载过程中展示图片，让用户尽快看到一些内容。</li>
+<li>index.html：提供安装JS代码的挂载点。</li>
+
+
+</ul>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> import {ReactInstance} from 'react-360-web'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">function</span> init(bundle, parent, options =<span style="color: #000000;"> {}) {
+</span><span style="color: #008080;"> 4</span>   const r360 = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ReactInstance(bundle, parent, {
+</span><span style="color: #008080;"> 5</span>     fullScreen: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">    ...options,
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">  });
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">  r360.renderToSurface(
+</span><span style="color: #008080;">10</span>     r360.createRoot('SlideshowSample'<span style="color: #000000;">, {
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">      photos: [
+</span><span style="color: #008080;">12</span>         {uri: './static_assets/360_world.jpg', title: '360 World1', format: '2D'<span style="color: #000000;">},
+</span><span style="color: #008080;">13</span>         {uri: './static_assets/360_world2.jpg', title: '360 World2', format: '2D'<span style="color: #000000;">},
+</span><span style="color: #008080;">14</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> Add your own 180 / 360 photos to this array,</span>
+<span style="color: #008080;">15</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> with an associated title and format</span>
+<span style="color: #008080;">16</span> <span style="color: #000000;">      ],
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    }),
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">    r360.getDefaultSurface(),
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">  );
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">21</span> 
+<span style="color: #008080;">22</span> window.React360 = {init};</pre>
+</div>
+<p><strong>Native Modules</strong></p>
+<p>前面说过React组件运行在单独上下文中，那么如何与主窗口通信，官方提供了Native Modules模块，让React代码有了回调到Runtime的能力，包括在加载中存值，请求有关连接控制器信息或操纵渲染环境。Native模块被创建在Runtime代码中，使用Native Module需要自定义类，继承自Module，使用前需注册，这个示例模板代码演示了Native Modules的许多用法</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> import {Module} from 'react-360-web'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">class MyModule extends Module {
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">  constructor() {
+</span><span style="color: #008080;"> 5</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 使这个模块在NativeModules.MyModule可用</span>
+<span style="color: #008080;"> 6</span>     super('MyModule'<span style="color: #000000;">); 
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;"> 8</span>   
+<span style="color: #008080;"> 9</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 这个方法将被暴露到React应用一侧</span>
+<span style="color: #008080;">10</span> <span style="color: #000000;">  doSomething() {
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span> const r360 = <span style="color: #0000ff;">new</span><span style="color: #000000;"> ReactInstance(
+</span><span style="color: #008080;">16</span>   'MyApp.bundle?platform=vr'<span style="color: #000000;">,
+</span><span style="color: #008080;">17</span>   document.getElementById('container'<span style="color: #000000;">),
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">  {
+</span><span style="color: #008080;">19</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 在初始时刻注册自定义模块，接收Native Module实例，或一个返回实例的函数（需要传递上下文）</span>
+<span style="color: #008080;">20</span> <span style="color: #000000;">    nativeModules: [
+</span><span style="color: #008080;">21</span>       <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyModule(),
+</span><span style="color: #008080;">22</span>       ctx =&gt; <span style="color: #0000ff;">new</span><span style="color: #000000;"> MyModule(ctx)
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">    ]
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">25</span> );</pre>
+</div>
+<p>通常有两种使用场景，暴露常量和普通到React（同步），回调函数或返回Promise方法（异步）。这一段代码同时演示了这几种使用场景，这是一个发送浏览器信息到React侧的应用示例，在注册阶段，模块构造时常量生成并添加模块实例的userAgent属性上，这个值被直接传递给React。第二个例子是暴露了同步setTitle()方法，只需要一个字符串设置窗口标题栏。剩下两个异步方法展示了异步数据如何返回到React。当getBatteryLevel()在React侧被调用，开发者传递的回调在数据可用时触发，<span style="font-size: 14px;">调用上下文提供的<span style="font-family: 'Courier New';">invokeCallback，将参数放置在数组中，你可以给回调传递任意数量的参数。尽管回调是处理异步任务的一种方式，但我们更偏向于用Promise创建有组织可读性强的异步逻辑链。通过Native Module，你可以使用$符号前缀形式来暴露这种行为，两个回调ID会作为Promise的resolve, reject自动传递给Runtime，该方法会返回一个Promise到调用端。</span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> import {Module} from 'react-360-web'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> export <span style="color: #0000ff;">default</span><span style="color: #000000;"> class BrowserInfoModule extends Module {
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">  constructor(ctx) {
+</span><span style="color: #008080;"> 5</span>     super('BrowserInfo'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">this</span>._rnctx =<span style="color: #000000;"> ctx;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">this</span>.userAgent =<span style="color: #000000;"> navigator.userAgent;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;"> 9</span>   /*<br />       <br />     */
+<span style="color: #008080;">10</span> <span style="color: #000000;">  setTitle(title) {
+</span><span style="color: #008080;">11</span>     document.title =<span style="color: #000000;"> title;
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">13</span> 
+<span style="color: #008080;">14</span>   getBatteryLevel(cb) { <span style="color: #008000;">//</span><span style="color: #008000;"> 读取window信息</span>
+<span style="color: #008080;">15</span>     const getBattery = navigator.mozGetBattery ||<span style="color: #000000;"> navigator.getBattery;
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">    getBattery
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">      .call(navigator)
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">      .then(
+</span><span style="color: #008080;">19</span>         battery =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">20</span>           <span style="color: #008000;">//</span><span style="color: #008000;"> extract the level and return it</span>
+<span style="color: #008080;">21</span>           <span style="color: #0000ff;">return</span><span style="color: #000000;"> battery.level;
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">23</span>         e =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">24</span>           <span style="color: #008000;">//</span><span style="color: #008000;"> if an error occurs, return null</span>
+<span style="color: #008080;">25</span>           <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">      )
+</span><span style="color: #008080;">28</span>       .then(level =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">29</span>         <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">._rnctx) {
+</span><span style="color: #008080;">30</span>           <span style="color: #0000ff;">this</span><span style="color: #000000;">._rnctx.invokeCallback(cb, [level]);
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">      });
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span> <span style="color: #000000;">  $getConfirmation(message, resolve, reject) {
+</span><span style="color: #008080;">36</span>     const result =<span style="color: #000000;"> window.confirm(message);
+</span><span style="color: #008080;">37</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">._rnctx) {
+</span><span style="color: #008080;">38</span>       <span style="color: #0000ff;">if</span><span style="color: #000000;"> (result) {
+</span><span style="color: #008080;">39</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">._rnctx.invokeCallback(resolve, []);
+</span><span style="color: #008080;">40</span>       } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">41</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> When rejecting a Promise, a message should be provided to populate</span>
+<span style="color: #008080;">42</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> the Error object on the React side</span>
+<span style="color: #008080;">43</span>         <span style="color: #0000ff;">this</span>._rnctx.invokeCallback(reject, [{message: 'Canceled the dialog'<span style="color: #000000;">}]);
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">47</span> }</pre>
+</div>
+<p><strong>后记</strong></p>
+<p>对于React360的整体一览，官方文档还是对在web端介绍比较多，官方开发团队在GitHub也比较活跃，所以有问题可以及时issue都会有人回复。Facebook在几年前收购了Oculus足已看出其进军VR届的雄心已经初见倪端，目前市面上许多APP对360全景图的应用也万象回春，微博的全景图借助手机的陀螺仪和重力传感器在不点击图片详情的情况下跟随用户手势动态变化，自如的VR看房，在我们APP里也引入了全景酒店实景体验。在昂贵的VR设备消费者负担不起的情况下，360度全境体验正是VR在当今阶段最普及的形态，虽然只是纯粹的平面图像，却也一定程度上营造了沉浸式感受，而React360在静态全景的基础上引入了多种交互，这更加方便消费者了解需求，相信360全景的未来还能做得更多。</p>
+<p><strong>参考<br /><a href="https://facebook.github.io/react-360/">https://facebook.github.io/react-360/</a><br /></strong></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

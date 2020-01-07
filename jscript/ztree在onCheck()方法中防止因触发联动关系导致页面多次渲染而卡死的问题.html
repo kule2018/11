@@ -1,0 +1,64 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ztree在onCheck()方法中防止因触发联动关系导致页面多次渲染而卡死的问题' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ztree在onCheck()方法中防止因触发联动关系导致页面多次渲染而卡死的问题</center></div><div class='banquan'>原文出处:本文由博客园博主&傻小子提供。<br/>
+原文连接:https://www.cnblogs.com/xQlover/p/11215404.html</div><br>
+    <p>　　这几天在项目中遇到了要使用树形选择框, 而且要求比较复杂,具体叙述如下:</p>
+<p>　　首先是有个选择框,左边选择是适用的商品,右边显示已经选择的商品.也就是说,左边每次勾选操作,都要触发一个事件去刷新右边的页面, 而且,左边商品如果选择大类,则右边显示大类,其下小类都不显示</p>
+<p>也就是说有父子联动的关系. 刚开始的时候, 选择了使用bootStrap的tree_view这个插件,一开始还好,基本成型,后来测试时才发现问题,,当数据量很大的时候,,这个插件用起来很卡很卡,,而且又加了个带搜索功能,这个插件就显得有点鸡肋,这时才发现了ztree.</p>
+<p>　　ztree虽然没有tree_view界面好看,但是其拥有强大的api,和渲染速度,,比前者好用多了.后面在数据渲染的时候遇到了一个问题,当时设置了父子级关联,然后再oncheck里面刷新右侧的显示界面.刚开始没啥问题,,后面当商品加到8000个的时候,,之前的问题又出现了,当我点击父级的时候,页面直接无响应.打上断点跟着,才发现ztree内部会由于关联关系,多次触发onchek事件,导致页面直接卡死.苦思良久都没得办法..直到无意中看到一个方法</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<img src="./images/ztree在onCheck()方法中防止因触发联动关系导致页面多次渲染而卡死的问题0.png" alt="" /></p>
+<p>beforeCheck,对就是这个方法,在oncheck触发之前的回调,,于是我想到了办法</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> temp=""<span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">var</span> setting =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        check: {
+</span><span style="color: #008080;"> 4</span>             enable: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 5</span>             autoCheckTrigger: <span style="color: #0000ff;">true</span>
+<span style="color: #008080;"> 6</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        data: {
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            simpleData: {
+</span><span style="color: #008080;"> 9</span>                 enable: <span style="color: #0000ff;">true</span>
+<span style="color: #008080;">10</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        callback: {
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            onCheck: zTreeOnCheck,
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">            beforeCheck: zTreeBeforeCheck
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> zTreeBeforeCheck(treeId, treeNode){
+</span><span style="color: #008080;">19</span>         temp=<span style="color: #000000;">treeNode;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">21</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> zTreeOnCheck(event, treeId, treeNode) {
+</span><span style="color: #008080;">22</span>     <span style="color: #008000;">//</span><span style="color: #008000;">debugger</span>
+<span style="color: #008080;">23</span>         <span style="color: #0000ff;">if</span>(treeNode.name!=<span style="color: #000000;">temp.name){
+</span><span style="color: #008080;">24</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">        refresh(treeNode);      
+</span><span style="color: #008080;">27</span>     }</pre>
+</div>
+<p>用一个temp去存储将要触发oncheck()的节点对象, 然后再在oncheck()方法中判断触发这个方法的是不是你当前所勾选的节点,如果不是就直接pass,这样一来,下面的刷新页面方法就不会因为父子联动而多次触发了,</p>
+<p>页面的响应速度也是杠杠的.现在真的发现,ztree真的是个强大的工具,速度快,功能全,有很多你想不到的方法.</p>
+<p>最后附上ztree地址:<a href="http://www.treejs.cn/v3/api.php">http://www.treejs.cn/v3/api.php</a></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

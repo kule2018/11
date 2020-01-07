@@ -1,0 +1,275 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修javascript基础修炼(12)——手把手教你造一个简易的require.js' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>javascript基础修炼(12)——手把手教你造一个简易的require.js</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/10816039.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-概述">一. 概述</a></li>
+        <li><a href="#二.-require.js">二. require.js</a><ul>
+        <li><a href="#基本用法">2.1 基本用法</a></li>
+        <li><a href="#细说api设计">2.2 细说API设计</a></li>
+        </ul></li>
+        <li><a href="#三.-造轮子">三. 造轮子</a><ul>
+        <li><a href="#模块加载执行的步骤">3.1 模块加载执行的步骤</a></li>
+        <li><a href="#代码框架">3.2 代码框架</a></li>
+        <li><a href="#关键函数的代码实现">3.3 关键函数的代码实现</a></li>
+        </ul></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/javascript基础修炼(12)——手把手教你造一个简易的require.js0.png" /></p>
+<blockquote>
+<p>示例代码托管在我的代码仓：<a href="https://github.com/dashnowords/blogs/tree/master/Demo/%5Bjavascript%E5%9F%BA%E7%A1%80%E4%BF%AE%E7%82%BC12%5D-%E5%AE%9E%E7%8E%B0%E7%AE%80%E6%98%93%E7%9A%84requirejs%E7%A4%BA%E4%BE%8B">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<h2 id="一.-概述">一. 概述</h2>
+<p>许多前端工程师沉浸在使用脚手架工具的快感中，认为<code>require.js</code>这种前端模块化的库已经过气了，的确如果只从使用场景来看，在以<code>webpack</code>为首的自动化打包趋势下，大部分的新代码都已经使用<strong>CommonJs</strong>或<strong>ES Harmony</strong>规范实现前端模块化，<code>require.js</code>的确看起来没什么用武之地。但是前端模块化的基本原理却基本都是一致的，无论是实现了模块化加载的第三方库源码，还是打包工具生成的代码中，你都可以看到类似的模块管理和加载框架，所以研究<code>require.js</code>的原理对于前端工程师来说几乎是不可避免的，即使你绕过了<code>require.js</code>,也会在后续学习<strong>webpack的打包结果</strong>时学习类似的代码。研究模块化加载逻辑对于开发者理解javascript回调的运行机制非常有帮助，同时也可以提高抽象编程能力。</p>
+<h2 id="二.-require.js">二. require.js</h2>
+<h3 id="基本用法">2.1 基本用法</h3>
+<p><code>require.js</code>是一个实现了<code>AMD</code>（不清楚<code>AMD</code>规范的同学请戳这里<a href="https://github.com/amdjs/amdjs-api/wiki/AMD">【AMD模块化规范】</a>）模块管理规范的库(<code>require.js</code>同时也能够识别<code>CMD</code>规范的写法)，基本的使用方法也非常简单：</p>
+<ol>
+<li><p>类库引入，在主页<code>index.html</code>中引入<code>require.js</code>:</p>
+<pre><code><code>&lt;script src=&quot;require.js&quot; data-main=&quot;main.js&quot;&gt;&lt;/script&gt;</code></pre>
+<p><code>data-main</code>自定义属性指定了<code>require.js</code>完成初始化后应该加载执行的第一个文件。</p></li>
+<li><p>在<code>main.js</code>中调用<code>require.config</code>传入配置参数，并通过<code>require</code>方法传入主启动函数:</p>
+<pre class="js"><code>//main.js
+require.config((
+    baseUrl:&#39;.&#39;,
+    paths:{
+       jQuery:&#39;lib/jQuery.min&#39;,
+       business1:&#39;scripts/business1&#39;,
+       business2:&#39;scripts/business2&#39;,
+       business3:&#39;scripts/business3&#39;
+    }
+))
+
+require([&#39;business1&#39;,&#39;business2&#39;],function(bus1,bus2){
+     console.log(&#39;主函数执行&#39;);
+     bus2.welcome();
+});  </code></pre></li>
+<li><p>模块定义通过<code>define</code>函数定义</p>
+<pre class="ts"><code>define(id?:string, deps?:Array&lt;string&gt;, factory:function):any</code></pre></li>
+<li><p>访问<code>index.html</code>后的模块加载顺序：</p>
+<p>访问的顺序从<code>require</code>方法执行开始打乱，<code>main.js</code>中的<code>require</code>方法调用声明了对<code>business1</code>和<code>business2</code>两个模块的依赖，那么最后一个参数（主方法）不会立即解析，而是等待依赖模块加载，当下载到定义<code>business1</code>模块的文件<code>scripts/business1.js</code>后，写在该文件中的<code>define</code>方法会被执行，此时又发现当前模块依赖<code>business3</code>模块，程序又会延迟生成<code>business1</code>模块的工厂方法（也就是<code>scripts/business1.js</code>中传入<code>define</code>方法的最后一个函数参数），转而先去加载<code>business3</code>这个模块，如果<code>define</code>方法没有声明依赖，或者声明的依赖都已经加载，就会执行传入的工厂方法生成指定模块，不难理解模块的解析是从叶节点开始最终在根节点也就是主工厂函数结束的。</p>
+<p>所以模块文件加载顺序和工厂方法执行顺序基本是相反的，最先加载的模块文件中的工厂方法可能最后才被运行（也可能是乱序，但符合依赖关系），因为需要等待它依赖的模块先加载完成，运行顺序可参考下图（运行结果来自第三节中的demo）：</p></li>
+</ol>
+<p><img src="./images/javascript基础修炼(12)——手把手教你造一个简易的require.js1.png" /></p>
+<h3 id="细说api设计">2.2 细说API设计</h3>
+<p><code>require.js</code>在设计上贯彻了多态原则，API非常精简。</p>
+<p>模块定义的方法只有一个<code>define</code>，但是包含了非常多情况：</p>
+<ul>
+<li><p>1个参数</p>
+<ul>
+<li><p><code>function</code>类型</p>
+<p>将参数判定为匿名模块的工厂方法，仅起到作用域隔离的作用。</p></li>
+<li><p><code>object</code>类型</p>
+<p>将模块识别为数据模块，可被其他模块引用。</p></li>
+</ul></li>
+<li><p>2个参数</p>
+<ul>
+<li><p><code>string</code>+<code>function | object</code></p>
+<p>第一参数作为模块名，第二参数作为模块的工厂方法或数据集。</p></li>
+<li><p><code>array&lt;string&gt;</code>+<code>function | object</code></p>
+<p>第一参数作为依赖列表，第二参数作为匿名模块工厂方法或数据集。</p></li>
+</ul></li>
+<li><p>3个参数</p>
+<p>第一个参数作为模块名，第二个参数作为依赖列表，第三个参数作为工厂方法或数据集。</p></li>
+<li><p><code>deps : array&lt;string&gt;</code>依赖列表中成员的解析</p>
+<ul>
+<li><p>包含<code>/</code>或<code>./</code>或<code>../</code></p>
+<p>判定为依赖资源的地址</p></li>
+<li><p>不包含上述字符</p>
+<p>判定为依赖模块名</p></li>
+</ul></li>
+</ul>
+<p>模块加载方法<code>require</code>也是诸多方法的集合:</p>
+<ul>
+<li><p>1个参数</p>
+<ul>
+<li><p><code>string</code>类型</p>
+<p>按照模块名或地址来加载模块。</p></li>
+<li><p><code>array</code>类型</p>
+<p>当做一组模块名或地址来加载，无加载后回调。</p></li>
+</ul></li>
+<li><p>2个参数</p>
+<p>第一个参数作为依赖数组，第二个参数作为工厂方法。</p></li>
+</ul>
+<blockquote>
+<p>在这样的设计中，不同参数类型对应的函数重载在<code>require.js</code>内部进行判定分发，使得由用户编写的调用逻辑显得更加简洁一致。</p>
+</blockquote>
+<h2 id="三.-造轮子">三. 造轮子</h2>
+<p>作为前端工程师，只学会使用方法是远远不够的，本节中我们使用“造轮子”的方法造一个简易的<code>require.js</code>，以便探究其中的原理。本节使用的示例中，先加载<code>require.js</code>，入口文件为<code>main.js</code>,主逻辑中前置依赖为<code>business1</code>和<code>business2</code>两个模块，<code>business1</code>依赖于<code>business3</code>模块，<code>business2</code>依赖于<code>jQuery</code>。如下所示：</p>
+<p><img src="./images/javascript基础修炼(12)——手把手教你造一个简易的require.js2.png" /></p>
+<h3 id="模块加载执行的步骤">3.1 模块加载执行的步骤</h3>
+<p>上一节在分析<code>require.js</code>执行步骤时我们已经看到，当一个模块依赖于其他模块时，它的工厂方法（<code>require</code>或<code>define</code>的最后一个参数）是需要先缓存起来的，程序需要等待依赖模块都加载完成后才会执行这个工厂方法。需要注意的是，工厂方法的执行顺序只能从依赖树的叶节点开始，也就是说我们需要一个栈结构来限制它的执行顺序，每次先检测栈顶模块的依赖是否全部下载解析完毕，如果是，则执行出栈操作并执行这个工厂方法，然后再检测新的栈顶元素是否满足条件，以此类推。</p>
+<p><code>define</code>方法的逻辑是非常类似的，现在<code>moduleCache</code>中登记一个新模块，如果没有依赖项，则直接执行工厂函数，如果有依赖项，则将工厂函数推入<code>unResolvedStack</code>待解析栈，然后依次对声明的依赖项调用<code>require</code>方法进行加载。</p>
+<p>我们会在每一个依赖的文件解析完毕触发<code>onload</code>事件时将对应模块的缓存信息中的<code>load</code>属性设置为<code>true</code>，然后执行检测方法，来检测<code>unResolvedStack</code>的栈顶元素的依赖项是否都已经都已经完成解析（解析完毕的依赖项在<code>moduleCache</code>中记录的对应模块的<code>load</code>属性为true）,如果是则执行出栈操作并执行这个工厂方法，然后再次运行检测方法，直到栈顶元素当前无法解析或栈为空。</p>
+<h3 id="代码框架">3.2 代码框架</h3>
+<p>我们使用基本的闭包自执行函数的代码结构来编写<code>requireX.js</code>（示例中只实现基本功能）:</p>
+<pre class="js"><code>;(function(window, undefined){
+    //模块路径记录
+    let modulePaths = {
+        main:document.scripts[0].dataset.main.slice(0,-3) //data-main传入的路径作为跟模块
+    };
+    //模块加载缓存记录
+    let moduleCache = {};
+    //待解析的工厂函数
+    let unResolvedStack = [];
+    //匿名模块自增id
+    let anonymousIndex = 0;
+    //空函数
+    let NullFunc =()=&gt;{};
+    
+    /*moduleCache中记录的模块信息定义*/
+    class Module {
+        constructor(name, path, deps=[],factory){
+            this.name = name;//模块名
+            this.deps = deps;//模块依赖
+            this.path = path;//模块路径
+            this.load = false;//是否已加载
+            this.exports = {};//工厂函数返回内容
+            this.factory = factory || NullFunc;//工厂函数
+        }
+    }
+    
+    //模块加载方法
+    function _require(...rest){
+        //...
+    }
+    
+    //模块定义方法
+    function _define(...rest){
+        
+    }
+    
+    //初始化配置方法
+    _require.config = function(conf = {}){
+        
+    }
+    
+    /**
+    *一些其他的内部使用的方法
+    */
+    
+    //全局挂载
+    window.require = _require;
+    window.define = _define;
+    
+    //从data-main指向开始解析
+    _require(&#39;main&#39;);
+    
+})(window);</code></pre>
+<h3 id="关键函数的代码实现">3.3 关键函数的代码实现</h3>
+<p>下面注释覆盖率超过90%了，不需要再多说什么。</p>
+<ol>
+<li>加载方法<code>_require</code>（省略了许多条件判断，只保留了核心逻辑）</li>
+</ol>
+<pre class="js"><code>    function _require(...rest){
+        let paramsNum = rest.length;
+        switch (paramsNum){
+            case 1://如果只有一个字符串参数，则按模块名对待，如果只有一个函数模块，则直接执行
+                if (typeof rest[0] === &#39;string&#39;) {
+                    return _checkModulePath(rest[0]);
+                }
+            break;
+            case 2:
+                if (Object.prototype.toString.call(rest[0]).slice(8,13) === &#39;Array&#39; &amp;&amp; typeof rest[1] === &#39;function&#39;){
+                    //如果依赖为空，则直接运行工厂函数，并传入默认参数
+                    return _define(&#39;anonymous&#39; + anonymousIndex++, rest[0], rest[1]);
+                }else{
+                    throw new Error(&#39;参数类型不正确，require函数签名为(deps:Array&lt;string&gt;, factory:Function):void&#39;);
+                }
+            break;
+        }
+    }</code></pre>
+<p>如果传入一个字符，则将其作为模块名传入<code>_checkModulePath</code>方法检测是否有注册路径，如果有路径则去获取定义这个模块的文件，如果传入两个参数，则运行<code>_define</code>方法将其作为<strong>匿名模块</strong>的依赖和工厂函数处理。</p>
+<ol>
+<li>模块定义方法<code>_define</code></li>
+</ol>
+<pre class="js"><code>    function _define(id, deps, factory){
+        let modulePath = modulePaths[id];//获取模块路径，可能是undefined
+        let module = new Module(id, modulePath, deps, factory);//注册一个未加载的新模块
+        moduleCache[id] = module;//模块实例挂载至缓存列表
+        _setUnResolved(id, deps, factory);//处理模块工厂方法延迟执行逻辑
+    }</code></pre>
+<ol>
+<li>延迟执行工厂方法的函数<code>_setUnResolved</code></li>
+</ol>
+<pre class="js"><code>    function _setUnResolved(id, deps, factory) {
+        //压栈操作缓存要延迟执行的工厂函数
+        unResolvedStack.unshift({id, deps,factory});
+        //遍历依赖项数组对每个依赖执行检测路径操作，检测路径存在后对应的是js文件获取逻辑
+        deps.map(dep=&gt;_checkModulePath(dep));
+    }</code></pre>
+<ol>
+<li>模块加载逻辑<code>_loadModule</code></li>
+</ol>
+<pre class="js"><code>    function _loadModule(name, path) {
+        //如果存在模块的缓存，表示已经登记，不需要再次获取，在其onload回调中修改标记后即可被使用
+        if(name !== &#39;root&#39; &amp;&amp; moduleCache[name]) return;
+        //如果没有缓存则使用jsonp的方式进行首次加载
+        let script = document.createElement(&#39;script&#39;);
+            script.src = path + &#39;.js&#39;;
+            script.defer = true;
+            //初始化待加载模块缓存
+            moduleCache[name] = new Module(name,path);
+            //加载完毕后回调函数
+            script.onload = function(){
+                //修改已登记模块的加载解析标记
+                moduleCache[name].load = true;
+                //检查待解析模块栈顶元素是否可解析
+                _checkunResolvedStack();
+            }
+            console.log(`开始加载${name}模块的定义文件,地址为${path}.js`);
+            //开始执行脚本获取
+            document.body.appendChild(script);
+    }</code></pre>
+<ol>
+<li>检测待解析工厂函数的方法<code>_checkunResolvedStack</code></li>
+</ol>
+<pre class="js"><code>    function _checkunResolvedStack(){
+        //如果没有待解析模块，则直接返回
+        if (!unResolvedStack.length)return;
+        //否则查看栈顶元素的依赖是否已经全部加载
+        let module = unResolvedStack[0];
+        //获取声明的依赖数量
+        let depsNum = module.deps.length;
+        //获取已加载的依赖数量
+        let loadedDepsNum = module.deps.filter(item=&gt;moduleCache[item].load).length;
+        //如果依赖已经全部解析完毕
+        if (loadedDepsNum === depsNum) {
+            //获取所有依赖的exports输出
+            let params = module.deps.map(dep=&gt;moduleCache[dep].exports);
+            //运行待解析模块的工厂函数并挂载至解析模块的exports输出
+            moduleCache[module.id].exports = module.factory.apply(null,params);
+            //待解析模块出栈
+            unResolvedStack.shift();
+            //递归检查
+            return _checkunResolvedStack();
+        }
+    }</code></pre>
+<p>示例的效果是页面中提示语缓慢显示出来。的完整的示例代码可从篇头的<code>github</code>仓库中获取，欢迎点星星。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

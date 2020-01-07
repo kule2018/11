@@ -1,0 +1,243 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修跨域及JSONP原理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>跨域及JSONP原理</center></div><div class='banquan'>原文出处:本文由博客园博主张最棒提供。<br/>
+原文连接:https://www.cnblogs.com/jiaobaba/p/11610062.html</div><br>
+    <p><span style="font-family: 仿宋;"><span style="font-size: 18px;"><strong>什么是跨域：</strong>a.com 域名下的js无法操作b.com或是c.a.com域名下的对象</span></span></p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px;">为什么浏览器要引入跨域问题?</span></strong></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">跨域问题来源于浏览器的同源策略，为啥要有这个策略呢？</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">为了安全。假设现在有a.com 和b.com 两个域，如果没有同源策略的限制，那么a.com就可以随随便便就去b.com 里面拿东西，甚至一些cookie信息（常用于存储登录信息），那么a.com只需要一段代码就可以获取你的cookie信息，从而冒充你的身份去登录网站。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;">当使用 AJAX&nbsp;<strong>跨域</strong>访问<strong>资源</strong>&nbsp;会受到同源策略影响，浏览器会报错。</span></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px;">啥算跨域?</span></strong></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">页面本身都有协议，域名，端口。当协议，域名，端口这三个有任意一个不一样就算跨域。</span></span></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px;">这里的跨域访问资源是那些资源呢(只有访问这些资源时浏览器不会显示给我们)？</span></strong></p>
+<ol>
+<li><span style="font-family: 仿宋; font-size: 18px;">后端接口的数据</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">其他域的cookie</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">其他域的缓存</span></li>
+</ol>
+<p><span style="font-family: 仿宋; font-size: 18px;">当访问在有src属性的，或者部分href属性的，即使跨域浏览器也会返回给我们。只有跨域访问上面的资源浏览器才会报错。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">事实上跨域是可以发出请求，浏览器也是可以接受到返回给我们的信息。但接受到数据之后发现页面的域和请求的域不同，所以判定跨域，不会把结果传递给我们的代码。也就是说同源策略是浏览器的一个安全策略。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">那当有需要去访问别人服务器接口等这样的需求时，怎样解决同源策略的这种限制也就是跨域问题。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;"><strong>有人会不理解为啥浏览器地址栏直接访问接口不是跨域，而AJAX访问接口就是跨域问题</strong>。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">你的AJAX所在的所在的位置是一个域，而访问的服务器接口是一个域。那在地址栏里是在客户端向往服务器里发型请求只存在服务端一个域。例如：你打开一个地址可以说就是请求了一个域的内容，<a href="http://www.baidu.com/xxx," rel="nofollow noreferrer" target="_blank">http://www.baidu.com/xxx,</a>你可以理解为www.baidu.com,就是一个域，这个时候你在这个地址内发出一个请求<a href="http://www.baidukuayu.com/xxx," rel="nofollow noreferrer" target="_blank">http://www.baidukuayu.com/xxx,</a>那请求的就是www.baidukuayu.com.这两个地址的主域不一样可以为第二个请求跨域了。<br /><br /></span></p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px;">在说一下为啥本地文件访问服务器也会出现跨域</span></strong></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">因为本地文件（file:///C:/Users/master/Desktop/canvas/变换.html）前面的file也是个协议，是用来浏览器打开本地文件使用的文件协议。这也就解释了为啥会跨域因为协议不同嘛。而大多数网络相关的请求都是http或者https协议，所以无法进行与网络相关的操作（跨域，ajax,访问cookie等）</span></span></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">so，我们想办法绕过这个file协议，基本上每个编辑器都提供了插件，他在你本地代码启动的时候，可以隐式的返回一个服务。 例如在vscode的live server插件，webStrom 直接点击走上角的小浏览器标识就可以隐式的打开一个服务。</span></span></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">&nbsp;</span></span></p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px;">解决跨域问题</span></strong></p>
+<ol>
+<li><span style="font-family: 仿宋; font-size: 18px;">后端配合我们进行跨域</span><ol>
+<li><span style="font-family: 仿宋; font-size: 18px;">JSONP&nbsp;</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">后端设置Access-Control-Allow-Origin属性支持跨域(让服务器告诉浏览器我这个接口所有网站都可以访问)</span></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">后端不配合我们进行跨域</span></span><ol>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">iframe(只能显示，不能控制)</span></span></li>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">通过服务器代理中转（原理：跨域只是浏览器的限制，但是我自己的服务器可以去访问被人的接口，我们访问自己的服务器，让自己的服务器去访问别人的接口，然后返回的数据再返回给服务器）</span></span></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</ol></li>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</ol>
+<p><strong><span style="font-family: 仿宋;"><span style="font-size: 18px;">使用jquery JSONP跨域</span></span></strong></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">$.ajax({
+            url:"",  //请求地址
+            type:"",  //请求方式<br />　　　　　　　data:"",  //要发送给服务器的值
+            dataType:"jsonp",//要求服务器返回的数据类型<br />　　　　　　　async："", //请求是否异步
+            success:function(data){  //成功的回调函数
+                ......
+            }
+        })</span></pre>
+</div>
+<p><span style="font-family: 仿宋; font-size: 18px;">&nbsp;成功跨域请求数据</span></p>
+<p><img src="./images/跨域及JSONP原理0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 仿宋;"><span style="font-size: 18px;"><img src="./images/跨域及JSONP原理1.png" alt="" /></span></span></strong></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">我们发现发送请求的地址后面自动加上一个callback参数，而请求回来的jsonp数据的格式正是发送时的callback（json）.</span></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px;">JSONP原理：动态创建script标签，使用script的src进行跨域</span></strong></p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px;">具体步骤：</span></strong></p>
+<ol>
+<li><span style="font-family: 仿宋; font-size: 18px;">判断请求的与当前页面域是否同源，如果同源正常发送ajax，如果不同源，生成一个script标签</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">生成一个随机的callback名字，并生成对应名字的方法。</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">设置script的src为要请求的接口，将callback参数拼接在后面。</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">后端接收到请求后，开始准备要返回的数据</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">后端拼接数据，将要返回的数据用callback包裹起来，将内容返回。</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">浏览区接收到内容那个，会当做js代码来执行。</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">从而执行第二步生成的方法，这样就接收到后端返回给我们的对象。</span></li>
+</ol>
+<ul>
+<li><span style="font-family: 仿宋; font-size: 18px;">jsonp选script的src进行跨域的原因？</span></li>
+</ul>
+<p style="margin-left: 60px;"><span style="font-family: 仿宋; font-size: 18px;">我们知道带有src属性和部分的href属性是可以跨域的。但是href大多是样式。我们使用带src属性的。带src属性的有audio，video，img ,src,script等，但只有script是可以对数据进行控制，显示等。所以跨域的本质是使用script标签发出请求。</span><span style="font-family: 仿宋; font-size: 18px;">例如引入jQuery的cdn:&nbsp; &nbsp;&lt;script src = https://cdn.bootcss.com/jquery/3.4.1/jquery.js&gt;&lt;/script&gt;&nbsp;&nbsp;</span></p>
+<ul>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">为什么jsonp都是使用get方式请求？</span></span></li>
+</ul>
+<p style="margin-left: 60px;"><span style="font-family: 仿宋;"><span style="font-size: 18px;">由于jsonp的原理就是使用script标签进行跨域，而script都是使用get方式请求数据。所以jsonp跨域只能是get方法，即使你设置的post方法，jQuery也会自动转为get方法。但如果你使用jsonp的方式并么有跨域，也就是同源，那么设置的get就是get，post还是post.</span></span></p>
+<ul>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">使用script便签索然可以引用其他域的资源，浏览器也不会限制，但是，浏览器会将但会的内容，作为代码执行。例如jQuery的cdn返回给我们的是jQuery源码</span></span></li>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">jsonp为什么使用回调函数的方式处理返回的数据，</span></span><span style="font-family: 仿宋;"><span style="font-size: 18px;">以及为什么script的src后面为啥拼接一个callback参数呢？</span></span></li>
+</ul>
+<p style="margin-left: 60px;"><span style="font-family: 仿宋;"><span style="font-size: 18px;">在使用jsonp返回数据时，可能是个对象，也可能是个数组，但无论是什么都要给这个对象或数组附上一个名字（引用）以便访问这个数据，例如var a = {name:'zhang'},否则让我们怎么使用这个数据。</span></span></p>
+<p style="margin-left: 60px;">&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">　　　　　var script = document.createElement('script');
+        script.src = "./another.js";
+        document.body.appendChild(script);
+        console.log(a);
+--another.js文件内容。--
+var a = {name:'f'}  //假设后端返回的数据</span></pre>
+</div>
+<p style="margin-left: 60px;">&nbsp;</p>
+<p>&nbsp;</p>
+<p style="margin-left: 60px;">&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;">　　　　由于动态创建的script是异步加载的。所以访问a为被定义。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;"><img src="./images/跨域及JSONP原理2.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;　　　　<span style="font-family: 仿宋; font-size: 18px;">这时候我们就想到回调函数了，等js文件加好了，自动执行岂不是更好，并且还隐藏了返回数据的引用。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">var script = document.createElement('script');
+        script.src = "./another.js";
+        document.body.appendChild(script);
+        function aa(data){
+            console.log(data);
+        }</span></pre>
+<pre><code><span>--another.js文件内容。--</span></pre>
+<pre><code><span style="color: #000000;">aa({name:'dg'})  //假设后端返回的数据</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p style="margin-left: 60px;"><span style="font-family: 仿宋; font-size: 18px;">像这样创建一个函数，返回的数据用上面定义的函数名包裹执行这个已经定义好的函数，并把要返回的数据作为参数传递给要执行的函数。等到js文件加载完自动执行这个函数。</span></p>
+<p style="margin-left: 60px;"><span style="font-family: 仿宋; font-size: 18px;">那怎样让后端知道你前端定义好的那个函数名（名字要一致啊，不然怎么执行），这是我们就知道了为啥url后面跟着一个callback参数了。直接把你定义好的函数名拼接在你要访问地址的后面一块传给后端岂不快哉。</span></p>
+<ul>
+<li><span style="font-family: 仿宋; font-size: 18px;">&nbsp;默认是在url后加callback，如果想自定义函数的参数名取代默认的callback，可以通过使用$.ajax的jsonp参数</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">&nbsp;jsonp原理代码实现</span></li>
+</ul>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">var $ = {
+            ajax : function (options) {
+                var url = options.url;
+                var type = options.type;
+                var dataType = options.dataType;
+                // 判断是否同源(协议,域名,端口是否相同)
+                var targetProtocol = "";  //目标接口协议
+                var targetHost = ""       //目标接口的host(包括协议和端口)
+                // 如果url不带http,访问的就是相对路径(同源)
+                if (url.indexOf("http://") == 0 || url.indexOf("https://") == 0) {
+                    var targetUrl = new URL(url);
+                    targetProtocol = targetUrl.protocol;
+                    targetHost = targetUrl.host;
+                } else {
+                    targetProtocol = location.protocol;
+                    targetHost = location.host;
+                }
+                // 判断是否是jsonp,如果不是jsonp,直接发送ajax
+                if (dataType == "jsonp") {
+                    if (location.protocol == targetProtocol &amp;&amp; location.host == targetHost) {
+                        // 使用ajax
+                    }
+                    else { //跨域
+                        // 随机生成一个callback,并生成对应的方法
+                       <span style="color: #ff0000;"> var callback = "cb" + Math.floor(Math.random() * 1000000);
+                        window[callback] = options.success;
+                       <span style="color: #000000;"> // 创建script标签</span>
+                        var script = document.createElement('script');
+                        <span style="color: #000000;">// 如果url没有参数</span>
+                        if (url.indexOf('?') != -1) {
+                            script.src = url + "</span></span><span style="color: #ff0000;">&amp;callback</span><span style="color: #000000;"><span style="color: #ff0000;">=" + callback;
+                        }
+                        else {<span style="color: #000000;">//有参数</span>
+                            script.src = url + "?callback=" + callback;
+                        }
+                        <span style="color: #000000;">// 将script添加到文档中</span>
+                        document.body.appendChild(script);</span>
+                    }
+                }
+            }
+        }<br />　　　　　</span></pre>
+<div>
+<div>　　　　　　$.ajax({</div>
+<div>　　　　　　　　url:'http://developer.duyiedu.com/edu/testJsonp',</div>
+<div>　　　　　　　　type:'get',</div>
+<div>　　　　　　　　dataType:'jsonp',</div>
+<div>　　　　　　　　success:function(data){</div>
+<div>　　　　　　　　console.log(data);</div>
+<div>　　　　　　　　}</div>
+<div>　　　　　　})</div>
+</div>
+<pre><code><span style="color: #000000;">&nbsp;</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

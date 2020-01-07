@@ -1,0 +1,207 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue组件之间的传值——中央事件总线与跨组件之间的通信（$attrs、$listeners）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue组件之间的传值——中央事件总线与跨组件之间的通信（$attrs、$listeners）</center></div><div class='banquan'>原文出处:本文由博客园博主可可西里的骄傲提供。<br/>
+原文连接:https://www.cnblogs.com/layaling/p/11214387.html</div><br>
+    <p>vue组件之间的通信有很多种方式，最常用到的就是父子组件之间的传值，但是当项目工程比较大的时候，就会出现兄弟组件之间的传值，跨级组件之间的传值。不可否认，这些都可以类似父子组件一级一级的转换传递，但是当项目比较大，功能比较复杂的时候，就会变得比较冗余，代码不利于维护；这时候可能会有很多人使用到vuex，但是如果项目中多个组件共享状态比较少，项目比较小，并且全局状态比较少,好像就没有使用vuex来管理数据的必要。</p>
+<p>一、中央事件总线（eventBus）</p>
+<p>主要是通过在要相互通信的兄弟组件之中，都注册引入一个新的vue实例，然后通过分别调用这个实例的事件触发和监听来实现通信和参数传递，也就是我们常说的bus车事件。</p>
+<p>1、首先，全局注册一个新的vue实例，可以放在我们常用的vue项目文件中</p>
+<p>js/event-bus.js</p>
+<div class="cnblogs_code">
+<pre><code>import Vue from 'vue'<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span> <span style="color: #0000ff;">new</span> Vue()</pre>
+</div>
+<p>2、如果不想全局引用可以，在使用的vue文件里使用，举个例子：contentLeft.vue,contentRight.vue 需要将contentLeft.vue与contentRight.vue互相通信</p>
+<p>contentLeft.vue</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div&gt;<span style="color: #000000;">
+    {{message}}
+    </span>&lt;button @click="handleClick"&gt;test&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;<span style="color: #000000;">
+import bus from </span>'../../assets/js/event-bus'<span style="color: #000000;">
+
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  data () {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      message: </span>'this is content here'<span style="color: #000000;">
+    }
+  },
+  props: {
+    con: {
+      type: String
+    }
+  },
+  components: {
+    descripe
+  },
+  methods: {
+    handleClick () {
+      bus.$emit(</span>'getDate', 'brathers!'<span style="color: #000000;">)
+    }
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p>contentRight.vue&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div&gt;<span style="color: #000000;">
+    {{message}}
+    </span>&lt;p v-<span style="color: #0000ff;">for</span>="(item,index) in meslist" :key="index"&gt;{{item}}&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;<span style="color: #000000;">
+import bus from </span>'../../assets/js/event-bus'<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  data () {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      message: </span>''<span style="color: #000000;">,
+      meslist: []
+    }
+  },
+  created () {
+    bus.$on(</span>'getDate', (val) =&gt;<span style="color: #000000;"> {
+      console.log(val)
+      </span><span style="color: #0000ff;">this</span>.message =<span style="color: #000000;"> val
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> this.meslist.push(val)</span>
+<span style="color: #000000;">    })
+  },
+  beforeDestroy () {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 组件销毁前需要解绑事件。否则会出现重复触发事件的问题!!!!!!!!!!!!!</span>
+    bus.$off('getDate'<span style="color: #000000;">)
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p>当点击contentLeft的按钮的时候，contentRight的message值就获取到了总left中传过来的'brothers'</p>
+<p>优点：通过bus事件方法可以简单快捷的进行组件之间的传值，在项目不大的时候，减少了对vuex的依赖</p>
+<p>缺点：1、bus事件对生命周期比较严谨，当你bus.$emit发送事件时，如果兄弟组件还不存在，当真正打开兄弟组件时，此时在created里面bus.$on是监听不到传递的值的</p>
+<p>2、bus事件不会随着组件的关闭而自行销毁，所以当路由切换时，bus事件会不停的触发，如果数据量比较多的时候，可能会比较影响性能吧，所以需要及时销毁所绑定的bus事件</p>
+<p>二、跨组件之间的通信</p>
+<p>vue2.4之后，跨组件之间的通信可以通过$attr和$listeners来实现</p>
+<p>举个例子，father.vue&nbsp; child.vue&nbsp; grandChild.vue</p>
+<p>father.vue组件中传值</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div class="about"&gt;
+    &lt;p&gt;子组件给父组件传值，父组件再给父组件传值&lt;/p&gt;
+    &lt;<span style="color: #000000;">child
+      :con</span>="con"<span style="color: #000000;">
+      :son</span>="son"<span style="color: #000000;">
+      @getCData </span>= "getCData"
+    &gt;&lt;/child&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;<span style="color: #000000;">
+import child from </span>'./components/child'<span style="color: #000000;">
+
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  data () {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      test: </span>'test'<span style="color: #000000;">,
+      con: </span>'child'<span style="color: #000000;">,
+      son: </span>'child-child'<span style="color: #000000;">
+    }
+  },
+  components: {
+    child
+  },
+  methods: {
+    getGrandChildData (val) {
+      </span><span style="color: #0000ff;">this</span>.son =<span style="color: #000000;"> val
+      console.log(</span>'这是来自grandchild组件的数据：' +<span style="color: #000000;"> val)
+      console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.son)
+    }
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p>child.vue组件中设置grandChild组件的$attr和$listner属性</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div&gt;<span style="color: #000000;">
+    {{message}}
+    </span>&lt;i class="get-data"&gt;{{con}}&lt;/i&gt;
+    &lt;grandChild v-bind="$attrs" v-on="$listeners"&gt;&lt;/grandChild &gt;
+    &lt;button @click="handleClick"&gt;test&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;<span style="color: #000000;">
+import grandChild from </span>'./grandChild '<span style="color: #000000;">
+
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  data () {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      message: </span>'this is content here'<span style="color: #000000;">
+    }
+  },
+  props: {
+    con: {
+      type: String
+    }
+  },
+  components: {
+    grandChild 
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p>grandChild.vue组件可以通过$attr监听到爷爷级组件的值，再通过触发事件向爷爷级组件传递修改值</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div&gt;<span style="color: #000000;">
+    {{list}}
+    </span>&lt;p class="get-data"&gt;{{$attrs.son}}&lt;/p&gt;
+    &lt;input type="text" v-model="$attrs.son"&gt;
+    &lt;button @click="passData($attrs.son)"&gt;按一下&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  data () {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      list: </span>'ceshixia'<span style="color: #000000;">
+    }
+  },
+  methods: {
+    passData (val) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 触发事件，改变值爷爷级组件的值</span>
+      <span style="color: #0000ff;">this</span>.$emit('getGrandChildData'<span style="color: #000000;">, val)
+    }
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p>以上就可以实现跨级组件之间的传值，可以引用到各种场景中去</p>
+<p>&nbsp;</p>
+<pre><code></pre>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

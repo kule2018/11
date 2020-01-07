@@ -1,0 +1,180 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修浅析libuv源码-node事件轮询解析(1)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>浅析libuv源码-node事件轮询解析(1)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10821342.html</div><br>
+    <p>　　好久没写东西了，过了一段咸鱼生活，无意中想起了脉脉上面一句话: 始终保持自己的竞争力。所以，继续开写！</p>
+<p>　　一般的JavaScript源码看的已经没啥意思了，我也不会写什么xx入门新手教程，最终决定还是啃原来的硬骨头，从外层libuv =&gt; node =&gt; v8一步步实现原有的目标吧。</p>
+<p>&nbsp;</p>
+<p>　　libuv核心还是事件轮询，前几天从头到尾看了一遍官网的文档，对此有了一些更深的理解。</p>
+<p>　　(虽然现在开发用的mac，但是为了衔接前面的文章，所以代码仍旧以windows系统为基础，反正差别也不大)</p>
+<p>　　首先看一眼官网给的图：</p>
+<p><img src="./images/浅析libuv源码-node事件轮询解析(1)0.png" alt="" width="264" height="374" /></p>
+<p>　　理论上轮询都是一个无尽循环，所以不用在意loop alive问题。</p>
+<p>　　上图中，udpate loop time、Run due timers两块内容我已经在别的博客中讲解过，这里就懒得发传送门了。</p>
+<p>　　有两个简单的概念需要稍微提一下，libuv中有两个抽象概念贯穿整个框架：handle、request。其中handle生命周期较长，且有自己回调方法的一个事务，比如说TCP的handle会处理每一个TCP连接，并触发connection事件。request属于handle中一个生命周期短，且简单的行为，比如向文件进行读、写等等。</p>
+<p>　　这一篇主要看一下接下来剩余的部分，由于性质不太一样，所以并不会按顺序依次分析，而是从易到难，且源码会做大量简化，有兴趣的人可以自己去看。</p>
+<p>　　事件轮询方法源码精炼如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> uv_run(uv_loop_t *<span style="color: #000000;">loop, uv_run_mode mode) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+
+  <span style="color: #0000ff;">while</span> (r != <span style="color: #800080;">0</span> &amp;&amp; loop-&gt;stop_flag == <span style="color: #800080;">0</span><span style="color: #000000;">) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> update loop time</span>
+<span style="color: #000000;">    uv_update_time(loop);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> run due timers</span>
+<span style="color: #000000;">    uv__run_timers(loop);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> call pending callbacks</span>
+    ran_pending =<span style="color: #000000;"> uv_process_reqs(loop);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> run idle handles</span>
+<span style="color: #000000;">    uv_idle_invoke(loop);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> run prepare handles</span>
+<span style="color: #000000;">    uv_prepare_invoke(loop);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> poll的阻塞时间处理</span>
+    timeout = <span style="color: #800080;">0</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> ((mode == UV_RUN_ONCE &amp;&amp; !ran_pending) || mode ==<span style="color: #000000;"> UV_RUN_DEFAULT)
+      timeout </span>=<span style="color: #000000;"> uv_backend_timeout(loop);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> poll for I/O</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (pGetQueuedCompletionStatusEx)
+      uv__poll(loop, timeout);
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+      uv__poll_wine(loop, timeout);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> run check handles</span>
+<span style="color: #000000;">    uv_check_invoke(loop);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> call close callbacks</span>
+<span style="color: #000000;">    uv_process_endgames(loop);
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #0000ff;">return</span><span style="color: #000000;"> r;
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>Call close callbacks</strong></p>
+<p>　　这类回调比较特殊，官网是这么解释的: Close callbacks are called. If a handle was closed by calling&nbsp;<a class="reference internal" title="uv_close" href="http://docs.libuv.org/en/stable/handle.html#c.uv_close"><code><span class="pre">uv_close()</span></code></a>&nbsp;it will get the close callback called.</p>
+<p>　　简单来讲，就是仅在为了关闭一个handle，调用uv_close方法中所带的callback会被认为是一个close callbacks。在使用node的时候，所有的操作(比如fs.readFile)不可主动取消，所以轮询中这一步在JS层面是感知不到的。</p>
+<p>　　作用上相当于vue钩子函数中的destroy，由于触发是在轮询的最后一步，适合做一些收尾的工作，比如关闭文件描述符等等。</p>
+<p>　　源码中体现如下，首先是uv_close:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span> uv_close(uv_handle_t*<span style="color: #000000;"> handle, uv_close_cb cb) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 很多代码...</span>
+ 
+    <span style="color: #0000ff;">case</span><span style="color: #000000;"> UV_PREPARE:
+      uv_prepare_stop((uv_prepare_t</span>*<span style="color: #000000;">)handle);
+      uv__handle_closing(handle);
+      uv_want_endgame(loop, handle);
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　uv_close方法除了做关闭handle的本职工作，在最后都会调用一个uv_want_endgame方法收尾，这个方法是一个静态方法。</p>
+<div class="cnblogs_code">
+<pre><code>INLINE <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> uv_want_endgame(uv_loop_t* loop, uv_handle_t*<span style="color: #000000;"> handle) {
+  </span><span style="color: #0000ff;">if</span> (!(handle-&gt;flags &amp;<span style="color: #000000;"> UV_HANDLE_ENDGAME_QUEUED)) {
+    handle</span>-&gt;flags |=<span style="color: #000000;"> UV_HANDLE_ENDGAME_QUEUED;
+
+    handle</span>-&gt;endgame_next = loop-&gt;<span style="color: #000000;">endgame_handles;
+    loop</span>-&gt;endgame_handles =<span style="color: #000000;"> handle;
+  }
+}</span></pre>
+</div>
+<p>　　内容十分简单，将handle插入到endgame_handles这个链表的表头。</p>
+<p>　　最后，只需要看一眼uv_process_endgames即可。</p>
+<div class="cnblogs_code">
+<pre><code>INLINE <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> uv_process_endgames(uv_loop_t*<span style="color: #000000;"> loop) {
+  uv_handle_t</span>*<span style="color: #000000;"> handle;
+
+  </span><span style="color: #0000ff;">while</span> (loop-&gt;<span style="color: #000000;">endgame_handles) {
+    handle </span>= loop-&gt;<span style="color: #000000;">endgame_handles;
+    loop</span>-&gt;endgame_handles = handle-&gt;<span style="color: #000000;">endgame_next;
+
+    handle</span>-&gt;flags &amp;= ~<span style="color: #000000;">UV_HANDLE_ENDGAME_QUEUED;
+
+    </span><span style="color: #0000ff;">switch</span> (handle-&gt;<span style="color: #000000;">type) {
+      </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> UV_TCP:
+        uv_tcp_endgame(loop, (uv_tcp_t</span>*<span style="color: #000000;">) handle);
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">    }
+  }
+}</span></pre>
+</div>
+<p>　　也很简洁明了，不停的取出endgame_handles链表中的handle，依次调用不同的callbacks即可。</p>
+<p>&nbsp;</p>
+<p><strong>Run idle hanldes、Run prepare handles、Run check handles</strong></p>
+<p>　　这三个虽然名字不一样，但是主要作用类似，只是在调用顺序上有所不同。</p>
+<p>　　由于Poll for I/O是一个比较特殊的操作，所以这里提供prepare、check两个钩子函数可以在这个事务前后进行一些别的调用，大可以用vue的钩子函数created、mounted来帮助理解。</p>
+<p>　　idle除去调用较早，也影响poll for I/O这个操作的阻塞时间timeout，官网原文: If there are any idle handles active, the timeout is 0.正常情况下事件轮询会根据情况计算一个阻塞时间timout来决定poll for I/O操作的时间。</p>
+<p>　　这里用一个C++例子来证明调用顺序，忽略上面的宏，直接看main函数，特别简单！！！</p>
+<div class="cnblogs_code">
+<pre><code>#include &lt;iostream&gt;<span style="color: #000000;">
+#include </span><span style="color: #800000;">"</span><span style="color: #800000;">uv.h</span><span style="color: #800000;">"</span>
+<span style="color: #0000ff;">using</span> <span style="color: #0000ff;">namespace</span><span style="color: #000000;"> std;
+
+</span><span style="color: #0000ff;">void</span> idle_callback(uv_idle_t*<span style="color: #000000;"> idle);
+</span><span style="color: #0000ff;">void</span> prepare_callback(uv_prepare_t*<span style="color: #000000;"> prepare);
+</span><span style="color: #0000ff;">void</span> check_callback(uv_check_t*<span style="color: #000000;"> check);
+
+</span><span style="color: #0000ff;">#define</span> RUN_HANDLE(type) \
+<span style="color: #0000ff;">do</span><span style="color: #000000;"> {    \
+uv_##type##_t type;    \
+uv_##type##_init(loop, </span>&amp;<span style="color: #000000;">type);    \
+uv_##type##_start(</span>&amp;<span style="color: #000000;">type, type##_callback);    \
+} </span><span style="color: #0000ff;">while</span>(<span style="color: #800080;">0</span><span style="color: #000000;">)
+
+</span><span style="color: #0000ff;">#define</span> CALLBACK(type)  \
+<span style="color: #0000ff;">do</span><span style="color: #000000;"> {    \
+cout </span>&lt;&lt; <span style="color: #800000;">"</span><span style="color: #800000;">Run </span><span style="color: #800000;">"</span> &lt;&lt; #type &lt;&lt; <span style="color: #800000;">"</span><span style="color: #800000;"> handles</span><span style="color: #800000;">"</span> &lt;&lt;<span style="color: #000000;"> endl;   \
+uv_##type##_stop(type);    \
+} </span><span style="color: #0000ff;">while</span>(<span style="color: #800080;">0</span><span style="color: #000000;">)
+
+</span><span style="color: #0000ff;">#define</span> OPEN(PATH, callback) \
+<span style="color: #0000ff;">do</span><span style="color: #000000;"> {    \
+uv_fs_t req;    \
+uv_fs_open(loop, </span>&amp;req, PATH, O_RDONLY, <span style="color: #800080;">0</span><span style="color: #000000;">, callback); \
+uv_fs_req_cleanup(</span>&amp;<span style="color: #000000;">req);    \
+} </span><span style="color: #0000ff;">while</span>(<span style="color: #800080;">0</span><span style="color: #000000;">)
+
+</span><span style="color: #0000ff;">void</span> idle_callback(uv_idle_t*<span style="color: #000000;"> idle) { CALLBACK(idle); }
+</span><span style="color: #0000ff;">void</span> prepare_callback(uv_prepare_t*<span style="color: #000000;"> prepare) { CALLBACK(prepare); }
+</span><span style="color: #0000ff;">void</span> check_callback(uv_check_t*<span style="color: #000000;"> check) { CALLBACK(check); }
+</span><span style="color: #0000ff;">void</span> on_open(uv_fs_t* req) { cout &lt;&lt; <span style="color: #800000;">"</span><span style="color: #800000;">poll for I/O</span><span style="color: #800000;">"</span> &lt;&lt;<span style="color: #000000;"> endl; }
+
+</span><span style="color: #0000ff;">int</span> main(<span style="color: #0000ff;">int</span> argc, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span> *<span style="color: #000000;"> argv[]) {
+    auto loop </span>=<span style="color: #000000;"> uv_default_loop();
+    
+    RUN_HANDLE(check);
+    RUN_HANDLE(prepare);
+    RUN_HANDLE(idle);
+    
+    OPEN(</span><span style="color: #800000;">"</span><span style="color: #800000;">/Users/feilongpang/workspace/i.js</span><span style="color: #800000;">"</span><span style="color: #000000;">, on_open);
+    
+    uv_run(loop, UV_RUN_DEFAULT);
+    uv_loop_close(loop);
+    </span><span style="color: #0000ff;">return</span> <span style="color: #800080;">0</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　执行的时候还发现了一个问题，如果不提供一个I/O操作，Run check handles那一步是会直接跳过，所以手动加了一个open操作。</p>
+<p>　　可以看到，我特意调整了callback的添加顺序，但是输出依然是:</p>
+<p><img src="./images/浅析libuv源码-node事件轮询解析(1)1.png" alt="" /></p>
+<p>　　所以，代码确实是按照官网示例所给的图顺序来执行。</p>
+<p>　　剩下两个poll for I/O、pending callbacks留到下一篇讲吧。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

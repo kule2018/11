@@ -1,0 +1,576 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修自己写一个Promise' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>自己写一个Promise</center></div><div class='banquan'>原文出处:本文由博客园博主初心，你好吗提供。<br/>
+原文连接:https://www.cnblogs.com/LHLVS/p/10796751.html</div><br>
+    <p>参考Promise 的&nbsp; 官方规范&nbsp;&nbsp;<a href="https://promisesaplus.com/">https://promisesaplus.com/</a></p>
+<p>Promise 其实就是一个状态机</p>
+<p>它只有两种状态变化 pending&nbsp; &nbsp; =》&nbsp; &nbsp;fulfilled</p>
+<p>　　　　　　　　　pending&nbsp; &nbsp; =》&nbsp; &nbsp;rejected</p>
+<p>并且状态一旦发生变化后就不会再改变</p>
+<p>我们用es5来实现下</p>
+<p>先写个架子， 并测试下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> myPromise(executor) {
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> 保存当前的函数上下文</span>
+    _this.status = 'pending'; <span style="color: #008000;">//</span><span style="color: #008000;"> 初始状态</span>
+    _this.resolveValue = <span style="color: #0000ff;">null</span>;  <span style="color: #008000;">//</span><span style="color: #008000;"> resolve初始值</span>
+    _this.rejectValue = <span style="color: #0000ff;">null</span>;  <span style="color: #008000;">//</span><span style="color: #008000;"> reject初始值</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> resolve(value) {
+        </span><span style="color: #0000ff;">if</span> (_this.status ==  'pending'<span style="color: #000000;">) {
+            _this.status </span>= 'Fulfilled'<span style="color: #000000;">;
+            _this.resolveValue </span>=<span style="color: #000000;"> value;
+        }
+    }
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> reject(reason) {
+        </span><span style="color: #0000ff;">if</span> (_this.status ==  'pending'<span style="color: #000000;">) {
+            _this.status </span>= 'Fulfilled'<span style="color: #000000;">;
+            _this.rejectValue </span>=<span style="color: #000000;"> reason;
+        }
+    }
+    </span><span style="color: #0000ff;">try</span> {    <span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+<span style="color: #000000;">        executor(resolve, reject)
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e){
+        reject(e);
+    }
+}
+myPromise.prototype.then </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (onFulfilled, onRejected) {
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> (_this.status == 'Fulfilled'<span style="color: #000000;">) {
+        onFulfilled(_this.resolveValue)
+    }
+    </span><span style="color: #0000ff;">if</span> (_this.status == 'Rejected'<span style="color: #000000;">) {
+        onRejected(_this.rejectValue)
+    }
+};
+
+</span><span style="color: #0000ff;">var</span> p = <span style="color: #0000ff;">new</span> myPromise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    resolve(</span>'I am handsome'<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">throw</span> Error('捕获错误'<span style="color: #000000;">)
+});
+p.then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data)
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err)
+} );</span></pre>
+</div>
+<p>结果：</p>
+<p><img src="./images/自己写一个Promise0.png" alt="" /></p>
+<p>它先执行resolve&nbsp; &nbsp;状态 变为&nbsp; &nbsp;Fulfilled&nbsp; &nbsp; ，</p>
+<p>然后报错 ，执行reject ， 由于此时状态不是pending， 状态还是Fulfilled</p>
+<p>Promise的核心是处理异步，</p>
+<p>现在我们的代码并不能等待状态的改变，</p>
+<p>接下来我们加上处理异步操作的功能， 并测试下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> myPromise(executor) {
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> 保存当前的函数上下文</span>
+    _this.status = 'pending'; <span style="color: #008000;">//</span><span style="color: #008000;"> 初始状态</span>
+    _this.resolveValue = <span style="color: #0000ff;">null</span>;  <span style="color: #008000;">//</span><span style="color: #008000;"> resolve初始值</span>
+    _this.rejectValue = <span style="color: #0000ff;">null</span>;  <span style="color: #008000;">//</span><span style="color: #008000;"> reject初始值</span>
+    _this.resolveCallbackList = []; <span style="color: #008000;">//</span><span style="color: #008000;"> 存resolve的回调</span>
+    _this.rejectCallbackList = []; <span style="color: #008000;">//</span><span style="color: #008000;"> 存reject的回调</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> resolve(value) {
+        </span><span style="color: #0000ff;">if</span> (_this.status ==  'pending'<span style="color: #000000;">) {
+            _this.status </span>= 'Fulfilled'<span style="color: #000000;">;
+            _this.resolveValue </span>=<span style="color: #000000;"> value;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 状态改变执行存的回调</span>
+            _this.resolveCallbackList.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(ele){
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ele) {
+                    ele();
+                }
+            })
+        }
+    }
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> reject(reason) {
+        </span><span style="color: #0000ff;">if</span> (_this.status ==  'pending'<span style="color: #000000;">) {
+            _this.status </span>= 'Rejected'<span style="color: #000000;">;
+            _this.rejectValue </span>=<span style="color: #000000;"> reason;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 状态改变执行存的回调</span>
+            _this.rejectCallbackList.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(ele){
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ele) {
+                    ele();
+                }
+            })
+        }
+    }
+    </span><span style="color: #0000ff;">try</span> {    <span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+<span style="color: #000000;">        executor(resolve, reject)
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e){
+        reject(e);
+    }
+}
+myPromise.prototype.then </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (onFulfilled, onRejected) {
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> (_this.status == 'Fulfilled'<span style="color: #000000;">) {
+        onFulfilled(_this.resolveValue)
+    }
+    </span><span style="color: #0000ff;">if</span> (_this.status == 'Rejected'<span style="color: #000000;">) {
+        onRejected(_this.rejectValue)
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 等待状态时把回调存起来，状态改变再触发</span>
+    <span style="color: #0000ff;">if</span> (_this.status == 'pending'<span style="color: #000000;">) {
+        _this.resolveCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+            onFulfilled(_this.resolveValue)
+        });
+        _this.rejectCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+            onRejected(_this.rejectValue)
+        });
+    }
+};
+
+</span><span style="color: #0000ff;">var</span> p = <span style="color: #0000ff;">new</span> myPromise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    setTimeout(() </span>=&gt;<span style="color: #000000;"> {
+        resolve(</span>'I am handsome'<span style="color: #000000;">);
+    }, </span>0<span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> throw Error('捕获错误')</span>
+<span style="color: #000000;">});
+p.then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data)
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err)
+} );</span></pre>
+</div>
+<p>结果：</p>
+<p><img src="./images/自己写一个Promise1.png" alt="" width="429" height="47" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;🆗&nbsp; 它已经能处理异步操作了</p>
+<p>&nbsp;</p>
+<p>接下来实现链式操作， 再测试下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> myPromise(executor) {
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> 保存当前的函数上下文</span>
+    _this.status = 'pending'; <span style="color: #008000;">//</span><span style="color: #008000;"> 初始状态</span>
+    _this.resolveValue = <span style="color: #0000ff;">null</span>;  <span style="color: #008000;">//</span><span style="color: #008000;"> resolve初始值</span>
+    _this.rejectValue = <span style="color: #0000ff;">null</span>;  <span style="color: #008000;">//</span><span style="color: #008000;"> reject初始值</span>
+    _this.resolveCallbackList = []; <span style="color: #008000;">//</span><span style="color: #008000;"> 存resolve的回调</span>
+    _this.rejectCallbackList = []; <span style="color: #008000;">//</span><span style="color: #008000;"> 存reject的回调</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> resolve(value) {
+        </span><span style="color: #0000ff;">if</span> (_this.status ==  'pending'<span style="color: #000000;">) {
+            _this.status </span>= 'Fulfilled'<span style="color: #000000;">;
+            _this.resolveValue </span>=<span style="color: #000000;"> value;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 状态改变执行存的回调</span>
+            _this.resolveCallbackList.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(ele){
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ele) {
+                    ele();
+                }
+            })
+        }
+    }
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> reject(reason) {
+        </span><span style="color: #0000ff;">if</span> (_this.status ==  'pending'<span style="color: #000000;">) {
+            _this.status </span>= 'Rejected'<span style="color: #000000;">;
+            _this.rejectValue </span>=<span style="color: #000000;"> reason;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 状态改变执行存的回调</span>
+            _this.rejectCallbackList.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(ele){
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ele) {
+                    ele();
+                }
+            })
+        }
+    }
+    </span><span style="color: #0000ff;">try</span> {    <span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+<span style="color: #000000;">        executor(resolve, reject)
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e){
+        reject(e);
+    }
+}
+myPromise.prototype.then </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (onFulfilled, onRejected) {
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用于链式调用</span>
+    <span style="color: #0000ff;">var</span> nextPromise = <span style="color: #0000ff;">new</span> myPromise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(res, rej) {
+        </span><span style="color: #0000ff;">if</span> (_this.status == 'Fulfilled'<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+            <span style="color: #0000ff;">var</span> nextResolveValue =<span style="color: #000000;"> onFulfilled(_this.resolveValue);
+            res(nextResolveValue);
+        }
+        </span><span style="color: #0000ff;">if</span> (_this.status == 'Rejected'<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+            <span style="color: #0000ff;">var</span> nextRejectValue =<span style="color: #000000;"> onRejected(_this.rejectValue);
+            rej(nextRejectValue);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 等待状态时把回调存起来，状态改变再触发</span>
+        <span style="color: #0000ff;">if</span> (_this.status == 'pending'<span style="color: #000000;">) {
+            _this.resolveCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+                <span style="color: #0000ff;">var</span> nextResolveValue =<span style="color: #000000;"> onFulfilled(_this.resolveValue);
+                res(nextResolveValue);
+            });
+            _this.rejectCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #0000ff;">var</span> nextRejectValue =<span style="color: #000000;"> onRejected(_this.rejectValue);
+                rej(nextRejectValue);
+            });
+        }
+    });
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> nextPromise
+};
+
+</span><span style="color: #0000ff;">var</span> p = <span style="color: #0000ff;">new</span> myPromise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    setTimeout(() </span>=&gt;<span style="color: #000000;"> {
+        resolve(</span>'I am handsome'<span style="color: #000000;">);
+    }, </span>0<span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> throw Error('捕获错误')</span>
+<span style="color: #000000;">});
+p.then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data </span>+ ' suc' + ' 1'<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">return</span> 222<span style="color: #000000;">
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err)
+} ).then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data </span>+ ' suc' + ' 2'<span style="color: #000000;">)
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err)
+} );</span></pre>
+</div>
+<p>结果 ：</p>
+<p><img src="./images/自己写一个Promise2.png" alt="" width="471" height="66" /></p>
+<p>没毛病， 可以链式调用then了&nbsp; ， 先不处理返回值为Promise&nbsp; 的 情况&nbsp; ，</p>
+<p>原生的Promise 执行方法都是异步的&nbsp; ， 并且执行方法是能捕捉错误，</p>
+<p>我们加上这个功能 ， 并且测试下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> myPromise(executor) {
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> 保存当前的函数上下文</span>
+    _this.status = 'pending'; <span style="color: #008000;">//</span><span style="color: #008000;"> 初始状态</span>
+    _this.resolveValue = <span style="color: #0000ff;">null</span>;  <span style="color: #008000;">//</span><span style="color: #008000;"> resolve初始值</span>
+    _this.rejectValue = <span style="color: #0000ff;">null</span>;  <span style="color: #008000;">//</span><span style="color: #008000;"> reject初始值</span>
+    _this.resolveCallbackList = []; <span style="color: #008000;">//</span><span style="color: #008000;"> 存resolve的回调</span>
+    _this.rejectCallbackList = []; <span style="color: #008000;">//</span><span style="color: #008000;"> 存reject的回调</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> resolve(value) {
+        </span><span style="color: #0000ff;">if</span> (_this.status ==  'pending'<span style="color: #000000;">) {
+            _this.status </span>= 'Fulfilled'<span style="color: #000000;">;
+            _this.resolveValue </span>=<span style="color: #000000;"> value;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 状态改变执行存的回调</span>
+            _this.resolveCallbackList.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(ele){
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ele) {
+                    ele();
+                }
+            })
+        }
+    }
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> reject(reason) {
+        </span><span style="color: #0000ff;">if</span> (_this.status ==  'pending'<span style="color: #000000;">) {
+            _this.status </span>= 'Rejected'<span style="color: #000000;">;
+            _this.rejectValue </span>=<span style="color: #000000;"> reason;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 状态改变执行存的回调</span>
+            _this.rejectCallbackList.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(ele){
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ele) {
+                    ele();
+                }
+            })
+        }
+    }
+    </span><span style="color: #0000ff;">try</span> {    <span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+<span style="color: #000000;">        executor(resolve, reject)
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e){
+        reject(e);
+    }
+}
+myPromise.prototype.then </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (onFulfilled, onRejected) {
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用于链式调用</span>
+    <span style="color: #0000ff;">var</span> nextPromise = <span style="color: #0000ff;">new</span> myPromise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(res, rej) {
+        </span><span style="color: #0000ff;">if</span> (_this.status == 'Fulfilled'<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+            setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    </span><span style="color: #0000ff;">var</span> nextResolveValue =<span style="color: #000000;"> onFulfilled(_this.resolveValue);
+                    res(nextResolveValue);
+                } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                    rej(e)
+                }
+
+            },</span>0<span style="color: #000000;">)
+        }
+        </span><span style="color: #0000ff;">if</span> (_this.status == 'Rejected'<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+            setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    </span><span style="color: #0000ff;">var</span> nextRejectValue =<span style="color: #000000;"> onRejected(_this.rejectValue);
+                    rej(nextRejectValue);
+                } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                    rej(e)
+                }
+            },</span>0<span style="color: #000000;">)
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 等待状态时把回调存起来，状态改变再触发</span>
+        <span style="color: #0000ff;">if</span> (_this.status == 'pending'<span style="color: #000000;">) {
+            _this.resolveCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+                setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                        </span><span style="color: #0000ff;">var</span> nextResolveValue =<span style="color: #000000;"> onFulfilled(_this.resolveValue);
+                        res(nextResolveValue);
+                    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                        rej(e)
+                    }
+                },</span>0<span style="color: #000000;">)
+            });
+            _this.rejectCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                setTimeout(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                        </span><span style="color: #0000ff;">var</span> nextRejectValue =<span style="color: #000000;"> onRejected(_this.rejectValue);
+                        rej(nextRejectValue);
+                    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                        rej(e)
+                    }
+                },</span>0<span style="color: #000000;">)
+            });
+        }
+    });
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> nextPromise
+};
+
+</span><span style="color: #0000ff;">var</span> p = <span style="color: #0000ff;">new</span> myPromise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    setTimeout(() </span>=&gt;<span style="color: #000000;"> {
+        resolve(</span>'I am handsome'<span style="color: #000000;">);
+        console.log(</span>111<span style="color: #000000;">)
+    }, </span>0<span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> throw Error('捕获错误')</span>
+<span style="color: #000000;">});
+p.then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data </span>+ ' suc' + ' 1'<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">throw</span> Error('bao cuo'<span style="color: #000000;">)
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err </span>+ ' err' + ' 1'<span style="color: #000000;">)
+} ).then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data </span>+ ' suc' + ' 2'<span style="color: #000000;">)
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err </span>+ ' err' + ' 2'<span style="color: #000000;">)
+} );
+console.log(</span>222);</pre>
+</div>
+<p>预期结果&nbsp; 222&nbsp; =》 111 =》&nbsp;I am handsome suc 1&nbsp; &nbsp; =》&nbsp; &nbsp;Error: bao cuo err 2</p>
+<p>实际结果：</p>
+<p><img src="./images/自己写一个Promise3.png" alt="" width="353" height="79" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;没毛病， 异步并且捕获到错误了</p>
+<p>我们再来处理 空 then()&nbsp; &nbsp; 就是then里面不传参数的情况， 并测试</p>
+<div class="cnblogs_code">
+<pre><code>myPromise.prototype.then = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (onFulfilled, onRejected) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 参数为空把值直接传给下一个then</span>
+    <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">onFulfilled) {
+        onFulfilled </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (val) {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> val;
+        }
+    }
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">onRejected) {
+        onRejected </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (val) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Error(val)
+        }
+    }
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用于链式调用</span>
+    <span style="color: #0000ff;">var</span> nextPromise = <span style="color: #0000ff;">new</span> myPromise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(res, rej) {
+        </span><span style="color: #0000ff;">if</span> (_this.status == 'Fulfilled'<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+            setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    </span><span style="color: #0000ff;">var</span> nextResolveValue =<span style="color: #000000;"> onFulfilled(_this.resolveValue);
+                    res(nextResolveValue);
+                } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                    rej(e)
+                }
+
+            },</span>0<span style="color: #000000;">)
+        }
+        </span><span style="color: #0000ff;">if</span> (_this.status == 'Rejected'<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+            setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    </span><span style="color: #0000ff;">var</span> nextRejectValue =<span style="color: #000000;"> onRejected(_this.rejectValue);
+                    rej(nextRejectValue);
+                } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                    rej(e)
+                }
+            },</span>0<span style="color: #000000;">)
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 等待状态时把回调存起来，状态改变再触发</span>
+        <span style="color: #0000ff;">if</span> (_this.status == 'pending'<span style="color: #000000;">) {
+            _this.resolveCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+                setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                        </span><span style="color: #0000ff;">var</span> nextResolveValue =<span style="color: #000000;"> onFulfilled(_this.resolveValue);
+                        res(nextResolveValue);
+                    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                        rej(e)
+                    }
+                },</span>0<span style="color: #000000;">)
+            });
+            _this.rejectCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                setTimeout(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                        </span><span style="color: #0000ff;">var</span> nextRejectValue =<span style="color: #000000;"> onRejected(_this.rejectValue);
+                        rej(nextRejectValue);
+                    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                        rej(e)
+                    }
+                },</span>0<span style="color: #000000;">)
+            });
+        }
+    });
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> nextPromise
+};
+
+</span><span style="color: #0000ff;">var</span> p = <span style="color: #0000ff;">new</span> myPromise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    setTimeout(() </span>=&gt;<span style="color: #000000;"> {
+        resolve(</span>'I am handsome'<span style="color: #000000;">);
+    }, </span>0<span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> throw Error('捕获错误')</span>
+<span style="color: #000000;">});
+p.then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data </span>+ ' suc' + ' 1'<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">throw</span> Error('bao cuo'<span style="color: #000000;">)
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err </span>+ ' err' + ' 1'<span style="color: #000000;">)
+} ).then( ).then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data </span>+ ' suc' + ' 3'<span style="color: #000000;">)
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err </span>+ ' err' + ' 3'<span style="color: #000000;">)
+} );</span></pre>
+</div>
+<p>结果：</p>
+<p><img src="./images/自己写一个Promise4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>🆗&nbsp; 第一个then里抛出的错误被第三个then 接受到了， 没毛病</p>
+<p>接下来处理 返回值为promise的情况， 并测试</p>
+<p>如果返回值为promise，后面的then就取决于返回的promise的状态</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 处理返回值的函数</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> ResolutionRetrunPromise (nextPromise, returnValue, res, rej) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回值是否是promise</span>
+    <span style="color: #0000ff;">if</span> (returnValue <span style="color: #0000ff;">instanceof</span><span style="color: #000000;">  myPromise) {
+        returnValue.then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (val) {
+            res(val)
+        },</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (reason) {
+            rej(reason)
+        })
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        res(returnValue)
+    }
+}
+myPromise.prototype.then </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (onFulfilled, onRejected) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 参数为空把值直接传给下一个then</span>
+    <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">onFulfilled) {
+        onFulfilled </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (val) {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> val;
+        }
+    }
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">onRejected) {
+        onRejected </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (reason) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Error(reason)
+        }
+    }
+    </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用于链式调用</span>
+    <span style="color: #0000ff;">var</span> nextPromise = <span style="color: #0000ff;">new</span> myPromise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(res, rej) {
+        </span><span style="color: #0000ff;">if</span> (_this.status == 'Fulfilled'<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+            setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    </span><span style="color: #0000ff;">var</span> nextResolveValue =<span style="color: #000000;"> onFulfilled(_this.resolveValue);
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理返回值</span>
+<span style="color: #000000;">                    ResolutionRetrunPromise(nextPromise, nextResolveValue, res, rej)
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> res(nextResolveValue);</span>
+                } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                    rej(e)
+                }
+
+            },</span>0<span style="color: #000000;">)
+        }
+        </span><span style="color: #0000ff;">if</span> (_this.status == 'Rejected'<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+            setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                    </span><span style="color: #0000ff;">var</span> nextRejectValue =<span style="color: #000000;"> onRejected(_this.rejectValue);
+                    ResolutionRetrunPromise(nextPromise, nextRejectValue, res, rej)
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> rej(nextRejectValue);</span>
+                } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                    rej(e)
+                }
+            },</span>0<span style="color: #000000;">)
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 等待状态时把回调存起来，状态改变再触发</span>
+        <span style="color: #0000ff;">if</span> (_this.status == 'pending'<span style="color: #000000;">) {
+            _this.resolveCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存一下回调执行的结果，传给下一个.then</span>
+                setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                        </span><span style="color: #0000ff;">var</span> nextResolveValue =<span style="color: #000000;"> onFulfilled(_this.resolveValue);
+                        ResolutionRetrunPromise(nextPromise, nextResolveValue, res, rej)
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> res(nextResolveValue);</span>
+                    } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                        rej(e)
+                    }
+                },</span>0<span style="color: #000000;">)
+            });
+            _this.rejectCallbackList.push(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                setTimeout(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 捕获错误</span>
+                    <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                        </span><span style="color: #0000ff;">var</span> nextRejectValue =<span style="color: #000000;"> onRejected(_this.rejectValue);
+                        ResolutionRetrunPromise(nextPromise, nextRejectValue, res, rej)
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> rej(nextRejectValue);</span>
+                    } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                        rej(e)
+                    }
+                },</span>0<span style="color: #000000;">)
+            });
+        }
+    });
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> nextPromise
+};
+
+</span><span style="color: #0000ff;">var</span> p = <span style="color: #0000ff;">new</span> myPromise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    setTimeout(() </span>=&gt;<span style="color: #000000;"> {
+        resolve(</span>'I am handsome'<span style="color: #000000;">);
+    }, </span>1000<span style="color: #000000;">);
+});
+p.then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data </span>+ ' suc' + ' 1'<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> myPromise((resolve, reject) =&gt;<span style="color: #000000;"> {
+        reject(</span>'promise'<span style="color: #000000;">)
+    })
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err </span>+ ' err' + ' 1'<span style="color: #000000;">)
+} ).then((data) </span>=&gt;<span style="color: #000000;"> {
+    console.log(data </span>+ ' suc' + ' 3'<span style="color: #000000;">)
+}, (err) </span>=&gt;<span style="color: #000000;"> {
+    console.log(err </span>+ ' err' + ' 3'<span style="color: #000000;">)
+} );</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;结果：<img src="./images/自己写一个Promise5.png" alt="" /></p>
+<p>到此 Promise 的 基本功能就实现了&nbsp; ，&nbsp;</p>
+<p>感兴趣的同学可以基于此 自己实现一下Promise 的&nbsp; &nbsp;静态方法 。 。 。 。。 。&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

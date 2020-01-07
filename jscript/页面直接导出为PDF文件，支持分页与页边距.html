@@ -1,0 +1,121 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修页面直接导出为PDF文件，支持分页与页边距' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>页面直接导出为PDF文件，支持分页与页边距</center></div><div class='banquan'>原文出处:本文由博客园博主BoyTNT提供。<br/>
+原文连接:https://www.cnblogs.com/BoyTNT/p/11711439.html</div><br>
+    <p>将WEB页面直接导出为pdf文件是经常会用到的一个功能，尤其是各种报表系统。总结了一下目前几种主流的做法：</p>
+<ol class=" list-paddingleft-2">
+<li>
+<p>在后端用代码生成pdf文件，比如iText一类；</p>
+</li>
+<li>
+<p>在后端抓取页面并生成pdf文件，比如phantomjs一类；</p>
+</li>
+<li>
+<p>在前端用js直接生成pdf文件；</p>
+</li>
+</ol>
+<p>方案3的优势在于前端直接生成，所见即所得。今天要探索的就是html2canvas和jspdf，前者用于将页面元素render生成canvas，后者用于将canvas生成pdf文档。需要注意的是，这种方法对IE系列支持不好。</p>
+<p>&nbsp;</p>
+<p>html2canvas的主页：http://html2canvas.hertzen.com/</p>
+<p>jspdf的主页：https://parall.ax/products/jspdf</p>
+<p>&nbsp;</p>
+<p>两者的使用都比较简单，网上的文章很多，但是对于长网页导出，jspdf是不支持分页的，目前有一种做法是addImage时控制起始纵坐标为负值，然后超出页面底边的自动隐藏，就达到显示上的分页效果了，但这种方法无法给pdf页面留页边距，因此本文主要针对分页与页边距进行探索。</p>
+<p>&nbsp;</p>
+<p>基本思路是对得到的canvas进行切割，按A4纸大小并留边距后的比例进行剪裁，切出一页一页的内容来，再分别加到pdf中。上个DEMO：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;!DOCTYPE html&gt;
+<span style="color: #008080;"> 2</span> &lt;html&gt;
+<span style="color: #008080;"> 3</span> &lt;head&gt;
+<span style="color: #008080;"> 4</span>     &lt;meta charset="utf-8"&gt;
+<span style="color: #008080;"> 5</span>     &lt;title&gt;测试PDF导出&lt;/title&gt;
+<span style="color: #008080;"> 6</span>     &lt;meta http-equiv="X-UA-Compatible" content="IE=edge"&gt;
+<span style="color: #008080;"> 7</span>     &lt;meta name="viewport" content="width=device-width, initial-scale=1"&gt;
+<span style="color: #008080;"> 8</span>     &lt;script src="js/html2canvas.min.js"&gt;&lt;/script&gt;
+<span style="color: #008080;"> 9</span>     &lt;script src="js/jspdf.min.js"&gt;&lt;/script&gt;
+<span style="color: #008080;">10</span>     &lt;style&gt;
+<span style="color: #008080;">11</span>     html,body { margin:0; padding:0<span style="color: #000000;">; }
+</span><span style="color: #008080;">12</span>     #page ul { padding:0;list-<span style="color: #000000;">style:none; }
+</span><span style="color: #008080;">13</span>     #page li { line-height:110px;color:#fff;padding-<span style="color: #000000;">left:10px; }
+</span><span style="color: #008080;">14</span>     .c0 { background-<span style="color: #000000;">color:#ea644a; }
+</span><span style="color: #008080;">15</span>     .c1 { background-<span style="color: #000000;">color:#f1a325; }
+</span><span style="color: #008080;">16</span>     .c2 { background-<span style="color: #000000;">color:#38b03f; }
+</span><span style="color: #008080;">17</span>     .c3 { background-<span style="color: #000000;">color:#03b8cf; }
+</span><span style="color: #008080;">18</span>     .c4 { background-<span style="color: #000000;">color:#bd7b46; }
+</span><span style="color: #008080;">19</span>     .c5 { background-<span style="color: #000000;">color:#8666b8; }
+</span><span style="color: #008080;">20</span>     &lt;/style&gt;
+<span style="color: #008080;">21</span>     &lt;script&gt;
+<span style="color: #008080;">22</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> exportPdf() {
+</span><span style="color: #008080;">23</span>         <span style="color: #0000ff;">var</span> element = document.getElementById("page"<span style="color: #000000;">);
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">        html2canvas(element, {
+</span><span style="color: #008080;">25</span>             logging:<span style="color: #0000ff;">false</span>
+<span style="color: #008080;">26</span>         }).then(<span style="color: #0000ff;">function</span><span style="color: #000000;">(canvas) {
+</span><span style="color: #008080;">27</span>             <span style="color: #0000ff;">var</span> pdf = <span style="color: #0000ff;">new</span> jsPDF('p', 'mm', 'a4');    <span style="color: #008000;">//</span><span style="color: #008000;">A4纸，纵向</span>
+<span style="color: #008080;">28</span>             <span style="color: #0000ff;">var</span> ctx = canvas.getContext('2d'<span style="color: #000000;">),
+</span><span style="color: #008080;">29</span>                 a4w = 190, a4h = 277,    <span style="color: #008000;">//</span><span style="color: #008000;">A4大小，210mm x 297mm，四边各保留10mm的边距，显示区域190x277</span>
+<span style="color: #008080;">30</span>                 imgHeight = Math.floor(a4h * canvas.width / a4w),    <span style="color: #008000;">//</span><span style="color: #008000;">按A4显示比例换算一页图像的像素高度</span>
+<span style="color: #008080;">31</span>                 renderedHeight = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span>             <span style="color: #0000ff;">while</span>(renderedHeight &lt;<span style="color: #000000;"> canvas.height) {
+</span><span style="color: #008080;">34</span>                 <span style="color: #0000ff;">var</span> page = document.createElement("canvas"<span style="color: #000000;">);
+</span><span style="color: #008080;">35</span>                 page.width =<span style="color: #000000;"> canvas.width;
+</span><span style="color: #008080;">36</span>                 page.height = Math.min(imgHeight, canvas.height - renderedHeight);<span style="color: #008000;">//</span><span style="color: #008000;">可能内容不足一页</span>
+<span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">用getImageData剪裁指定区域，并画到前面创建的canvas对象中</span>
+<span style="color: #008080;">39</span>                 page.getContext('2d').putImageData(ctx.getImageData(0, renderedHeight, canvas.width, Math.min(imgHeight, canvas.height - renderedHeight)), 0, 0<span style="color: #000000;">);
+</span><span style="color: #008080;">40</span>                 pdf.addImage(page.toDataURL('image/jpeg', 1.0), 'JPEG', 10, 10, a4w, Math.min(a4h, a4w * page.height / page.width));    <span style="color: #008000;">//</span><span style="color: #008000;">添加图像到页面，保留10mm边距</span>
+<span style="color: #008080;">41</span>                 
+<span style="color: #008080;">42</span>                 renderedHeight +=<span style="color: #000000;"> imgHeight;
+</span><span style="color: #008080;">43</span>                 <span style="color: #0000ff;">if</span>(renderedHeight &lt;<span style="color: #000000;"> canvas.height)
+</span><span style="color: #008080;">44</span>                     pdf.addPage();<span style="color: #008000;">//</span><span style="color: #008000;">如果后面还有内容，添加一个空页</span>
+<span style="color: #008080;">45</span>                 <span style="color: #0000ff;">delete</span><span style="color: #000000;"> page;
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">47</span>             pdf.save('content.pdf'<span style="color: #000000;">);
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">50</span>     
+<span style="color: #008080;">51</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> generateData() {
+</span><span style="color: #008080;">52</span>         <span style="color: #0000ff;">var</span> html =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">53</span>         html[html.length] = '&lt;ul&gt;'<span style="color: #000000;">;
+</span><span style="color: #008080;">54</span>         <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0;i &lt; 20;++<span style="color: #000000;">i) {
+</span><span style="color: #008080;">55</span>             html[html.length] = '&lt;li class="c'<span style="color: #000000;">;
+</span><span style="color: #008080;">56</span>             html[html.length] = i % 6<span style="color: #000000;">;
+</span><span style="color: #008080;">57</span>             html[html.length] = '"&gt;这是第'<span style="color: #000000;">;
+</span><span style="color: #008080;">58</span>             html[html.length] =<span style="color: #000000;"> i;
+</span><span style="color: #008080;">59</span>             html[html.length] = '行&lt;/li&gt;'<span style="color: #000000;">;
+</span><span style="color: #008080;">60</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">61</span>         html[html.length] = '&lt;/ul&gt;'<span style="color: #000000;">;
+</span><span style="color: #008080;">62</span>         document.getElementById('page').innerHTML = html.join(''<span style="color: #000000;">);
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">64</span>     &lt;/script&gt;
+<span style="color: #008080;">65</span> &lt;/head&gt;
+<span style="color: #008080;">66</span> &lt;body onload="generateData()"&gt;
+<span style="color: #008080;">67</span>     &lt;button onclick="exportPdf()"&gt;导出pdf&lt;/button&gt;
+<span style="color: #008080;">68</span>     &lt;div id="page"&gt;&lt;/div&gt;
+<span style="color: #008080;">69</span> &lt;/body&gt;
+<span style="color: #008080;">70</span> &lt;/html&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>核心的是exportPdf这个方法 ，感兴趣的同学可以参考。生成的pdf效果如图，可以看到分页和页边距效果：</p>
+<p><img src="./images/页面直接导出为PDF文件，支持分页与页边距0.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

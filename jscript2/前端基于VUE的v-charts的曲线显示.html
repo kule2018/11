@@ -1,0 +1,121 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端基于VUE的v-charts的曲线显示' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端基于VUE的v-charts的曲线显示</center></div><div class='banquan'>原文出处:本文由博客园博主JerryMouseLi提供。<br/>
+原文连接:https://www.cnblogs.com/JerryMouseLi/p/11613877.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#前端基于vue的v-charts的曲线显示">前端基于VUE的v-charts的曲线显示</a></li>
+        <li><a href="#应用背景">1. 应用背景</a></li>
+        <li><a href="#分析数据生产者生成">2. 分析数据生产者生成</a></li>
+        <li><a href="#取出数据消费者">3. 取出数据消费者</a></li>
+        <li><a href="#前端显示">4. 前端显示</a><ul>
+        <li><a href="#安装v-charts插件">4.1 安装V-charts插件</a></li>
+        <li><a href="#引入veline曲线插件">4.2 引入veline曲线插件</a></li>
+        <li><a href="#曲线标签-ve-line">4.3 曲线标签 ve-line</a><ul>
+        <li><a href="#方法一直接使用html标签">4.3.1 方法一：直接使用html标签</a></li>
+        <li><a href="#方法二pug编译">4.3.2 方法二：pug编译</a></li>
+        </ul></li>
+        <li><a href="#前端写入调试模拟数据">4.4 前端写入调试模拟数据</a></li>
+        <li><a href="#注册组件">4.5 注册组件</a></li>
+        </ul></li>
+        <li><a href="#总体效果">5 总体效果</a></li>
+        <li><a href="#后端基于net-core的电能定时计算">6后端基于Net Core的电能定时计算</a></li>
+        </ul>
+    </div>
+</div>
+<h1 id="前端基于vue的v-charts的曲线显示">前端基于VUE的v-charts的曲线显示</h1>
+<h1 id="应用背景">1. 应用背景</h1>
+<p>在做一个某路灯管理处的物联网项目时，需要统计8个电表的电能曲线（时间-电能），需求就是能生成日报（24个点，间隔1小时，实时），月报（30个点，间隔1天，取每天的凌晨1点数据），年报（每个月，1号凌晨1点数据开始间隔9天，每个月取3个点，总共36个点）。</p>
+<h1 id="分析数据生产者生成">2. 分析数据生产者生成</h1>
+<p>首先采集服务每隔一段时间会去采集电表的电能数据，模拟历史表会利用存储过程将实时数据写入his_aic表里。</p>
+<h1 id="取出数据消费者">3. 取出数据消费者</h1>
+<p>30天 aic数据4万条记录左右 日报，月报可以直接在历史数据表中取<br />
+日表，定时任务，每隔1小时存入整点数据（如果没有整点，排序之后取接近点数据），一天24个数据，一年8760条记录。<br />
+月表，定时任务，每天凌晨1点取数据，按时间存入，一个月30条记录<br />
+年表，定时任务，1号，10号，19号，28号（每个月取4个数据，按时间记录，一年48条记录）<br />
+定时任务利用Coravel定时器完成，具体可参见<a href="https://www.cnblogs.com/JerryMouseLi/p/11054546.html">Coravel定时器相关博客</a></p>
+<h1 id="前端显示">4. 前端显示</h1>
+<p>前端曲线基于<a href="https://v-charts.js.org/#/">v-chart</a>。</p>
+<blockquote>
+<p>在使用 echarts 生成图表时，经常需要做繁琐的数据类型转化、修改复杂的配置项，v-charts 的出现正是为了解决这个痛点。基于 Vue2.0 和 echarts 封装的 v-charts 图表组件，只需要统一提供一种对前后端都友好的数据格式设置简单的配置项，便可轻松生成常见的图表。</p>
+</blockquote>
+<h2 id="安装v-charts插件">4.1 安装V-charts插件</h2>
+<p><code>npm i v-charts echarts -S</code><br />
+如果已经安装了echarts，则直接安装v-charts即可<br />
+<code>npm i v-charts -S</code></p>
+<h2 id="引入veline曲线插件">4.2 引入veline曲线插件</h2>
+<pre><code><code>import VeLine from &#39;v-charts/lib/line&#39;</code></pre>
+<h2 id="曲线标签-ve-line">4.3 曲线标签 ve-line</h2>
+<h3 id="方法一直接使用html标签">4.3.1 方法一：直接使用html标签</h3>
+<pre><code><code>&lt;template&gt;
+  &lt;div&gt;
+    &lt;ve-line :data=&quot;chartData&quot; :settings=&quot;chartSettings&quot;&gt;&lt;/ve-line&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</code></pre>
+<h3 id="方法二pug编译">4.3.2 方法二：pug编译</h3>
+<h4 id="pug的安装">4.3.2.1 pug的安装</h4>
+<p>先安装node环境</p>
+<ul>
+<li>安装支持pug依赖：npm install pug pug-loader pug-filters -D</li>
+<li><p>安装支持jade依赖：npm install jade jade-loader -D</p>
+<h4 id="pug的使用">4.3.2.2 pug的使用</h4></li>
+</ul>
+<pre><code><code>&lt;template lang=&quot;pug&quot;&gt;
+          div
+            ve-line(:data=&#39;chartData&#39;, :settings=&#39;chartSettings&#39;)
+&lt;/template&gt;</code></pre>
+<p><strong>注意：使用pug空格数量要与上下文对应</strong></p>
+<h2 id="前端写入调试模拟数据">4.4 前端写入调试模拟数据</h2>
+<pre><code><code>export default {
+  data(){    
+    return {
+      chartData: {
+        columns: [&#39;日期&#39;,&#39;电能1&#39;,&#39;电能2&#39;,&#39;电能3&#39;,&#39;电能4&#39;,&#39;电能5&#39;,&#39;电能6&#39;,&#39;电能7&#39;,&#39;电能8&#39;],
+        rows: [
+          { &#39;日期&#39;: &#39;10月1日&#39;, &#39;电能1&#39;: 0, &#39;电能2&#39;: 1, &#39;电能3&#39;: 0.5, &#39;电能4&#39;: 0.63,&#39;电能5&#39;: 0.8, &#39;电能6&#39;: 2, &#39;电能7&#39;: 2.1, &#39;电能8&#39;: 1.7  },
+          { &#39;日期&#39;: &#39;10月2日&#39;, &#39;电能1&#39;: 1, &#39;电能2&#39;: 2, &#39;电能3&#39;: 4, &#39;电能4&#39;: 0.9,&#39;电能5&#39;: 1.1, &#39;电能6&#39;: 2.1, &#39;电能7&#39;: 4.3, &#39;电能8&#39;: 2.6 },
+          { &#39;日期&#39;: &#39;10月3日&#39;, &#39;电能1&#39;: 1.6, &#39;电能2&#39;: 2.6, &#39;电能3&#39;: 4.5, &#39;电能4&#39;: 1.9,&#39;电能5&#39;: 2.3, &#39;电能6&#39;: 3.5, &#39;电能7&#39;: 5.3, &#39;电能8&#39;: 3.2 },
+          { &#39;日期&#39;: &#39;10月4日&#39;, &#39;电能1&#39;: 2.3, &#39;电能2&#39;: 5.2, &#39;电能3&#39;: 5.4, &#39;电能4&#39;: 2.7,&#39;电能5&#39;: 3.2, &#39;电能6&#39;: 4.3, &#39;电能7&#39;: 6.8, &#39;电能8&#39;: 3.5 },
+          { &#39;日期&#39;: &#39;10月5日&#39;, &#39;电能1&#39;: 3.8, &#39;电能2&#39;: 6.2, &#39;电能3&#39;: 6.4, &#39;电能4&#39;: 4.5,&#39;电能5&#39;: 4.5, &#39;电能6&#39;: 6.5, &#39;电能7&#39;: 7.1, &#39;电能8&#39;: 5.5 },
+          { &#39;日期&#39;: &#39;10月6日&#39;, &#39;电能1&#39;: 5.3, &#39;电能2&#39;: 6.8, &#39;电能3&#39;: 8.4, &#39;电能4&#39;: 5.6,&#39;电能5&#39;: 6.3, &#39;电能6&#39;: 7.8, &#39;电能7&#39;: 7.5, &#39;电能8&#39;: 7.3 }
+        ]
+      },
+      chartSettings: {
+         yAxisName: [&#39;kWh&#39;]
+      },
+    }
+  }
+  components: { VeLine }
+}</code></pre>
+<p><strong>使用 data 属性表示图表的数据，使用 settings 用作图表的显示状态配置，settings 中所包含的是具体的图表配置，这里通过yAxisName设置电能单位为kWh</strong></p>
+<h2 id="注册组件">4.5 注册组件</h2>
+<p>4.4中已经加入了注册组件的代码。</p>
+<pre><code><code>components: { VeLine  }</code></pre>
+<h1 id="总体效果">5 总体效果</h1>
+<p><img src="./images/前端基于VUE的v-charts的曲线显示0.png" /></p>
+<p><strong>这里只展示了月报里的7天，可以设置按钮同样道理依次展示日报年报数据。</strong></p>
+<h1 id="后端基于net-core的电能定时计算">6后端基于Net Core的电能定时计算</h1>
+<p>后端电能定时计算部分预计10月1日-4日会完成，比前端要复杂一些。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

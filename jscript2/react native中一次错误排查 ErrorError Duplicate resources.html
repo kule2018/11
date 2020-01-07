@@ -1,0 +1,84 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修react native中一次错误排查 ErrorError Duplicate resources' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>react native中一次错误排查 ErrorError Duplicate resources</center></div><div class='banquan'>原文出处:本文由博客园博主索宁风尚提供。<br/>
+原文连接:https://www.cnblogs.com/sk-3/p/10720933.html</div><br>
+    <p>最近一直在使用react native中，遇到了很多的坑，同时也学习到了一些移动端的开发经验。</p>
+<p>今天在做一个打包的测试时，遇到了一个问题，打包过程中报错&ldquo;Error:Error: Duplicate resources&rdquo;，什么意思呢，就是打包资源有重复，后来查看了一下，发现打包到android/app/src目录下的静态文件重名了。</p>
+<p><strong>重现步骤：</strong></p>
+<p>1：通过vscode打开项目，运行打包命令</p>
+<div class="cnblogs_Highlighter">
+<pre><code>react-native ram-bundle --entry-file index.js --platform android --dev false --bundle-output ./android/app/src/main/assets/index.android.bundle --assets-dest ./android/app/src/main/res/
+</pre>
+</div>
+<p>2：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>cd android &amp;&amp; ./gradlew assembleRelease
+</pre>
+</div>
+<p>&nbsp;</p>
+<p>查看android/app/src/mian/res/drawable目录下静态资源图片文件名重复</p>
+<p>&nbsp;</p>
+<p><strong>解决方案</strong></p>
+<p>1：打开node_modules/react-native/react.gradle文件，在doFirst块下添加doLast块</p>
+<div class="cnblogs_Highlighter">
+<pre><code>doLast {
+    def moveFunc = { resSuffix -&gt;
+        File originalDir = file("$buildDir/generated/res/react/release/drawable-${resSuffix}");
+        if (originalDir.exists()) {
+            File destDir = file("$buildDir/../src/main/res/drawable-${resSuffix}");
+            ant.move(file: originalDir, tofile: destDir);
+        }
+    }
+    moveFunc.curry("ldpi").call()
+    moveFunc.curry("mdpi").call()
+    moveFunc.curry("hdpi").call()
+    moveFunc.curry("xhdpi").call()
+    moveFunc.curry("xxhdpi").call()
+    moveFunc.curry("xxxhdpi").call()
+}
+</pre>
+</div>
+<p>2：打开node_modules/react-native/local-cli/bundle/assetPathUtils.js文件，修改getAndroidAssetSuffix函数方法如下</p>
+<div class="cnblogs_Highlighter">
+<pre><code>function getAndroidAssetSuffix(scale: number): string {
+  switch (scale) {
+    case 0.75: return 'ldpi-v4';
+&nbsp; &nbsp; case 1: return 'mdpi-v4';
+&nbsp; &nbsp; case 1.5: return 'hdpi-v4';
+&nbsp; &nbsp; case 2: return 'xhdpi-v4';
+&nbsp; &nbsp; case 3: return 'xxhdpi-v4';
+&nbsp; &nbsp; case 4: return 'xxxhdpi-v4';
+  }
+  throw new Error('no such scale');
+}
+</pre>
+</div>
+<p>3：删除android/app/src/main/res/drawable-**目录下面打包进去的静态资源文件(文件名会比较长)</p>
+<p>4：如果采用android studio进行打包，点击build下clean project，清除打包缓存</p>
+<p>5：重新执行打包命令即可打包成功。</p>
+<p>&nbsp;</p>
+<p>参考资料：</p>
+<p>1：<a href="https://github.com/facebook/react-native/issues/22234">https://github.com/facebook/react-native/issues/22234</a></p>
+<p>2：<a href="https://blog.csdn.net/wyw223/article/details/84311733">https://blog.csdn.net/wyw223/article/details/84311733</a></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

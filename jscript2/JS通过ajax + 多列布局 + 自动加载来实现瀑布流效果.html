@@ -1,0 +1,218 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JS通过ajax + 多列布局 + 自动加载来实现瀑布流效果' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JS通过ajax + 多列布局 + 自动加载来实现瀑布流效果</center></div><div class='banquan'>原文出处:本文由博客园博主des雷锋提供。<br/>
+原文连接:https://www.cnblogs.com/wangqingjiu/p/10947537.html</div><br>
+    <h2 id="ajax">Ajax</h2>
+<blockquote>
+<ul>
+<li>说明：本文效果是无限加载的，意思就是你一直滚动就会一直加载图片出现，通过鼠标滚动距离来判断的，所以不是说的那种加载一次就停了的那种，那种demo下次我会再做一次</li>
+</ul>
+</blockquote>
+<blockquote>
+<p>css部分用的是html5+css3的新属性，图片会自动添加到每行的最顶端上去，而不是用js去判断。去除了一些js计算的麻烦。</p>
+</blockquote>
+<p><strong>css部分：</strong></p>
+<pre><code><code> * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #352323 url(images/a.png);
+        }
+        
+        img {
+            display: block;
+        }
+        
+        section {
+            max-width: 95%;
+            margin: 0 auto;
+            overflow: hidden;
+            column-count: 5;
+            column-gap: 0;
+            column-fill: auto;
+        }
+        
+        figure {
+            border: 2px solid pink;
+            margin: 0 5px 10px;
+            break-inside: avoid;
+            padding: 5px;
+        }
+        
+        figure img {
+            width: 100%;
+        }
+        
+        figcaption {
+            padding: 10px 0;
+            text-align: center;
+            font-weight: 900;
+            color: #a77869;
+        }</code></pre>
+<p><strong>html部分：</strong></p>
+<p>通过js插入节点，因为后台不知道多少张图片</p>
+<pre class="html"><code> &lt;section&gt;
+        &lt;!--  &lt;figure&gt;
+            &lt;img src=&quot;images/1.jpg&quot; alt=&quot;&quot;&gt;
+            &lt;figcaption&gt;往后余生，风雪是你&lt;/figcaption&gt;
+        &lt;/figure&gt; --&gt;
+
+&lt;/section&gt;</code></pre>
+<p><strong>js有<code>两个部分</code>，一个是我封装的ajax函数，和一些判断函数</strong></p>
+<p><strong><em>第一部分</em></strong></p>
+<pre class="js"><code>window.onload = function() {
+        var section = document.getElementsByTagName(&#39;section&#39;)[0];
+        //运行ajax函数；
+
+
+        ajax(&#39;get&#39;, &#39;active.php&#39;, &#39;num=10&#39;, function(data) {
+            //解析json对象
+            let img_data = JSON.parse(data);
+            console.log(img_data);
+            //循环建多少图片配多少标签
+            for (let i = 0; i &lt; img_data.length; i++) {
+
+                //建立figure标签
+                let figure = document.createElement(&#39;figure&#39;);
+
+                //创建两个子元素img和figcaption，并赋值
+                let img = document.createElement(&#39;img&#39;);
+                img.src = img_data[i];
+
+                let figcaption = document.createElement(&#39;figcaption&#39;);
+
+                figcaption.innerHTML = &#39;往后余生，风雪是你&#39;;
+                //插节点
+                figure.appendChild(img);
+                figure.appendChild(figcaption);
+                section.appendChild(figure);
+            }
+        });
+
+
+        document.onscroll = function() {
+            var scrollTop = document.documentElement.scrollTop; //距离网页高度
+            console.log(scrollTop);
+
+            // var ks = document.documentElement.clientHeight; //可是化窗口高度
+            var ks = window.innerHeight || document.documentElement.clientHeight; //可是化窗口高度/兼容方法
+            var ht = document.documentElement.offsetHeight; //html总高度
+            // console.log(ht);
+
+            if (scrollTop + 1 &gt;= ht - ks) { //鼠标滚动的距离大于html总高度-窗口的距离(也就是html在可视窗口之下的总高度)时  触发函数;
+                //执行函数
+                ajax(&#39;get&#39;, &#39;active.php&#39;, &#39;num=10&#39;, function(data) {
+                    //解析json对象
+                    let img_data = JSON.parse(data);
+                    console.log(img_data);
+                    //循环建多少图片配多少标签
+                    for (let i = 0; i &lt; img_data.length; i++) {
+
+                        //建立figure标签
+                        let figure = document.createElement(&#39;figure&#39;);
+
+                        //创建两个子元素img和figcaption，并赋值
+                        let img = document.createElement(&#39;img&#39;);
+                        img.src = img_data[i];
+
+                        let figcaption = document.createElement(&#39;figcaption&#39;);
+
+                        figcaption.innerHTML = &#39;往后余生，风雪是你&#39;;
+                        //插节点
+                        figure.appendChild(img);
+                        figure.appendChild(figcaption);
+                        section.appendChild(figure);
+                    }
+                });
+            }
+        }
+    };</code></pre>
+<p><strong><em>第二部分:</em></strong></p>
+<pre class="js"><code>/**
+ * ajax封装
+ * @param {string} mehod请求数据方法
+ * @param {string} url 请求地址
+ * @param {string} data 请求参数
+ * @param {[functiong]} success [请求成功之后执行的函数0]
+ * @return {[none]}  none
+ */
+function ajax(mehod, url, data, success) {
+    var xhr = null;
+    if (window.XMLHttpRequest) {
+        xhr = new XMLHttpRequest();
+    } else {
+        xhr = new ActiveXObject(&quot;Microsoft.xmlhttp&quot;)
+    }
+
+
+    //如果有参数get方法需要拼接字符串url+?+data
+    if (mehod === &#39;get&#39; &amp;&amp; data) {
+        url += &#39;?&#39; + data;
+    }
+
+
+    //open方法
+    xhr.open(mehod, url, true);
+
+    //send方法
+    if (mehod === &#39;get&#39;) {
+        xhr.send();
+    } else {
+        xhr.setRequestHeader(&#39;content-type&#39;, &#39;application/x-www-form-urlencoded&#39;);
+        xhr(data);
+    }
+
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === 4 &amp;&amp; xhr.status === 200) {
+            success &amp;&amp; success(xhr.responseText);
+        }
+    }</code></pre>
+<p><strong>php后台数据</strong></p>
+<p>因为主要功能偏向前端，所以后端就通过本地文件载入的</p>
+<pre class="php"><code>&lt;?php 
+
+header(&quot;Content-type:text/html;charset=utf-8&quot;);
+
+
+$num = $_GET[&#39;num&#39;]; // api调用者传递的需要的图片页数 
+
+$img = file(&quot;img.txt&quot;);
+
+// var_dump($img);
+
+$array_url = array();
+
+for($i=0;$i&lt;$num;$i++){
+    $url = array_rand($img);
+    array_push($array_url,$img[$url]);
+}
+
+$a = json_encode($array_url);
+
+echo $a;</code></pre>
+<p><img src="./images/JS通过ajax + 多列布局 + 自动加载来实现瀑布流效果0.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

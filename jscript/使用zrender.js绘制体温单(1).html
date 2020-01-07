@@ -1,0 +1,243 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用zrender.js绘制体温单(1)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用zrender.js绘制体温单(1)</center></div><div class='banquan'>原文出处:本文由博客园博主hpr提供。<br/>
+原文连接:https://www.cnblogs.com/hprBlog/p/11751988.html</div><br>
+    <p>之前公司请外包做了一个体温单使用的zrender.js 但是代码比较复杂维护性比较低再加上自己技术也不行 最近闲下来的时候看了一下zrender的官网慢慢的摸索并读了下之前的代码,感觉实际并不难,就自己重新从零开始自己绘制了一个 其中包括了折线,圆点,阴影区域,垂直虚线,鼠标hover事件等众多内容</p>
+<p>今天先说说怎么画一个网格 完成效果如下</p>
+<p><img src="./images/使用zrender.js绘制体温单(1)0.png" alt="" width="537" height="187" /></p>
+<p>先把样式基本代码写好</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+ &lt;div&gt;
+   &lt;div id="main"&gt;
+   &lt;/div&gt;
+ &lt;/div&gt;
+&lt;/template&gt;</pre>
+</div>
+<p>css</p>
+<div class="cnblogs_code">
+<pre><code>&lt;style scoped&gt;<span style="color: #000000;">
+  #main{
+    height: 500px;
+    padding: 15px;
+    position: relative;
+  }
+  html,body{
+    height: </span>100%<span style="color: #000000;">;
+    width: </span>100%<span style="color: #000000;">;
+    margin: </span>0<span style="color: #000000;">;
+    padding: </span>0<span style="color: #000000;">;
+  }
+  canvas{
+    width: </span>100%<span style="color: #000000;">;
+    height: 700px;
+  }
+</span>&lt;/style&gt;</pre>
+</div>
+<p>js</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script&gt;<span style="color: #000000;">
+    import zrender from </span>'zrender'<span style="color: #000000;">
+
+    export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  name: </span>'HelloWorld'<span style="color: #000000;">,
+  data () {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">多少个y轴坐标</span>
+<span style="color: #000000;">      xLineLen:{
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">天数 7天 </span>
+        day:7<span style="color: #000000;">,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">一天多少分段</span>
+        time:6<span style="color: #000000;">
+      },
+      canavsWidth:</span>0, <span style="color: #008000;">//</span><span style="color: #008000;">画板宽度</span>
+      canavsHeight:0, <span style="color: #008000;">//</span><span style="color: #008000;">画板高度</span>
+      zr:"", <span style="color: #008000;">//</span><span style="color: #008000;">画板属性</span>
+<span style="color: #000000;">      yLineLen:{
+        XRegion:</span>14, <span style="color: #008000;">//</span><span style="color: #008000;">X轴坐标分几个大块</span>
+        XShare:6, <span style="color: #008000;">//</span><span style="color: #008000;">每块份几个小块</span>
+        XLineArr:[4], <span style="color: #008000;">//</span><span style="color: #008000;">需要特殊处理的横线 冲上往下算</span>
+<span style="color: #000000;">      }
+    }
+  },
+  methods:{
+    init(){
+      </span><span style="color: #0000ff;">this</span>.zr = zrender.init(document.getElementById("main"<span style="color: #000000;">))</span><span style="color: #0000ff;">this</span>.canavsWidth = <span style="color: #0000ff;">this</span><span style="color: #000000;">.zr.getWidth()
+      </span><span style="color: #0000ff;">this</span>.canavsHeight = <span style="color: #0000ff;">this</span><span style="color: #000000;">.zr.getHeight()
+      
+    }
+  },
+  mounted(){
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.init()
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<pre><code>this.canavsWidth 为获取画板的宽度 同理下面为获取画板的高度</pre>
+<p>绘制网格首先要明白x,y轴各需要多少格</p>
+<p>首先x轴 我们要先展示1个星期的数据所有会有7个大格子 然后每天以4小时为一格来划分 所有我们先建立一格全局的变量</p>
+<div class="cnblogs_Highlighter">
+<div>
+<div>//多少个y轴坐标</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;xLineLen:{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//天数&nbsp;7天&nbsp;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;day:7,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//一天多少分段</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;time:6</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+</div>
+</div>
+<p>　　这里就定义出x轴线的个数了 接下来是y轴</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;"> yLineLen:{
+        XRegion:</span>14, <span style="color: #008000;">//</span><span style="color: #008000;">X轴坐标分几个大块</span>
+        XShare:6, <span style="color: #008000;">//</span><span style="color: #008000;">每块份几个小块</span>
+        XLineArr:[4], <span style="color: #008000;">//</span><span style="color: #008000;">需要特殊处理的横线 冲上往下算</span>
+      }</pre>
+</div>
+<pre><code>XLineArr 表示格子中那条很长的红线<br />数据建好后我们在init里添加 2个方法 分别是创建x,y轴的坐标</pre>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">this</span>.yLine() <span style="color: #008000;">//</span><span style="color: #008000;">生成Y轴坐标</span>
+ <span style="color: #0000ff;">this</span>.xLine() <span style="color: #008000;">//</span><span style="color: #008000;">生成X轴坐标</span></pre>
+</div>
+<p>添加完后再methods 里添加以上2个方法</p>
+<p>先说yLine</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #008000;">//</span><span style="color: #008000;">横坐标</span>
+      let Xline = <span style="color: #0000ff;">new</span><span style="color: #000000;"> zrender.Line({
+        shape:{
+          x1:</span>0<span style="color: #000000;">,
+          y1:</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.canavsHeight,
+          x2:</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.canavsWidth,
+          y2:</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.canavsHeight
+        }
+      })
+      </span><span style="color: #0000ff;">this</span>.zr.add(Xline)</pre>
+</div>
+<p>这里是添加横坐标 是坐标轴最下面的那一条先 当然这个不应该写在这里当时为了显示出x,y初始坐标轴在这里写了 并不影响我们其他方法</p>
+<p>x1,y1为开始坐标点x2,y2为结束坐标点从左到右</p>
+<p>this.zr.add就是添加2条点并连接</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>const yWidth = <span style="color: #0000ff;">this</span>.canavsWidth/this.xLineLen.day
+      <span style="color: #008000;">//</span><span style="color: #008000;">循环显示竖线格子</span>
+      <span style="color: #0000ff;">for</span> (let i = 0; i &lt; <span style="color: #0000ff;">this</span>.xLineLen.day; i++<span style="color: #000000;">) {
+         </span><span style="color: #008000;">//</span><span style="color: #008000;">纵坐标</span>
+        let Yline = <span style="color: #0000ff;">new</span><span style="color: #000000;"> zrender.Line({
+          shape:{
+            x1:yWidth</span>*<span style="color: #000000;">i,
+            y1:</span>0<span style="color: #000000;">,
+            x2:yWidth</span>*<span style="color: #000000;">i,
+            y2:</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.canavsHeight
+          },
+          style:{
+            opacity:</span>1<span style="color: #000000;">,
+            lineWidth:</span>1.5<span style="color: #000000;">,
+            stroke:</span>"#ff0000"<span style="color: #000000;">
+          }
+        })
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.zr.add(Yline)
+      }</span></pre>
+</div>
+<p>这里的yWidth 代表的是一个大格子有好宽 &nbsp;用画布宽度除以前面我们定义的天数就是每一个大格子的宽度</p>
+<p>然后我们循环我们定义的天数 &nbsp;style里</p>
+<pre><code><span>opacity 代表透明度<br /></span></pre>
+<pre><code><span>lineWidth 代表线段的宽度</span></pre>
+<pre><code><span>stroke 代表线段填充的颜色<br />这步完成界面应该就会出现7条红色的竖线<br /></span></pre>
+<div class="cnblogs_code">
+<pre><code>      let yLinAll = <span style="color: #0000ff;">this</span>.xLineLen.day*<span style="color: #0000ff;">this</span><span style="color: #000000;">.xLineLen.time
+      </span><span style="color: #0000ff;">for</span> (let i = 0; i &lt; yLinAll; i++<span style="color: #000000;">) {
+        
+         let Yline </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> zrender.Line({
+          shape:{
+            x1:yWidth</span>/this.xLineLen.time*i,
+            y1:0<span style="color: #000000;">,
+            x2:yWidth</span>/this.xLineLen.time*i,
+            y2:<span style="color: #0000ff;">this</span><span style="color: #000000;">.canavsHeight
+          },
+          style:{
+            opacity:</span>1<span style="color: #000000;">,
+            lineWidth:</span>0.3<span style="color: #000000;">,
+            stroke:</span>"#000"<span style="color: #000000;">
+          }
+        })
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.zr.add(Yline)
+      }</span></pre>
+</div>
+<pre><code>yLinAll 代表一共有多少天 我们先算出总天数然后循环总天数这样我们就能画出每个大格子里的小格子了<br />style里的参数参考上一条 也可以查看官网</pre>
+<pre><code><span>这步完成y轴坐标就算是画好了接下来我们画x轴 在</span>xLine方法里写</pre>
+<pre><code><span>&nbsp;</span></pre>
+<div class="cnblogs_code">
+<pre><code>let xHeight = <span style="color: #0000ff;">this</span>.canavsHeight/this.yLineLen.XRegion
+let XShareAll = <span style="color: #0000ff;">this</span>.yLineLen.XRegion*<span style="color: #0000ff;">this</span>.yLineLen.XShare</pre>
+</div>
+<pre><code>xHeight 代表一个大格子的高度</pre>
+<pre><code>XShareAll 代表一个多少个小格子</pre>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">for</span> (let i = 0; i &lt; <span style="color: #0000ff;">this</span>.yLineLen.XRegion; i++<span style="color: #000000;">) {
+        let color </span>= "#000"
+        <span style="color: #0000ff;">this</span>.yLineLen.XLineArr.forEach(el =&gt;<span style="color: #000000;"> {
+          </span><span style="color: #0000ff;">if</span> (el ==<span style="color: #000000;"> i) {
+            color </span>= "#ff0000"<span style="color: #000000;">
+          }
+        });
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">横坐标 加粗</span>
+        let Xline = <span style="color: #0000ff;">new</span><span style="color: #000000;"> zrender.Line({
+          shape:{
+            x1:</span>0<span style="color: #000000;">,
+            y1:xHeight</span>*<span style="color: #000000;">i,
+            x2:</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.canavsWidth,
+            y2:xHeight</span>*<span style="color: #000000;">i
+          },
+          style:{
+            opacity:</span>1<span style="color: #000000;">,
+            lineWidth:</span>2<span style="color: #000000;">,
+            stroke:color
+          }
+        })
+        </span><span style="color: #0000ff;">this</span>.zr.add(Xline)</pre>
+</div>
+<p>先循环把大格子循环出来</p>
+<div class="cnblogs_code">
+<pre><code>       <span style="color: #0000ff;">for</span> (let a = 0; a &lt; XShareAll; a++<span style="color: #000000;">) {
+          </span><span style="color: #008000;">//</span><span style="color: #008000;">横坐标</span>
+          let Xline = <span style="color: #0000ff;">new</span><span style="color: #000000;"> zrender.Line({
+            shape:{
+              x1:</span>0<span style="color: #000000;">,
+              y1:xHeight</span>/this.yLineLen.XShare*a,
+              x2:<span style="color: #0000ff;">this</span><span style="color: #000000;">.canavsWidth,
+              y2:xHeight</span>/this.yLineLen.XShare*a
+<span style="color: #000000;">            },
+            style:{
+              opacity:</span>1<span style="color: #000000;">,
+              lineWidth:</span>0.1<span style="color: #000000;">,
+              stroke:</span>"#000"<span style="color: #000000;">
+            }
+          })
+          </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.zr.add(Xline)
+        }</span></pre>
+</div>
+<p>在循环出所有的小格子 入下图上下的格子 &nbsp;之前我们循环的是左右的格子</p>
+<p><img src="./images/使用zrender.js绘制体温单(1)1.png" alt="" width="329" height="53" /></p>
+<pre><code><span>这步完成了 我们的体温单的坐标格子应该就画好了  时间原因今天就先写到这 下次写折线图和圆点的画法 折线图断线垂直虚线<br />第一次写文章写得不好不要喷我</span></pre>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

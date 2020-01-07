@@ -1,0 +1,1234 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域</center></div><div class='banquan'>原文出处:本文由博客园博主RopeHuo提供。<br/>
+原文连接:https://www.cnblogs.com/rope/p/10737428.html</div><br>
+    <h1>一、<strong>TodoList</strong></h1>
+<h2><strong>1.1<span style="font-family: 宋体;">安装依赖</span></strong></h2>
+<p>安装相关依赖：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">npm install --save-dev webpack
+npm install --save-dev babel-loader babel-core babel-preset-es2015
+npm install --save-dev vue-loader
+npm install --save-dev css-loader
+npm install --save-dev vue-template-compiler
+npm install --save-dev stylus stylus-loader
+npm install --save vue
+npm install --save vuex</span></pre>
+</div>
+<hr />
+<h2>&nbsp;</h2>
+<h2><strong>1.2<span style="font-family: 宋体;">配置虚拟服务器</span></strong></h2>
+<p><strong>【第一步：安装依赖】</strong></p>
+<div class="cnblogs_code">
+<pre><code>npm install -g json-server</pre>
+</div>
+<p><strong><span style="font-family: 宋体;">【第二步：</span>json-server<span style="font-family: 宋体;">的服务器启动】</span></strong></p>
+<p><span style="font-family: 宋体;">启动需要</span>json<span style="font-family: 宋体;">文件作为支撑，新建</span><span style="font-family: Consolas;">data.json</span><span style="font-family: 宋体;">文件做服务数据：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    "mapList" : [
+        {"id":1 ,"title" : "吃饭", "done" : false},
+        {"id":2 ,"title" : "睡觉", "done" : false},
+        {"id":3 ,"title" : "做饭", "done" : false},
+        {"id":4 ,"title" : "扫地", "done" : false}
+    ]
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">启动命令json-server命令：
+json-server 数据文件路径 -s 静态化目录 -p 8080
+
+json-server www/data/data.json -s ./www -p 8080
+-s是 --static
+-p是 --port</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域0.png" alt="" /></p>
+<p>最终<span style="font-family: 宋体;">没有使用</span>webpack-dev-server<span style="font-family: 宋体;">模拟服务器</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">配置</span>webpack.config.js<span style="font-family: 宋体;">文件：</span></p>
+<div class="cnblogs_code">
+<pre><code>const path = require('path'<span style="color: #000000;">);
+const {VueLoaderPlugin} </span>= require('vue-loader');  <span style="color: #008000;">//</span><span style="color: #008000;">最新版webpack需要引入插件</span>
+<span style="color: #000000;">
+module.exports </span>=<span style="color: #000000;"> {
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">程序的入口文件</span>
+     entry: "./www/app/app.js"<span style="color: #000000;">,
+
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">程序的出口（打包的文件）</span>
+<span style="color: #000000;">     output : {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">打包文件输出的路径</span>
+        path : path.resolve(__dirname, "www/dist"<span style="color: #000000;">),
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">打包文件的名称</span>
+        filename : "all.js"<span style="color: #000000;">,
+        </span><strong><span style="text-decoration: line-through;"><span style="color: #008000; text-decoration: line-through;">//</span><span style="color: #008000; text-decoration: line-through;"> publicPath:"/public" //这是对webpack-dev-server的配置，配置虚拟路径</span></span></strong>
+<span style="color: #000000;">     },
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">让webpack监听变化，自动打包</span>
+     watch : <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+     mode : </span>"development"<span style="color: #000000;">,
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">配置webpack的模块插件</span>
+<span style="color: #000000;">     module:{
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">关于模块的配置规则</span>
+<span style="color: #000000;">        rules : [
+            {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">模块规则（配置 loader、解析器等选项）</span>
+                test : /\.js$/,  <span style="color: #008000;">//</span><span style="color: #008000;">解析的时候匹配到的都是js文件</span>
+<span style="color: #000000;">                include: [
+                  path.resolve(__dirname, </span>"www/app")    <span style="color: #008000;">//</span><span style="color: #008000;">翻译什么文件夹</span>
+<span style="color: #000000;">                ],
+                exclude: [
+                  path.resolve(__dirname, </span>"node_modules") <span style="color: #008000;">//</span><span style="color: #008000;">不翻译什么文件夹</span>
+<span style="color: #000000;">                ],
+                loader : </span>"babel-loader"<span style="color: #000000;">,
+               <span style="color: #ff0000;"> options : {
+                    presets : [</span></span><span style="color: #ff0000;">"es2015"</span><span style="color: #000000;"><span style="color: #ff0000;">]
+                }</span>
+            },
+            {
+                test: </span>/\.vue$/<span style="color: #000000;">,
+                include: [
+                  path.resolve(__dirname, </span>"www/app")    <span style="color: #008000;">//</span><span style="color: #008000;">翻译什么文件夹</span>
+<span style="color: #000000;">                ],
+                exclude: [
+                  path.resolve(__dirname, </span>"node_modules") <span style="color: #008000;">//</span><span style="color: #008000;">不翻译什么文件夹</span>
+<span style="color: #000000;">                ],
+                loader: </span>'vue-loader'<span style="color: #000000;">,
+                <span style="color: #ff0000;">options :{
+                    loaders : {
+                        stylus:</span></span><span style="color: #ff0000;">'vue-style-loader!css-loader!stylus-loader'</span><span style="color: #000000;"><span style="color: #ff0000;">
+                    }
+                }</span>
+            },
+            {
+                test:</span>/\.css$/<span style="color: #000000;">,
+                use: [</span>'vue-style-loader','css-loader'<span style="color: #000000;">]
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> {</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">     test: /\.styl(us)?$/,</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">     use: [</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">         'vue-style-loader',</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">         'css-loader',</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">         'stylus-loader'</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">     ]</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> }</span>
+<span style="color: #000000;">        ]
+     },
+     resolve: {
+        alias: { </span><span style="color: #008000;">//</span><span style="color: #008000;">配置别名</span>
+          'vue$': 'vue/dist/vue.esm.js' <span style="color: #008000;">//</span><span style="color: #008000;"> 用 webpack 1 时需用 'vue/dist/vue.common.js'</span>
+<span style="color: #000000;">        }
+     },
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">最新版webpack需要引入插件</span>
+<span style="color: #000000;">     plugins : [
+        </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> VueLoaderPlugin()
+     ]
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>【第三步：访问接口】</p>
+<p><span style="font-family: 宋体;">获取所有的数据：</span>GET</p>
+<p><span style="font-family: 宋体;">增加数据：</span>POST</p>
+<p><span style="font-family: 宋体;">得到某一条数据</span>:GET</p>
+<p><span style="font-family: 宋体;">删除某一条：</span>DELETE</p>
+<p><span style="font-family: 宋体;">更新原始数据：</span>PUT <span style="font-family: 宋体;">（更新条目的所有的属性）、</span><span style="font-family: Consolas;">PATH</span><span style="font-family: 宋体;">（更新条目的某一个属性）</span></p>
+<p><span style="font-family: 宋体;">自带分页：</span>page<span style="font-family: 宋体;">（第几页）</span><span style="font-family: Consolas;">limit</span><span style="font-family: 宋体;">（每页有多少条）</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">http://localhost:8080/mapList        　　返回.json文件所有数据（数组）
+http://localhost:8080/mapList/1     　　 返回id=1的数据，采用这种路径风格id必须为小写（数组）
+http://localhost:8080/mapList/?Name=lst  返回Name=lst的用户数据（数组）</span></pre>
+</div>
+<p><img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域1.png" alt="" /></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">分页查询：参数为 _start, _end, _limit，并可添加其它参数筛选条件，如：
+http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8080/mapList?_start=6&amp;_limit=3</span>
+http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8080/mapList?_start=3&amp;_end=6</span>
+<span style="color: #000000;">
+排序：参数为_sort, _order 
+http:</span><span style="color: #008000;">//</span><span style="color: #008000;">localhost:8080/mapList?_sort=id&amp;_order=asc</span>
+http:<span style="color: #008000;">//</span><span style="color: #008000;">localhost:8080/mapList?_sort=user,views&amp;_order=desc,asc </span>
+<span style="color: #000000;">
+操作符：_gte, _lte, _ne, _like
+_gte大于，_lte小于， _ne非， _like模糊查询，q关键词查询
+http:</span><span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:8080/mapList/?q=吃</span></pre>
+</div>
+<hr />
+<h2><strong>1.3 TodoList</strong></h2>
+<h3><strong>查询数据</strong></h3>
+<p>相关步骤：</p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">在</span>created<span style="font-family: 宋体;">生命周期中发出一个</span><span style="font-family: Consolas;">GETALL</span><span style="font-family: 宋体;">的异步命令，去</span><span style="font-family: Consolas;">actions</span><span style="font-family: 宋体;">里面发异步请求。</span></strong></span></p>
+<p>&nbsp;</p>
+<p>App.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        <span style="color: #ff0000;">created(){
+            </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.$store.dispatch(</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">GETALL</span><span style="background-color: #f5f5f5;">"</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">);
+        }</span>
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>main.js</p>
+<div class="cnblogs_code">
+<pre><code>import Vue from "vue"<span style="color: #000000;">;
+<span style="color: #ff0000;">import Vuex from </span></span><span style="color: #ff0000;">"vuex"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+import App from </span>"./App.vue"<span style="color: #000000;">;
+Vue.use(Vuex);
+
+<span style="color: #ff0000;">const store </span></span><span style="color: #ff0000;">= new</span><span style="color: #000000;"><span style="color: #ff0000;"> Vuex.Store({</span>
+  <span style="color: #ff0000;">  state : {
+        todos : []
+    },
+    mutations: {
+        GETALL(state,payload){
+            </span></span><span style="color: #ff0000;">// state.todos.push(payload)
+            state.todos =</span><span style="color: #000000;"><span style="color: #ff0000;"> payload;
+        }
+    },</span>
+    <span style="color: #ff0000;">actions :{
+        async GETALL({commit}){
+            </span></span><span style="color: #ff0000;">//请求数据库中的数据，然后存储到state的todos中
+            var data = await fetch("/maplist").then(data=&gt;data.json());
+            //发出commit()命令，并且将参数当载荷传递过去
+            commit("GETALL", data);
+        }
+    }
+});
+
+</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+    el : </span>"#app"<span style="color: #000000;">,
+    <span style="color: #ff0000;">store,</span>
+    render:(h)</span>=&gt;<span style="color: #000000;">h(App)
+})</span></pre>
+</div>
+<p><span style="font-family: 宋体;">异步请的数据回调成功后，将数据以载荷的形式发送到</span>mutations<span style="font-family: 宋体;">，再去修改</span><span style="font-family: Consolas;">state </span><span style="font-family: 宋体;">的数据</span></p>
+<p>state<span style="font-family: 宋体;">全局仓库有了数据，就可以在</span><span style="font-family: Consolas;">App.vue</span><span style="font-family: 宋体;">进行循环渲染。 </span></p>
+<p>&nbsp;</p>
+<p>App.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">v-for</span><span style="color: #ff0000;">="item in todos"</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;">
+                {{item.title}}
+            </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        created(){
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$store.dispatch(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">GETALL</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">);
+        },
+        computed : {
+            <span style="color: #ff0000;">todos(){
+                </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">return</span> <span style="background-color: #f5f5f5;">this</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">.$store.state.todos
+            }</span>
+        }
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">下一步：需要将</span>li<span style="font-family: 宋体;">标签拆分成组件：</span></p>
+<p>App.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+           <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">is="TodoLi" v-for="item in todos" :item="item"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">
+    import TodoLi from </span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">./components/TodoLi.vue</span><span style="background-color: #f5f5f5;">"</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">;</span>
+    export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        created(){
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$store.dispatch(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">GETALL</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">);
+        },
+        computed : {
+            todos(){
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span> <span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$store.state.todos
+            }
+        },
+        components:{
+           <span style="color: #ff0000;"> TodoLi</span>
+        }
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>TodoLi.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;">{{item.title}}</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        <span style="color: #ff0000;">props : [</span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">item</span><span style="background-color: #f5f5f5;">"</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">]</span>
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<h3><strong>删除数据</strong></h3>
+<p><span style="font-family: 宋体;">接下来写增删改查业务，推荐先写删除，因为删除值需要</span>id</p>
+<p>TodoLi.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;">{{item.title}}</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>
+         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #ff0000;">="del(item.id)"</span><span style="color: #0000ff;">&gt;</span>删除<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        props : [</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">item</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">],
+        methods:{
+            <span style="color: #ff0000;">del(id){
+                </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.$store.dispatch(</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">DEL</span><span style="background-color: #f5f5f5;">"</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">, {id})
+            }</span>
+        }
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<pre><code></pre>
+<div class="cnblogs_code">
+<pre><code>const store = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vuex.Store({
+    state : {
+        todos : []
+    },
+    mutations: {
+        GETALL(state,payload){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> state.todos.push(payload)</span>
+            state.todos =<span style="color: #000000;"> payload;
+        },
+        <span style="color: #ff0000;">DEL(state, payload){
+            </span></span><span style="color: #ff0000;">// 根据id删除state的数据
+            state.todos = state.todos.filter(item=&gt;{
+                return item.id !=</span><span style="color: #000000;"><span style="color: #ff0000;"> payload.id;
+            })
+        }</span>
+    },
+    actions :{
+        async GETALL({commit}){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">请求数据库中的数据，然后存储到state的todos中</span>
+            <span style="color: #0000ff;">var</span> data = await fetch("/maplist").then(data=&gt;<span style="color: #000000;">data.json());
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">发出commit()命令，并且将参数当载荷传递过去</span>
+            commit("GETALL"<span style="color: #000000;">, data);
+        },
+        <span style="color: #ff0000;">async DEL({commit},payload){
+            </span></span><span style="color: #ff0000;">//向服务器发出删除请求，删除data.json中的数据
+            var data = await fetch("/maplist/" + payload.id, {
+                method:"DELETE",
+            }).then(data =&gt; data.json());
+            commit("DEL", payload); //删除全局state仓库的数据
+</span><span style="color: #000000;"><span style="color: #ff0000;">        },</span>
+    }
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3><strong>新增业务</strong></h3>
+<p>App.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> v-model.trim</span><span style="color: #ff0000;">="txt"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #ff0000;">="add"</span><span style="color: #0000ff;">&gt;</span>新增<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+           <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">is</span><span style="color: #0000ff;">="TodoLi"</span><span style="color: #ff0000;"> v-for</span><span style="color: #0000ff;">="item in todos"</span><span style="color: #ff0000;"> :item</span><span style="color: #0000ff;">="item"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    import TodoLi from </span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">./components/TodoLi.vue</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">;
+    export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        data(){
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;"> {
+              <span style="color: #ff0000;">  txt : </span></span><span style="background-color: #f5f5f5; color: #ff0000;">''</span><span style="background-color: #f5f5f5; color: #000000;">
+            }
+        },
+        methods :{
+            <span style="color: #ff0000;">add(){
+                </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">if</span><span style="background-color: #f5f5f5;">(</span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.txt </span><span style="background-color: #f5f5f5;">==</span> <span style="background-color: #f5f5f5;">''</span><span style="background-color: #f5f5f5;">) </span><span style="background-color: #f5f5f5;">return</span><span style="background-color: #f5f5f5;">;
+                </span><span style="background-color: #f5f5f5;">//</span><span style="background-color: #f5f5f5;">发出新增的异步请求</span>
+                <span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.$store.dispatch(ADD, {id: </span><span style="background-color: #f5f5f5;">new</span><span style="background-color: #f5f5f5;"> Date() </span><span style="background-color: #f5f5f5;">-</span> <span style="background-color: #f5f5f5;">0</span><span style="background-color: #f5f5f5;">, title:</span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.txt, done:</span><span style="background-color: #f5f5f5;">false</span><span style="background-color: #f5f5f5;">})
+            </span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.txt </span><span style="background-color: #f5f5f5;">=</span> <span style="background-color: #f5f5f5;">""</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">
+            }</span>
+        },
+        components:{
+            TodoLi
+        }
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>main.js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">actions : {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">新增数据</span>
+<span style="color: #000000;">    async ADD({ commit }, payload) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">向data.json文件中插入数据</span>
+       <span style="color: #ff0000;"> var data = await fetch("/maplist/", {
+            method: "POST",
+            headers:{'Content-type' : 'application/json'},
+            body: JSON.stringify(payload)
+        }).then(data =&gt;</span><span style="color: #000000;"><span style="color: #ff0000;"> data.json());</span>
+        <strong><span style="color: #ff0000;">commit(</span></strong></span><strong><span style="color: #ff0000;">"ADD", data);</span></strong> <span style="color: #008000;">//</span><span style="color: #008000;">新增数据到state，影响视图更新</span>
+<span style="color: #000000;">    }
+<span style="color: #0000ff;">},</span>
+<span style="color: #0000ff;">mutations : {</span>
+   <span style="color: #ff0000;"> ADD(state, payload) {
+        state.todos.push(payload);
+    }</span>
+<span style="color: #0000ff;">}</span></span></pre>
+</div>
+<h3>&nbsp;</h3>
+<h3><strong>修改数据</strong></h3>
+<p>TodoLi.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #ff0000;"> &lt;span v-if="!isShow" @dblclick="showInput"&gt;{{item.title}}&lt;/span&gt;
+         &lt;input type="text" v-if="isShow" v-model="item.title" @blur="hideInput(item)" v-focus&gt;</span>
+         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="del(item.id)"</span><span style="color: #0000ff;">&gt;</span>删除<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        props : [</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">item</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">],
+        data(){
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;">{
+                <span style="color: #ff0000;">isShow:</span></span><span style="background-color: #f5f5f5; color: #ff0000;">false</span><span style="background-color: #f5f5f5; color: #000000;">
+            }
+        },
+        methods:{
+            del(id){
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$store.dispatch(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">DEL</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">, {id})
+            },
+          <span style="color: #ff0000;">  showInput(){
+                </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">//</span><span style="background-color: #f5f5f5;">双击显示input</span>
+                <span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.isShow </span><span style="background-color: #f5f5f5;">=</span> <span style="background-color: #f5f5f5;">!</span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.isShow;
+            },
+            hideInput(item){
+                console.log(item)
+                </span><span style="background-color: #f5f5f5;">//</span><span style="background-color: #f5f5f5;">失去焦点隐藏input，并且发送CAHNGETITLE命令修改title内容</span>
+                <span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.isShow </span><span style="background-color: #f5f5f5;">=</span> <span style="background-color: #f5f5f5;">!</span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.isShow;
+                </span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.$store.dispatch(</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">CHANGETITLE</span><span style="background-color: #f5f5f5;">"</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">,item)
+            }</span>
+        },
+       <span style="color: #ff0000;"> directives:{
+            </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">//</span><span style="background-color: #f5f5f5;">自定义组件指令，自动获取焦点</span>
+</span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">            focus :{
+                inserted(el){
+                    el.focus();
+                }
+            }
+        }</span>
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>main.js</p>
+<div class="cnblogs_code">
+<pre><code>const store = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vuex.Store({
+    state : {
+        todos : []
+    },
+    mutations: {
+        CHANGETITLE(state, payload) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 写法1</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> state.todos.forEach(item=&gt;{</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">     if (item.id == payload.id){</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">         item.title = payload.title;</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">     }</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> })</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> 写法2</span>
+            <span style="color: #ff0000;">state.todos = state.todos.map(item =&gt; {
+                if(item.id == payload.id) {
+                    return payload
+                }
+                return</span><span style="color: #000000;"><span style="color: #ff0000;"> item;
+            })</span>
+        }
+    },
+    actions :{
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">修改请求</span>
+<span style="color: #ff0000;">        async CHANGETITLE({commit}, payload) {
+            var data = await fetch("/maplist/" + payload.id, {
+                method: "PATCH",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(data =&gt; data.json());
+
+            commit("CHANGETITLE", data); //虽然实现了修改，但是为了完整性还是写上
+</span><span style="color: #000000;"><span style="color: #ff0000;">        },</span>
+    }
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>修改任务事件：当前任务是否做了，需要一个复选框</p>
+<p>todoli.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+   <span style="color: #ff0000;"> &lt;input type="checkbox" <strong>v-model="item.done"</strong> <strong>ref="cbox" </strong>@click="changeDone(item)"&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">spanv-if</span><span style="color: #0000ff;">="!isShowInput"</span><span style="color: #ff0000;">@dblclick</span><span style="color: #0000ff;">="showInput"</span> <span style="color: #ff0000;">:class="{cur:item.done}"</span><span style="color: #0000ff;">&gt;</span>{{item.title}}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+methods:{
+changeDone(item){
+       console.log(</span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$refs.cbox.checked);
+       </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 这里使用的是ref钩子 这样能得到 复选框的状态 </span>
+       <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 提交的时候 只需要提交 id  复选框的状态就行了</span>
+       <span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$store.dispatch(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><strong><span style="background-color: #f5f5f5; color: #ff0000;">CHANGEDONE</span></strong><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">,{
+          id : item.id,
+          <span style="color: #ff0000;">done : </span></span><span style="background-color: #f5f5f5; color: #ff0000;">this</span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">.$refs.cbox.checked</span>
+       })
+}
+}
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #800000;">
+    .cur</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">text-decoration</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> line-through</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #000000;">}</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>app.js<span style="font-family: 宋体;">修改</span><span style="font-family: Consolas;">done</span><span style="font-family: 宋体;">和修改</span><span style="font-family: Consolas;">title</span><span style="font-family: 宋体;">的方式方法都一样，只要改方法名即可。</span></p>
+<div class="cnblogs_code">
+<pre><code>const store = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vuex.Store({
+    <span style="color: #0000ff;">mutations:{</span>
+        <span style="color: #ff0000;">CHANGEDONE</span>(state, payload){
+            state.todos </span>= state.todos.map(item =&gt;<span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">if</span>(item.id ==<span style="color: #000000;"> payload.id){
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> payload
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> item
+            })
+        }
+  <span style="color: #0000ff;">  },</span>
+<span style="color: #0000ff;">actions:{</span>
+        async <span style="color: #ff0000;">CHANGEDONE</span>({commit},payload){
+            </span><span style="color: #0000ff;">var</span> data = await fetch("/mapList/" +<span style="color: #000000;"> payload.id,{
+                </span>"method" : 'PATCH'<span style="color: #000000;">,
+                </span>"headers"<span style="color: #000000;">:{
+                    </span>'Content-Type':"application/json"<span style="color: #000000;">
+                },
+                body:JSON.stringify(<span style="color: #ff0000;">{done:payload.done}</span>)
+            }).then(res </span>=&gt;<span style="color: #000000;"> res.json()); 
+           <span style="color: #ff0000;"> commit(</span></span><span style="color: #ff0000;">"CHANGEDONE"</span><span style="color: #000000;"><span style="color: #ff0000;">,data)</span>
+        },
+   <span style="color: #0000ff;"> }</span>
+});</span></pre>
+</div>
+<hr />
+<h3><strong>筛选按钮：计算已做未做事项</strong></h3>
+<p>筛选按钮：计算已做未做事项</p>
+<p>app.js</p>
+<div class="cnblogs_code">
+<pre><code>const store = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vuex.Store({
+    state:{
+        todos:[]
+    },
+    mutations:{
+        ...
+    },
+    actions:{
+        ...
+    },
+    <span style="color: #ff0000;">getters:{
+        yizuo:</span></span><span style="color: #ff0000;">function(state){
+            return state.todos.filter(item =&gt; {
+                return item.done == true //true表示已做
+            })
+        },
+        weizuo:function(state){
+            return state.todos.filter(item =&gt; {
+                return item.done == false //false表示未做
+</span><span style="color: #000000;"><span style="color: #ff0000;">            })
+        }
+    }</span>
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>App.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> v-model.trim</span><span style="color: #0000ff;">="txt"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">@click</span><span style="color: #0000ff;">="add"</span><span style="color: #0000ff;">&gt;</span>新增<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">v-for</span><span style="color: #0000ff;">="item of todos"</span><span style="color: #ff0000;"> is</span><span style="color: #0000ff;">="TodoLi"</span><span style="color: #ff0000;"> :item</span><span style="color: #0000ff;">="item"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;">
+                全部：{{$store.state.todos.length}}个事项&lt;br&gt;
+                已做：{{$store.getters.yizuo.length}}个完成事项&lt;br&gt;
+                未做：{{$store.getters.weizuo.length}}个代办事项&lt;br&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #ff0000;">&lt;button @click="all"&gt;查看全部&lt;/button&gt;
+            &lt;button @click="yizuo"&gt;查看已做&lt;/button&gt;
+            &lt;button @click="weizuo"&gt;查看未做&lt;/button&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+import todoli from </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">./components/TodoLi.vue</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+    data() {
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;"> {
+            txt: </span><span style="background-color: #f5f5f5; color: #000000;">''</span><span style="background-color: #f5f5f5; color: #000000;">,
+            <span style="color: #ff0000;">state: </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">all</span><span style="background-color: #f5f5f5;">'</span></span><span style="background-color: #f5f5f5; color: #000000;">
+        }
+    },
+    computed: {
+       <span style="color: #ff0000;"> todos() {
+            </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">if</span><span style="background-color: #f5f5f5;">(</span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.state </span><span style="background-color: #f5f5f5;">==</span> <span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">all</span><span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">){
+                </span><span style="background-color: #f5f5f5;">return</span> <span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.$store.state.todos
+            }</span><span style="background-color: #f5f5f5;">else</span> <span style="background-color: #f5f5f5;">if</span><span style="background-color: #f5f5f5;">(</span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.state </span><span style="background-color: #f5f5f5;">==</span> <span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">yizuo</span><span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">){
+                </span><span style="background-color: #f5f5f5;">return</span> <span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.$store.getters.yizuo
+            }</span><span style="background-color: #f5f5f5;">else</span> <span style="background-color: #f5f5f5;">if</span><span style="background-color: #f5f5f5;">(</span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.state </span><span style="background-color: #f5f5f5;">==</span> <span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">weizuo</span><span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">){
+                </span><span style="background-color: #f5f5f5;">return</span> <span style="background-color: #f5f5f5;">this</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">.$store.getters.weizuo
+            }
+
+        }</span>
+    },
+    methods: {
+      <span style="color: #ff0000;">  all() {
+            </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.state </span><span style="background-color: #f5f5f5;">=</span> <span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">all</span><span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">
+        },
+        yizuo() {
+            </span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.state </span><span style="background-color: #f5f5f5;">=</span> <span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">yizuo</span><span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">
+        },
+        weizuo() {
+            </span><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.state </span><span style="background-color: #f5f5f5;">=</span> <span style="background-color: #f5f5f5;">'</span><span style="background-color: #f5f5f5;">weizuo</span><span style="background-color: #f5f5f5;">'</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">
+        }</span>
+    }
+}
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><span style="font-family: 宋体;">所有业务都已经完成，但是由于组件和数据太乱，下面开始拆分</span>store<span style="font-family: 宋体;">。</span></p>
+<hr />
+<p>&nbsp;</p>
+<h1>二、<strong><span style="font-family: 宋体;">拆分</span>store</strong></h1>
+<p><span style="font-family: 宋体;">我们都知道</span>vuex<span style="font-family: 宋体;">是</span><span style="font-family: Consolas;">vue</span><span style="font-family: 宋体;">用来集中管理状态的容器（管理全局的状态），实现不同组件之间相互的数据访问。我们说一下</span><span style="font-family: Consolas;">vuex</span><span style="font-family: 宋体;">拆分</span><span style="font-family: Consolas;">store</span><span style="font-family: 宋体;">以及多模块管理。如果一个项目非常大的话状态就会非常的多，如果不进行分类处理，所有的状态都维护在一个</span><span style="font-family: Consolas;">state</span><span style="font-family: 宋体;">里面的话，状态管理就会变得非常的混乱，这样非常不利于项目的后期维护。现在前端推崇模块化开发，为的就是提高开发效率和维护效率，避免重复工作。那么</span><span style="font-family: Consolas;">vuex</span><span style="font-family: 宋体;">是怎么样解决这个问题的呢？这个时候我们今天要讲的主角</span><span style="font-family: Consolas;">modules</span><span style="font-family: 宋体;">就要闪亮登场了。&nbsp;</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">第一步：将</span>main.js<span style="font-family: 宋体;">中的</span><span style="font-family: Consolas;">store</span><span style="font-family: 宋体;">拆分到一个</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">文件中。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">export const storeObj</span> =<span style="color: #000000;"> {
+    state:{
+        ...
+    },
+    mutations:{
+        ...
+    },
+    actions:{
+       ...
+    },
+    getters:{
+        ...
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">将</span>store<span style="font-family: 宋体;">中的</span><span style="font-family: Consolas;">index.js</span><span style="font-family: 宋体;">在</span><span style="font-family: Consolas;">main.js</span><span style="font-family: 宋体;">中引入</span></p>
+<div class="cnblogs_code">
+<pre><code>import {storeObj} from "./store/index.js"<span style="color: #000000;">;
+const store </span>= <span style="color: #0000ff;">new</span> Vuex.Store(storeObj);</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">第二步：拆分</span>state<span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">mutations</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">actions</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">getters</span></p>
+<p><span style="font-family: 宋体;">给他们分别创建单独的</span>js<span style="font-family: 宋体;">文件，默认暴露</span></p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">可以将我们定义的这些对象加入到</span>Vuex<span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">store</span><span style="font-family: 宋体;">中</span></p>
+<p><span style="font-family: 宋体;">在</span>store<span style="font-family: 宋体;">中</span><span style="font-family: Consolas;">index.js</span><span style="font-family: 宋体;">用</span><span style="font-family: Consolas;">import</span><span style="font-family: 宋体;">引入：</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('f4749851-6359-4629-a8d0-3b674a226c8e')"><img id="code_img_closed_f4749851-6359-4629-a8d0-3b674a226c8e" class="code_img_closed" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域2.png" alt="" /><img id="code_img_opened_f4749851-6359-4629-a8d0-3b674a226c8e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('f4749851-6359-4629-a8d0-3b674a226c8e',event)" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域3.png" alt="" />
+<div id="cnblogs_code_open_f4749851-6359-4629-a8d0-3b674a226c8e" class="cnblogs_code_hide">
+<pre><code>import state from "./state.js"<span style="color: #000000;">;
+import mutations from </span>"./mutations.js"<span style="color: #000000;">;
+import actions from </span>"./actions.js"<span style="color: #000000;">;
+import getters from </span>"./getters.js"<span style="color: #000000;">;
+
+export const storeObj </span>=<span style="color: #000000;"> {
+    state:{
+        ...state
+    },
+    mutations:{
+        ...mutations
+    },
+    actions:{
+        ...actions
+    },
+    getters:{
+        ...getters
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">由于没装翻译</span>&ldquo;<span style="font-family: Consolas;">...</span><span style="font-family: 宋体;">&rdquo;对象解构语法，会报错：</span></p>
+<div class="cnblogs_code">
+<pre><code>npm install --svae-dev babel-plugin-transform-object-rest-spread</pre>
+</div>
+<p><img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">配置</span>webpack.config.js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    test: </span>/\.js?$/,  <span style="color: #008000;">//</span><span style="color: #008000;">解析的时候匹配到的都是js</span>
+    loader: "babel-loader"<span style="color: #000000;">,
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">翻译字典</span>
+<span style="color: #000000;">    options: {
+        presets: [</span>"es2015","ES2015"<span style="color: #000000;">],
+       <span style="color: #ff0000;"> plugins: [</span></span><span style="color: #ff0000;">"transform-object-rest-spread"</span><span style="color: #000000;"><span style="color: #ff0000;">]</span>
+    }
+},</span></pre>
+</div>
+<p><span style="font-family: 宋体;">配置完成后就可以识别</span>&ldquo;<span style="font-family: Consolas;">...</span><span style="font-family: 宋体;">&rdquo;解构了。</span></p>
+<p><span style="font-family: 宋体;">至此，还没拆完，使用常量代替</span>mutations<span style="font-family: 宋体;">集合</span><span style="font-family: Consolas;">actions</span><span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">type</span><span style="font-family: 宋体;">名字</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">新建一个</span>types.js<span style="font-family: 宋体;">文件，在里面存常量（大写字母的方法）</span></p>
+<p><strong><span style="font-family: 宋体;">注意：把这些常量放到单独的文件中可以让你的代码合作者对整个</span>app<span style="font-family: 宋体;">包含</span><span style="font-family: Consolas;">mutation</span><span style="font-family: 宋体;">和</span><span style="font-family: Consolas;">actions</span><span style="font-family: 宋体;">一目了然。</span></strong></p>
+<p><strong><span style="font-family: 宋体;">用不用常量代替取决于你</span>--<span style="font-family: 宋体;">在需要多人协作的大型项目中，这会很有帮助，但是如果你不喜欢，完全可以不这么做。</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>export const GETALL = "GETALL"<span style="color: #000000;">;
+export const DEL </span>= "DEL"<span style="color: #000000;">;
+export const ADD </span>= "ADD"<span style="color: #000000;">;
+export const CHANGETITLE </span>= "CHANGETITLE"<span style="color: #000000;">;
+export const CHANGEDONE </span>= "CHANGEDONE";</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">暴露常量的名字后，分别在</span>mutations<span style="font-family: 宋体;">和</span><span style="font-family: Consolas;">actions</span><span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">文件中使用这些来代替：</span></p>
+<p>mutations.js</p>
+<div class="cnblogs_code">
+<pre><code>import {GETALL,DEL,ADD,CHANGETITLE,CHANGEDONE} from "./types.js"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    <span style="color: #ff0000;">[GETALL]</span>(state, payload) {
+        
+    },
+   <span style="color: #ff0000;"> [DEL]</span>(state, payload) {
+        
+    },
+    <span style="color: #ff0000;">[ADD]</span>(state, payload) {
+        
+    },
+    <span style="color: #ff0000;">[CHANGETITLE]</span>(state, payload) {
+        
+    },
+    <span style="color: #ff0000;">[CHANGEDONE]</span>(state, payload) {
+        
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>actions.js</p>
+<div class="cnblogs_code">
+<pre><code>import {GETALL,DEL,ADD,CHANGETITLE,CHANGEDONE} from "./types.js"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    <span style="color: #ff0000;">async [GETALL]</span>({ commit }) {
+        
+    },
+   <span style="color: #ff0000;"> async [DEL]</span>({ commit }, payload) {
+        
+    },
+    <span style="color: #ff0000;">async [ADD]</span>({ commit }, payload) {
+        
+    },
+   <span style="color: #ff0000;"> async [CHANGETITLE]</span>({ commit }, payload) {
+        
+    },
+    <span style="color: #ff0000;">async [CHANGEDONE]</span>({ commit }, payload) {
+        
+    }
+}</span></pre>
+</div>
+<p><span style="font-family: 宋体;">注意：上方</span>mutations<span style="font-family: 宋体;">和</span><span style="font-family: Consolas;">actions</span><span style="font-family: 宋体;">中的</span><span style="font-family: Consolas;">[types.ADD]</span><span style="font-family: 宋体;">写法，因为</span><span style="font-family: Consolas;">types.ADD</span><span style="font-family: 宋体;">是一个对象，所以不能直接当做函数名来写，需要用到</span><span style="font-family: Consolas;">ES2015</span><span style="font-family: 宋体;">风格的计算属性命名功能来使用一个常量作为函数名，才能使用。</span></p>
+<p><span style="text-decoration: underline;"><a href="https://vuex.vuejs.org/zh/guide/mutations.html">https://vuex.vuejs.org/zh/guide/mutations.html</a></span></p>
+<hr />
+<h1><strong>三、异步请求数据（跨域）</strong></h1>
+<h2><strong>3.1 Ajax<span style="font-family: 宋体;">不能跨域</span></strong></h2>
+<p>比如在Apache中演示：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="jquery-3.3.1.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">
+        $.get(</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">http://127.0.0.88/a.txt</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;"> , </span><span style="background-color: #f5f5f5;">function</span><span style="background-color: #f5f5f5;">(data){
+            console.log(data);
+        });
+    </span></span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>试图在127.0.0.1<span style="font-family: 宋体;">请求</span><span style="font-family: Consolas;">127.0.0.88/a.txt</span><span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">数据，会报错：</span></p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域5.png" alt="" /></p>
+<p><strong><span style="text-decoration: underline;">浏览器会阻止对</span></strong><strong><span style="text-decoration: underline;">ip<span style="font-family: 宋体;">地址不同，或者端口号不同的数据请求。</span></span></strong></p>
+<p>此时我们必须要进行请求，就是跨域技术。</p>
+<hr />
+<h2><strong>3.2<span style="font-family: 宋体;">用</span><span style="font-family: 华文中宋;">jQuery</span><span style="font-family: 宋体;">复习</span><span style="font-family: 华文中宋;">JSONP</span><span style="font-family: 宋体;">跨域</span></strong></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #ff0000;"> <span style="background-color: #f5f5f5;">function</span><span style="background-color: #f5f5f5;"> haha(info){
+            console.log(info);
+        }
+    </span></span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #ff0000;">="http://127.0.0.88/a.txt"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><strong><span style="font-family: 宋体;">在页面上定义一个函数，然后用</span>script<span style="font-family: 宋体;">标签引入这个语句，执行这个语句。此时数据就通过函数的实参和形参的结合，传入了页面。</span></strong><span style="color: #ff0000;"><strong>script<span style="font-family: 宋体;">没有跨域限制的，可以轻松</span><span style="font-family: Consolas;">src</span><span style="font-family: 宋体;">引入其他</span><span style="font-family: Consolas;">ip</span><span style="font-family: 宋体;">地址的</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">文件。</span></strong></span></p>
+<p><strong>JSONP<span style="font-family: 宋体;">叫做</span><span style="font-family: Consolas;">JSON </span><span style="font-family: 宋体;">和 </span><span style="font-family: Consolas;">Padding</span><span style="font-family: 宋体;">（补白）</span></strong></p>
+<p><span style="color: #ff0000;"><strong><span style="text-decoration: underline;"><span style="font-family: 宋体;">我们写一个接口，这个接口不是一个</span>JSON<span style="font-family: 宋体;">，而是一个语句，这个语句是函数的调用</span></span></strong><strong>。</strong></span></p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域6.png" alt="" /></p>
+<p><span style="font-family: 宋体;">升级：把</span>a.txt<span style="font-family: 宋体;">改为</span><span style="font-family: Consolas;">a.php</span><span style="font-family: 宋体;">（这个文件不需要会，因为是后端的事情）</span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;?<span style="color: #000000;">php
+</span><span style="color: #ff0000;">$callback = $_GET["callback"];    //获取get请求</span>
+<span style="color: #0000ff;">echo</span> <span style="color: #ff0000;">$callback</span> . '({"a" : 100 })';<span style="color: #ff0000;">//JSON参数</span>
+?&gt;</pre>
+</div>
+<p><img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>点击按钮再发出</strong><strong>JSONP<span style="font-family: 宋体;">跨域请求。</span></strong></p>
+<p class="15"><span style="font-family: 宋体;">本质上是点击按钮的瞬间，创建了一个</span>script<span style="font-family: 宋体;">标签，</span><span style="font-family: Consolas;">script</span><span style="font-family: 宋体;">标签的</span><span style="font-family: Consolas;">src</span><span style="font-family: 宋体;">指向了我们刚刚写的那个接口，那个接口是函数的调用。我们快速定义这个函数，使得</span><span style="font-family: Consolas;">src</span><span style="font-family: 宋体;">引入的</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">能够调用这个函数，从而通过实参和形参的结合，将数据传入页面。</span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;script&gt;<span style="color: #000000;">
+    $(</span>"button").click(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+         </span><span style="color: #ff0000;">//创建script标签
+         var $o = $("&lt;script&gt;&lt;\/script&gt;");
+         //创建一个src
+         $o.attr("src" , "http://127.0.0.88/a.php?callback=xixi");
+         //定义全局函数
+         window.xixi= function(data){
+             //接收到数据的回调函数
+             console.log(data);
+         }
+         //上树
+         $("head").append($o); 
+         //下树
+</span><span style="color: #000000;"><span style="color: #ff0000;">         $o.remove();</span>
+     });
+</span>&lt;/script&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>但实际上不用这么麻烦，jQuery<span style="font-family: 宋体;">会自动帮我们发出</span><span style="font-family: Consolas;">jsonp</span><span style="font-family: 宋体;">跨域：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>按我发出请求<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">
+        $(</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">button</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">).click(</span><span style="background-color: #f5f5f5;">function</span><span style="background-color: #f5f5f5;">(){
+            $.ajax({
+                </span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">dataType</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;"> : </span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">JSONP</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;"> ,
+                </span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">url</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;"> : </span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">http://127.0.0.88/a.php</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">,
+                </span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">success</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;"> : </span><span style="background-color: #f5f5f5;">function</span><span style="background-color: #f5f5f5;">(data){
+                    console.log(data);
+                }
+            })
+        });
+    </span></span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>jQuery<span style="font-family: 宋体;">会随机生成一个函数名。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域8.png" alt="" /></p>
+<p>原理和我们写的一样的，都是：</p>
+<p>1<span style="font-family: 宋体;">）瞬间创建一个内部函数</span></p>
+<p>2<span style="font-family: 宋体;">）瞬间创建一个</span><span style="font-family: Consolas;">script</span><span style="font-family: 宋体;">标签，</span><span style="font-family: Consolas;">src</span><span style="font-family: 宋体;">指向我们的</span><span style="font-family: Consolas;">url</span><span style="font-family: 宋体;">地址</span></p>
+<p>3<span style="font-family: 宋体;">）瞬间上树</span></p>
+<p>4<span style="font-family: 宋体;">）瞬间下树</span></p>
+<hr />
+<h2><strong>3.3<span style="font-family: 宋体;">跨域方法</span><span style="font-family: 华文中宋;">1</span><span style="font-family: 宋体;">：</span><span style="font-family: 华文中宋;">JSONP</span><span style="font-family: 宋体;">跨域</span></strong></h2>
+<p>之前我们项目的数据和前端的文件都是同源的（就是在同一个接口下）。</p>
+<p>但是，工作中，一定是要跨域请求数据的。</p>
+<p>比如我们的前端项目运行在8080<span style="font-family: 宋体;">端口，要请求</span><span style="font-family: Consolas;">3000</span><span style="font-family: 宋体;">端口的数据，就是跨域。</span></p>
+<p>事实上，工作中，模拟接口一定<span style="font-family: 宋体;">是不同</span>ip<span style="font-family: 宋体;">的，模拟接口运行在办公室的局域网上的。</span></p>
+<p><strong><span style="text-decoration: underline;"><span style="font-family: 宋体;">每个人的电脑都是同一个局域网的，后台哥哥会给你一个后端接口文档，接口在演示的时候，很有可能是</span>3000<span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">8000</span><span style="font-family: 宋体;">等等。但你的前端项目跑在</span><span style="font-family: Consolas;">webpack-dev-server</span><span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">8080</span><span style="font-family: 宋体;">端口，就涉及到跨域请求数据了。</span></span></strong></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">创建一个后端文件夹（</span>server_side<span style="font-family: 宋体;">）和前端项目文件夹（</span><span style="font-family: Consolas;">Vue_study</span><span style="font-family: 宋体;">）：</span></p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域9.png" alt="" /></p>
+<p>前端后端共同跑：<span style="font-family: 宋体;">后端</span>3000<span style="font-family: 宋体;">，前端</span><span style="font-family: Consolas;">8080</span></p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域10.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>app.js</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('554cba83-97c2-4790-8261-557cf729a3cb')"><img id="code_img_closed_554cba83-97c2-4790-8261-557cf729a3cb" class="code_img_closed" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域2.png" alt="" /><img id="code_img_opened_554cba83-97c2-4790-8261-557cf729a3cb" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('554cba83-97c2-4790-8261-557cf729a3cb',event)" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域3.png" alt="" />
+<div id="cnblogs_code_open_554cba83-97c2-4790-8261-557cf729a3cb" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">var</span> express = require("express"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> app =<span style="color: #000000;"> express();
+
+app.get(</span>"/a", <span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> res.json({"a":100});</span>
+    res.jsonp({"a":100}); <span style="color: #008000;">//</span><span style="color: #008000;">jsonp()能自动得到callback参数请求</span>
+<span style="color: #000000;">})
+
+app.listen(</span>3000);</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p><a href="http://127.0.0.1:3000/a?callback=haha"><span style="text-decoration: underline;">http://127.0.0.1:3000/a?callback=haha</span></a></p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域13.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>App.vue</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('a5723268-9679-4fab-9699-cbfdfc7c6b4c')"><img id="code_img_closed_a5723268-9679-4fab-9699-cbfdfc7c6b4c" class="code_img_closed" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域2.png" alt="" /><img id="code_img_opened_a5723268-9679-4fab-9699-cbfdfc7c6b4c" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('a5723268-9679-4fab-9699-cbfdfc7c6b4c',event)" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域3.png" alt="" />
+<div id="cnblogs_code_open_a5723268-9679-4fab-9699-cbfdfc7c6b4c" class="cnblogs_code_hide">
+<pre><code>&lt;template&gt;
+    &lt;div&gt;
+        &lt;h1&gt;首页&lt;/h1&gt;
+        &lt;button @click="addServer"&gt;请求数据&lt;/button&gt;
+    &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    methods:{
+        addServer(){
+            $.ajax({
+                dataType:</span>"JSONP"<span style="color: #000000;">,
+                url: </span>"http://127.0.0.1:3000/a"<span style="color: #000000;">,
+                success:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+                    console.log(data)
+                }
+            })
+        }
+    }
+};
+</span>&lt;/script&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<hr />
+<h2>&nbsp;</h2>
+<h2><strong>3.4<span style="font-family: 宋体;">跨域方法</span><span style="font-family: 华文中宋;">2</span><span style="font-family: 宋体;">：</span><span style="font-family: 华文中宋;">CORS</span><span style="font-family: 宋体;">跨域</span></strong></h2>
+<p>面试想要回答的好，看下面文章：</p>
+<p><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Access_control_CORS"><span style="text-decoration: underline;">https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Access_control_CORS</span></a></p>
+<p><span style="text-decoration: underline;"><a href="http://www.ruanyifeng.com/blog/2016/04/cors.html">http://www.ruanyifeng.com/blog/2016/04/cors.html</a></span></p>
+<p><span style="font-family: 宋体;">跨域资源共享（</span>CORS<span style="font-family: 宋体;">，</span><span style="font-family: Consolas;">Cross-Origin Resource Sharing</span><span style="font-family: 宋体;">）机制允许</span><span style="font-family: Consolas;">Web</span><span style="font-family: 宋体;">应用服务器进行跨域访问控制，从而使得跨域数据传输得以安全进行。浏览器支持在</span><span style="font-family: Consolas;">API</span><span style="font-family: 宋体;">容器中（例如</span><span style="font-family: Consolas;">XMLHttpRequest</span><span style="font-family: 宋体;">或</span><span style="font-family: Consolas;">fetch</span><span style="font-family: 宋体;">）使用</span><span style="font-family: Consolas;">CORS</span><span style="font-family: 宋体;">，以降低跨域</span><span style="font-family: Consolas;">HTTP</span><span style="font-family: 宋体;">请求所带来的风险。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">说白了，就是在</span>HTTP<span style="font-family: 宋体;">下响应的头部加一句话。</span></p>
+<p>CORS<span style="font-family: 宋体;">是一个</span><span style="font-family: Consolas;">W3C</span><span style="font-family: 宋体;">标准，全称是</span><span style="font-family: Consolas;">"</span><span style="font-family: 宋体;">跨域资源共享</span><span style="font-family: Consolas;">"</span><span style="font-family: 宋体;">（</span><span style="font-family: Consolas;">Cross-origin resource sharing</span><span style="font-family: 宋体;">）。</span></p>
+<p><span style="font-family: 宋体;">它允许浏览器向跨源服务器，发出</span>XMLHttpRequest<span style="font-family: 宋体;">请求，从而克服了</span><span style="font-family: Consolas;">AJAX</span><span style="font-family: 宋体;">只能同源使用的限制</span></p>
+<p>&nbsp;</p>
+<p>我们在后端一般就加<span style="color: #ff0000;"><strong>Access-Control-Allow-Origin</strong>&nbsp;</span><span style="font-family: 宋体;">值为</span>&ldquo;<span style="color: #ff0000;"><strong>*</strong></span>&rdquo;</p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域16.png" alt="" /></p>
+<p><img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域17.png" alt="" /></p>
+<p><span style="font-family: 宋体;">问题：</span>8080<span style="font-family: 宋体;">的前端页面请求</span><span style="font-family: Consolas;">3000</span><span style="font-family: 宋体;">后端的页面，是谁禁止的？是浏览器禁止的，为了安全。此时就要写一个</span><span style="font-family: Consolas;">HTTP</span><span style="font-family: 宋体;">下行响应头部，来告诉浏览器，这次请求是允许的，这是最简单的跨域方法，但是</span><span style="font-family: Consolas;">IE8</span><span style="font-family: 宋体;">才开始兼容。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域18.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>app.js<span style="font-family: 宋体;">后端：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> express = require("express"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> app =<span style="color: #000000;"> express();
+
+app.get(</span>"/a", <span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">表示允许任何域名来源的请求</span>
+    <span style="color: #ff0000;">res.setHeader("Access-Control-Allow-Origin", "*"</span><span style="color: #000000;"><span style="color: #ff0000;">);</span>
+    res.json({a:</span>100<span style="color: #000000;">});
+})
+
+app.listen(</span>3000);</pre>
+</div>
+<p>&nbsp;</p>
+<p>App.vue<span style="font-family: 宋体;">此时在前端项目中就可以随意跨域：</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('33122974-d18a-44ca-960f-65a72853a542')"><img id="code_img_closed_33122974-d18a-44ca-960f-65a72853a542" class="code_img_closed" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域2.png" alt="" /><img id="code_img_opened_33122974-d18a-44ca-960f-65a72853a542" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('33122974-d18a-44ca-960f-65a72853a542',event)" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域3.png" alt="" />
+<div id="cnblogs_code_open_33122974-d18a-44ca-960f-65a72853a542" class="cnblogs_code_hide">
+<pre><code>&lt;template&gt;
+    &lt;div&gt;
+        &lt;h1&gt;首页&lt;/h1&gt;
+        &lt;button @click="addServer"&gt;请求数据&lt;/button&gt;
+    &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    methods:{
+        addServer(){
+           $.get(</span>"http://127.0.0.1:3000/a", <span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+                console.log(data)
+           })
+        }
+    }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<hr />
+<h2><strong>3.5<span style="font-family: 宋体;">跨域请求方法</span><span style="font-family: 华文中宋;">3</span><span style="font-family: 宋体;">：代理跨越（</span><span style="font-family: 华文中宋;">proxy</span><span style="font-family: 宋体;">）</span></strong></h2>
+<p><strong>&ldquo;代理&rdquo;就是偷数据。</strong></p>
+<p><span style="font-family: 宋体;">拿</span>PHP<span style="font-family: 宋体;">做例子，实现一下偷百度首页（了解即可）</span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;?<span style="color: #000000;">php
+    </span><span style="color: #0000ff;">echo</span> <span style="color: #008080;">file_get_contents</span>("http://www.baidu.com/"<span style="color: #000000;">);
+</span>?&gt;</pre>
+</div>
+<p><span style="font-family: 宋体;">运行</span>tou.php<span style="font-family: 宋体;">就直接是百度首页了。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域21.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong>比如京东充话费接口，可以被后端偷来：</strong></p>
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域22.png" alt="" /></p>
+<p><img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域23.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>然后在前端项目中使用：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('67bf26ff-b52c-4460-abe0-65710885764b')"><img id="code_img_closed_67bf26ff-b52c-4460-abe0-65710885764b" class="code_img_closed" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域2.png" alt="" /><img id="code_img_opened_67bf26ff-b52c-4460-abe0-65710885764b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('67bf26ff-b52c-4460-abe0-65710885764b',event)" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域3.png" alt="" />
+<div id="cnblogs_code_open_67bf26ff-b52c-4460-abe0-65710885764b" class="cnblogs_code_hide">
+<pre><code>&lt;body&gt;
+    &lt;h1&gt;手机归属地查询（业绩最快，完全免费）&lt;/h1&gt;
+    &lt;input type="text" id="tel"&gt;
+    &lt;button&gt;查询&lt;/button&gt;
+&lt;/body&gt;
+&lt;script type="text/javascript" src="js/jquery-2.2.4.min.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;<span style="color: #000000;">
+    $(</span>"button").click(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">var</span> tel = $("#tel"<span style="color: #000000;">).val();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">可以请求自己服务器的数据，只不过数据由后端tou.php偷回来。</span>
+        $.get("http://127.0.0.1:8088/tou.php?tel=" + tel, <span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+            console.log(data)
+        })
+    });
+</span>&lt;/script&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p><img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域26.png" alt="" /></p>
+<hr />
+<h3><strong><span style="font-family: 宋体;">【重点】：如何在</span>Vue<span style="font-family: 宋体;">和</span><span style="font-family: Consolas;">React</span><span style="font-family: 宋体;">项目中使用代理跨域？</span></strong></h3>
+<p>webpack-dev-server<span style="font-family: 宋体;">可以帮我们偷服务端的数据，美其名曰&ldquo;代理&rdquo;。</span></p>
+<p><span style="font-family: 宋体;">相当于服务器去</span>&ldquo;偷数据&rdquo;，由后端（前端的后端，就是<span style="font-family: Consolas;">webpack-dev-server</span><span style="font-family: 宋体;">）出面，问</span><span style="font-family: Consolas;">3000</span><span style="font-family: 宋体;">端口要数据</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">在</span>webpack.config.js<span style="font-family: 宋体;">中，加几句话即可实现&ldquo;代理跨域&rdquo;。</span></p>
+<p><a href="https://webpack.docschina.org/configuration/dev-server/#devserver-proxy"><span style="text-decoration: underline;">https://webpack.docschina.org/configuration/dev-server/#devserver-proxy</span></a></p>
+<p>webpack-dev-server<span style="font-family: 宋体;">这个小型服务器底层也是</span><span style="font-family: Consolas;">express</span><span style="font-family: 宋体;">实现的</span></p>
+<p>&nbsp;</p>
+<p>webpack-dev-server<span style="font-family: 宋体;">在帮我们做几件事：</span></p>
+<p>1<span style="font-family: 宋体;">）构建</span><span style="font-family: Consolas;">app</span><span style="font-family: 宋体;">文件夹到</span><span style="font-family: Consolas;">/public/all.js</span><span style="font-family: 宋体;">去</span></p>
+<p>2<span style="font-family: 宋体;">）静态化</span><span style="font-family: Consolas;">www</span><span style="font-family: 宋体;">文件夹提供了静态文件的路由</span></p>
+<p>3<span style="font-family: 宋体;">）代理了</span><span style="font-family: Consolas;">127.0.0.1:3000</span><span style="font-family: 宋体;">的接口。</span></p>
+<p>4<span style="font-family: 宋体;">）构建</span><span style="font-family: Consolas;">app</span><span style="font-family: 宋体;">的时候进行了翻译</span></p>
+<p>&nbsp;</p>
+<p>webpack.config.js<span style="font-family: 宋体;">配置：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> path = require('path'<span style="color: #000000;">);
+const {VueLoaderPlugin} </span>=  require("vue-loader"); <span style="color: #008000;">//</span><span style="color: #008000;">最新版webpack需要引入此插件</span>
+<span style="color: #000000;">
+module.exports </span>=<span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">程序的入口文件</span>
+    entry: './www/app/app.js'<span style="color: #000000;">,
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">程序的出口文件（被打包的文件）</span>
+<span style="color: #000000;">    output: {
+      ...</span>
+<span style="color: #000000;">    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">自动监听</span>
+    watch:<span style="color: #0000ff;">true</span><span style="color: #000000;">,
+    mode : </span>"development"<span style="color: #000000;">,
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">配置webpack的模块插件</span>
+<span style="color: #000000;">    module:{
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 关于模块配置</span>
+<span style="color: #000000;">        ...</span><span style="color: #000000;">
+    },
+    resolve: {
+        ...</span><span style="color: #000000;">
+    },
+  <span style="color: #ff0000;">  devServer: {
+        proxy: {
+            </span></span><span style="color: #ff0000;">'/api': {
+                target: 'http://127.0.0.1:3000', //设置你调用的接口域名和端口
+                //这里理解成/api代理target中的地址，后面组件中调用接口要使用/api代替
+                pathRewrite: {'^/api' : ''}
+            }
+        }
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">最新版webpack需要引入此插件</span>
+<span style="color: #000000;">    plugins:[
+       </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> VueLoaderPlugin()
+    ]
+};</span></pre>
+</div>
+<p><span style="font-family: 宋体;">这些配置都从</span>webpack<span style="font-family: 宋体;">官网抄的，配置就可以做项目了，实现接口的请求。</span></p>
+<p>配置好后，重启&nbsp;<strong>npm run dev</strong><span style="font-family: 宋体;">，</span>比如<strong><span style="text-decoration: underline;">3000<span style="font-family: 宋体;">有一个接口</span><span style="font-family: Consolas;">/a</span><span style="font-family: 宋体;">，现在将被代理到</span><span style="font-family: Consolas;">8080</span><span style="font-family: 宋体;">接口的</span><span style="font-family: Consolas;">/api/a</span></span></strong>：</p>
+<p>http://127.0.0.1:<strong>3000</strong>/a<span style="font-family: 宋体;">这个接口，被&ldquo;代理&rdquo;到</span><span style="font-family: Consolas;">http://127.0.0.1:</span><strong>8080</strong>/api/a&nbsp;</p>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="347">
+<p>&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域27.png" alt="" /></p>
+<p>&nbsp;</p>
+</td>
+<td valign="top" width="347">&nbsp;<img src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域28.png" alt="" />
+<p>&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">如果后端</span>app.js<span style="font-family: 宋体;">出一个这样的接口：</span><span style="text-decoration: underline;"><a href="http://127.0.0.1/:3000/api">http://127.0.0.1/:3000/a</a></span></p>
+<div class="cnblogs_code">
+<pre><code>app.get("/a",<span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    res.json({</span>"a":100<span style="color: #000000;">});
+ });</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">前端</span>app.js<span style="font-family: 宋体;">就可以这样获取后端的接口：</span><span style="text-decoration: underline;"><a href="http://127.0.0.1/:3000/api/api">http://127.0.0.1/:8080/api/a</a></span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+    &lt;div&gt;
+        &lt;h1&gt;首页&lt;/h1&gt;
+        &lt;button @click="addServer"&gt;请求数据&lt;/button&gt;
+    &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    methods : {
+        addServer(){
+           <span style="color: #ff0000;"> $.get(</span></span><span style="color: #ff0000;">"http://127.0.0.1:8080/api/a",function</span><span style="color: #000000;"><span style="color: #ff0000;">(data){
+                console.log(data);
+            })</span>
+        }
+    }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p><span style="font-family: 宋体;">总结：一提起</span>&ldquo;跨域&rdquo;，立马回答他一共有三种方法。</p>
+<hr />
+<h1><strong>四、练习代理跨域</strong></h1>
+<p><strong><span style="font-family: 宋体;">后端</span>app.js<span style="font-family: 宋体;">提供数据接口：（</span><span style="font-family: Consolas;">node app.js</span><span style="font-family: 宋体;">运行）</span></strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ba892e23-86fb-435b-857f-d7d2b93892c1')"><img id="code_img_closed_ba892e23-86fb-435b-857f-d7d2b93892c1" class="code_img_closed" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域2.png" alt="" /><img id="code_img_opened_ba892e23-86fb-435b-857f-d7d2b93892c1" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ba892e23-86fb-435b-857f-d7d2b93892c1',event)" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域3.png" alt="" />
+<div id="cnblogs_code_open_ba892e23-86fb-435b-857f-d7d2b93892c1" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">var</span> express = require("express"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> app =<span style="color: #000000;"> express();
+app.get(</span>"/a" , <span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    res.json({</span>"a":100<span style="color: #000000;">});
+});
+app.listen(</span>3000);</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">前端</span>main.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import Vue from "vue"<span style="color: #000000;">;
+import Vuex from </span>"vuex"<span style="color: #000000;">;
+import App from </span>"./App.vue"<span style="color: #000000;">;
+<span style="color: #ff0000;">import store from </span></span><span style="color: #ff0000;">"./store";
+
+</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+    el:</span>"#app"<span style="color: #000000;">,
+    <span style="color: #ff0000;">store,</span>
+    render:(h)</span>=&gt;<span style="color: #000000;">h(App)
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">前端</span>App.vue:</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;">{{$store.state.counterState.a}}</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #0000ff;">@click="add(1)"</span><span style="color: #0000ff;">&gt;</span>加1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #0000ff;">@click="add(2)"</span><span style="color: #0000ff;">&gt;</span>加2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+　　　　  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #0000ff;">@click="addServer"</span><span style="color: #0000ff;">&gt;</span>按我加服务器的数据<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    export </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        methods : {
+           <span style="color: #0000ff;"> add(n){
+                </span></span><span style="color: #ff0000;"><span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.$store.commit(</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">ADD</span><span style="background-color: #f5f5f5;">"</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">, {n});</span>
+         <span style="color: #0000ff;">   },</span>
+            <span style="color: #0000ff;">addServer(){
+                </span></span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">异步必须用dispatch</span>
+               <span style="color: #ff0000;"> <span style="background-color: #f5f5f5;">this</span><span style="background-color: #f5f5f5;">.$store.dispatch(</span><span style="background-color: #f5f5f5;">"</span><span style="background-color: #f5f5f5;">ADDSERVER</span><span style="background-color: #f5f5f5;">"</span></span><span style="background-color: #f5f5f5; color: #000000;"><span style="color: #ff0000;">);</span>
+           <span style="color: #0000ff;"> }</span>
+        }
+    }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>store<span style="font-family: 宋体;">中的</span><span style="font-family: Consolas;">index.js</span><span style="font-family: 宋体;">：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>import Vue from "vue"<span style="color: #000000;">;
+import Vuex from </span>"vuex"<span style="color: #000000;">;
+import createLogger from </span>'vuex/dist/logger'<span style="color: #000000;">;
+
+<span style="color: #ff0000;">import counterState from </span></span><span style="color: #ff0000;">"./counter/state.js";
+import counterMutations from "./counter/mutations.js";
+import counterActions from "./counter/actions.js";
+
+Vue.use(Vuex);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">全局数据</span>
+<span style="color: #ff0000;">export default</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vuex.Store({
+   <span style="color: #ff0000;"> state: {
+        counterState
+    },
+    </span></span><span style="color: #ff0000;">//同步的（commit）
+    mutations: {
+        ...counterMutations
+    },
+    //异步的（dispatch）
+</span><span style="color: #000000;"><span style="color: #ff0000;">    actions : {
+        ...counterActions
+    },</span>
+    plugins: [createLogger()]
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>state.js</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('8a6d1b8a-ff99-41f0-9561-08da8012177b')"><img id="code_img_closed_8a6d1b8a-ff99-41f0-9561-08da8012177b" class="code_img_closed" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域2.png" alt="" /><img id="code_img_opened_8a6d1b8a-ff99-41f0-9561-08da8012177b" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('8a6d1b8a-ff99-41f0-9561-08da8012177b',event)" src="./images/前端笔记之Vue（五）TodoList实战&amp;拆分store&amp;跨域&amp;练习代理跨域3.png" alt="" />
+<div id="cnblogs_code_open_8a6d1b8a-ff99-41f0-9561-08da8012177b" class="cnblogs_code_hide">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    a: </span>100<span style="color: #000000;">
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">实例代码</span></div>
+<p>&nbsp;</p>
+<p><strong>mutations.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+   <span style="color: #0000ff;"> ADD(state, payload) {</span>
+        <span style="color: #ff0000;">state.counterState.a </span></span><span style="color: #ff0000;">+=</span><span style="color: #000000;"><span style="color: #ff0000;"> payload.n;</span>
+   <span style="color: #0000ff;"> }</span> 
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>actions.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    <span style="color: #0000ff;">async ADDSERVER({commit}</span><span style="color: #0000ff;">){
+        </span></span><span style="color: #008000;">//</span><span style="color: #008000;">发出异步请求</span>
+        <span style="color: #ff0000;">const {a} = await fetch("/api/a").then(data=&gt;data.json());
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">异步函数不能改变state，改变state只有mutations</span>
+        <span style="color: #ff0000;">commit("ADD" , {n:a})</span> <span style="color: #008000;">//</span><span style="color: #008000;">触发mutation</span>
+　<span style="color: #0000ff;">　</span><span style="color: #000000;"><span style="color: #0000ff;">}</span>
+}</span></pre>
+</div>
+<hr />
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

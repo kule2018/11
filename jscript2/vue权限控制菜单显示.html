@@ -1,0 +1,189 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue权限控制菜单显示' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue权限控制菜单显示</center></div><div class='banquan'>原文出处:本文由博客园博主Daryl_Z提供。<br/>
+原文连接:https://www.cnblogs.com/fashe8888/p/10919256.html</div><br>
+    <h3>对于不同角色显示不同的菜单</h3>
+<h4>思路1：</h4>
+<p>　　<span style="font-family: 'Microsoft YaHei';">本地放一份完整的菜单数据，通过后台返回角色的菜单列表两者对比，筛选需要显示的菜单数据绑定，这里有个问题就是路由vue实例初始化就生成了，加载的全部，人为输入地址是可以访问到角色权限以外的数据，所以还要加路由构子router.beforeEach()去做判断哪些是角色权限以内的路由。这种思路的比较复杂，逻辑比较多</span></p>
+<h4><span style="font-family: 'Microsoft YaHei';">思路2：</span></h4>
+<p><span style="font-family: 'Microsoft YaHei';">　　利用Vue Router官方API提供的router.addRoutes()方法动态添加路由来实现</span></p>
+<p><span style="font-family: 'Microsoft YaHei';">本章按思路2来实现该功能</span></p>
+<h4><span style="font-family: 'Microsoft YaHei';">1.初始化路由组件先定义出来，比如404、login组件</span></h4>
+<div class="cnblogs_code">
+<pre><code>import Vue from 'vue'<span style="color: #000000;">
+import Router from </span>'vue-router'<span style="color: #000000;">
+
+Vue.use(Router)
+
+export </span><span style="color: #0000ff;">default</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> Router({
+  routes: [
+    {
+      path: </span>'/login'<span style="color: #000000;">,
+      name: </span>'login'<span style="color: #000000;">,
+      component: () </span>=&gt; import('@//components/login'<span style="color: #000000;">)
+    },
+    {
+      path: </span>'*'<span style="color: #000000;">,
+      name: </span>'404'<span style="color: #000000;">,
+      component: () </span>=&gt; import('@//components/404'<span style="color: #000000;">)
+    }
+  ]
+})</span></pre>
+</div>
+<h4>2.login组件</h4>
+<div class="cnblogs_code">
+<pre><code>&lt;script&gt;<span style="color: #000000;">
+  import {mapActions} from </span>'vuex'<span style="color: #000000;">
+  export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    name: </span>'login'<span style="color: #000000;">,
+    data() {
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+        user: {
+          username: </span>''<span style="color: #000000;">,
+          password: </span>''<span style="color: #000000;">
+        },
+        loading: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+      }
+    },
+    methods: {
+      ...mapActions({add_Routes: </span>'add_Routes'<span style="color: #000000;">}),
+
+      handleLogin() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里为了方便就设置两个用户，其它不允许</span>
+        <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.user.username !== 'common' &amp;&amp; <span style="color: #0000ff;">this</span>.user.username !== 'admin'<span style="color: #000000;">) {
+          </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+        }
+        </span><span style="color: #0000ff;">this</span>.loading = <span style="color: #0000ff;">true</span>
+        <span style="color: #0000ff;">this</span>.$api.login(<span style="color: #0000ff;">this</span>.user.username, <span style="color: #0000ff;">this</span>.user.password).then((res) =&gt;<span style="color: #000000;"> {
+          </span><span style="color: #0000ff;">if</span> (res.status === 200<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将路由信息，菜单信息，用户信息存到sessionStorage里</span>
+            sessionStorage.setItem('menuData'<span style="color: #000000;">, JSON.stringify(res.data.navData))
+            sessionStorage.setItem(</span>'user', <span style="color: #0000ff;">this</span><span style="color: #000000;">.user.username)
+            sessionStorage.setItem(</span>'routes'<span style="color: #000000;">, JSON.stringify(res.data.routerData))
+            </span><span style="color: #0000ff;">this</span>.add_Routes(res.data.routerData) <span style="color: #008000;">//</span><span style="color: #008000;">触发vuex里的增加路由</span>
+<span style="color: #000000;">          }
+        })
+      }
+    },
+  }
+</span>&lt;/script&gt;</pre>
+</div>
+<p>登录时从后台得到菜单数据navData和路由数据routerData把它存进sessionStorage防止刷新页面时丢失，引入vuex的this.add_Router()触发</p>
+<h4>3.vuex</h4>
+<div class="cnblogs_code">
+<pre><code>import {ADD_ROUTES} from './mutations_type'<span style="color: #000000;">
+import Menufilter from </span>'./menufilter'<span style="color: #000000;">
+import router from </span>'../router'<span style="color: #000000;">
+const addRoutes </span>=<span style="color: #000000;"> {
+  state: {
+    routeData: []
+  },
+  mutations: {
+    [ADD_ROUTES](state, addrouter) {
+      let routes </span>=<span style="color: #000000;"> []
+      Menufilter(routes, addrouter) </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将后台的路由数据components转化成组件</span>
+      router.addRoutes(routes)  <span style="color: #008000;">//</span><span style="color: #008000;"> 添加路由</span>
+      router.push('/'<span style="color: #000000;">)
+    }
+  },
+  actions: {
+    add_Routes({commit}, addrouter) {
+      commit(ADD_ROUTES, addrouter)
+    }
+  }
+}
+export </span><span style="color: #0000ff;">default</span> addRoutes</pre>
+</div>
+<p>login组件的this.add_Router触发mutations里的ADD_ROUTES，ADD_ROUTES会做如下:</p>
+<p>1.&nbsp;Menufilter(route, addrouter)会处理后台返回的路由数据,因为后台返回的数据中的components对应的是字符串应该把它转化成组件</p>
+<div class="cnblogs_code">
+<pre><code>import {lazy} from './lazyLoading'<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span> (routers,data) =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">要重新遍历一下，是因为，通常我们动态路由的时候，</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;">是获取服务端数据，这个component属性是一个字符串转化成组件</span>
+<span style="color: #000000;">  generaMenu(routers,data)
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> generaMenu(routers,data){
+  data.forEach((item)</span>=&gt;<span style="color: #000000;">{
+    let menu </span>=<span style="color: #000000;"> Object.assign({},item)
+    menu.component </span>=<span style="color: #000000;"> lazy(menu.component)
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(item.children){
+      menu.children </span>=<span style="color: #000000;"> []
+      generaMenu(menu.children,item.children)
+    }
+    routers.push(menu)
+  })
+}</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 懒加载组件lazy</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> lazy(name) {
+  let file </span>= name.split('_')[0<span style="color: #000000;">]
+  </span><span style="color: #0000ff;">if</span> (name !== 'dashboard'<span style="color: #000000;">) {
+    </span><span style="color: #0000ff;">return</span> () =&gt; import(`@/page/${file}/${name}.vue`)
+  } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> () =&gt; import(`@/components/<span style="color: #000000;">${name}.vue`)
+  }
+}
+export {lazy}</span></pre>
+</div>
+<p>2. 调用router.addRouter(routes)动态添加路由</p>
+<p>为了防止用户手动刷新页面还要在main.js重新触发vuex里的add_Routes方法添加路由</p>
+<div class="cnblogs_code">
+<pre><code>import Vue from 'vue'<span style="color: #000000;">
+import App from </span>'./App'<span style="color: #000000;">
+import router from </span>'./router'<span style="color: #000000;">
+import Element from </span>'element-ui'<span style="color: #000000;">
+import store from </span>'./store/store'<span style="color: #000000;">
+import </span>'element-ui/lib/theme-chalk/index.css'<span style="color: #000000;">
+import api from </span>'./api/api'<span style="color: #000000;">
+
+Vue.config.productionTip </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">
+Vue.prototype.$api </span>=<span style="color: #000000;"> api
+Vue.use(Element)
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 用户手动刷新页面，这是路由会被重设，要重新新增</span>
+<span style="color: #0000ff;">if</span> (sessionStorage.getItem('user'<span style="color: #000000;">)) {
+  let routes </span>= JSON.parse(sessionStorage.getItem('routes'<span style="color: #000000;">))
+  store.dispatch(</span>"add_Routes"<span style="color: #000000;">, routes)
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 登录状态判断</span>
+router.beforeEach((to, from , next) =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">if</span> (!sessionStorage.getItem('user') &amp;&amp; to.path !== '/login'<span style="color: #000000;">) {
+    next({
+      path: </span>'/login'<span style="color: #000000;">,
+      query: {redirect: to.fullPath}
+    })
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    next()
+  }
+})
+</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+  el: </span>'#app'<span style="color: #000000;">,
+  store,
+  router,
+  components: { App },
+  template: </span>'&lt;App/&gt;'<span style="color: #000000;">
+})</span></pre>
+</div>
+<p>以上即可实现简单的权限菜单</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

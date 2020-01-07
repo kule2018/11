@@ -1,0 +1,455 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修每天学点node系列-fs文件系统' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>每天学点node系列-fs文件系统</center></div><div class='banquan'>原文出处:本文由博客园博主一半水一半冰提供。<br/>
+原文连接:https://www.cnblogs.com/jingh/p/11161170.html</div><br>
+    <blockquote>
+<p>好的代码像粥一样,都是用时间熬出来的。</p>
+</blockquote>
+<h2 id="概述">概述</h2>
+<p>文件 I/O 是由简单封装的标准 POSIX 函数提供的。 通过 require('fs') 使用该模块。</p>
+<p>所有文件系统操作都具有同步和异步的形式。</p>
+<p>异步的形式总是将完成回调作为其最后一个参数。 传给完成回调的参数取决于具体方法，但第一个参数始终预留用于异常。 如果操作成功完成，则第一个参数将为 <code>null</code> 或 <code>undefined</code>。</p>
+<pre><code><code>// 异步示例
+const fs = require(&#39;fs&#39;);
+
+fs.unlink(&#39;/tmp/hello&#39;, (err) =&gt; {
+  if (err) throw err;
+  console.log(&#39;已成功删除 /tmp/hello&#39;);
+});</code></pre>
+<p>使用同步的操作发生的异常会立即抛出，可以使用 <code>try/catch</code> 处理，也可以允许冒泡。</p>
+<pre><code><code>//同步示例
+const fs = require(&#39;fs&#39;);
+
+try {
+  fs.unlinkSync(&#39;/tmp/hello&#39;);
+  console.log(&#39;已成功删除 /tmp/hello&#39;);
+} catch (err) {
+  // 处理错误
+}</code></pre>
+<p>在进程中，建议使用异步版本。 同步的版本将阻塞整个进程，直到它们完成（停止所有连接）。但是异步操作不保证执行顺序所以，所以在使用时请注意使用对象执行顺序。</p>
+<h2 id="文件系统标志">文件系统标志</h2>
+<p>flags可以是：</p>
+<pre><code><code>&#39;a&#39; - 打开文件用于追加。如果文件不存在，则创建该文件。
+&#39;ax&#39; - 与 &#39;a&#39; 相似，但如果路径已存在则失败。
+&#39;a+&#39; - 打开文件用于读取和追加。如果文件不存在，则创建该文件。
+&#39;ax+&#39; - 与 &#39;a+&#39; 相似，但如果路径已存在则失败。
+&#39;as&#39; - 以同步模式打开文件用于追加。如果文件不存在，则创建该文件。
+&#39;as+&#39; - 以同步模式打开文件用于读取和追加。如果文件不存在，则创建该文件。
+&#39;r&#39; - 打开文件用于读取。如果文件不存在，则出现异常。
+&#39;r+&#39; - 打开文件用于读取和写入。如果文件不存在，则出现异常。
+&#39;rs+&#39; - 以同步模式打开文件用于读取和写入。指示操作系统绕过本地的文件系统缓存。
+&#39;w&#39; - 打开文件用于写入。如果文件不存在则创建文件，如果文件已存在则截断文件。
+&#39;wx&#39; - 与 &#39;w&#39; 相似，但如果路径已存在则失败。
+&#39;w+&#39; - 打开文件用于读取和写入。如果文件不存在则创建文件，如果文件已存在则截断文件。
+&#39;wx+&#39; - 与 &#39;w+&#39; 相似，但如果路径已存在则失败。</code></pre>
+<h2 id="底层接口">底层接口</h2>
+<h3 id="打开文件">打开文件</h3>
+<h4 id="异步打开">异步打开</h4>
+<pre><code><code>// fs.open
+path &lt;string&gt; | &lt;Buffer&gt; | &lt;URL&gt;
+flags &lt;string&gt; | &lt;number&gt; 参阅支持的文件系统标志。
+mode &lt;integer&gt; 默认值: 0o666（可读写）。
+callback &lt;Function&gt;
+  - err &lt;Error&gt;
+  - fd &lt;integer&gt;</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;)
+fs.open(&#39;1.txt&#39;,&#39;r&#39;,function(err,fs){
+    console.log(err)
+    console.log(fs)
+})</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+null
+3</code></pre>
+<p>注意： 使用'rs+'模式不会使fs.open()进入同步阻塞调用。如果那是你想要的，则应该使用fs.openSync()</p>
+<h4 id="同步打开">同步打开</h4>
+<pre><code><code>// fs.openSync
+path &lt;string&gt; | &lt;Buffer&gt; | &lt;URL&gt;
+flags &lt;string&gt; | &lt;number&gt; 参阅支持的文件系统标志。
+mode &lt;integer&gt; 默认值: 0o666。
+返回: &lt;number&gt;
+返回表示文件描述符的整数。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var result = fs.openSync(&#39;1.txt&#39;,&#39;r&#39;);
+console.log(result);</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+3</code></pre>
+<h3 id="读取文件">读取文件</h3>
+<pre><code><code>fd &lt;integer&gt; 从 fd 指定的文件中读取数据。
+buffer &lt;Buffer&gt; | &lt;TypedArray&gt; | &lt;DataView&gt; 数据将写入的缓冲区。
+offset &lt;integer&gt; buffer 中开始写入的偏移量
+length &lt;integer&gt; 是一个整数，指定要读取的字节数
+position &lt;integer&gt; 参数指定从文件中开始读取的位置。 如果 position 为 null，则从当前文件位置读取数据，并更新文件位置。 如果 position 是整数，则文件位置将保持不变。
+callback &lt;Function&gt;
+- err &lt;Error&gt;
+- bytesRead &lt;integer&gt;
+- buffer &lt;Buffer&gt;</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+fs.open(&#39;1.txt&#39;,&#39;r&#39;,function(err,fd){
+    if(err){
+        console.log(&#39;文件打开失败&#39;);
+    }else{
+        var bf = Buffer.alloc(5);
+        fs.read(fd,bf,0,3,null,function(err,len,buffer){
+            console.log(err);
+            console.log(len);
+            console.log(buffer);
+        })
+    }
+});</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+null
+3
+&lt;Buffer 68 65 6c 00 00&gt;</code></pre>
+<h4 id="同步读取">同步读取</h4>
+<pre><code><code>fd &lt;integer&gt;
+buffer &lt;Buffer&gt; | &lt;TypedArray&gt; | &lt;DataView&gt;
+offset &lt;integer&gt;
+length &lt;integer&gt;
+position &lt;integer&gt;
+返回: &lt;number&gt;
+返回 bytesRead 的数量。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var fd = fs.openSync(&#39;1.txt&#39;,&#39;r&#39;);
+var bf = Buffer.alloc(5);
+var result = fs.readSync(fd,bf,0,3,null);
+console.log(result);</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+3</code></pre>
+<h3 id="写入文件">写入文件</h3>
+<pre><code><code>fd &lt;Integer&gt;  文件标识
+buffer &lt;String&gt; | &lt;Buffer&gt; 要将buffer中的数据写入到文件中
+offset &lt;Integer&gt; buffer对象中要写入的数据的起始位置
+length &lt;Integer&gt; length是一个整数，指定要写入的字节数
+position &lt;Integer&gt; 指定从文件开始写入数据的位置的偏移量。 如果 typeof position !== &#39;number&#39;，则数据从当前位置写入
+callback &lt;Function&gt; 回调有三个参数(err, written, buffer)，其中written指定从buffer写入了多少字节</code></pre>
+<p>执行结果</p>
+<pre><code><code>$ node 1.js
+null
+3
+&lt;Buffer 74 65 73 74&gt;</code></pre>
+<p>[注意]多次对同一文件使用fs.write且不等待回调，是不安全的。对于这种情况，强烈推荐使用 fs.createWriteStream　　当我们要对打开的文件进行写操作的时候，打开文件的模式应该是读写模式</p>
+<h4 id="同步写入">同步写入</h4>
+<pre><code><code>fd &lt;integer&gt;
+buffer &lt;Buffer&gt; | &lt;TypedArray&gt; | &lt;DataView&gt;
+offset &lt;integer&gt;
+length &lt;integer&gt;
+position &lt;integer&gt;
+返回: &lt;number&gt; 写入的字节数。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var fd = fs.openSync(&#39;1.txt&#39;,&#39;r+&#39;);
+var bf = Buffer.alloc(5);
+var result = fs.writeSync(fd,bf,0,3,null);
+console.log(result);</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+3</code></pre>
+<h3 id="关闭文件">关闭文件</h3>
+<pre><code><code>fd - 通过 fs.open() 方法返回的文件描述符。
+callback - 回调函数，没有参数。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+fs.open(&#39;1.txt&#39;,&#39;r+&#39;,function(err,fd){
+    if(err){
+        console.log(&#39;文件打开失败&#39;);
+    }else{
+        fs.close(fd, function(err){
+            if (err){
+                console.log(err);
+            } 
+            console.log(&quot;文件关闭成功&quot;);
+        });
+    }
+});</code></pre>
+<pre><code><code>$ node 1.js
+文件关闭成功</code></pre>
+<h4 id="同步关闭">同步关闭</h4>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var fd = fs.openSync(&#39;1.txt&#39;,&#39;r+&#39;);
+fs.closeSync(fd);</code></pre>
+<h2 id="文件操作">文件操作</h2>
+<h3 id="文件读取">文件读取</h3>
+<h4 id="同步读取-1">同步读取</h4>
+<pre class="html"><code>// fs.readFileSync
+path &lt;string&gt; | &lt;Buffer&gt; | &lt;URL&gt;
+options &lt;string&gt; | &lt;Object&gt;
+    encoding &lt;string&gt; 默认值: &#39;utf8&#39;。
+    withFileTypes &lt;boolean&gt; 默认值: false。
+
+返回: &lt;string[]&gt; | &lt;Buffer[]&gt; | &lt;fs.Dirent[]&gt;</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var data;
+
+try{
+    data = fs.readFileSync(&#39;./1.txt&#39;, &#39;utf8&#39;);
+    console.log(&#39;文件内容: &#39; + data);
+}catch(err){
+    console.error(&#39;读取文件出错: &#39; + err.message);
+}</code></pre>
+<p>执行结果为：</p>
+<pre><code><code>$ node 1.js
+文件内容: hello rock</code></pre>
+<h4 id="异步读取">异步读取</h4>
+<pre class="html"><code>// fs.readFile
+path &lt;string&gt; | &lt;Buffer&gt; | &lt;URL&gt;
+options &lt;string&gt; | &lt;Object&gt;
+    - encoding &lt;string&gt; 默认值: &#39;utf8&#39;。
+    - withFileTypes &lt;boolean&gt; 默认值: false。
+callback &lt;Function&gt;
+    - err &lt;Error&gt;
+    - files &lt;string[]&gt; | &lt;Buffer[]&gt; | &lt;fs.Dirent[]&gt;</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+
+fs.readFile(&#39;./1.txt&#39;, &#39;utf8&#39;, function(err, data){
+    if(err){
+        return console.error(&#39;读取文件出错: &#39; + err.message);
+    }
+    console.log(&#39;文件内容: &#39; + data);
+});</code></pre>
+<p>执行结果也为：</p>
+<pre><code><code>$ node 1.js
+文件内容: hello rock</code></pre>
+<h3 id="通过文件流读取">通过文件流读取</h3>
+<p>适合读取大文件</p>
+<pre class="html"><code>path &lt;string&gt; | &lt;Buffer&gt; | &lt;URL&gt;
+options &lt;string&gt; | &lt;Object&gt;
+   - flags &lt;string&gt; 参阅支持的文件系统标志。默认值: &#39;r&#39;。
+   - encoding &lt;string&gt; 默认值: null。
+   - fd &lt;integer&gt; 默认值: null。
+   - mode &lt;integer&gt; 默认值: 0o666。
+   - autoClose &lt;boolean&gt; 默认值: true。
+   - start &lt;integer&gt;
+   - end &lt;integer&gt; 默认值: Infinity。
+   - highWaterMark &lt;integer&gt; 默认值: 64 * 1024。
+返回: &lt;fs.ReadStream&gt; 参阅[可读流]。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var readStream = fs.createReadStream(&#39;./1.txt&#39;, &#39;utf8&#39;);
+
+readStream
+    .on(&#39;data&#39;, function(chunk) {
+        console.log(&#39;读取数据: &#39; + chunk);
+    })
+    .on(&#39;error&#39;, function(err){
+        console.log(&#39;出错: &#39; + err.message);
+    })
+    .on(&#39;end&#39;, function(){  // 没有数据了
+        console.log(&#39;没有数据了&#39;);
+    })
+    .on(&#39;close&#39;, function(){  // 已经关闭，不会再有事件抛出
+        console.log(&#39;已经关闭&#39;);
+    });</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+读取数据: hello rock
+没有数据了
+已经关闭</code></pre>
+<h3 id="文件写入">文件写入</h3>
+<h4 id="异步写入">异步写入</h4>
+<pre><code><code>// fs.writeFile
+file &lt;string&gt; | &lt;Buffer&gt; | &lt;URL&gt; | &lt;integer&gt; 文件名或文件描述符。
+data &lt;string&gt; | &lt;Buffer&gt; | &lt;TypedArray&gt; | &lt;DataView&gt;
+options &lt;Object&gt; | &lt;string&gt;
+  - encoding &lt;string&gt; | &lt;null&gt; 默认值: &#39;utf8&#39;。
+  - mode &lt;integer&gt; 默认值: 0o666。
+  - flag &lt;string&gt; 参阅支持的文件系统标志。默认值: &#39;w&#39;。
+callback &lt;Function&gt;
+  - err &lt;Error&gt;&lt;/Error&gt;</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+fs.writeFile(&#39;./1.txt&#39;, &#39;hello rock&#39;, &#39;utf8&#39;, function(err){
+    if(err) throw err;
+    console.log(&#39;文件写入成功&#39;);
+});</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+文件写入成功</code></pre>
+<h4 id="同步写入-1">同步写入</h4>
+<pre><code><code>// fs.writeFileSync
+file &lt;string&gt; | &lt;Buffer&gt; | &lt;URL&gt; | &lt;integer&gt; 文件名或文件描述符。
+data &lt;string&gt; | &lt;Buffer&gt; | &lt;TypedArray&gt; | &lt;DataView&gt;
+options &lt;Object&gt; | &lt;string&gt;
+  - encoding &lt;string&gt; | &lt;null&gt; 默认值: &#39;utf8&#39;。
+  - mode &lt;integer&gt; 默认值: 0o666。
+  - flag &lt;string&gt; 参阅支持的文件系统标志。默认值: &#39;w&#39;。
+  
+返回 undefined。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+try{
+    fs.writeFileSync(&#39;./1.txt&#39;, &#39;hello rock&#39;, &#39;utf8&#39;);
+    console.log(&#39;文件写入成功&#39;);
+}catch(err){
+    throw err;
+}</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+文件写入成功</code></pre>
+<h4 id="通过文件流写入">通过文件流写入</h4>
+<pre class="html"><code>path &lt;string&gt; | &lt;Buffer&gt; | &lt;URL&gt;
+options &lt;string&gt; | &lt;Object&gt;
+   - flags &lt;string&gt; 参阅支持的文件系统标志。默认值: &#39;w&#39;。
+   - encoding &lt;string&gt; 默认值: &#39;utf8&#39;。
+   - fd &lt;integer&gt; 默认值: null。
+   - mode &lt;integer&gt; 默认值: 0o666。
+   - autoClose &lt;boolean&gt; 默认值: true。
+   - start &lt;integer&gt;
+返回: &lt;fs.WriteStream&gt; 参阅可写流。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var writeStream = fs.createWriteStream(&#39;./1.txt&#39;, &#39;utf8&#39;);
+writeStream
+    .on(&#39;close&#39;, function(){ // 已经关闭，不会再有事件抛出
+        console.log(&#39;已经关闭&#39;);
+    });
+writeStream.write(&#39;hello&#39;);
+writeStream.write(&#39;rock&#39;);
+writeStream.end(&#39;&#39;);</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+已经关闭</code></pre>
+<h3 id="追加文件">追加文件</h3>
+<pre><code><code>file - 文件名或文件描述符。
+data - 要写入文件的数据，可以是 String(字符串) 或 Buffer(流) 对象。
+options - 该参数是一个对象，包含 {encoding, mode, flag}。默认编码为 utf8, 模式为 0666 ， flag 为 &#39;w&#39;
+callback - 回调函数，回调函数只包含错误信息参数(err)，在写入失败时返回。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var filename = &#39;1.txt&#39;;
+fs.appendFile(filename,&#39; world&#39;,function(err){
+    console.log(err);
+})</code></pre>
+<p>执行结果</p>
+<pre><code><code>$ node 1.js
+null</code></pre>
+<h4 id="同步追加">同步追加</h4>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var filename = &#39;1.txt&#39;;
+fs.appendFileSync(filename,&#39; lalala&#39;);</code></pre>
+<h3 id="删除文件">删除文件</h3>
+<pre><code><code>path - 文件路径。
+callback - 回调函数，没有参数。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var filename = &#39;1.txt&#39;;
+fs.unlink(filename, function(err) {
+   if (err) {
+       return console.log(&#39;删除失败&#39;);
+   }
+   console.log(&quot;删除成功&quot;);
+});</code></pre>
+<p>执行结果：</p>
+<pre><code><code>$ node 1.js
+删除成功</code></pre>
+<h4 id="同步删除">同步删除</h4>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var filename = &#39;1.txt&#39;;
+fs.unlink(filename);</code></pre>
+<h3 id="重命名">重命名</h3>
+<pre><code><code>oldPath &lt;String&gt; | &lt;Buffer&gt;
+newPath &lt;String&gt; | &lt;Buffer&gt;
+callback &lt;Function&gt; 回调只有一个可能的异常参数</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var filename = &#39;a.txt&#39;;
+fs.rename(filename,&#39;2.new.txt&#39;,function(err){
+    console.log(err);
+})</code></pre>
+<pre><code><code>$ node 1.js
+null</code></pre>
+<h4 id="同步重命名">同步重命名</h4>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var filename = &#39;2.new.txt&#39;;
+var result = fs.renameSync(filename,&#39;a.txt&#39;);</code></pre>
+<h3 id="文件信息">文件信息</h3>
+<pre><code><code>path &lt;string&gt; | &lt;Buffer&gt; | &lt;URL&gt;
+options &lt;Object&gt;
+bigint &lt;boolean&gt; 返回的 fs.Stats 对象中的数值是否应为 bigint 型。默认值: false。
+callback &lt;Function&gt;
+   - err &lt;Error&gt;
+   - stats &lt;fs.Stats&gt;</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var filename = &#39;a.txt&#39;;
+fs.stat(filename,function(err,stats){
+    console.log(err);
+    console.log(stats);
+});</code></pre>
+<p>执行结果</p>
+<pre><code><code>$ node 1.js
+null
+Stats {
+  dev: 163689085,
+  mode: 33206,
+  nlink: 1,
+  uid: 0,
+  gid: 0,
+  rdev: 0,
+  blksize: undefined,
+  ino: 9007199254854088,
+  size: 0,
+  blocks: undefined,
+  atimeMs: 1562684836201.136,
+  mtimeMs: 1562684836201.136,
+  ctimeMs: 1562684998231.913,
+  birthtimeMs: 1562684836201.136,
+  atime: 2019-07-09T15:07:16.201Z,
+  mtime: 2019-07-09T15:07:16.201Z,
+  ctime: 2019-07-09T15:09:58.232Z,
+  birthtime: 2019-07-09T15:07:16.201Z }</code></pre>
+<p>stats类中的方法有</p>
+<pre><code><code>stats.isFile()  如果是文件返回 true，否则返回 false。
+stats.isDirectory() 如果是目录返回 true，否则返回 false。
+stats.isBlockDevice()   如果是块设备返回 true，否则返回 false。
+stats.isCharacterDevice()   如果是字符设备返回 true，否则返回 false。
+stats.isSymbolicLink()  如果是软链接返回 true，否则返回 false。
+stats.isFIFO()  如果是FIFO，返回true，否则返回false。FIFO是UNIX中的一种特殊类型的命令管道。
+stats.isSocket()    如果是 Socket 返回 true，否则返回 false。</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var filename = &#39;a.txt&#39;;
+fs.stat(filename,function(err,stats){
+    console.log(stats.isFile());//true
+});</code></pre>
+<h3 id="监听">监听</h3>
+<pre><code><code>filename &lt;String&gt; | &lt;Buffer&gt;
+options &lt;String&gt; | &lt;Object&gt; 参数可选，如果options是一个字符串，则它指定了encoding。否则options应该以一个对象传入
+    persistent &lt;Boolean&gt; 指明如果文件正在被监视，进程是否应该继续运行。默认为true
+    recursive &lt;Boolean&gt; 指明是否全部子目录应该被监视，或只是当前目录。 适用于当一个目录被指定时，且只在支持的平台。默认为false
+    encoding &lt;String&gt; 指定用于传给监听器的文件名的字符编码。默认为&#39;utf8&#39;
+listener &lt;Function&gt; 回调函数有两个参数 (eventType, filename)。 eventType可以是&#39;rename&#39;或&#39;change&#39;，filename是触发事件的文件的名称</code></pre>
+<pre><code><code>fs.watch(&#39;txt&#39;, (eventType, filename) =&gt; {
+  console.log(`事件类型是: ${eventType}`);
+  if (filename) {
+    console.log(`提供的文件名: ${filename}`);
+  } else {
+    console.log(&#39;未提供文件名&#39;);
+  }
+});</code></pre>
+<pre><code><code>var fs = require(&#39;fs&#39;);
+var filename = &#39;1.txt&#39;;
+fs.watch(filename,function(eventType, _filename){
+    console.log(eventType);//change
+    if(_filename){
+        console.log(_filename + &#39;发生了改变&#39;);//&#39;1.txt发生了改变&#39;
+    }else{
+        console.log(&#39;...&#39;);
+    }
+    
+})</code></pre>
+<p>[注意]当一个文件出现或消失在一个目录里时，'rename'也会被触发</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

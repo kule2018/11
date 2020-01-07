@@ -1,0 +1,303 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修WebGL three.js学习笔记 自定义顶点建立几何体' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>WebGL three.js学习笔记 自定义顶点建立几何体</center></div><div class='banquan'>原文出处:本文由博客园博主nsytsqdtn提供。<br/>
+原文连接:https://www.cnblogs.com/nsytsqdtn/p/10771663.html</div><br>
+    <h2 id="自定义顶点建立几何体与克隆">自定义顶点建立几何体与克隆</h2>
+<p>Three.js本身已经有很多的网格模型，基本已经够我们的使用，但是如果我们还是想自己根据顶点坐标来建立几何模型的话，Three.js也是可以的。</p>
+<p>基本效果如图：<br />
+<img src="./images/WebGL three.js学习笔记 自定义顶点建立几何体0.png" /></p>
+<h2 id="点击查看demo演示"><a href="https://nsytsqdtn.github.io/demo/vertices/vertices">点击查看demo演示</a></h2>
+<h2 id="demo演示httpsnsytsqdtn.github.iodemoverticesvertices">demo演示：<a href="https://nsytsqdtn.github.io/demo/vertices/vertices" class="uri">https://nsytsqdtn.github.io/demo/vertices/vertices</a></h2>
+<p><strong>实际上出于性能的考虑，three.js是认为我们的几何体在整个生命周期中是不会改变的，但是我们还是想使用dat.gui.js去实时更新我们自定义几何体的顶点信息。</strong></p>
+<p>当顶点信息发生变化时，我们就需要使用<br />
+<strong>geometry.verticesNeedUpdate = true;</strong><br />
+但是在每一帧渲染完后这个值又会变为false，所以我们需要每次渲染中都更新这个值。</p>
+<p>完整代码如下：</p>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Three.js&lt;/title&gt;
+    &lt;script src=&quot;../../../Import/three.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;../../../Import/stats.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;../../../Import/Setting.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;../../../Import/OrbitControls.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;../../../Import/dat.gui.min.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;../../../Import/SceneUtils.js&quot;&gt;&lt;/script&gt;
+    &lt;style type=&quot;text/css&quot;&gt;
+        div#canvas-frame {
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            height: 850px;
+            background-color: #333333;
+        }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body onload=&quot;threeStart()&quot;&gt;
+&lt;div id=&quot;canvas-frame&quot;&gt;&lt;/div&gt;
+&lt;script&gt;
+    let renderer, camera, scene;
+    let controller;
+    let controls;
+    let vertices;
+    let faces;
+    let controlPoints = [];
+    let geom;
+    let mesh;
+
+    //初始化渲染器
+    function initThree() {
+        renderer = new THREE.WebGLRenderer({
+            antialias: true
+        });//定义渲染器
+        renderer.setSize(window.innerWidth, window.innerHeight);//设置渲染的宽度和高度
+        document.getElementById(&quot;canvas-frame&quot;).appendChild(renderer.domElement);//将渲染器加在html中的div里面
+        renderer.setClearColor(0x333333, 1.0);//渲染的颜色设置
+        renderer.shadowMapEnabled = true;//开启阴影，默认是关闭的，太影响性能
+        renderer.shadowMapType = THREE.PCFSoftShadowMap;//阴影的一个类型
+
+
+        camera = new THREE.PerspectiveCamera(45,window.innerWidth/window.innerHeight, 1, 10000);//perspective是透视摄像机，这种摄像机看上去画面有3D效果
+
+        //摄像机的位置
+        camera.position.x = 10;
+        camera.position.y = 15;
+        camera.position.z = 15;
+        camera.up.x = 0;
+        camera.up.y = 1;//摄像机的上方向是Y轴
+        camera.up.z = 0;
+        camera.lookAt(0, 0, 0);//摄像机对焦的位置
+        //这三个参数共同作用才能决定画面
+
+        scene = new THREE.Scene();
+
+        let light = new THREE.SpotLight(0xffffff, 1.0, 0);//点光源
+        light.position.set(-40, 60, -10);
+        light.castShadow = true;//开启阴影
+        light.shadowMapWidth = 8192;//阴影的分辨率，可以不设置对比看效果
+        light.shadowMapHeight = 8192;
+        scene.add(light);
+        light = new THREE.AmbientLight(0xcccccc, 0.2);//环境光，如果不加，点光源照不到的地方就完全是黑色的
+        scene.add(light);
+
+        cameraControl();
+
+         vertices = [
+            new THREE.Vector3(1, 3, 1),
+            new THREE.Vector3(1, 3, -1),
+            new THREE.Vector3(1, -1, 1),
+            new THREE.Vector3(1, -1, -1),
+            new THREE.Vector3(-1, 3, -1),
+            new THREE.Vector3(-1, 3, 1),
+            new THREE.Vector3(-1, -1, -1),
+            new THREE.Vector3(-1, -1, 1)
+        ];//顶点坐标，一共8个顶点
+
+         faces = [
+             new THREE.Face3(0, 2, 1),
+             new THREE.Face3(2, 3, 1),
+             new THREE.Face3(4, 6, 5),
+             new THREE.Face3(6, 7, 5),
+             new THREE.Face3(4, 5, 1),
+             new THREE.Face3(5, 0, 1),
+             new THREE.Face3(7, 6, 2),
+             new THREE.Face3(6, 3, 2),
+             new THREE.Face3(5, 7, 0),
+             new THREE.Face3(7, 2, 0),
+             new THREE.Face3(1, 3, 4),
+             new THREE.Face3(3, 6, 4),
+        ];//顶点索引，每一个面都会根据顶点索引的顺序去绘制线条
+
+        geom = new THREE.Geometry();
+        geom.vertices = vertices;
+        geom.faces = faces;
+        geom.computeFaceNormals();//计算法向量，会对光照产生影响
+
+        //两个材质放在一起使用
+        let materials = [
+            new THREE.MeshLambertMaterial({opacity: 0.6, color: 0x44ff44, transparent: true}),//透明度更改
+            new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true})//线条材质，让观察更直观一点
+
+        ];
+        //创建多材质对象，要引入SceneUtils.js文件，如果只有一个材质就不需要这个函数
+        mesh = THREE.SceneUtils.createMultiMaterialObject(geom, materials);
+        mesh.children.forEach(function (e) {
+            e.castShadow = true
+        });
+        scene.add(mesh);
+
+        initDat();
+    }
+   //可视化面板
+    function initDat() {
+        function addControl(x, y, z) {
+            controls = new function () {
+                this.x = x;
+                this.y = y;
+                this.z = z;
+            };
+            return controls;
+        }
+        controlPoints.push(addControl(3, 5, 3));
+        controlPoints.push(addControl(3, 5, 0));
+        controlPoints.push(addControl(3, 0, 3));
+        controlPoints.push(addControl(3, 0, 0));
+        controlPoints.push(addControl(0, 5, 0));
+        controlPoints.push(addControl(0, 5, 3));
+        controlPoints.push(addControl(0, 0, 0));
+        controlPoints.push(addControl(0, 0, 3));
+
+        //克隆一个几何体
+        let addClone = new function () {
+            this.clone = function () {
+
+                let clonedGeometry = mesh.children[0].geometry.clone();
+                let materials = [
+                    new THREE.MeshLambertMaterial({opacity: 0.6, color: 0xff44ff, transparent: true}),
+                    new THREE.MeshBasicMaterial({color: 0x000000, wireframe: true})
+
+                ];
+
+                let mesh2 = THREE.SceneUtils.createMultiMaterialObject(clonedGeometry, materials);
+                mesh2.children.forEach(function (e) {
+                    e.castShadow = true
+                });
+
+                mesh2.translateX(Math.random()*4+3);
+                mesh2.translateZ(Math.random()*4+3);
+                mesh2.name = &quot;clone&quot;;
+                //删掉场景中已经存在的克隆体，再重新创建一个
+                scene.remove(scene.getChildByName(&quot;clone&quot;));
+                scene.add(mesh2);
+
+
+            }
+        };
+
+        let gui = new dat.GUI();
+
+        gui.add(addClone, &#39;clone&#39;);
+
+        for (let i = 0; i &lt; 8; i++) {
+            let f1 = gui.addFolder(&#39;Vertices &#39; + (i + 1));//把每个顶点的三个坐标都收拢在一个Folder里面，更加美观方便
+            f1.add(controlPoints[i], &#39;x&#39;, -10, 10);
+            f1.add(controlPoints[i], &#39;y&#39;, -10, 10);
+            f1.add(controlPoints[i], &#39;z&#39;, -10, 10);
+
+        }
+    }
+
+   // 摄像机的控制，可以采用鼠标拖动来控制视野
+    function cameraControl() {
+        controller = new THREE.OrbitControls(camera, renderer.domElement);
+        controller.target = new THREE.Vector3(0, 0, 0);
+    }
+
+    let plane;
+
+    //初始化物体
+    function initObject() {
+        //定义了一个地面
+        let planeGeometry = new THREE.PlaneGeometry(100, 100, 1, 1);
+        let planeMaterial = new THREE.MeshLambertMaterial({
+            color: 0xffffff,
+        });
+        plane = new THREE.Mesh(planeGeometry, planeMaterial);
+        plane.rotation.x = -0.5 * Math.PI;
+        plane.position.x = 15;
+        plane.receiveShadow = true;//开启地面的接收阴影
+        scene.add(plane);//添加到场景中
+        // initCustomObj();
+    }
+
+    //定义的一个功能文件
+    function initSetting() {
+        loadAutoScreen(camera, renderer);
+        loadFullScreen();
+        loadStats();
+    }
+
+    //动画
+    function render() {
+        stats.update();
+        //单材质几何体要更新顶点的话使用这一段语句
+        // for (let i = 0; i &lt; 8; i++) {
+        //     console.log(mesh);
+        //     mesh.geometry.vertices[i].set(controlPoints[i].x, controlPoints[i].y, controlPoints[i].z);
+        //     mesh.geometry.verticesNeedUpdate = true;
+        //     mesh.geometry.computeFaceNormals();
+        // }
+        let vertices = [];
+        for (let i = 0; i &lt; 8; i++) {
+            vertices.push(new THREE.Vector3(controlPoints[i].x, controlPoints[i].y, controlPoints[i].z));
+        }
+        mesh.children.forEach(function (e) {
+            e.geometry.vertices = vertices;
+            e.geometry.verticesNeedUpdate = true;//通知顶点更新
+            e.geometry.elementsNeedUpdate = true;//特别重要，通知线条连接方式更新
+            e.geometry.computeFaceNormals();
+        });
+
+        requestAnimationFrame(render);
+        renderer.render(scene, camera);
+    }
+    //主函数
+    function threeStart() {
+        initThree();
+        initObject();
+        initSetting();
+        render();
+    }
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<ul>
+<li></li>
+</ul>
+<h2 id="特别要注意的是">特别要注意的是</h2>
+<p>在顶点发生变化时，如果是多材质对象的话，需要使用遍历每一个子对象来进行更新顶点数据。并且不仅要更新顶点，还要更新线条的连接方式<strong>geometry.elementsNeedUpdate = true</strong>，否则是没有效果的。（甚至尝试了一下不更新顶点，只更新线条也是可以达到实时更新的效果）</p>
+<pre class="javascript"><code>let vertices = [];
+        for (let i = 0; i &lt; 8; i++) {
+            vertices.push(new THREE.Vector3(controlPoints[i].x, controlPoints[i].y, controlPoints[i].z));
+        }
+        mesh.children.forEach(function (e) {
+            e.geometry.vertices = vertices;
+            e.geometry.verticesNeedUpdate = true;//通知顶点更新
+            e.geometry.elementsNeedUpdate = true;//特别重要，通知线条连接方式更新
+            e.geometry.computeFaceNormals();
+        });</code></pre>
+<p>如果是单一的材质几何体，就不需要去遍历每一个子物体，直接把几何体的每一个顶点值更改，然后在通知顶点更新，就可以了。</p>
+<pre class="javascript"><code>     //单材质几何体要更新顶点的话使用这一段语句
+         for (let i = 0; i &lt; 8; i++) {
+             console.log(mesh);
+            mesh.geometry.vertices[i].set(controlPoints[i].x, controlPoints[i].y, controlPoints[i].z);
+            mesh.geometry.verticesNeedUpdate = true;
+            mesh.geometry.computeFaceNormals();
+        }</code></pre>
+<h2 id="注">注：</h2>
+<p>老版本的three.js，SceneUtils是没有单独拿出来作为一个js文件的，是直接写在three.js里。<br />
+而且使用69版本的three.js时，不需要更新线条的连接方式也可以实现实时更新。但是103版本试了很多次，都不行。<br />
+另外，使用的OrbitControls.js和dat.gui.min.js最好都是和自己用的Three.js版本要一致，否则可能会报错。有一些教程的示例程序版本可能就比较旧了，如果直接拿来用可能会出问题，注意分辨一下。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,121 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修教你三步爬取掘金优质前端文章' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>教你三步爬取掘金优质前端文章</center></div><div class='banquan'>原文出处:本文由博客园博主pubdreamcc提供。<br/>
+原文连接:https://www.cnblogs.com/dreamcc/p/10939775.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>hello，小伙伴们，我是你们的<code>pubdreamcc</code>，本篇博文出至于我的GitHub仓库<code>node学习教程资料</code>，欢迎小伙伴们点赞和<code>star</code>，你们的点赞是我持续更新的动力。</p>
+<blockquote>
+<p>GitHub仓库地址：<a href="https://github.com/pubdreamcc/Node.js">node学习教程</a></p>
+</blockquote>
+<p>好了，废话不多说，今天我们来玩一个有意思的 <code>demo</code> ：</p>
+<blockquote>
+<p><strong>Node实现爬虫抓取掘金点赞大于 <code>50</code> 的优质前端文章</strong></p>
+</blockquote>
+<p>先来看以下效果：</p>
+<p><img src="./images/教你三步爬取掘金优质前端文章0.png" /></p>
+<p>服务器会每10分钟更新相关内容，好了，开始今天的练习了~</p>
+<h2 id="用到的技术">用到的技术</h2>
+<ul>
+<li><p><code>express</code></p></li>
+<li><p><code>superagent</code>（服务端发送请求模块）</p></li>
+<li><p><code>art-template</code></p></li>
+<li><p>掘金官方<code>API</code></p></li>
+</ul>
+<h2 id="第一步">第一步</h2>
+<p><strong>找接口</strong></p>
+<p>先来看看掘金首页获取前端文章的后端接口 <code>API</code> 在哪里。</p>
+<p>打开掘金官网，<code>(F12)</code> 打开开发者模式查看<code>network</code> 选项，咱们可以看到获取文章接口的api如下：</p>
+<p><img src="./images/教你三步爬取掘金优质前端文章1.png" /></p>
+<p><img src="./images/教你三步爬取掘金优质前端文章2.png" /></p>
+<p>打开开发者模式，我们很轻松的找到掘金获取文章的接口，这就好办了，说实话前端开发，只要有了接口，那就等于有了一切，我们可以尽情的 <code>coding</code> 了~</p>
+<h2 id="第二步">第二步</h2>
+<p>创建服务器文件 <code>app.js</code> ，通过<code>superagent</code> 模块发送请求获取文章数据。</p>
+<p><code>app.js</code> 是我们服务端代码，这里通过服务端发送请求获取爬虫所要的数据保存下来。</p>
+<pre><code><code>// 定义一个函数，用来获取掘金首页前端文章信息
+function getInfo () {
+  // 利用superagent 模块发送请求，注意请求头的设置和POST请求体数据（请求参数）
+  superagent.post(&#39;https://web-api.juejin.im/query&#39;).send(params).set(&#39;X-Agent&#39;, &#39;Juejin/Web&#39;).end((err, res) =&gt; {
+    if (err) {
+      return console.log(err)
+    }
+    // 保存所有文章信息
+    const array1 = JSON.parse(res.text).data.articleFeed.items.edges
+    const num = JSON.parse(res.text).data.articleFeed.items.pageInfo.endCursor
+    // 筛选出点赞数大于 50 的文章
+    result = array1.filter(item =&gt; {
+      return item.node.likeCount &gt; 50
+    })
+    params.variables.after = num.toString()
+    superagent.post(&#39;https://web-api.juejin.im/query&#39;).send(params).set(&#39;X-Agent&#39;, &#39;Juejin/Web&#39;).end((err, res) =&gt; {
+      if (err) {
+        return console.log(err)
+      }
+      const array2 = JSON.parse(res.text).data.articleFeed.items.edges
+      const result2 = array2.filter(item =&gt; {
+        return item.node.likeCount &gt; 50
+      })
+      result2.forEach(item =&gt; {
+        result.push(item)
+      })
+    })
+  })
+}
+// 调用一次获取数据
+getInfo()
+
+// 设置定时器，规定10分钟更新一此数据
+setInterval(() =&gt; {
+  getInfo()
+}, 10*1000*60)</code></pre>
+<p>这里要注意掘金接口那边需要设置请求头的 <code>X-Agent</code> 属性，一定要在 <code>superagent</code> 发送 <code>post</code> 请求时候带上，否则会出错，另外就是固定的请求参数 <code>params</code>，这个可以仿照掘金官网来写。<br />
+<img src="./images/教你三步爬取掘金优质前端文章3.png" /></p>
+<h2 id="第三步">第三步</h2>
+<p>模板引擎渲染数据，发送结果到浏览器渲染</p>
+<p>这一步需要借助模板引擎渲染 <code>HTML</code> 页面，把从第二步拿到的结果渲染到页面中，最终返回给浏览器渲染。</p>
+<p><code>app.js</code> 代码：</p>
+<pre><code><code>// 监听路由
+app.get(&#39;/&#39;, (req, res, next) =&gt; {
+  res.render(&#39;index.html&#39;, {
+    result
+  })
+})
+
+// 绑定端口，启动服务
+app.listen(3000, () =&gt; {
+  console.log(&#39;running...&#39;)
+})</code></pre>
+<p>模板 <code>index.html</code> 代码 ：</p>
+<pre class="html"><code>&lt;!-- 借助bootstrap样式，注意模板语法的使用 --&gt;
+&lt;ul class=&quot;list-group&quot;&gt;
+  {{each result}}
+  &lt;li class=&quot;list-group-item&quot;&gt;
+    &lt;a href=&quot;{{$value.node.originalUrl}}&quot; target=&quot;_blank&quot;&gt;{{$value.node.title}}&lt;/a&gt;
+    &lt;img data-v-7bf5f1fe=&quot;&quot; src=&quot;https://b-gold-cdn.xitu.io/v3/static/img/zan.e9d7698.svg&quot;&gt;
+    &lt;span&gt;{{$value.node.likeCount}}&lt;/span&gt;
+  &lt;/li&gt;
+  {{/each}}
+&lt;/ul&gt;</code></pre>
+<h2 id="写在后面">写在后面</h2>
+<p>如果你需要项目的源码可以在GitHub对应仓库的 <code>node学习demo案例</code> 文件夹下查找。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

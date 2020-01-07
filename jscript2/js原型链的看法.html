@@ -1,0 +1,80 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js原型链的看法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js原型链的看法</center></div><div class='banquan'>原文出处:本文由博客园博主des雷锋提供。<br/>
+原文连接:https://www.cnblogs.com/wangqingjiu/p/11348595.html</div><br>
+    <h2 id="原型链">原型链</h2>
+<h4 id="对象">对象</h4>
+<p>对象：<br />
+1，函数对象：由function创造出来的函数<br />
+2，普通对象：除开函数对象之外的对象，都是普通对象<br />
+**即普通对象obj是构造函数Object的一个实例，因此：<br />
+obj.__proto__ === Object.prototype**</p>
+<pre><code><code>//普通对象
+var obj = {}
+var obj1 = new Object()
+console.log(obj.__proto__ === obj1.__proto__); //true
+console.log(obj.__proto__ === Object.prototype); //true</code></pre>
+<p><strong>但凡通过new Function()创建 的对象都是函数对象，其他都是普通对象</strong></p>
+<p>**注意: 所有对象都有__proto__属性，只有函数对象才有prototype属性**</p>
+<p>3,原型对象:prototype属性也叫原型对象，主要为了实现继承</p>
+<p>**指针__proto__: js中，万物皆对象！所有obj都具有proto属性(null和undefined除外),而且指向创造obj对象的函数对象(生成实例的构造函数)的prototype属性：**</p>
+<pre><code><code>function Person(name) {
+this.name = name;
+}
+function Mother() {
+}
+Mother.prototype = { //Mother的原型
+age: 18,
+home: [&#39;家里蹲&#39;]
+}
+Person.prototype = new Mother() //Person的原型为Mother</code></pre>
+<p><strong>Person 构造函数的原型对象 是 Mother （）。相当于<code>原型(prototype)</code>是妈妈，Person现在是儿子。</strong></p>
+<pre><code><code>
+let a = new Person()
+let b = new Person(&#39;猪脑壳子&#39;)
+console.log(a.age); // 18
+console.log(b.name, b.home); //猪脑壳子 [&quot;家里蹲&quot;]
+console.log(a.__proto__); //__proto__: age: 18 home: Array(1) 0: &quot;家里蹲&quot;length: 1</code></pre>
+<p>**在a和b的实例中，__proto__属性，指向的都是它们的构造函数Person对象的prototype属性，所对应的对象也就是Mother()**</p>
+<p>**一个构造函数对象的<code>原型(prototype)</code>，就相当于他妈，<code>这个构造函数对象的实例，就相当于他妈不同的孩子</code>,而每个实例中的__proto__属性，就指向它们共同的妈妈！也就是构造函数对象的prototype属性**</p>
+<p>****当我们输入 b.name 的时候，原型链的搜索机制是<code>先在实例中搜索相应的值</code>，<code>找不到就通过它__proto__指针，在原型中找</code>，还找不到就再往上一级原型中搜索……<code>一直到了原型链的终点</code>(就是js自带的Object，它的原型比较特殊，为null )，就是到null还没找到的话，就返回一个 undefined。****</p>
+<p><strong>构造器constructor : 每一个对象中的constructor 属性返回创建此对象的函数对象的引用；例如：</strong></p>
+<pre><code><code>function Cat(name,color) {
+this.name = name;
+this.color =color;
+}
+var cat1 = new Cat(&#39;小黑&#39;,&#39;白色&#39;)
+console.log(cat1.constructor === Cat) //true
+console.log(cat1); //Cat {name: &quot;小黑&quot;, color: &quot;白色&quot;}</code></pre>
+<p><strong>在默认情况下，所有的原型对象都会自动获得一个<code>constructor（构造函数）属性</code>，这个属性（是一个指针）指向 prototype 属性所在的函数（Person）</strong></p>
+<p><strong>上面这句话有点拗口，我们「翻译」一下：A 有一个默认的 constructor 属性，这个属性是一个指针，指向 Person。即：</strong></p>
+<pre><code><code>Person.prototype.constructor === Person</code></pre>
+<p><strong>实例的<code>构造函数属性（constructor）</code>指向构造函数 ：person1.constructor == Person</strong></p>
+<p><strong>person1 为什么有 constructor 属性？那是因为 person1 是 Person 的实例。<br />
+那 Person.prototype 为什么有 constructor 属性？？同理， Person.prototype （你把它想象成 A） 也是Person 的实例。<br />
+也就是在 Person 创建的时候，创建了一个它的实例对象并赋值给它的 prototype，基本过程如下：</strong></p>
+<pre><code><code>var A = new Person();
+Person.prototype = A;</code></pre>
+<p><strong>结论：原型对象（Person.prototype）是 构造函数（Person）的一个实例。</strong></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

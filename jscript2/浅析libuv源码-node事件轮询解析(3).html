@@ -1,0 +1,256 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修浅析libuv源码-node事件轮询解析(3)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>浅析libuv源码-node事件轮询解析(3)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10846097.html</div><br>
+    <p>　　好像博客有观众，那每一篇都画个图吧！</p>
+<p>　　本节简图如下。</p>
+<p><img src="./images/浅析libuv源码-node事件轮询解析(3)0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>　　上一篇其实啥也没讲，不过node本身就是这么复杂，走流程就要走全套。就像曾经看webpack源码，读了300行代码最后就为了取package.json里面的main属性，导致我直接弃坑了，垃圾源码看完对脑子没一点好处。回头看了我之前那篇博客，同步那块讲的还像回事，异步就惨不忍睹了。不过讲道理，异步中涉及锁、底层操作系统API(iocp)的部分我到现在也不太懂，毕竟没有实际的多线程开发经验，只是纯粹的技术爱好者。</p>
+<p>　　这一篇再次进入libuv内部，从uv_fs_stat开始，操作系统以windows为准，方法源码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 参数分别为事件轮询对象loop、管理事件处理的对象req、路径path、事件回调cb</span>
+<span style="color: #0000ff;">int</span> uv_fs_stat(uv_loop_t* loop, uv_fs_t* req, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>*<span style="color: #000000;"> path, uv_fs_cb cb) {
+  </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> err;
+
+  INIT(UV_FS_STAT);
+  err </span>= fs__capture_path(req, path, NULL, cb !=<span style="color: #000000;"> NULL);
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (err) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> uv_translate_sys_error(err);
+  }
+
+  POST;
+}</span></pre>
+</div>
+<p>　　其实Unix版本的代码更简洁，直接就是</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> uv_fs_stat(uv_loop_t* loop, uv_fs_t* req, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>*<span style="color: #000000;"> path, uv_fs_cb cb) {
+  INIT(STAT);
+  PATH;
+  POST;
+}</span></pre>
+</div>
+<p>　　问题不大，都是三步。</p>
+<p>　　前面两步在那篇都有介绍，这里就不重复了。大概就是根据操作类型初始化req对象，然后处理一下路径，分配合理的空间给path字符串这些。</p>
+<p>　　重点还是放在POST宏。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">#define</span> POST                                                                  \
+  <span style="color: #0000ff;">do</span><span style="color: #000000;"> {                                                                        \
+    </span><span style="color: #0000ff;">if</span> (cb !=<span style="color: #000000;"> NULL) {                                                         \
+      uv__req_register(loop, req);                                            \
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> word_req是一个类型为uv__work的结构体
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> UV__WORK_FAST_IO是I/O操作类型
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> uv__fs_work是一个函数
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> uv__fs_done也是一个函数</span>
+<span style="color: #000000;">      uv__work_submit(loop,                                                   \
+                      </span>&amp;req-&gt;<span style="color: #000000;">work_req,                                         \
+                      UV__WORK_FAST_IO,                                       \
+                      uv__fs_work,                                            \
+                      uv__fs_done);                                           \
+      </span><span style="color: #0000ff;">return</span> <span style="color: #800080;">0</span><span style="color: #000000;">;                                                               \
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {                                                                  \
+      uv__fs_work(</span>&amp;req-&gt;<span style="color: #000000;">work_req);                                            \
+      </span><span style="color: #0000ff;">return</span> req-&gt;<span style="color: #000000;">result;                                                     \
+    }                                                                         \
+  }                                                                           \
+  </span><span style="color: #0000ff;">while</span> (<span style="color: #800080;">0</span>)</pre>
+</div>
+<p>　　由于只关注异步操作，所以看if分支。参数已经在注释中给出，还需要注意的一个点是方法名，register、submit，即注册、提交。意思是，异步操作中，在这里也不是执行I/O的地点，实际上还有更深入的地方，继续往后面看。</p>
+<p>　　uv__req_register这个就不看了，简单讲是把loop的active_handle++，每一轮轮询结束后会检测当前loop是否还有活跃的handle需要处理，有就会继续跑，判断标准就是active_handle数量是否大于0。</p>
+<p>　　直接看下一步uv__work_submit。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> uv__word结构体</span>
+<span style="color: #0000ff;">struct</span><span style="color: #000000;"> uv__work {
+  </span><span style="color: #0000ff;">void</span> (*work)(<span style="color: #0000ff;">struct</span> uv__work *<span style="color: #000000;">w);
+  </span><span style="color: #0000ff;">void</span> (*done)(<span style="color: #0000ff;">struct</span> uv__work *w, <span style="color: #0000ff;">int</span><span style="color: #000000;"> status);
+  </span><span style="color: #0000ff;">struct</span> uv_loop_s*<span style="color: #000000;"> loop;
+  </span><span style="color: #0000ff;">void</span>* wq[<span style="color: #800080;">2</span><span style="color: #000000;">];
+};
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 参数参考上面 init_once是一个方法</span>
+<span style="color: #0000ff;">void</span> uv__work_submit(uv_loop_t*<span style="color: #000000;"> loop,
+                     </span><span style="color: #0000ff;">struct</span> uv__work*<span style="color: #000000;"> w,
+                     </span><span style="color: #0000ff;">enum</span><span style="color: #000000;"> uv__work_kind kind,
+                     </span><span style="color: #0000ff;">void</span> (*work)(<span style="color: #0000ff;">struct</span> uv__work*<span style="color: #000000;"> w),
+                     </span><span style="color: #0000ff;">void</span> (*done)(<span style="color: #0000ff;">struct</span> uv__work* w, <span style="color: #0000ff;">int</span><span style="color: #000000;"> status)) {
+  uv_once(</span>&amp;<span style="color: #000000;">once, init_once);
+  w</span>-&gt;loop =<span style="color: #000000;"> loop;
+  w</span>-&gt;work =<span style="color: #000000;"> work;
+  w</span>-&gt;done =<span style="color: #000000;"> done;
+  post(</span>&amp;w-&gt;<span style="color: #000000;">wq, kind);
+}</span></pre>
+</div>
+<p>　　又是两部曲，第一个uv_once如其名，这个方法只会执行一次，然后将loop对象和两个方法挂在前面req的uv__work结构体上，最后调用post。</p>
+<p>　　uv_once这个方法有点意思，本身跟stat操作本身毫无关系，只是对所有I/O操作做一个准备工作，所有的I/O操作都会预先调一下这个方法。windows、Unix系统的处理方式完全不同，这里贴一贴代码，Unix不想看也看不懂，搞搞windows系统的。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span> uv_once(uv_once_t* guard, <span style="color: #0000ff;">void</span> (*callback)(<span style="color: #0000ff;">void</span><span style="color: #000000;">)) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用过方法此处ran为1 直接返回</span>
+  <span style="color: #0000ff;">if</span> (guard-&gt;<span style="color: #000000;">ran) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+  }
+
+  uv__once_inner(guard, callback);
+}
+
+</span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> uv__once_inner(uv_once_t* guard, <span style="color: #0000ff;">void</span> (*callback)(<span style="color: #0000ff;">void</span><span style="color: #000000;">)) {
+  DWORD result;
+  HANDLE existing_event, created_event;
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建或打开命名或未命名的事件对象</span>
+  created_event = CreateEvent(NULL, <span style="color: #800080;">1</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, NULL);
+  </span><span style="color: #0000ff;">if</span> (created_event == <span style="color: #800080;">0</span><span style="color: #000000;">) {
+    uv_fatal_error(GetLastError(), </span><span style="color: #800000;">"</span><span style="color: #800000;">CreateEvent</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 对&amp;guard-&gt;event与NULL做原子比较 如果相等则将created_event赋予&amp;guard-&gt;event
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回第一个参数的初始值</span>
+  existing_event = InterlockedCompareExchangePointer(&amp;guard-&gt;<span style="color: #0000ff;">event</span><span style="color: #000000;">,
+                                                     created_event,
+                                                     NULL);
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果第一个参数初始值为NULL 说明该线程抢到了方法第一次执行权利</span>
+  <span style="color: #0000ff;">if</span> (existing_event ==<span style="color: #000000;"> NULL) {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> We won the race </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    callback();
+
+    result </span>=<span style="color: #000000;"> SetEvent(created_event);
+    assert(result);
+    guard</span>-&gt;ran = <span style="color: #800080;">1</span><span style="color: #000000;">;
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">  }
+}</span></pre>
+</div>
+<p>　　分块来解释一下上面的函数吧。</p>
+<ul>
+<li>libuv这里直接跟操作系统通信，在windows上需要借助其自身的event模块来辅助异步操作。</li>
+<li>提前剧透一下，所有的I/O操作是调用独立线程进行处理，所以这个uv_once会被多次调用，而多线程抢调用的时候有两种情况；第一种最简单，第一名已经跑完所有流程，将ran设置为1，其余线程直接被挡在了uv_once那里直接返回了。第二种就较为复杂，两个线程同时接到了这个任务，然后都跑进了uv_once_inner中去了，如何保证参数callback只会被调用一次？这里用上了windows内置的原子指针比较方法InterlockedCompareExchangePointer。何谓原子比较？这是只有在多线程才会出现的概念，原子性保证了每次读取变量的值都是根据最新信息计算出来的，避免了多线程经常出现的竞态问题，详细文献可以参考wiki。</li>
+<li>只有第一个抢到了调用权利的线程才会进入if分支，之后调用callback方法，并设置event，那个SetEvent也是windowsAPI，有兴趣自己研究去。</li>
+</ul>
+<p>　　最后，所有的代码流向都为了执行callback，参数表明这是一个函数指针，无返回值无参数，叫init_once。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> init_once(<span style="color: #0000ff;">void</span><span style="color: #000000;">) {
+#ifndef _WIN32
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用32位系统的去买新电脑
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 略...</span>
+<span style="color: #0000ff;">#endif</span><span style="color: #000000;">
+  init_threads();
+}</span></pre>
+</div>
+<p>　　有意思咯，线程来了。</p>
+<p>　　先表明，libuv中有一个非常关键的数据结构：队列，在src/queue.h。很多地方(比如之前讲轮询的某一阶段取对应的callback时)我虽然说的是链表，但实际上用的是这个，由于链表是队列的超集，而且比较容易理解，总的来说也不算错。说这么多，其实是初始化线程池会用到很多queue的宏，我不想讲，后面会单独开一篇说。</p>
+<p>　　下面上代码。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> init_threads(<span style="color: #0000ff;">void</span><span style="color: #000000;">) {
+  unsigned </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> i;
+  </span><span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>*<span style="color: #000000;"> val;
+  uv_sem_t sem;
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 线程池默认大小为4</span>
+  nthreads =<span style="color: #000000;"> ARRAY_SIZE(default_threads);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 可以通过环境变量UV_THREADPOOL_SIZE来手动设置</span>
+  val = getenv(<span style="color: #800000;">"</span><span style="color: #800000;">UV_THREADPOOL_SIZE</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果设成0会变成1 大于上限会变成128</span>
+  <span style="color: #0000ff;">if</span> (val !=<span style="color: #000000;"> NULL)
+    nthreads </span>=<span style="color: #000000;"> atoi(val);
+  </span><span style="color: #0000ff;">if</span> (nthreads == <span style="color: #800080;">0</span><span style="color: #000000;">)
+    nthreads </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+  </span><span style="color: #0000ff;">if</span> (nthreads &gt;<span style="color: #000000;"> MAX_THREADPOOL_SIZE)
+    nthreads </span>=<span style="color: #000000;"> MAX_THREADPOOL_SIZE;
+
+  threads </span>=<span style="color: #000000;"> default_threads;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 分配空间 静态变量threads负责管理线程</span>
+  <span style="color: #0000ff;">if</span> (nthreads &gt;<span style="color: #000000;"> ARRAY_SIZE(default_threads)) {
+    threads </span>= uv__malloc(nthreads * <span style="color: #0000ff;">sizeof</span>(threads[<span style="color: #800080;">0</span><span style="color: #000000;">]));
+    </span><span style="color: #0000ff;">if</span> (threads ==<span style="color: #000000;"> NULL) {
+      nthreads </span>=<span style="color: #000000;"> ARRAY_SIZE(default_threads);
+      threads </span>=<span style="color: #000000;"> default_threads;
+    }
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里是锁和QUEUE相关...
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里给线程设置任务 唤醒后直接执行worker方法</span>
+  <span style="color: #0000ff;">for</span> (i = <span style="color: #800080;">0</span>; i &lt; nthreads; i++<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">if</span> (uv_thread_create(threads + i, worker, &amp;<span style="color: #000000;">sem))
+      abort();
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 无关代码...</span>
+}</pre>
+</div>
+<p>　　除去一些不关心的代码，剩下的就是判断是否有手动设置线程池数量，然后初始化分配空间，最后循环给每一个线程分配任务。</p>
+<p>　　这个worker可以先简单看一下，大部分内容都是QUEUE相关，详细内容全部写在注释里面。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> worker(<span style="color: #0000ff;">void</span>*<span style="color: #000000;"> arg) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这个是给代码块加锁 很多地方都有</span>
+  uv_mutex_lock(&amp;<span style="color: #000000;">mutex);
+  </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (;;) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ..。
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从队列取出一个节点</span>
+    q = QUEUE_HEAD(&amp;<span style="color: #000000;">wq);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 表示没有更多要处理的信息 直接退出绝不能继续走下面的
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 退出前还会两个操作 1.唤醒另一个线程再次处理这个方法(可能下一瞬间来活了) 2.去掉锁</span>
+    <span style="color: #0000ff;">if</span> (q == &amp;<span style="color: #000000;">exit_message) {
+      uv_cond_signal(</span>&amp;<span style="color: #000000;">cond);
+      uv_mutex_unlock(</span>&amp;<span style="color: #000000;">mutex);
+      </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从队列中移除这个节点</span>
+<span style="color: #000000;">    QUEUE_REMOVE(q);
+    QUEUE_INIT(q);
+
+    is_slow_work </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> node过来的都是快速通道 不会走这里</span>
+    <span style="color: #0000ff;">if</span> (q == &amp;<span style="color: #000000;">run_slow_work_message) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">...</span>
+<span style="color: #000000;">    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 由于已经从队列中移除了对应节点 这里可以把锁去掉了</span>
+    uv_mutex_unlock(&amp;<span style="color: #000000;">mutex);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从节点取出对应的任务 执行work也就是实际的I/O操作(比如fs.stat...) 参考上面的uv__work_submit方法</span>
+    w = QUEUE_DATA(q, <span style="color: #0000ff;">struct</span><span style="color: #000000;"> uv__work, wq);
+    w</span>-&gt;<span style="color: #000000;">work(w);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里也需要加锁 执行完节点任务后需要将结果添加到word_queue的队列中</span>
+    uv_mutex_lock(&amp;w-&gt;loop-&gt;<span style="color: #000000;">wq_mutex);
+    w</span>-&gt;work =<span style="color: #000000;"> NULL;
+    QUEUE_INSERT_TAIL(</span>&amp;w-&gt;loop-&gt;wq, &amp;w-&gt;<span style="color: #000000;">wq);
+    uv_async_send(</span>&amp;w-&gt;loop-&gt;<span style="color: #000000;">wq_async);
+    uv_mutex_unlock(</span>&amp;w-&gt;loop-&gt;<span style="color: #000000;">wq_mutex);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 由于是for(;;) 这里加锁纯粹是为了下一次提前准备循环</span>
+    uv_mutex_lock(&amp;<span style="color: #000000;">mutex);
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (is_slow_work) {
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;"> `slow_io_work_running` is protected by `mutex`. </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+      slow_io_work_running</span>--<span style="color: #000000;">;
+    }
+  }
+}</span></pre>
+</div>
+<p>　　注意是静态方法，所以也需要处理多线程问题。注释我写的非常详细了，可以慢慢看，不懂C++也大概能明白流程。</p>
+<p>　　还以为这一篇能搞完，没想到这个流程有点长，先这样吧。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

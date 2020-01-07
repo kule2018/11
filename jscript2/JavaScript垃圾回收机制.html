@@ -1,0 +1,159 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript垃圾回收机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript垃圾回收机制</center></div><div class='banquan'>原文出处:本文由博客园博主jadefan提供。<br/>
+原文连接:https://www.cnblogs.com/fanlu/p/11176319.html</div><br>
+    <h2>1、what?</h2>
+<div>
+<div>
+<p><strong>垃圾回收</strong>：js代码想要运行，需要操作系统或者运行时提供内存空间，来存储变量及它的值。在某些变量（例如局部变量）在不参与运行时，就需要系统回收被占用的内存空间，称为垃圾回收</p>
+<p><strong>内存泄漏：</strong>某些情况下，不再用到的变量所占内存没有及时释放，导致程序运行中，内存越占越大，极端情况下可导致系统崩溃、服务器宕机。</p>
+<p>在C与C++等语言中，开发人员可以直接控制内存的申请和回收。但是在Java、C#、JavaScript语言中，变量的内存空间的申请和释放都由程序自己处理，开发人员不需要关心。也就是说Javascript具有自动垃圾回收机制(GC：Garbage Collecation)。</p>
+<p>JavaScript垃圾回收的机制很简单：找出不再使用的变量，然后释放掉其占用的内存</p>
+</div>
+</div>
+<h2>2、why?</h2>
+<blockquote>
+<p><em>&nbsp;由于字符串、对象和数组没有固定大小，所有当他们的大小已知时，才能对他们进行动态的存储分配。JavaScript程序每次创建字符串、数组或对象时，解释器都必须分配内存来存储那个实体。只要像这样动态地分配了内存，最终都要释放这些内存以便他们能够被再用，否则，JavaScript的解释器将会消耗完系统中所有可用的内存，造成系统崩溃。</em></p>
+<p><em>---------《JavaScript权威指南（第四版）》</em></p>
+</blockquote>
+<h2>3、when?</h2>
+<p>垃圾回收器周期性运行，如果分配的内存非常多，那么回收工作也会很艰巨，确定垃圾回收时间间隔就变成了一个值得思考的问题。</p>
+<p>IE6的垃圾回收是根据内存分配量运行的，当环境中存在256个变量、4096个对象、64k的字符串任意一种情况的时候就会触发垃圾回收器工作，看起来很科学，不用按一段时间就调用一次，有时候会没必要，这样按需调用不是很好吗？但是如果环境中就是有这么多变量等一直存在，现在脚本如此复杂，很正常，那么结果就是垃圾回收器一直在工作，这样浏览器就没法儿玩儿了。</p>
+<p>微软在IE7中做了调整，触发条件不再是固定的，而是动态修改的，初始值和IE6相同，如果垃圾回收器回收的内存分配量低于程序占用内存的15%，说明大部分内存不可被回收，设的垃圾回收触发条件过于敏感，这时候把临界条件翻倍，如果回收的内存高于85%，说明大部分内存早就该清理了，这时候把触发条件置回。这样就使垃圾回收工作职能了很多。</p>
+<p>同C# 、Java一样我们可以手工调用垃圾回收程序，但是由于其消耗大量资源，而且我们手工调用的不会比浏览器判断的准确，所以不推荐手工调用垃圾回收。</p>
+<h2>4、how?</h2>
+<p>&nbsp;现在各大浏览器通常用采用的垃圾回收有两种方法：标记清除、引用计数。</p>
+<p><strong>1、引用计数</strong></p>
+<p>　　另一种不太常见的垃圾回收策略是引用计数。引用计数的含义是跟踪记录每个值被引用的次数。当声明了一个变量并将一个引用类型赋值给该变量时，则这个值的引用次数就是1。相反，如果包含对这个值引用的变量又取得了另外一个值，则这个值的引用次数就减1。当这个引用次数变成0时，则说明没有办法再访问这个值了，因而就可以将其所占的内存空间给收回来。这样，垃圾收集器下次再运行时，它就会释放那些引用次数为0的值所占的内存。</p>
+<p>&nbsp;　　<span style="color: #ff0000;">引用计数有个最大的问题： <strong>循环引用</strong>。</span></p>
+<p>　　比如对象A有一个属性指向对象B，而对象B也有有一个属性指向对象A，这样相互引用.</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> func() {
+    let obj1 </span>=<span style="color: #000000;"> {};
+    let obj2 </span>=<span style="color: #000000;"> {};
+
+    obj1.a </span>= obj2; <span style="color: #008000;">//</span><span style="color: #008000;"> obj1 引用 obj2</span>
+    obj2.a = obj1; <span style="color: #008000;">//</span><span style="color: #008000;"> obj2 引用 obj1</span>
+}</pre>
+</div>
+<p>　　在这个例子中，objA和objB通过各自的属性相互引用；也就是说这两个对象的引用次数都是2。在采用引用计数的策略中，由于函数执行之后，这两个对象都离开了作用域，函数执行完成之后，objA和objB还将会继续存在，因为他们的引用次数永远不会是0。这样的相互引用如果说很大量的存在就会导致大量的内存泄露。</p>
+<p>　　<strong>解决</strong>：手动解除引用</p>
+<div class="cnblogs_code">
+<pre><code>obj1.a = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+obj2.a </span>= <span style="color: #0000ff;">null</span>;</pre>
+</div>
+<p><strong>2、标记清除</strong></p>
+<p>　　这是javascript中最常用的垃圾回收方式。当变量进入执行环境是，就标记这个变量为&ldquo;进入环境&rdquo;。从逻辑上讲，永远不能释放进入环境的变量所占用的内存，因为只要执行流进入相应的环境，就可能会用到他们。当变量离开环境时，则将其标记为&ldquo;离开环境&rdquo;。</p>
+<p>　　垃圾收集器在运行的时候会给存储在内存中的所有变量都加上标记。然后，它会去掉环境中的变量以及被环境中的变量引用的标记。而在此之后再被加上标记的变量将被视为准备删除的变量，原因是环境中的变量已经无法访问到这些变量了。最后。垃圾收集器完成内存清除工作，销毁那些带标记的值，并回收他们所占用的内存空间。</p>
+<p>　　标记清除也会遇到循环引用的问题。IE中有一部分对象并不是原生JavaScript对象。例如，其BOM和DOM中的对象就是使用C++以COM（Component Object&nbsp;Model，组件对象）对象的形式实现的，而COM对象的垃圾回收器就是采用的引用计数的策略。因此，即使IE的Javascript引擎使用标记清除的策略来实现的，但JavaScript访问的COM对象依然是基于引用计数的策略的。说白了，只要IE中涉及COM对象，就会存在循环引用的问题。</p>
+<p>　　<strong>解决</strong>：手工断开js对象和DOM之间的链接。赋值为null。IE9把DOM和BOM转换成真正的JS对象了，所以避免了这个问题。</p>
+<h2>5、避免垃圾回收</h2>
+<p>通过上面内容了解了，浏览器虽然可以自动化执行垃圾回收，但如果项目比较大代码复杂，回收执行代价较大，某些情况甚至不能识别回收</p>
+<div>
+<h3 class="heading" data-id="heading-12">1.数组array优化</h3>
+<p>将[]赋值给一个数组对象，是清空数组的捷径(例如： arr = [];),但是需要注意的是，这种方式又创建了一个新的空对象，并且将原来的数组对象变成了一小片内存垃圾！实际上，将数组长度赋值为0（arr.length = 0）也能达到清空数组的目的，并且同时能实现数组重用，减少内存垃圾的产生。&nbsp;</p>
+<h3 class="heading" data-id="heading-13">2. 对象尽量复用</h3>
+<p>对象尽量复用，尤其是在循环等地方出现创建新对象，能复用就复用。不用的对象，尽可能设置为null，尽快被垃圾回收掉。</p>
+<h3 class="heading" data-id="heading-14">3.循环优化</h3>
+<p class="heading" data-id="heading-14">在循环中的函数表达式，能复用最好放到循环外面。</p>
+<h2 class="heading" data-id="heading-14">6、避免内存泄漏</h2>
+<div>
+<div>
+<h3 class="heading" data-id="heading-6">1.意外的全局变量</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> foo(arg) {
+    bar </span>= "this is a hidden global variable"<span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>bar没被声明,会变成一个全局变量,在页面关闭之前不会被释放。</p>
+<p>另一种意外的全局变量可能由 <code>this</code> 创建:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> foo() {
+    </span><span style="color: #0000ff;">this</span>.variable = "potential accidental global"<span style="color: #000000;">;
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> foo 调用自己，this 指向了全局对象（window）</span>
+foo();</pre>
+</div>
+<p>在 JavaScript 文件头部加上 'use strict'，可以避免此类错误发生。启用严格模式解析 JavaScript ，避免意外的全局变量。</p>
+<h3 class="heading" data-id="heading-7">2.被遗忘的计时器或回调函数</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> someResource =<span style="color: #000000;"> getData();
+setInterval(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    </span><span style="color: #0000ff;">var</span> node = document.getElementById('Node'<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(node) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理 node 和 someResource</span>
+        node.innerHTML =<span style="color: #000000;"> JSON.stringify(someResource));
+    }
+}, </span>1000);</pre>
+</div>
+<p>这样的代码很常见，如果id为Node的元素从DOM中移除，该定时器仍会存在，同时，因为回调函数中包含对someResource的引用，定时器外面的someResource也不会被释放。</p>
+<h3 class="heading" data-id="heading-8">3.闭包</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> bindEvent(){
+  </span><span style="color: #0000ff;">var</span> obj=document.createElement('xxx'<span style="color: #000000;">)
+  obj.onclick</span>=<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Even if it is a empty function</span>
+<span style="color: #000000;">  }
+}</span></pre>
+</div>
+<p>闭包可以维持函数内局部变量，使其得不到释放。上例定义事件回调时，由于是函数内定义函数，并且内部函数--事件回调引用外部函数，形成了闭包</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 将事件处理函数定义在外面</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> bindEvent() {
+  </span><span style="color: #0000ff;">var</span> obj = document.createElement('xxx'<span style="color: #000000;">)
+  obj.onclick </span>=<span style="color: #000000;"> onclickHandler
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 或者在定义事件处理函数的外部函数中，删除对dom的引用</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> bindEvent() {
+  </span><span style="color: #0000ff;">var</span> obj = document.createElement('xxx'<span style="color: #000000;">)
+  obj.onclick </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Even if it is a empty function</span>
+<span style="color: #000000;">  }
+  obj </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<p>解决之道，将事件处理函数定义在外部，解除闭包，或者在定义事件处理函数的外部函数中，删除对dom的引用。</p>
+<h3 class="heading" data-id="heading-9">4.没有清理的DOM元素引用</h3>
+<p>有时，保存 DOM 节点内部数据结构很有用。假如你想快速更新表格的几行内容，把每一行 DOM 存成字典（JSON 键值对）或者数组很有意义。此时，同样的 DOM 元素存在两个引用：一个在 DOM 树中，另一个在字典中。将来你决定删除这些行时，需要把两个引用都清除。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> elements =<span style="color: #000000;"> {
+    button: document.getElementById(</span>'button'<span style="color: #000000;">),
+    image: document.getElementById(</span>'image'<span style="color: #000000;">),
+    text: document.getElementById(</span>'text'<span style="color: #000000;">)
+};
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> doStuff() {
+    image.src </span>= 'http://some.url/image'<span style="color: #000000;">;
+    button.click();
+    console.log(text.innerHTML);
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> removeButton() {
+    document.body.removeChild(document.getElementById(</span>'button'<span style="color: #000000;">));
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 此时，仍旧存在一个全局的 #button 的引用</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> elements 字典。button 元素仍旧在内存中，不能被 GC 回收。</span>
+}</pre>
+</div>
+<p>虽然我们用removeChild移除了button，但是还在elements对象里保存着#button的引用，换言之，DOM元素还在内存里面。</p>
+</div>
+</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

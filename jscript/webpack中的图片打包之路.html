@@ -1,0 +1,91 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack中的图片打包之路' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack中的图片打包之路</center></div><div class='banquan'>原文出处:本文由博客园博主狐耳提供。<br/>
+原文连接:https://www.cnblogs.com/hueralin/p/11408961.html</div><br>
+    <p>最近在Github上弄项目，需要搭建一个webpack开发环境。Emmm，是的，从0开始搭建一个项目确实不容易，光Webpack的坑就够我踩一路的了。这不，刚搭建到&ldquo;图片打包&rdquo;这里，就遇到了麻烦。最后找到了问题的源头，在mini-css-extract-plugin（抽离CSS代码为一个CSC文件的插件）这个插件上。</p>
+<p>错误操作就不示范了，下面来探讨一下webpack中的图片打包方式。</p>
+<p>1. 在JS中使用图片</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> import logo from './images/logo.png'　　<span style="color: #008000;">//</span><span style="color: #008000;"> 引入图片资源并返回一个新的图片地址</span>
+<span style="color: #008080;">2</span> let img = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Image()
+</span><span style="color: #008080;">3</span> img.src = './images/logo.png'    <span style="color: #008000;">//</span><span style="color: #008000;"> 错误！JS不会认为'./images/logo.png'一个资源，而是字符串</span>
+<span style="color: #008080;">4</span> img.src = logo </pre>
+</div>
+<p>webpack中的相关配置</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">{
+</span><span style="color: #008080;"> 2</span>   test: /\.(jpg|png|gif)$/<span style="color: #000000;">,
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">  use: [{
+</span><span style="color: #008080;"> 4</span>     loader: 'url-loader'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">    options: {
+</span><span style="color: #008080;"> 6</span>       outputPath: 'images/'
+<span style="color: #008080;"> 7</span>       limit: 100*1024
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">    }      
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">  }]                
+</span><span style="color: #008080;">10</span> }</pre>
+</div>
+<p>上面使用的是url-loader，该loader比file-loader更好的地方就是能根据图片的大小来决定是使用base64格式还是正常加载。</p>
+<p>例如上面的配置，当图片小于100KB时使用base64格式输出，这样就可以避免一个http请求。&nbsp;</p>
+<p>limit：属性值有三种类型：Number（限定最大值），Boolean（是否启用base64），String，默认为undefined</p>
+<p>&nbsp;</p>
+<p>2. 在CSS中使用图片，例如：背景图片</p>
+<p>这种方法的url-loader配置同上，但是有一个问题。如果你在配置CSS的过程中使用了mini-css-webpack-plugin这个插件来抽离CSS，那么一定要注意路径的问题，我就是在这上面踩了个大坑，费了不少时间。</p>
+<p>&nbsp;</p>
+<p>CSS:&nbsp;&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #800000;"> body </span>{<span style="color: #ff0000;">  
+  background</span>:<span style="color: #0000ff;"> url('../images/logo.png')  
+</span>}</pre>
+</div>
+<p>&nbsp;通过相对路径引用了一张图片（css文件夹和images文件夹处于同一级）</p>
+<p>&nbsp;</p>
+<p>配置文件：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    test: </span>/\.less$/<span style="color: #000000;">,
+    use: [{
+           loader: MiniCssExtractPlugin.loader,
+           options: {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 在这里配置publicPath，不然CSS里面的图片路径是以CSS目录为根目录的</span>
+                publicPath: '../'<span style="color: #000000;">
+           }},<br /></span>　　　　　　'css-loader',<br />　　　　　　'postcss-loader',<br />　　　　　　'less-loader'<br /><span style="color: #000000;">　　]
+},</span></pre>
+</div>
+<p>&nbsp;注意这里的&nbsp;<strong>&lsquo;publicPath&rsquo; ，</strong>当初我就是没有设置该属性，导致build后的CSS为</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> {<span style="color: #ff0000;">background</span>:<span style="color: #0000ff;"> url(images/logo.png)</span>}<span style="color: #800000;">　　// 明显路径错了
+</span><span style="color: #008080;">2</span> {<span style="color: #ff0000;">background</span>:<span style="color: #0000ff;"> url(../image/logo.png)</span>}<span style="color: #800000;">　　// 设置publicPath值为 '../'</span></pre>
+</div>
+<p>这样，打包后的CSS中背景图片的引用就正确了。</p>
+<p>&nbsp;</p>
+<p>&nbsp;3. 在HTML中引用图片</p>
+<p>我们经常使用html-webpack-plugin插件来给项目设置一个HTML模板，所以有时我们会在模板中插入图片，但是webpack对HTML中的图片是无能为力的，因为img标签的src引入的图片没有被依赖，不会被打包，所以这时候我们需要使用&nbsp;<a href="https://www.npmjs.com/package/html-withimg-loader" target="_blank">html-withimg-loader</a>。</p>
+<p>webpack配置：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">{
+</span><span style="color: #008080;">2</span>   test: /\.html$/<span style="color: #000000;">,
+</span><span style="color: #008080;">3</span>   use: 'html-withimg-loader'    
+<span style="color: #008080;">4</span> }</pre>
+</div>
+<p>这样，html中的图片也能被正确的打包了！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,102 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js执行机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js执行机制</center></div><div class='banquan'>原文出处:本文由博客园博主张最棒提供。<br/>
+原文连接:https://www.cnblogs.com/jiaobaba/p/11943682.html</div><br>
+    <p><span style="font-family: 仿宋; font-size: 18px;">js是单线程的，为什么可以执行异步操作呢？</span></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">这归结与浏览器（js的宿主环境）通过某种方式使得js具备了异步的属性。</span></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px; color: #0000ff;">区分进程和线程：</span></strong></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;">进程：正在运行中的应用程序。每个进程都自己独立的内存空间。例如：打开的浏览器就是一个进程。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">线程：进程的子集，是独立的。线程在共享的内存空间中运行。</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">浏览器是多进程的。如下图：</span></span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;"><img src="./images/js执行机制0.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;">&nbsp;并且每打开一个页面就创建了一个独立的进程。进程内有自己的多线程。如果浏览器是单进程的，那么某个页面崩了，就会影响整个浏览器。</span></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px; color: #0000ff;">浏览器有哪些进程：</span></strong></p>
+<div>
+<div><span style="font-family: 仿宋; font-size: 18px;">1.Browser(浏览器)：浏览器的主进程（负责协调，主控）只有一个，作用有：</span></div>
+<ul>
+<li><span style="font-family: 仿宋; font-size: 18px;">负责浏览器界面显示，与用户交互。如前进，后退等</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">负责各个页面的管理，创建和销毁其他进程</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">将Renderer（渲染器）进程得到的内存中的Bitmap，绘制到用户界面上</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">网络资源的管理，下载等</span></li>
+</ul>
+<div><span style="font-family: 仿宋; font-size: 18px;">2.第三方插件进程：每种类型的插件对应一个进程，仅当使用该插件时才创建</span></div>
+<div><span style="font-family: 仿宋; font-size: 18px;">3.GPU进程：最多一个，用于3D绘制等</span></div>
+<div><span style="font-family: 仿宋; font-size: 18px;">4.<strong>浏览器渲染进程（浏览器内核）</strong>（Renderer（渲染器），<strong>内部是多线程的</strong>）默认每个Tab页面一个进程，互不影响。主要作用 ：页面渲染，脚本执行，事件处理等</span></div>
+<div><span style="font-family: 仿宋; font-size: 18px;">&nbsp;</span></div>
+<div><strong><span style="font-family: 仿宋; font-size: 18px; color: #0000ff;">浏览器渲染进程（浏览器内核）包含的线程：</span></strong></div>
+<div>
+<div>
+<div><span style="font-family: 仿宋; font-size: 18px;">1. GUI渲染线程</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 负责渲染浏览器界面，解析HTML，CSS，构建DOM树和RenderObject树，布局和绘制等。</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 当界面需要重绘（Repaint）或由于某种操作引发回流(reflow)时，该线程就会执行</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 注意，<strong>GUI渲染线程与JS引擎线程是互斥的</strong>，当JS引擎执行时GUI线程会被挂起（相当于被冻结了），GUI更新会被保存在一个队列中等到JS引擎空闲时立即被执行。</span></div>
+<div><span style="font-family: 仿宋; font-size: 18px;">2. JS引擎线程(</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&ldquo;JavaScript 引擎&rdquo;通常被称作一种&nbsp;虚拟机。也称为JS内核，负责处理Javascript脚本程序。（例如V8引擎）</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; JS引擎线程负责解析Javascript脚本，运行代码。</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; JS引擎一直等待着任务队列中任务的到来，然后加以处理，一个Tab页（renderer进程）中无论什么时候都只有一个JS线程在运行JS程序</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 同样注意，GUI渲染线程与JS引擎线程是互斥的，所以如果JS执行的时间过长，这样就会造成页面的渲染不连贯，导致页面渲染加载阻塞。</span></div>
+<div><span style="font-family: 仿宋; font-size: 18px;">3. 事件触发线程</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 归属于浏览器而不是JS引擎，用来控制事件循环（可以理解，JS引擎自己都忙不过来，需要浏览器另开线程协助）</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 当JS引擎执行代码块如setTimeOut时（也可来自浏览器内核的其他线程,如鼠标点击、AJAX异步请求等），会将对应任务添加到事件线程中</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 当对应的事件符合触发条件被触发时，该线程会把事件添加到待处理队列的队尾，等待JS引擎的处理</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 注意，由于JS的单线程关系，所以这些待处理队列中的事件都得排队等待JS引擎处理（当JS引擎空闲时才会去执行）</span></div>
+<div><span style="font-family: 仿宋; font-size: 18px;">4. 定时触发器线程</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 传说中的setInterval与setTimeout所在线程</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 浏览器定时计数器并不是由JavaScript引擎计数的,（因为JavaScript引擎是单线程的, 如果处于阻塞线程状态就会影响记计时的准确）</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 因此通过单独线程来计时并触发定时（计时完毕后，添加到事件队列中，等待JS引擎空闲后执行）</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 注意，W3C在HTML标准中规定，规定要求setTimeout中低于4ms的时间间隔算为4ms。</span></div>
+<div><span style="font-family: 仿宋; font-size: 18px;">5. 异步http请求线程</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 在XMLHttpRequest在连接后是通过浏览器新开一个线程请求</span></div>
+<div style="margin-left: 30px;"><span style="font-family: 仿宋; font-size: 18px;">&bull; 将检测到状态变更时，如果设置有回调函数，异步线程就产生状态变更事件，将这个回调再放入事件队列中。再由JavaScript引擎执行。</span></div>
+</div>
+</div>
+</div>
+<p>&nbsp;</p>
+<div>
+<div><strong><span style="font-family: 仿宋; font-size: 18px; color: #0000ff;">GUI渲染线程与JS引擎线程互斥：</span></strong></div>
+<div><span style="font-family: 仿宋; font-size: 18px;">由于JavaScript是可操纵DOM的，如果在修改这些元素属性同时渲染界面（即JS线程和UI线程同时运行），那么渲染线程前后获得的元素数据就可能不一致了。</span><span style="font-family: 仿宋; font-size: 18px;">因此为了防止渲染出现不可预期的结果，浏览器设置GUI渲染线程与JS引擎为互斥的关系，当JS引擎执行时GUI线程会被挂起，</span><span style="font-family: 仿宋; font-size: 18px;">GUI更新则会被保存在一个队列中等到JS引擎线程空闲时立即被执行。</span></div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div><span style="font-family: 仿宋; font-size: 18px;">js执行机制：js是单线程的，每当执行函数就把函数推入栈中，但有异步的操作就让浏览器的线程（webAPI）去处理，处理完放到任务队列里，当主线程（执行栈）执行完毕时，如果任务队列里有任务，就执行。</span></div>
+<div>&nbsp;</div>
+<div><img src="./images/js执行机制1.png" alt="" />
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;">&nbsp;这也就是为什么下面代码会先输出b,然后是a的原因。settimeout的函数会放到任务队列中，而console.log('b')是主线程。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">　　　　　setTimeout(() =&gt; {
+            console.log('a');
+        }, 0);
+        console.log('b'); </span></pre>
+</div>
+<p>&nbsp;&nbsp;<span style="font-family: 仿宋; font-size: 18px;"><br /></span></p>
+</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

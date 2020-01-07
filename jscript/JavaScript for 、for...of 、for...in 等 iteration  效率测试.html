@@ -1,0 +1,303 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript for 、for...of 、for...in 等 iteration  效率测试' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript for 、for...of 、for...in 等 iteration  效率测试</center></div><div class='banquan'>原文出处:本文由博客园博主G_Owen提供。<br/>
+原文连接:https://www.cnblogs.com/gaoguowen/p/11137331.html</div><br>
+    <ul>
+<li>由于不同浏览器，不同版本性能不一，且控制台本质是是套用了一大堆<a href="https://www.zhihu.com/question/29352114/answer/44050599">eval</a>，沙盒化程度高,所以需使用<a href="https://nodejs.org/en/">node</a>环境测试来提高准确性</li>
+</ul>
+<pre><code><code>
+// 准备待测数组
+const NUM = 1e7;
+let arr = new Array(NUM).fill(1);
+// for 测试
+let arr1 =[];
+console.time(&#39;for&#39;);
+for (let i = 0; i &lt; arr.length; i++) {
+  arr1.push(arr[i])
+}
+
+console.timeEnd(&#39;for&#39;);
+
+
+// Chrome/75.0.3770.100 Safari/537.36 环境
+//VM1324:10 for: 576.733154296875ms
+
+// node v10.11.0 环境 
+// for:  412.087ms</code></pre>
+<h2 id="for-几种写法">for 几种写法</h2>
+<ul>
+<li><strong>常规写法</strong></li>
+</ul>
+<pre><code><code>let arr1 = []
+console.time(&#39;one&#39;)
+for (let i = 0; i &lt; arr.length; i++ ){
+    arr1.push(arr[i])
+}
+console.timeEnd(&#39;one&#39;)
+</code></pre>
+<p>数组长度是会动态变化，每次循环会重新计算length长度，可能会出现死循环</p>
+<ul>
+<li><strong>cache arr.length</strong></li>
+</ul>
+<pre><code><code>for (let i = 0, len = arr.length; i &lt; len; i++ ){
+     arr1.push(arr[i])
+}</code></pre>
+<p>缓存length 值，无需重新计算length</p>
+<ul>
+<li><strong>倒序</strong></li>
+</ul>
+<pre><code><code>for (let i = arr.length-1; i &gt;= 0; i--){
+     arr1.push(arr[i])
+}</code></pre>
+<p>比第二种方法更简洁</p>
+<ul>
+<li><strong>倒叙简洁版</strong></li>
+</ul>
+<pre><code><code>for (let i = arr.length-1; i--;){
+     arr1.push(arr[i])
+}</code></pre>
+<p>两个分号之间的表达式为 true 会一直执行直到 判断为 false (i = 0)</p>
+<ul>
+<li><strong>正序简洁版</strong></li>
+</ul>
+<pre><code><code>for (let i = 0, len;len = arr[i++]; ){
+     arr1.push(arr[i])
+}</code></pre>
+<p>当 i 大于等于数组长度或arr[i++]值为false时 将停指循环，同时由于arr.length动态变化时可能会造成死循环</p>
+<h2 id="for...of">for...of</h2>
+<pre><code><code>for (let value of arr){
+     arr1.push(value)
+}</code></pre>
+<p>es6推出的迭代器，最简洁，可以是用 break，continue和return 终止循环</p>
+<h2 id="for...in">for...in</h2>
+<pre><code><code>for (let key in arr){
+     arr1.push(arr[key])
+}</code></pre>
+<p>for...in 一般用于遍历对象，他会将本身属性和原型链上的属性（除系统内置属性）全部遍历出来即便是不可枚举属性（enumerable:false), 可以通过 <code>items.hasOwnProperty</code>来遍历本身属性,由于查询到自己的原型链上，所以性能方面比较差</p>
+<h2 id="foreach">forEach</h2>
+<pre><code><code>arr.forEach(function(value){
+    arr1.push(value)
+})
+     </code></pre>
+<p>数组的迭代方法，没有返回值</p>
+<h2 id="map">map</h2>
+<pre><code><code>arr.map(function(value){
+   return  arr1.push(value)
+})
+     </code></pre>
+<p>浅拷贝原数组，并且返回一个新数组</p>
+<h2 id="性能测试">性能测试</h2>
+<table>
+<thead>
+<tr class="header">
+<th>测试次数</th>
+<th>常规for</th>
+<th>cache for</th>
+<th>倒序 for</th>
+<th>倒叙简版 for</th>
+<th>正序简版 for</th>
+<th>for..of</th>
+<th>for..in</th>
+<th>forEach</th>
+<th>map</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>542.121ms</td>
+<td>573.618ms</td>
+<td>764.181ms</td>
+<td>755.961ms</td>
+<td>571.464ms</td>
+<td>945.199ms</td>
+<td>4077.020ms</td>
+<td>625.859ms</td>
+<td>3573.946ms</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>430.008ms</td>
+<td>541.933ms</td>
+<td>524.474ms</td>
+<td>668.276ms</td>
+<td>553.475ms</td>
+<td>897.442ms</td>
+<td>4402.246ms</td>
+<td>605.271ms</td>
+<td>2732.859ms</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>409.531ms</td>
+<td>661.765ms</td>
+<td>534.167ms</td>
+<td>655.481ms</td>
+<td>600.939ms</td>
+<td>1141.093ms</td>
+<td>3806.704ms</td>
+<td>584.712ms</td>
+<td>2779.192ms</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>412.972ms</td>
+<td>643.868ms</td>
+<td>536.026ms</td>
+<td>674.081ms</td>
+<td>725.149ms</td>
+<td>930.655ms</td>
+<td>3201.387ms</td>
+<td>599.780ms</td>
+<td>3152.499ms</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td>417.034ms</td>
+<td>624.323ms</td>
+<td>520.674ms</td>
+<td>799.568ms</td>
+<td>574.713ms</td>
+<td>943.449ms</td>
+<td>3261.512ms</td>
+<td>587.182ms</td>
+<td>2954.195ms</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>525.771ms</td>
+<td>955.737ms</td>
+<td>526.208ms</td>
+<td>771.443ms</td>
+<td>531.962ms</td>
+<td>954.199ms</td>
+<td>4351.009ms</td>
+<td>608.264ms</td>
+<td>2888.752ms</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>498.039ms</td>
+<td>602.703ms</td>
+<td>555.588ms</td>
+<td>531.464ms</td>
+<td>541.599ms</td>
+<td>916.678ms</td>
+<td>3264.334ms</td>
+<td>596.168ms</td>
+<td>2834.663ms</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td>431.694ms</td>
+<td>523.381ms</td>
+<td>544.974ms</td>
+<td>527.472ms</td>
+<td>517.833ms</td>
+<td>1049.283ms</td>
+<td>3744.972ms</td>
+<td>600.286ms</td>
+<td>3467.499ms</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>417.521ms</td>
+<td>518.093ms</td>
+<td>547.404ms</td>
+<td>611.024ms</td>
+<td>594.503ms</td>
+<td>767.059ms</td>
+<td>4979.348ms</td>
+<td>601.420ms</td>
+<td>3638.023ms</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>424.806ms</td>
+<td>557.961ms</td>
+<td>535.541ms</td>
+<td>837.561ms</td>
+<td>541.882ms</td>
+<td>772.686ms</td>
+<td>3284.424ms</td>
+<td>602.443ms</td>
+<td>3599.642ms</td>
+</tr>
+<tr class="odd">
+<td>11</td>
+<td>409.402ms</td>
+<td>521.131ms</td>
+<td>534.265ms</td>
+<td>517.709ms</td>
+<td>551.397ms</td>
+<td>752.101ms</td>
+<td>3228.123ms</td>
+<td>629.625ms</td>
+<td>3535.545ms</td>
+</tr>
+<tr class="even">
+<td>12</td>
+<td>425.362ms</td>
+<td>532.882ms</td>
+<td>406.637ms</td>
+<td>522.287ms</td>
+<td>570.259ms</td>
+<td>914.135ms</td>
+<td>3449.256ms</td>
+<td>800.857ms</td>
+<td>3429.123ms</td>
+</tr>
+<tr class="odd">
+<td>平均值</td>
+<td>439.2738ms</td>
+<td>578.3565ms</td>
+<td>553.1468ms</td>
+<td>651.7057ms</td>
+<td>507.8718ms</td>
+<td>909.0785ms</td>
+<td>3,686.9 6ms</td>
+<td>605.6298ms</td>
+<td>3,221.5056ms</td>
+</tr>
+<tr class="even">
+<td>堆值差</td>
+<td>357245536Byte</td>
+<td>357245808Byte</td>
+<td>357245624Byte</td>
+<td>357245872Byte</td>
+<td>357246824Byte</td>
+<td>199268080Byte</td>
+<td>757187208Byte</td>
+<td>357244456Byte</td>
+<td>43724764Byte</td>
+</tr>
+</tbody>
+</table>
+<p><strong>测试总结</strong></p>
+<ol>
+<li><strong>运行效率:</strong> <code>常规for</code> &gt; <code>正序简版 for</code>&gt; <code>倒序 for</code> &gt; <code>cache for</code> &gt; <code>倒叙简版 for</code>&gt; <code>forEach</code> &gt; <code>for..of</code> &gt; <code>map</code> &gt; <code>for..in</code></li>
+<li>几种普通 for 循环占用内存相差不大, 而 <code>for..of</code> 占用运行内存最小</li>
+<li><code>for..in</code> 性能最差，内存占用高，速度很慢</li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

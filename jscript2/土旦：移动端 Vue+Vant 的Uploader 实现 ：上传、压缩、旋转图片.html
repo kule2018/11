@@ -1,0 +1,243 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修土旦：移动端 Vue+Vant 的Uploader 实现 ：上传、压缩、旋转图片' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>土旦：移动端 Vue+Vant 的Uploader 实现 ：上传、压缩、旋转图片</center></div><div class='banquan'>原文出处:本文由博客园博主我想当个土老板提供。<br/>
+原文连接:https://www.cnblogs.com/tudan/p/10996622.html</div><br>
+    <blockquote>
+<h2>面向百度开发</h2>
+</blockquote>
+<h2>html</h2>
+<div class="cnblogs_code">
+<pre><code> &lt;van-uploader :after-read=<span style="color: #800000;">"</span><span style="color: #800000;">onRead</span><span style="color: #800000;">"</span> accept=<span style="color: #800000;">"</span><span style="color: #800000;">image/*</span><span style="color: #800000;">"</span>&gt;
+        &lt;img src=<span style="color: #800000;">"</span><span style="color: #800000;">./icon_input_add.png</span><span style="color: #800000;">"</span> /&gt;
+ &lt;/van-uploader&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<h2>js</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">data() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+            files: {
+                name: </span><span style="color: #800000;">""</span><span style="color: #000000;">,
+                type: </span><span style="color: #800000;">""</span><span style="color: #000000;">
+            },
+            headerImage: </span><span style="color: #0000ff;">null</span><span style="color: #000000;">,
+            picValue: </span><span style="color: #0000ff;">null</span><span style="color: #000000;">,
+            upImgUrl,
+        }
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 组件方法 获取 流</span>
+    <span style="color: #0000ff;">async</span><span style="color: #000000;"> onRead(file) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log(file);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log(file.file);</span>
+            <span style="color: #0000ff;">this</span>.files.name = file.file.name; <span style="color: #008000;">//</span><span style="color: #008000;"> 获取文件名</span>
+            <span style="color: #0000ff;">this</span>.files.type = file.file.type; <span style="color: #008000;">//</span><span style="color: #008000;"> 获取类型</span>
+            <span style="color: #0000ff;">this</span>.picValue = file.file; <span style="color: #008000;">//</span><span style="color: #008000;"> 文件流</span>
+            <span style="color: #0000ff;">this</span>.imgPreview(<span style="color: #0000ff;">this</span><span style="color: #000000;">.picValue);
+        },
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理图片</span>
+<span style="color: #000000;">        imgPreview(file) {
+            let self </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+            let Orientation;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">去获取拍照时的信息，解决拍出来的照片旋转问题</span>
+<span style="color: #000000;">            Exif.getData(file, function () {
+                Orientation </span>= Exif.getTag(<span style="color: #0000ff;">this</span>, <span style="color: #800000;">"</span><span style="color: #800000;">Orientation</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            });
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 看支持不支持FileReader</span>
+            <span style="color: #0000ff;">if</span> (!file || !window.FileReader) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span> (/^image/<span style="color: #000000;">.test(file.type)) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建一个reader</span>
+                let reader = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileReader();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将图片2将转成 base64 格式</span>
+<span style="color: #000000;">                reader.readAsDataURL(file);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 读取成功后的回调</span>
+                reader.onloadend =<span style="color: #000000;"> function () {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.result);</span>
+                    let result = <span style="color: #0000ff;">this</span><span style="color: #000000;">.result;
+                    let img </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Image();
+                    img.src </span>=<span style="color: #000000;"> result;
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">判断图片是否大于500K,是就直接上传，反之压缩图片</span>
+                    <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.result.length &lt;= <span style="color: #800080;">500</span> * <span style="color: #800080;">1024</span><span style="color: #000000;">) {
+                        self.headerImage </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.result;
+                        self.postImg();
+                    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                        img.onload </span>=<span style="color: #000000;"> function () {
+                            let data </span>=<span style="color: #000000;"> self.compress(img, Orientation);
+                            self.headerImage </span>=<span style="color: #000000;"> data;
+                            self.postImg();
+                        };
+                    }
+                };
+            }
+        },
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 压缩图片</span>
+<span style="color: #000000;">        compress(img, Orientation) {
+            let canvas </span>= document.createElement(<span style="color: #800000;">"</span><span style="color: #800000;">canvas</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            let ctx </span>= canvas.getContext(<span style="color: #800000;">"</span><span style="color: #800000;">2d</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">瓦片canvas</span>
+            let tCanvas = document.createElement(<span style="color: #800000;">"</span><span style="color: #800000;">canvas</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            let tctx </span>= tCanvas.getContext(<span style="color: #800000;">"</span><span style="color: #800000;">2d</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> let initSize = img.src.length;</span>
+            let width =<span style="color: #000000;"> img.width;
+            let height </span>=<span style="color: #000000;"> img.height;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果图片大于四百万像素，计算压缩比并将大小压至400万以下</span>
+<span style="color: #000000;">            let ratio;
+            </span><span style="color: #0000ff;">if</span> ((ratio = (width * height) / <span style="color: #800080;">4000000</span>) &gt; <span style="color: #800080;">1</span><span style="color: #000000;">) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log("大于400万像素");</span>
+                ratio =<span style="color: #000000;"> Math.sqrt(ratio);
+                width </span>/=<span style="color: #000000;"> ratio;
+                height </span>/=<span style="color: #000000;"> ratio;
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                ratio </span>= <span style="color: #800080;">1</span><span style="color: #000000;">;
+            }
+            canvas.width </span>=<span style="color: #000000;"> width;
+            canvas.height </span>=<span style="color: #000000;"> height;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">        铺底色</span>
+            ctx.fillStyle = <span style="color: #800000;">"</span><span style="color: #800000;">#fff</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+            ctx.fillRect(</span><span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, canvas.width, canvas.height);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果图片像素大于100万则使用瓦片绘制</span>
+<span style="color: #000000;">            let count;
+            </span><span style="color: #0000ff;">if</span> ((count = (width * height) / <span style="color: #800080;">1000000</span>) &gt; <span style="color: #800080;">1</span><span style="color: #000000;">) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log("超过100W像素");</span>
+                count = ~~(Math.sqrt(count) + <span style="color: #800080;">1</span>); <span style="color: #008000;">//</span><span style="color: #008000;">计算要分成多少块瓦片
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">            计算每块瓦片的宽和高</span>
+                let nw = ~~(width /<span style="color: #000000;"> count);
+                let nh </span>= ~~(height /<span style="color: #000000;"> count);
+                tCanvas.width </span>=<span style="color: #000000;"> nw;
+                tCanvas.height </span>=<span style="color: #000000;"> nh;
+                </span><span style="color: #0000ff;">for</span> (let i = <span style="color: #800080;">0</span>; i &lt; count; i++<span style="color: #000000;">) {
+                    </span><span style="color: #0000ff;">for</span> (let j = <span style="color: #800080;">0</span>; j &lt; count; j++<span style="color: #000000;">) {
+                        tctx.drawImage(img, i </span>* nw * ratio, j * nh * ratio, nw * ratio, nh * ratio, <span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, nw, nh);
+                        ctx.drawImage(tCanvas, i </span>* nw, j *<span style="color: #000000;"> nh, nw, nh);
+                    }
+                }
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                ctx.drawImage(img, </span><span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">, width, height);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">修复ios上传图片的时候 被旋转的问题</span>
+            <span style="color: #0000ff;">if</span> (Orientation != <span style="color: #800000;">""</span> &amp;&amp; Orientation != <span style="color: #800080;">1</span><span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (Orientation) {
+                    </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">6</span>: <span style="color: #008000;">//</span><span style="color: #008000;">需要顺时针（向左）90度旋转</span>
+                        <span style="color: #0000ff;">this</span>.rotateImg(img, <span style="color: #800000;">"</span><span style="color: #800000;">left</span><span style="color: #800000;">"</span><span style="color: #000000;">, canvas);
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">8</span>: <span style="color: #008000;">//</span><span style="color: #008000;">需要逆时针（向右）90度旋转</span>
+                        <span style="color: #0000ff;">this</span>.rotateImg(img, <span style="color: #800000;">"</span><span style="color: #800000;">right</span><span style="color: #800000;">"</span><span style="color: #000000;">, canvas);
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">3</span>: <span style="color: #008000;">//</span><span style="color: #008000;">需要180度旋转</span>
+                        <span style="color: #0000ff;">this</span>.rotateImg(img, <span style="color: #800000;">"</span><span style="color: #800000;">right</span><span style="color: #800000;">"</span>, canvas); <span style="color: #008000;">//</span><span style="color: #008000;">转两次</span>
+                        <span style="color: #0000ff;">this</span>.rotateImg(img, <span style="color: #800000;">"</span><span style="color: #800000;">right</span><span style="color: #800000;">"</span><span style="color: #000000;">, canvas);
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                }
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">进行最小压缩</span>
+            let ndata = canvas.toDataURL(<span style="color: #800000;">"</span><span style="color: #800000;">image/jpeg</span><span style="color: #800000;">"</span>, <span style="color: #800080;">0.1</span><span style="color: #000000;">);
+            tCanvas.width </span>= tCanvas.height = canvas.width = canvas.height = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ndata;
+        },
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 旋转图片</span>
+<span style="color: #000000;">        rotateImg(img, direction, canvas) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">最小与最大旋转方向，图片旋转4次后回到原方向</span>
+            <span style="color: #0000ff;">const</span> min_step = <span style="color: #800080;">0</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">const</span> max_step = <span style="color: #800080;">3</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span> (img == <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">img的高度和宽度不能在img元素隐藏后获取，否则会出错</span>
+            let height =<span style="color: #000000;"> img.height;
+            let width </span>=<span style="color: #000000;"> img.width;
+            let step </span>= <span style="color: #800080;">2</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span> (step == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                step </span>=<span style="color: #000000;"> min_step;
+            }
+            </span><span style="color: #0000ff;">if</span> (direction == <span style="color: #800000;">"</span><span style="color: #800000;">right</span><span style="color: #800000;">"</span><span style="color: #000000;">) {
+                step</span>++<span style="color: #000000;">;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">旋转到原位置，即超过最大值</span>
+                step &gt; max_step &amp;&amp; (step =<span style="color: #000000;"> min_step);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                step</span>--<span style="color: #000000;">;
+                step </span>&lt; min_step &amp;&amp; (step =<span style="color: #000000;"> max_step);
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">旋转角度以弧度值为参数</span>
+            let degree = (step * <span style="color: #800080;">90</span> * Math.PI) / <span style="color: #800080;">180</span><span style="color: #000000;">;
+            let ctx </span>= canvas.getContext(<span style="color: #800000;">"</span><span style="color: #800000;">2d</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (step) {
+                </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">0</span><span style="color: #000000;">:
+                    canvas.width </span>=<span style="color: #000000;"> width;
+                    canvas.height </span>=<span style="color: #000000;"> height;
+                    ctx.drawImage(img, </span><span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">1</span><span style="color: #000000;">:
+                    canvas.width </span>=<span style="color: #000000;"> height;
+                    canvas.height </span>=<span style="color: #000000;"> width;
+                    ctx.rotate(degree);
+                    ctx.drawImage(img, </span><span style="color: #800080;">0</span>, -<span style="color: #000000;">height);
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">2</span><span style="color: #000000;">:
+                    canvas.width </span>=<span style="color: #000000;"> width;
+                    canvas.height </span>=<span style="color: #000000;"> height;
+                    ctx.rotate(degree);
+                    ctx.drawImage(img, </span>-width, -<span style="color: #000000;">height);
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">case</span> <span style="color: #800080;">3</span><span style="color: #000000;">:
+                    canvas.width </span>=<span style="color: #000000;"> height;
+                    canvas.height </span>=<span style="color: #000000;"> width;
+                    ctx.rotate(degree);
+                    ctx.drawImage(img, </span>-width, <span style="color: #800080;">0</span><span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            }
+        },
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">将base64转换为文件</span>
+<span style="color: #000000;">        dataURLtoFile(dataurl) {
+            </span><span style="color: #0000ff;">var</span> arr = dataurl.split(<span style="color: #800000;">"</span><span style="color: #800000;">,</span><span style="color: #800000;">"</span><span style="color: #000000;">),
+                bstr </span>= atob(arr[<span style="color: #800080;">1</span><span style="color: #000000;">]),
+                n </span>=<span style="color: #000000;"> bstr.length,
+                u8arr </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Uint8Array(n);
+            </span><span style="color: #0000ff;">while</span> (n--<span style="color: #000000;">) {
+                u8arr[n] </span>=<span style="color: #000000;"> bstr.charCodeAt(n);
+            }
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> File([u8arr], <span style="color: #0000ff;">this</span><span style="color: #000000;">.files.name, {
+                type: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.files.type
+            });
+        },
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">这里写接口 </span>
+        <span style="color: #0000ff;">async</span><span style="color: #000000;"> postImg() {
+            let file </span>= <span style="color: #0000ff;">this</span>.dataURLtoFile(<span style="color: #0000ff;">this</span><span style="color: #000000;">.headerImage);
+            let formData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> window.FormData();
+            formData.append(</span><span style="color: #800000;">"</span><span style="color: #800000;">file</span><span style="color: #800000;">"</span><span style="color: #000000;">, file);
+            toast_loding(</span><span style="color: #0000ff;">this</span>, <span style="color: #800000;">"</span><span style="color: #800000;">图片上传中&middot;&middot;&middot;</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                let res </span>= <span style="color: #0000ff;">await</span> util.ajax.post(<span style="color: #0000ff;">this</span><span style="color: #000000;">.upImgUrl, formData, {
+                    headers: {
+                        </span><span style="color: #800000;">"</span><span style="color: #800000;">Content-Type</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">multipart/form-data</span><span style="color: #800000;">"</span><span style="color: #000000;">
+                    }
+                });
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+                console.log(e);
+            }
+        }</span></pre>
+</div>
+<hr />
+<p>&nbsp;</p>
+<p>记录走过的路，踩过的坑，互勉。</p>
+<p>　　前端交流群：87709616</p>
+<p>有不同意见的可以留言，我们一起讨论。</p>
+<p>&nbsp;</p>
+<p>参考：<a title="vue移动端图片上传压缩" href="https://www.cnblogs.com/lvshaonan/p/8547676.html" target="_blank">https://www.cnblogs.com/lvshaonan/p/8547676.html</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

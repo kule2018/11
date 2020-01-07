@@ -1,0 +1,83 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修nodejs通过钉钉群机器人推送消息' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>nodejs通过钉钉群机器人推送消息</center></div><div class='banquan'>原文出处:本文由博客园博主WeihanLi提供。<br/>
+原文连接:https://www.cnblogs.com/weihanli/p/dingdingBot-via-nodejs.html</div><br>
+    <h1 id="nodejs-通过钉钉群机器人推送消息">nodejs 通过钉钉群机器人推送消息</h1>
+<h2 id="intro">Intro</h2>
+<p>最近在用 nodejs 写爬虫，之前的 nodejs 爬虫代码用 js 写的，感觉可维护性太差，也没有智能提示，于是把js改用ts(typescript)重写一下，提升代码质量。</p>
+<p>爬虫启动之后不定期会出现验证码反爬虫，需要输入验证码才能继续，于是想在需要输入验证码时推送一个消息给用户，让用户输入验证码以继续爬虫的整个流程。我们平时用钉钉办公，钉钉群有个机器人，很方便于是就实现了一个通过钉钉的群机器人实现消息推送。</p>
+<h2 id="实现">实现</h2>
+<p>代码是 ts 实现的，用了 request 发起http请求，具体参数参考<a href="https://open-doc.dingtalk.com/microapp/serverapi2/qf2nxq">钉钉官方文档</a>，只实现了文本消息的推送，其它消息类似，再进行一层封装，实现代码如下:</p>
+<pre><code><code>import * as request from &quot;request&quot;;
+import * as log4js from &quot;log4js&quot;;
+
+const logger = log4js.getLogger(&quot;DingdingBot&quot;);
+const ApplicationTypeHeader:string = &quot;application/json;charset=utf-8&quot;;
+
+// DingdingBot
+// https://open-doc.dingtalk.com/microapp/serverapi2/qf2nxq
+export class DingdingBot{
+    private readonly _webhookUrl:string;
+    constructor(webhookUrl:string){
+        this._webhookUrl = webhookUrl;
+    }
+
+    public pushMsg (msg: string, atMobiles?: Array&lt;string&gt;): boolean{
+        try {
+            
+            let options: request.CoreOptions = {
+                headers: {
+                  &quot;Content-Type&quot;: ApplicationTypeHeader
+                },
+                json: {
+                    &quot;msgtype&quot;: &quot;text&quot;, 
+                    &quot;text&quot;: {
+                        &quot;content&quot;: msg
+                    }, 
+                    &quot;at&quot;: {
+                        &quot;atMobiles&quot;: atMobiles == null ? [] : atMobiles,
+                        &quot;isAtAll&quot;: false
+                    }
+                }
+              };
+            request.post(this._webhookUrl, options, function(error, response, body){
+                logger.debug(`push msg ${msg}, response: ${JSON.stringify(body)}`);
+            });
+        }
+        catch(err) {
+            console.error(err);
+            return false;
+        }        
+    }
+}</code></pre>
+<p>使用方式：</p>
+<pre class="ts"><code>// botWebhookUrl 为对应钉钉机器人的 webhook 地址
+let bot = new DingdingBot(botWebhookUrl);;
+// 直接推送消息
+bot.pushMsg(&quot;测试消息&quot;);
+// 推送消息并 @ 某些人
+var mobiles = new Array&lt;string&gt;();
+mobiles.push(&quot;13255573334&quot;);
+bot.pushMsg(&quot;测试消息并@&quot;, mobiles);</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

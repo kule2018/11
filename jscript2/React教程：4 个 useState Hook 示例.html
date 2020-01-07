@@ -1,0 +1,200 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修React教程：4 个 useState Hook 示例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>React教程：4 个 useState Hook 示例</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/4-react-usestate-hook-examples.html</div><br>
+    <p><strong>摘要：</strong> React示例教程。</p>
+<ul>
+<li>原文：<a href="https://segmentfault.com/a/1190000019975655">快速了解 React Hooks 原理</a></li>
+<li>译者：前端小智</li>
+</ul>
+<p>到 React 16.8 目前为止，如果编写函数组件，然后遇到需要添加状态的情况，咱们就必须将组件转换为类组件。</p>
+<p>编写 <code>class Thing extends React.Component</code>，将函数体复制到<code>render()</code>方法中，修复缩进，最后添加需要的状态。</p>
+<p>今天，可以使用 Hook 获得相同的功能，并为自己节省了工作时间。在本文中，主要介绍<code>useState</code> hook。</p>
+<h3 id="usestate-做啥子的">useState 做啥子的</h3>
+<p><code>useState</code> hook 允许咱们向函数组件添加状态，我们通常称这些为“ hooks”，但它们实际上是函数，与 React 16.8 捆绑在一起。 通过在函数组件中调用<code>useState</code>，就会创建一个单独的状态。</p>
+<p>在类组件中，<code>state</code> 总是一个对象，可以在该对象上添加保存属性。</p>
+<p>对于 hooks，state 不必是对象，它可以是你想要的任何类型-数组、数字、布尔值、字符串等等。每次调用<code>useState</code>都会创建一个<code>state</code>块，其中包含一个值。</p>
+<h3 id="示例1使用-usestate-显示隐藏组件">示例1：使用 useState 显示/隐藏组件</h3>
+<p>这个示例是一个组件，它显示一些文本，并在末尾显示一个<code>read more</code>链接，当单击链接时，它展开剩下的文本。</p>
+<pre><code><code>    import React, { useState } from &#39;react&#39;;
+    import ReactDOM from &#39;react-dom&#39;;
+    
+    // 两个 props:
+    //   text - 显示的内容
+    //   maxLength - 在点击“read more”之前显示多少个字符
+    function LessText({ text, maxLength }) {
+      // 创建一个状态，并将其初始化为“true”
+      const [hidden, setHidden] = useState(true);
+    
+
+      if (text &lt;= maxLength) {
+        return &lt;span&gt;{text}&lt;/span&gt;;
+      }
+    
+      return (
+        &lt;span&gt;
+          {hidden ? `${text.substr(0, maxLength).trim()} ...` : text}
+          {hidden ? (
+            &lt;a onClick={() =&gt; setHidden(false)}&gt; read more&lt;/a&gt;
+          ) : (
+            &lt;a onClick={() =&gt; setHidden(true)}&gt; read less&lt;/a&gt;
+          )}
+        &lt;/span&gt;
+      );
+    }
+    
+    ReactDOM.render(
+      &lt;LessText
+        text={`专注、努力是成功的真正关键。把你的眼睛盯在目标上，然后朝着目标迈出下一步`}
+        maxLength={35}
+      /&gt;,
+      document.querySelector(&#39;#root&#39;)
+    );</code></pre>
+<p>仅用一行代码，我们就使这个函数组件有状态：</p>
+<pre><code><code>    const [hidden, setHidden] = useState(true);</code></pre>
+<p>但是这个函数到底在做什么呢?如果每次渲染都调用它(确实如此)，它又是如何保留状态的。</p>
+<h4 id="hooks-实现的技巧">Hooks 实现的技巧</h4>
+<p>这里的“神奇”之处是，React在每个组件的幕后维护一个对象，并且在这个持久对象中，有一个“状态单元”数组。当你调用<code>useState</code>时，<code>React</code>将该状态存储在下一个可用的单元格中，并递增数组索引。</p>
+<p>假设你的 <code>hooks</code> 总是以相同的顺序调用(如果遵循 hooks 的规则，它们将是相同的顺序)，React能够查找特定<code>useState</code>调用的前一个值。对<code>useState</code>的第一个调用存储在第一个数组元素中，第二个调用存储在第二个元素中，依此类推。</p>
+<p>这也不是很神奇的事情，主要它依赖于你可能没有想过的事实：咱们写的的组件是由<code>React</code>调用 ，所以它可以在调用组件之前事先做好一些工作。 而且，渲染组件的行为不仅仅是函数调用。 像<code>&lt;Thing /&gt;</code>这样的<code>JSX</code>被编译为<code>React.createElement（Thing）</code> - 显然 React 可以控制它的调用方式和时间。</p>
+<h3 id="示例2根据之前的状态更新状态">示例2：根据之前的状态更新状态</h3>
+<p>看看另一个例子：根据前一个值更新<code>state</code>的值。</p>
+<p>咱们要造个计步器，每点击一次按钮，就计一次，点击完后，它会告诉你你走了多少步。</p>
+<pre><code><code>    import React, { useState } from &#39;react&#39;;
+    
+    function StepTracker() {
+      const [steps, setSteps] = useState(0);
+    
+      function increment() {
+        setSteps(steps =&gt; steps + 1);
+      }
+    
+      return (
+        &lt;div&gt;
+          总共走了 {steps} 步!
+          &lt;br /&gt;
+          &lt;button onClick={increment}&gt;
+            点点我，步数不是个事！
+          &lt;/button&gt;
+        &lt;/div&gt;
+      );
+    }
+    
+    ReactDOM.render(
+      &lt;StepTracker /&gt;,
+      document.querySelector(&#39;#root&#39;)
+    );</code></pre>
+<p>首先，通过调用<code>useState</code>创建一个新的<code>state</code>，并将其初始化为<code>0</code>。它返回<code>steps</code>的当前值<code>0</code>和<code>setSteps</code>函数来更新 <code>steps</code>，用 <code>increment</code>函数来对<code>steps</code>进行增 1 操作。</p>
+<p>这里还可以优化的提取<code>increment</code>函数，可以直接将 <code>increment</code> 函数里面的内联到 <code>onClick</code> 里面：</p>
+<pre class="html"><code>    &lt;button onClick={() =&gt; setSteps(steps =&gt; steps + 1)}&gt;
+      I took another step
+    &lt;/button&gt;</code></pre>
+<h3 id="示例3-state-作为数组">示例3: state 作为数组</h3>
+<p>记住，<code>state</code>可以保存任何你想要的值。下面是一个随机数列表的例子，单击按钮将向列表添加一个新的随机数：</p>
+<pre><code><code>    function RandomList() {
+      const [items, setItems] = useState([]);
+    
+      const addItem = () =&gt; {
+        setItems([
+          ...items,
+          {
+            id: items.length,
+            value: Math.random() * 100
+          }
+        ]);
+      };
+    
+      return (
+        &lt;&gt;
+          &lt;button onClick={addItem}&gt;Add a number&lt;/button&gt;
+          &lt;ul&gt;
+            {items.map(item =&gt; (
+              &lt;li key={item.id}&gt;{item.value}&lt;/li&gt;
+            ))}
+          &lt;/ul&gt;
+        &lt;/&gt;
+      );
+    }</code></pre>
+<p>注意，我们<code>state</code>初始化为空数组<code>[]</code>，并在<code>addItem</code>函数中更新值。</p>
+<p><code>setItems</code> 更新 <code>state</code> 不会将旧值“合并” - 它会使用新值覆盖<code>state</code>。 这与<code>this.setState</code>在类中的工作方式不同。</p>
+<h3 id="示例4具有多个键的-state">示例4：具有多个键的 state</h3>
+<p>再来看看，<code>state</code>为对象的例子，创建一个包含2个字段的登录表单：<code>username</code> 和<code>password</code>。</p>
+<p>下面示例主要展示如何在一个<code>state</code>对象中存储多个值，以及如何更新单个值。</p>
+<pre><code><code>    function LoginForm() {
+      const [form, setValues] = useState({
+        username: &#39;&#39;,
+        password: &#39;&#39;
+      });
+    
+      const printValues = e =&gt; {
+        e.preventDefault();
+        console.log(form.username, form.password);
+      };
+    
+      const updateField = e =&gt; {
+        setValues({
+          ...form,
+          [e.target.name]: e.target.value
+        });
+      };
+    
+      return (
+        &lt;form onSubmit={printValues}&gt;
+          &lt;label&gt;
+            Username:
+            &lt;input
+              value={form.username}
+              name=&quot;username&quot;
+              onChange={updateField}
+            /&gt;
+          &lt;/label&gt;
+          &lt;br /&gt;
+          &lt;label&gt;
+            Password:
+            &lt;input
+              value={form.password}
+              name=&quot;password&quot;
+              type=&quot;password&quot;
+              onChange={updateField}
+            /&gt;
+          &lt;/label&gt;
+          &lt;br /&gt;
+          &lt;button&gt;Submit&lt;/button&gt;
+        &lt;/form&gt;
+      );
+    }</code></pre>
+<p>如果想试试，可查看 <a href="https://codesandbox.io/s/3qqnxr1qvp">CodeSandbox</a>。</p>
+<p>首先，我们创建一个<code>state</code>片段，并用一个对象初始化它</p>
+<pre><code><code>    const [form, setValues] = useState({
+      username: &#39;&#39;,
+      password: &#39;&#39;
+    })</code></pre>
+<p>这看起来像是在类中初始化状态的方式。</p>
+<p>还有一个处理提交的函数，其中，<code>e.preventDefault</code>来阻止页面刷新并打印出表单值。</p>
+<p><code>updateField</code>函数更有意思。它使用<code>setValues</code>传递一个对象，为了确保现有的状态不被覆盖，这里使用了展开运算(<code>...form</code>)。</p>
+<p><strong>代码部署后可能存在的BUG没法实时知道，事后为了解决这些BUG，花了大量的时间进行log 调试，这边顺便给大家推荐一个好用的BUG监控工具 <a href="https://www.fundebug.com/?utm_source=xiaozhi">Fundebug</a>。</strong></p>
+<p>原文：<a href="https://daveceddia.com/usestate-hook-examples/" class="uri">https://daveceddia.com/usestate-hook-examples/</a></p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了20亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

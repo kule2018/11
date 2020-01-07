@@ -1,0 +1,285 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-AST(5)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-AST(5)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/11134550.html</div><br>
+    <p>懒得发首页了，有时候因为贴的代码太多会被下，而且这东西本来也只是对自己学习的记录，阅读体验极差，所以就本地自娱自乐的写着吧！</p>
+<p>由于是解析字符串，所以在开始之前介绍一下词法结构体中关于管理字符串类的属性。之前在TokenDesc中，有两个属性，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 词法结构体
+ * 每一个TokenDesc代表单独一段词法
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">struct</span><span style="color: #000000;"> TokenDesc {
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 字符串词法相关
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  LiteralBuffer literal_chars;
+  LiteralBuffer raw_literal_chars;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...     </span>
+}</pre>
+</div>
+<p>当时没有详细讲，主要也是比较麻烦，在这里介绍一下该类。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span><span style="color: #000000;"> LiteralBuffer final {
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 根据字符Unicode数值判断是单字节还是双字节字符
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">void</span><span style="color: #000000;"> AddChar(uc32 code_unit) {
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (is_one_byte()) {
+        </span><span style="color: #0000ff;">if</span> (code_unit &lt;= static_cast&lt;uc32&gt;<span style="color: #000000;">(unibrow::Latin1::kMaxChar)) {
+          AddOneByteChar(static_cast</span>&lt;<span style="color: #0000ff;">byte</span>&gt;<span style="color: #000000;">(code_unit));
+          </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        ConvertToTwoByte();
+      }
+      AddTwoByteChar(code_unit);
+    }
+  </span><span style="color: #0000ff;">private</span><span style="color: #000000;">:
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 配置
+     * constexpr int MB = KB * KB; constexpr int KB = 1024; 
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> kInitialCapacity = <span style="color: #800080;">16</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> kGrowthFactor = <span style="color: #800080;">4</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> kMaxGrowth = <span style="color: #800080;">1</span> *<span style="color: #000000;"> MB;
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 向容器加字符
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">void</span> AddOneByteChar(<span style="color: #0000ff;">byte</span><span style="color: #000000;"> one_byte_char) {
+      </span><span style="color: #0000ff;">if</span> (position_ &gt;=<span style="color: #000000;"> backing_store_.length()) ExpandBuffer();
+      backing_store_[position_] </span>=<span style="color: #000000;"> one_byte_char;
+      position_ </span>+=<span style="color: #000000;"> kOneByteSize;
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 容器扩容
+     * 初始至少有64的容量 根据需要扩容
+     * 会生成一个新容量的vector 把数据复制过去并摧毁老的容器
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">void</span><span style="color: #000000;"> LiteralBuffer::ExpandBuffer() {
+      </span><span style="color: #0000ff;">int</span> min_capacity =<span style="color: #000000;"> Max(kInitialCapacity, backing_store_.length());
+      Vector</span>&lt;<span style="color: #0000ff;">byte</span>&gt; new_store = Vector&lt;<span style="color: #0000ff;">byte</span>&gt;<span style="color: #000000;">::New(NewCapacity(min_capacity));
+      </span><span style="color: #0000ff;">if</span> (position_ &gt; <span style="color: #800080;">0</span><span style="color: #000000;">) {
+        MemCopy(new_store.begin(), backing_store_.begin(), position_);
+      }
+      backing_store_.Dispose();
+      backing_store_ </span>=<span style="color: #000000;"> new_store;
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 扩容算法
+     * min_capacity代表容器最小所需容量
+     * (1024 * 1024) / 3 是一个阈值
+     * 小于该值容量以4倍的速度扩张 大于该值容量直接写死
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">int</span> LiteralBuffer::NewCapacity(<span style="color: #0000ff;">int</span><span style="color: #000000;"> min_capacity) {
+      </span><span style="color: #0000ff;">return</span> min_capacity &lt; (kMaxGrowth / (kGrowthFactor - <span style="color: #800080;">1</span><span style="color: #000000;">))
+                </span>? min_capacity *<span style="color: #000000;"> kGrowthFactor
+                : min_capacity </span>+<span style="color: #000000;"> kMaxGrowth;
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * Vector容器用来装字符
+     * potions_根据单/双字符类型影响length的计算
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    Vector</span>&lt;<span style="color: #0000ff;">byte</span>&gt;<span style="color: #000000;"> backing_store_;
+    </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> position_;
+    </span><span style="color: #0000ff;">bool</span><span style="color: #000000;"> is_one_byte_;
+};</span></pre>
+</div>
+<p>其实原理非常简单，用一个Vector容器去装字符，如果容量不够，会进行扩张。</p>
+<p>暂时不管双字节字符(比如中文)，所以需要关注的属性和方法就是上面的那些，有一个地方可以关注一下，就是扩容。根据扩容机制，初始会有16 * 4的容量，当所需容量大到一定程度，会写死，这里来计算一下写死的最大容量。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 计算 kMaxGrowth = 1024 * 1024 = 1048576
+ * 得到阈值 (kMaxGrowth / (kGrowthFactor - 1) = 1048576 / (4 - 1) = 349525.333
+ * 而未达到阈值前容器容量会从16开始每次乘以4 如下
+ * 64 256 1024 4096 16384 65536 262144 1048576
+ * 当扩容第7次时才出现比阈值大的数 这个值恰好等于1mb 因此容器容量最大值就是2mb
+ </span><span style="color: #008000;">*/</span></pre>
+</div>
+<p>单个字符串的解析长度原来是有上限的，最大为2mb，长度约为200万，此时会向Vector容量外的下标赋值，不知道会出现什么情况。</p>
+<p>回到上一篇的结尾，由于匹配到单引号，所以会走ScanString方法，源码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Token::Value Scanner::ScanString() {
+  uc32 quote </span>=<span style="color: #000000;"> c0_;
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 初始化
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  next().literal_chars.Start();
+  </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 对字符串的结尾预检测
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    AdvanceUntil([</span><span style="color: #0000ff;">this</span><span style="color: #000000;">](uc32 c0) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">    });
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 遇到&lsquo;\&rsquo;直接步进
+     * 后面如果直接是字符串结尾标识符 判定为非法
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">while</span> (c0_ == <span style="color: #800000;">'</span><span style="color: #800000;">\\</span><span style="color: #800000;">'</span><span style="color: #000000;">) {
+      Advance();
+      </span><span style="color: #0000ff;">if</span> (V8_UNLIKELY(c0_ == kEndOfInput || !ScanEscape&lt;<span style="color: #0000ff;">false</span>&gt;<span style="color: #000000;">())) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Token::ILLEGAL;
+      }
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 又遇到了同一个字符串标识符
+     * 说明字符串解析完成
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (c0_ ==<span style="color: #000000;"> quote) {
+      Advance();
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Token::STRING;
+    }
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 没有合拢的字符串 返回非法标记
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (V8_UNLIKELY(c0_ == kEndOfInput || <span style="color: #000000;">unibrow::IsStringLiteralLineTerminator(c0_))) {
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Token::ILLEGAL;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 向Vector里面塞一个字符</span>
+<span style="color: #000000;">    AddLiteralChar(c0_);
+  }
+}</span></pre>
+</div>
+<p>总的来说还是比较简单的，正常步进是初始化用过的Advance。代码中有一个方法叫AdvanceUntil，从函数名判断是一个预检函数。这个方法调用的结构非常奇怪，C++语法我也是TM日了狗，主要作用就是预先判断一下当前解析的字符串是否合法，整个函数结构如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 参数是一个匿名函数
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+AdvanceUntil([</span><span style="color: #0000ff;">this</span><span style="color: #000000;">](uc32 c0) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Unicode大于127的特殊字符</span>
+  <span style="color: #0000ff;">if</span> (V8_UNLIKELY(static_cast&lt;uint32_t&gt;(c0) &gt;<span style="color: #000000;"> kMaxAscii)) {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 检测是否是换行符
+     * \r\n以及\n
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (V8_UNLIKELY(unibrow::IsStringLiteralLineTerminator(c0))) {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    }
+    AddLiteralChar(c0);
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+  }
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 检查是否是字符串结束符
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  uint8_t char_flags </span>=<span style="color: #000000;"> character_scan_flags[c0];
+  </span><span style="color: #0000ff;">if</span> (MayTerminateString(char_flags)) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+  AddLiteralChar(c0);
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+});
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 这个方法会对c0_进行赋值
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">void</span><span style="color: #000000;"> AdvanceUntil(FunctionType check) {
+  c0_ </span>= source_-&gt;<span style="color: #000000;">AdvanceUntil(check);
+}
+
+template </span>&lt;typename FunctionType&gt;<span style="color: #000000;">
+V8_INLINE uc32 AdvanceUntil(FunctionType check) {
+  </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 从游标位置到结尾搜索符合条件的字符
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    auto next_cursor_pos </span>=<span style="color: #000000;">
+        std::find_if(buffer_cursor_, buffer_end_, [</span>&amp;<span style="color: #000000;">check](uint16_t raw_c0_) {
+          uc32 c0_ </span>= static_cast&lt;uc32&gt;<span style="color: #000000;">(raw_c0_);
+          </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> check(c0_);
+        });
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 1、碰到第二个参数 说明没有符合条件的字符 直接返回结束符
+     * 2、有符合条件的字符 把游标属性指向该字符的后一位 返回该字符
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (next_cursor_pos ==<span style="color: #000000;"> buffer_end_) {
+      buffer_cursor_ </span>=<span style="color: #000000;"> buffer_end_;
+      </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">ReadBlockChecked()) {
+        buffer_cursor_</span>++<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> kEndOfInput;
+      }
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      buffer_cursor_ </span>= next_cursor_pos + <span style="color: #800080;">1</span><span style="color: #000000;">;
+      </span><span style="color: #0000ff;">return</span> static_cast&lt;uc32&gt;(*<span style="color: #000000;">next_cursor_pos);
+    }
+  }
+}</span></pre>
+</div>
+<p>这里的调用方式比较邪门，其实就是JS的高阶函数，函数作为参数传入函数，比较核心的就是find_if方法与函数参数，这里就不讲std的方法了，用JS翻译一下，不然看起来实在太痛苦。</p>
+<div class="cnblogs_code">
+<pre><code>const callback = (str) =&gt;<span style="color: #000000;"> IsStringLiteralLineTerminator(str);
+
+const AdvanceUntil </span>= (callback) =&gt;<span style="color: #000000;"> {
+  let tarArea </span>=<span style="color: #000000;"> buffer_.slice(buffer_cursor_, buffer_end_);
+  let tarIdx </span>= tarArea.findIdx(v =&gt;<span style="color: #000000;"> callback(v));
+  </span><span style="color: #0000ff;">if</span>(tarIdx === - 1) <span style="color: #0000ff;">return</span> '非法字符串'<span style="color: #000000;">;
+  buffer_cursor_ </span>= tarIdx + 1<span style="color: #000000;">;
+  c0_ </span>=<span style="color: #000000;"> buffer_[tarIdx];
+}</span></pre>
+</div>
+<p>就是这么简单，变量直接对应，逻辑的话也就上面这些，find_if也就是根据索引来找符合对应条件的值。也就是说，唯一需要讲解的就是字符串结束符的判断。</p>
+<p>涉及的新属性有两个，其中一个是映射数组character_scan_flags，另外一个是MayTerminateString方法，两者其实是一个东西，可以放一起看。</p>
+<div class="cnblogs_code">
+<pre><code>inline <span style="color: #0000ff;">bool</span><span style="color: #000000;"> MayTerminateString(uint8_t scan_flags) {
+  </span><span style="color: #0000ff;">return</span> (scan_flags &amp; static_cast&lt;uint8_t&gt;<span style="color: #000000;">(ScanFlags::kStringTerminator));
+}
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 字符扫描标记
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">enum</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> ScanFlags : uint8_t {
+  kTerminatesLiteral </span>= <span style="color: #800080;">1</span> &lt;&lt; <span style="color: #800080;">0</span><span style="color: #000000;">,
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> "Cannot" rather than "can" so that this flag can be ORed together across
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> multiple characters.</span>
+  kCannotBeKeyword = <span style="color: #800080;">1</span> &lt;&lt; <span style="color: #800080;">1</span><span style="color: #000000;">,
+  kCannotBeKeywordStart </span>= <span style="color: #800080;">1</span> &lt;&lt; <span style="color: #800080;">2</span><span style="color: #000000;">,
+  kStringTerminator </span>= <span style="color: #800080;">1</span> &lt;&lt; <span style="color: #800080;">3</span><span style="color: #000000;">,
+  kIdentifierNeedsSlowPath </span>= <span style="color: #800080;">1</span> &lt;&lt; <span style="color: #800080;">4</span><span style="color: #000000;">,
+  kMultilineCommentCharacterNeedsSlowPath </span>= <span style="color: #800080;">1</span> &lt;&lt; <span style="color: #800080;">5</span><span style="color: #000000;">,
+};
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 映射表
+ * 对字符的可能性进行分类
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">static</span> constexpr <span style="color: #0000ff;">const</span> uint8_t character_scan_flags[<span style="color: #800080;">128</span>] =<span style="color: #000000;"> {
+</span><span style="color: #0000ff;">#define</span> CALL_GET_SCAN_FLAGS(N) GetScanFlags(N),<span style="color: #000000;">
+    INT_0_TO_127_LIST(CALL_GET_SCAN_FLAGS)
+</span><span style="color: #0000ff;">#undef</span> CALL_GET_SCAN_FLAGS<span style="color: #000000;">
+};</span></pre>
+</div>
+<p>首先可以看出，character_scan_flags也是类似于之前那个Unicode与Ascii的表，对所有字符做一个映射，映射的值就是那个枚举类型，一个字符可能对应多个可能性。这里的计算方法可以参照我之前那篇<a href="https://www.cnblogs.com/QH-Jimmy/p/11082265.html" target="_blank">利用枚举与位运算做配置</a>，需要哪个属性，就用对应的枚举与字符映射值做与运算。</p>
+<p>这个映射表的生成比较简单粗暴，会对每一个字符做6重或运算生成一个数，目前只看字符串终止符那块。</p>
+<div class="cnblogs_code">
+<pre><code>constexpr uint8_t GetScanFlags(<span style="color: #0000ff;">char</span><span style="color: #000000;"> c) {
+  </span><span style="color: #0000ff;">return</span>
+    <span style="color: #008000;">/*</span><span style="color: #008000;">* 1 </span><span style="color: #008000;">*/</span> | <span style="color: #008000;">/*</span><span style="color: #008000;">* 2 </span><span style="color: #008000;">*/</span> | <span style="color: #008000;">/*</span><span style="color: #008000;">* 3 </span><span style="color: #008000;">*/</span> |
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Possible string termination characters.</span>
+    ((c == <span style="color: #800000;">'</span><span style="color: #800000;">\'</span><span style="color: #800000;">'</span> || c == <span style="color: #800000;">'</span><span style="color: #800000;">"</span><span style="color: #800000;">'</span> || c == <span style="color: #800000;">'</span><span style="color: #800000;">\n</span><span style="color: #800000;">'</span> || c == <span style="color: #800000;">'</span><span style="color: #800000;">\r</span><span style="color: #800000;">'</span> || c == <span style="color: #800000;">'</span><span style="color: #800000;">\\</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+          </span>? static_cast&lt;uint8_t&gt;<span style="color: #000000;">(ScanFlags::kStringTerminator)
+          : </span><span style="color: #800080;">0</span>) | <span style="color: #008000;">/*</span><span style="color: #008000;">* 5 </span><span style="color: #008000;">*/</span> | <span style="color: #008000;">/*</span><span style="color: #008000;">* 6 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<p>也就是说，当前字符是单双引号、换行与反斜杠时，会被认定可能是一个字符串的结尾。</p>
+<p>回到编译字符串'Hello'，由于在字符结束之前，就存在另一个单引号，所以这个符号被认为可能是结束符号赋值给了c0_，Stream类的游标也直接移到了那个位置。至于中间的H、e、l、l、o5个字符，因为不存在任何特殊性，所以在最后的AddLiteralChar方法中被添加进了容器中。</p>
+<p>结束后，整个函数正常返回Token::STRING作为词法结构体的类型，结构体的Literal_chars的容器则存储着对应的字符串。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

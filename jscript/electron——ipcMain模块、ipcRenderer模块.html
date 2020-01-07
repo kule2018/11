@@ -1,0 +1,173 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修electron——ipcMain模块、ipcRenderer模块' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>electron——ipcMain模块、ipcRenderer模块</center></div><div class='banquan'>原文出处:本文由博客园博主妖色调提供。<br/>
+原文连接:https://www.cnblogs.com/loveyt/p/11031687.html</div><br>
+    <h1 id="ipcmain">ipcMain</h1>
+<blockquote>
+<p>从 <code>主进程</code> 到 <code>渲染进程</code> 的异步通信。</p>
+</blockquote>
+<p>ipcMain模块是EventEmitter类的一个实例。 当在主进程中使用时，它处理从渲染器进程（网页）发送出来的异步和同步信息。 从渲染器进程发送的消息将被发送到该模块。</p>
+<h3 id="举个例子">举个例子</h3>
+<pre><code><code>// 在主进程中.
+const { ipcMain } = require(&#39;electron&#39;)
+// 监听asynchronous-message，接收渲染进程发送的消息
+ipcMain.on(&#39;asynchronous-message&#39;, (event, arg) =&gt; {
+  console.log(arg) // prints &quot;ping&quot;
+  // 回复消息
+  event.reply(&#39;asynchronous-reply&#39;, &#39;pong&#39;)
+})
+
+// 监听synchronous-message，接收渲染进程发送的消息
+ipcMain.on(&#39;synchronous-message&#39;, (event, arg) =&gt; {
+  console.log(arg) // prints &quot;ping&quot;
+  // 返回的值
+  event.returnValue = &#39;pong&#39;
+})</code></pre>
+<pre><code><code>//在渲染器进程 (网页) 中。
+const { ipcRenderer } = require(&#39;electron&#39;)
+// 向主进程synchronous-message发送消息，并接收返回结果
+console.log(ipcRenderer.sendSync(&#39;synchronous-message&#39;, &#39;ping&#39;)) // prints &quot;pong&quot;
+
+// 接收asynchronous-reply返回的消息
+ipcRenderer.on(&#39;asynchronous-reply&#39;, (event, arg) =&gt; {
+  console.log(arg) // prints &quot;pong&quot;
+})
+// 向asynchronous-message发送消息
+ipcRenderer.send(&#39;asynchronous-message&#39;, &#39;ping&#39;)</code></pre>
+<h2 id="方法">方法</h2>
+<h3 id="ipcmain.onchannel-listener"><code>ipcMain.on(channel, listener)</code></h3>
+<ul>
+<li><code>channel</code> String</li>
+<li><code>listener</code> Function</li>
+</ul>
+<p>监听 <code>channel</code>，当接收到新的消息时 <code>listener</code> 会以 <code>listener(event, args...)</code> 的形式被调用。</p>
+<pre><code><code>// 监听message，接收渲染进程发送的消息
+ipcMain.on(&#39;message&#39;, (event, arg) =&gt; {
+  ...
+})</code></pre>
+<h3 id="ipcmain.oncechannel-listener"><code>ipcMain.once(channel, listener)</code></h3>
+<ul>
+<li><code>channel</code> String</li>
+<li><code>listener</code> Function</li>
+</ul>
+<p>添加一次性的 <code>listener</code>。当且仅当下一个消息发送到 <code>channel</code> 时 <code>listener</code> 才会被调用，随后 &lt;0&gt;listener&lt;/0&gt; 会被移除。</p>
+<pre><code><code>// 监听message，接收渲染进程发送的消息
+ipcMain.once(&#39;message&#39;, (event, arg) =&gt; {
+  ...
+})</code></pre>
+<h3 id="ipcmain.removelistenerchannel-listener"><code>ipcMain.removeListener(channel, listener)</code></h3>
+<ul>
+<li><code>channel</code> String</li>
+<li><code>listener</code> Function</li>
+</ul>
+<p>从监听器数组中移除监听 <code>channel</code> 的指定 <code>listener</code>。</p>
+<h3 id="ipcmain.removealllistenerschannel"><code>ipcMain.removeAllListeners([channel])</code></h3>
+<ul>
+<li><code>channel</code> String</li>
+</ul>
+<p>删除所有监听者，或特指的 <code>channel</code> 的所有监听者.</p>
+<h2 id="事件对象">事件对象</h2>
+<p>传递给 callback 的 event 对象有如下方法:</p>
+<h3 id="event.frameid"><code>event.frameId</code></h3>
+<p>一个整数，表示发送此消息的呈现程序帧的ID。</p>
+<h3 id="event.returnvalue"><code>event.returnValue</code></h3>
+<p>将此设置为在一个同步消息中返回的值.</p>
+<h3 id="event.sender"><code>event.sender</code></h3>
+<p>返回发送消息的web内容，您可以调用event.sender。发送以回复异步消息 <a href="https://electronjs.org/docs/api/web-contents#contentssendchannel-arg1-arg2-">webContents.send</a></p>
+<h3 id="event.reply"><code>event.reply</code></h3>
+<p>一个函数，它将向发送您当前正在处理的原始消息的呈现程序frane发送IPC消息。您应该使用此方法对发送的消息进行“回复”，以确保回复将进入正确的流程和框架。</p>
+<h1 id="ipcrenderer">ipcRenderer</h1>
+<blockquote>
+<p>从 <code>渲染器进程</code> 到 <code>主进程</code> 的异步通信。</p>
+</blockquote>
+<blockquote>
+<p><code>ipcRenderer</code> 是一个 EventEmitter 的实例。 你可以使用它提供的一些方法从渲染进程 (web 页面) 发送同步或异步的消息到主进程。 也可以接收主进程回复的消息。</p>
+</blockquote>
+<h2 id="方法-1">方法</h2>
+<p><code>ipcRenderer.on(channel, listener)</code></p>
+<ul>
+<li><code>channel</code> String</li>
+<li><code>listener</code> Function</li>
+</ul>
+<p>监听 channel, 当新消息到达，将通过 listener(event, args...) 调用 listener。</p>
+<pre><code><code>ipcRenderer.on(&#39;refresh-page&#39;, (event, arg) =&gt; {
+  ...
+})</code></pre>
+<p><code>ipcRenderer.once(channel, listener)</code></p>
+<ul>
+<li><code>channel</code> String</li>
+<li><code>listener</code> Function</li>
+</ul>
+<p>为事件添加一个一次性用的listener 函数.这个 listener 只有在下次的消息到达 channel 时被请求调用，之后就被删除了。</p>
+<pre><code><code>ipcRenderer.once(&#39;printerList&#39;, (event, arg) =&gt; {
+  ...
+})</code></pre>
+<p><code>ipcRenderer.removeListener(channel, listener)</code></p>
+<ul>
+<li><code>channel</code> String</li>
+<li><code>listener</code> Function</li>
+</ul>
+<p>为特定的 channel 从监听队列中删除特定的 listener 监听者。</p>
+<p><code>ipcRenderer.removeAllListeners(channel)</code></p>
+<ul>
+<li><code>channel</code> String</li>
+</ul>
+<p>移除所有的监听器，当指定 channel 时只移除与其相关的所有监听器。</p>
+<p><code>ipcRenderer.send(channel[, arg1][, arg2][, ...])</code></p>
+<ul>
+<li><code>channel</code> String</li>
+<li><code>...args</code> any[]</li>
+</ul>
+<p>通过 <code>channel</code> 发送异步消息到主进程，可以携带任意参数。 在内部，参数会被序列化为 JSON，因此参数对象上的函数和原型链不会被发送。</p>
+<p>主进程可以使用 <code>ipcMain</code> 监听channel 来接收这些消息。</p>
+<pre><code><code>ipcRenderer.send(&quot;printerList&quot;);</code></pre>
+<p><code>ipcRenderer.sendSync(channel[, arg1][, arg2][, ...])</code></p>
+<ul>
+<li><code>channel</code> String</li>
+<li><code>...args</code> any[]</li>
+</ul>
+<p>返回 <code>any</code> - 由 <code>ipcMain</code> 处理程序发送过来的值。</p>
+<p>通过 <code>channel</code> 发送同步消息到主进程，可以携带任意参数。 在内部，参数会被序列化为 JSON，因此参数对象上的函数和原型链不会被发送。</p>
+<p>主进程可以使用 <code>ipcMain</code> 监听<a href="https://electronjs.org/docs/api/ipc-main">channel</a>来接收这些消息，并通过 <code>event.returnValue</code> 设置回复消息。</p>
+<p><strong>注意</strong>: 发送同步消息将会阻塞整个渲染进程，你应该避免使用这种方式 - 除非你知道你在做什么。</p>
+<pre><code><code>ipcRenderer.sendSync(&quot;printerList&quot;);</code></pre>
+<p><code>ipcRenderer.sendTo(webContentsId, channel, [, arg1][, arg2][, ...])</code></p>
+<ul>
+<li><code>webContentsId</code> Number</li>
+<li><code>channel</code> String</li>
+<li><code>...args</code> any[]</li>
+</ul>
+<p>通过通道向带有webContentsId的窗口发送消息。</p>
+<p><code>ipcRenderer.sendToHost(channel[, arg1][, arg2][, ...])</code></p>
+<ul>
+<li><code>channel</code> String</li>
+<li><code>...args</code> any[]</li>
+</ul>
+<p>就像 <code>ipcRenderer.send</code>，不同的是消息会被发送到 host 页面上的 <code>&lt;webview&gt;</code> 元素，而不是主进程。</p>
+<h2 id="事件对象-1">事件对象</h2>
+<p><code>event.senderId</code></p>
+<p>返回webcontent。发送消息的id，您可以调用event.sender. sendto (event)。要回复此消息，请参见ipcRenderer。发送到以获取更多信息。这只适用于从不同呈现程序发送的消息。直接从主进程集事件发送的消息。senderId为0。</p>
+<p><a href="https://electronjs.org/docs/api/ipc-main">ipcMain</a></p>
+<p><a href="https://electronjs.org/docs/api/ipc-renderer">ipcRenderer</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

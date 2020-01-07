@@ -1,0 +1,81 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用正则表达式获取URL中的查询参数' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用正则表达式获取URL中的查询参数</center></div><div class='banquan'>原文出处:本文由博客园博主Shapeying提供。<br/>
+原文连接:https://www.cnblogs.com/shapeY/p/11893945.html</div><br>
+    <p>总结获取url中查询参数的两种方式</p>
+<h2 id="通过正则表达式获取单个参数">通过正则表达式获取单个参数</h2>
+<p>url中的所有查询参数可以通过 <code>window.location.search</code> 字段获取，以字符串的形式返回。并有固定的格式 <code>?param1=value1&amp;param2=value2···</code>，所以可以正则表达式匹配。</p>
+<p>分析下需要匹配的格式：</p>
+<ul>
+<li><code>param=value</code>, 其中需要获取的是value部分，但是也需要 <strong>param=</strong> 参与匹配，但是不能参与返回结果，这里有<code>前后查找</code>的问题</li>
+<li><code>?param=value</code> 和 <code>&amp;param=value</code> 都可能存在，参数名称紧跟在<code>?</code>或<code>&amp;</code>之后；还要注意的是，要区分 <strong>emali</strong>和<strong>mail</strong> 这种名称，<code>/mail/</code>既能匹配到email又能匹配mail，所以要给参数名称加一个<code>边界</code>，名称的上一个字符要是一个非单词(\W)的字符，这样就可以解决这两个问题</li>
+<li><code>value</code>后可能是空，也可能是下一组参数(以&amp;分割)，所以value的值要匹配到<code>[^&amp;]</code>为止</li>
+<li>由于参数名称是变化的，所以需要用字符串的形式来生成正则表达式</li>
+</ul>
+<p>前后查找和边界的介绍可以细看<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Guide/Regular_Expressions">MDN</a>中的详细介绍。</p>
+<p>搞定正则之后，使用string的<code>match</code>方法，就能直接获取到对应的参数值</p>
+<pre><code><code>function getUrlParamsByName(name) {
+    // \b 边界   
+    // ?&lt;= 向后匹配 
+    // 字符串转成正则表达式，其中的&#39;\b&#39;类型的特殊字符要多加一个&#39;\&#39;
+    let reg = new RegExp(`(?&lt;=\\b${name}=)[^&amp;]*`),
+    str = location.search || &#39;&#39;,
+    target = str.match(reg);
+    
+    if(target) {
+        return target[0]
+    }
+
+    return;
+}</code></pre>
+<h2 id="解析所有参数以对象返回">解析所有参数，以对象返回</h2>
+<p>上一个方法是获取单个的参数值，此方法是为了解析出所有的参数</p>
+<p>利用string的一些工具函数取值，注意一些异常场景的判断</p>
+<pre><code><code>function getUrlParams() {
+    let obj = {};
+
+    if (!window) {
+        return; 
+    }
+
+  let str = window.location.search || &#39;&#39;;
+  
+  if (str &amp;&amp; str.slice(1)) {
+     // 去掉 ？ ，然后以 &amp; 分割
+    let queryArray = str.slice(1).split(&#39;&amp;&#39;);
+    queryArray.map((query) =&gt; {
+      // param=value 以 = 分割
+      let temp = query.split(&#39;=&#39;);
+      if(temp.length &gt; 1) {
+      // 收集参数
+      obj[temp[0]] = temp[1];
+      }
+    })
+  }
+
+    return obj;
+}</code></pre>
+<h2 id="总结">总结</h2>
+<p>正则表达式的方式更加灵活便捷啊，开始用的时候不习惯，后来觉得真香！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

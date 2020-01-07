@@ -1,0 +1,205 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript之深入对象（一）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript之深入对象（一）</center></div><div class='banquan'>原文出处:本文由博客园博主任风来去匆匆提供。<br/>
+原文连接:https://www.cnblogs.com/ruhaoren/p/11510116.html</div><br>
+    <p>　　在之前的《JavaScript对象基础》中，我们大概了解了对象的创建和使用，知道对象可以使用构造函数和字面量方式创建。那么今天，我们就一起来深入了解一下JavaScript中的构造函数以及对象的原型及原型链。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>一&nbsp;&nbsp;&nbsp;&nbsp; 构造函数</strong></span></p>
+<p>&nbsp;</p>
+<p><strong>　　1，什么是构造函数</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Javascript中使用构造函数的<strong>目的是批量创建拥有相同属性的不同对象</strong>。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 实际上构造函数和普通函数并没有本质上的区别，唯一不同的地方在于：<strong>构造函数一般使用new关键字调用。</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 为了容易区别哪些是普通函数，哪些是构造函数，业界的共识是：<strong>构造函数使用大驼峰式命名规则（所有单词首字母大写）。普通函数和变量采用小驼峰式命名规则。</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> myFunction(){
+</span><span style="color: #008080;">2</span> <span style="color: #008000;">//</span><span style="color: #008000;">这是普通函数</span>
+<span style="color: #008080;">3</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">4</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> MyFunction(){
+</span><span style="color: #008080;">5</span> <span style="color: #008000;">//</span><span style="color: #008000;">这是构造函数</span>
+<span style="color: #008080;">6</span> }</pre>
+</div>
+<p><strong>　　</strong></p>
+<p><strong>　　2，构造函数的特点</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 构造函数最大的特点就是通过关键字this来给即将创建的对象添加属性和方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Person(){
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">this</span>.name = 'ren'<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">this</span>.age = 12<span style="color: #000000;">;
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">5</span> <span style="color: #0000ff;">var</span> perseon = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person();
+</span><span style="color: #008080;">6</span> console.log(person);<span style="color: #008000;">//</span><span style="color: #008000;">{name:'ren',age:12}</span></pre>
+</div>
+<p><strong>　　</strong></p>
+<p><strong>　　3，构造函数的执行过程</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 首先隐式的创建一个空对象，赋值给this。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 然后通过this添加属性和方法。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 最后隐式的返回this对象。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;">执行过程，以上面的Person为例</span>
+<span style="color: #008080;">2</span> <span style="color: #0000ff;">var</span> <span style="color: #0000ff;">this</span> =<span style="color: #000000;"> {};
+</span><span style="color: #008080;">3</span> <span style="color: #0000ff;">this</span>.name = 'ren'<span style="color: #000000;">;
+</span><span style="color: #008080;">4</span> <span style="color: #0000ff;">this</span>.age = 12<span style="color: #000000;">;
+</span><span style="color: #008080;">5</span> <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>;</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>　　4，构造函数的返回值</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 上面提到，构造函数执行到最后将隐式的的返回一个对象，但相信大家也没有忘记，普通函数可以使用return关键字指定返回值。那么，如果我们手动的在构造函数最后添加了return关键字，那么它究竟会返回什么呢？</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 默认返回this。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<strong>如果手动添加原始值，还是返回this。</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Person(){
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">this</span>.name = 'ren'<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">this</span>.age = 12<span style="color: #000000;">;
+</span><span style="color: #008080;">4</span>     <span style="color: #0000ff;">return</span> 50<span style="color: #000000;">;
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">6</span> <span style="color: #0000ff;">var</span> person = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person();
+</span><span style="color: #008080;">7</span> console.log(person);<span style="color: #008000;">//</span><span style="color: #008000;">{name:'ren',age:12}</span></pre>
+</div>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>手动添加引用值，最终返回这个引用值。</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Person(){
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">this</span>.name = 'ren'<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">this</span>.age = 12<span style="color: #000000;">;
+</span><span style="color: #008080;">4</span>     <span style="color: #0000ff;">return</span> {name:'ru',age:22<span style="color: #000000;">};
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">6</span> <span style="color: #0000ff;">var</span> person = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person();
+</span><span style="color: #008080;">7</span> console.log(person);<span style="color: #008000;">//</span><span style="color: #008000;">{name:'ru',age:22}</span></pre>
+</div>
+<p>　　请注意，以上情况都是基于把它当做构造函数，使用new关键字调用的结果。<strong>如果把它当做普通函数执行，那么无论return后面添加什么值，都将原样返回，如果没有return，则只会返回undefined。</strong>并且，这时函数内部将不会创建一个空对象，而且this也将不再引用这个空对象了，而是指向window对象。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Person(){
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">this</span>.name = 'ren'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">return</span> {name:'person'<span style="color: #000000;">};
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Animal(){
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">this</span>.name = 'ren'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">return</span> 'dog'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">var</span> person =<span style="color: #000000;"> Person();
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">var</span> animal =<span style="color: #000000;"> Animal();
+</span><span style="color: #008080;">11</span> console.log(person);<span style="color: #008000;">//</span><span style="color: #008000;">{name:'person'}</span>
+<span style="color: #008080;">12</span> console.log(animal);<span style="color: #008000;">//</span><span style="color: #008000;">'dog'</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>二&nbsp;&nbsp;&nbsp;&nbsp; 函数的原型</strong></span></p>
+<p>　　</p>
+<p>　　一般我们在讨论原型的时候通常是指构造函数的原型，因为使用普通函数的原型没有实际意义。所以下面提到的&rdquo;原型&rdquo;或&ldquo;函数的原型&rdquo;均指构造函数的原型。</p>
+<p>　　要理解函数的原型其实很简单。只需弄清楚3个属性：</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;fn.prototype</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;obj.__proto__</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;obj.constructor</p>
+<p>&nbsp;</p>
+<p><strong>　　1，&nbsp; 函数的prototype属性</strong></p>
+<p>　　prototype是函数才具有的属性，它指向一个对象，该对象具有的属性和方法将被构造函数创建的对象(实例)继承。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> test(){}
+</span><span style="color: #008080;">2</span> console.log(<span style="color: #0000ff;">typeof</span> test.prototype);<span style="color: #008000;">//</span><span style="color: #008000;">'object'</span>
+<span style="color: #008080;">3</span> console.log(test.prototype);<span style="color: #008000;">//</span><span style="color: #008000;">{...}</span></pre>
+</div>
+<p>　　<strong>这里说继承其实并不准确。比如a继承了b的属性和方法。字面上的意思是：a拥有了和b完全相同的属性和方法。但构造函数创建的对象（实例）并没有直接拥有原型上的属性和方法，它只是拿到了使用那些属性和方法的权限而已</strong>。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Person(){}
+</span><span style="color: #008080;">2</span> Person.prototype.name = 'ren'<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span> <span style="color: #0000ff;">var</span> person = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person();
+</span><span style="color: #008080;">4</span> console.log(person.hasOwnProperty('name'));<span style="color: #008000;">//false,hasOwnProperty()方法用于检测对象真实具有某属性，而非继承</span></pre>
+<pre><code><span style="color: #008080;">5</span> console.log(person.name);<span style="color: #008000;">//</span><span style="color: #008000;">'ren'，但是可以访问name属性</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>　　2，&nbsp; 对象的__proto__属性</strong></p>
+<p>　　<strong>大部分对象（不管什么方式创建的）都有__proto__属性</strong>。这个属性将指向它自己的原型。那么它自己的原型是个什么东西呢？</p>
+<p>　　前面提到，构造函数的目的是批量创建拥有相同属性的不同对象，既然要创建大量拥有相同属性的对象，那么肯定需要一个<strong>统一的模板，这个统一的模板就是对象的原型。</strong>实际上它就是构造函数的prototype属性指向的那个对象。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Person(){}
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">var</span> person = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person();
+</span><span style="color: #008080;">3</span> console.log(person.__proto__ === Person.prototype);<span style="color: #008000;">//</span><span style="color: #008000;">true</span></pre>
+</div>
+<p><strong>　　</strong></p>
+<p><strong>　　3，&nbsp; 对象的constructor属性</strong></p>
+<p>　　<strong>constructor属性并不是所有对象都有的，只有原型对象才具有该属性。该属性指向与之相关联的构造函数。</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Person(){}
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">var</span> person = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person();
+</span><span style="color: #008080;">3</span> console.log(person.hasOwnProperty('constructor'));<span style="color: #008000;">//</span><span style="color: #008000;">false</span>
+<span style="color: #008080;">4</span> console.log(Person.prototype.constructor === Person);<span style="color: #008000;">//</span><span style="color: #008000;">true</span>
+<span style="color: #008080;">5</span> console.log(person.__proto__.constructor === Person);<span style="color: #008000;">//</span><span style="color: #008000;">true</span></pre>
+</div>
+<p>　　注意，虽然constructor属性并不是所有对象都有的，但是实例依然可以访问该属性，并最终得到相应的构造函数。那是因为当读取实例的属性时，如果找不到，就会查找与对象关联的原型中的属性。</p>
+<p>&nbsp;</p>
+<p><strong>　　4，&nbsp; 实例、构造函数和原型的关系</strong></p>
+<p><img src="./images/JavaScript之深入对象（一）0.png" alt="" width="554" height="308" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>三&nbsp;&nbsp;&nbsp;&nbsp; 原型链</strong></span></p>
+<p><strong>　　</strong></p>
+<p><strong>　　1，原型链</strong></p>
+<p>　　前面讲到，大部分对象都有__proto__属性，指向它自己的原型对象。那么原型对象自身呢？原型对象自身作为对象，当然也具有__proto__属性，并且指向原型的原型。</p>
+<p>　　同样的，原型的原型也是一个对象，那么它也就有一个constructor属性指向一个关联的构造函数。依次类推，<strong>原型对象最终将指向Object对象的原型，与之相关联的构造函数则是Object。并且Object对象的原型就没有原型对象了，如果访问Object.prototype.__proto__将返回null。</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Father(){}
+</span><span style="color: #008080;"> 2</span> Father.prototype.name = 'ren'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span> <span style="color: #0000ff;">var</span> father = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Father();
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> Son(){}
+</span><span style="color: #008080;"> 6</span> Son.prototype =<span style="color: #000000;"> father;
+</span><span style="color: #008080;"> 7</span> Son.prototype.age = 12<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">var</span> son = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Son();
+</span><span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> GrandSon(){}
+</span><span style="color: #008080;">11</span> GrandSon.prototype =<span style="color: #000000;"> son;
+</span><span style="color: #008080;">12</span> GrandSon.prototype.address = 'cd'<span style="color: #000000;">;
+</span><span style="color: #008080;">13</span> <span style="color: #0000ff;">var</span> grandson = <span style="color: #0000ff;">new</span><span style="color: #000000;"> GrandSon();
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span> Object.prototype.mail = '@'<span style="color: #000000;">;
+</span><span style="color: #008080;">16</span> 
+<span style="color: #008080;">17</span> console.log(grandson.name);<span style="color: #008000;">//</span><span style="color: #008000;">'ren'</span>
+<span style="color: #008080;">18</span> console.log(grandson.age);<span style="color: #008000;">//</span><span style="color: #008000;">12</span>
+<span style="color: #008080;">19</span> console.log(grandson.address);<span style="color: #008000;">//</span><span style="color: #008000;">'cd'</span>
+<span style="color: #008080;">20</span> console.log(grandson.mail);<span style="color: #008000;">//</span><span style="color: #008000;">'@'</span></pre>
+</div>
+<p><strong>　　从上面的例子可以看出，访问对象的属性和方法，其实是通过__proto__属性在对象的原型链上查找，这一点和在函数内访问变量有一点类似。</strong></p>
+<p><strong>　　</strong>其实上面的例子有一个小小的bug，不知道你们发现了没有。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> console.log(Son.prototype.constructor);<span style="color: #008000;">//</span><span style="color: #008000;">Father (){}</span>
+<span style="color: #008080;">2</span> console.log(GrandSon.prototype.constructor);<span style="color: #008000;">//</span><span style="color: #008000;">Father (){}</span>
+<span style="color: #008080;">3</span> <span style="color: #008000;">//</span><span style="color: #008000;">打印的都是构造函数Father，这是为什么呢？</span></pre>
+</div>
+<p>　　Son构造函数的原型被我们手动指定为了father（Father构造函数的一个实例），father作为一个实例，它并不真实拥有constructor属性，所以当我们访问Son.prototype.constructor属性时，实际在访问father.__proto__.constructor，即Father构造函数。但Son作为一个构造函数，被它构造出来的对象在访问constructor时理应指向Son本身才符合逻辑，所以我们应该在修改Son的原型后手动为father实例添加constructor属性，并引用Son。相似的，son实例也应添加一个constructor属性，并引用GrandSon（使用father或Son.prototype都可以达到目的，因为他们指向同一个对象。同理，son或者GrandSon.prototype也一样）。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> Son.prototype.constructor =<span style="color: #000000;"> Son;
+</span><span style="color: #008080;">2</span> GrandSon.prototype.constructor = GrandSon();</pre>
+</div>
+<p><strong>　　</strong>这一段可能理解起来有点绕，但是请务必多尝试，并真正理解它。原型链是JS中一个相当重要的概念。最后附一张原型链的图解。</p>
+<p><img src="./images/JavaScript之深入对象（一）1.png" alt="" width="554" height="445" /></p>
+<p><strong>　　</strong><strong>2，Object.create()</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>方法接受一个对象或者null作为参数，返回一个对象。</strong>如果传递了一个对象，那么该对象将成为返回对象的原型。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> myProto =<span style="color: #000000;"> {name:&ldquo;ren&rdquo;};
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">var</span> obj =<span style="color: #000000;"> Object.create(myProto);
+</span><span style="color: #008080;">3</span> obj.__proto__ === myProto;<span style="color: #008000;">//</span><span style="color: #008000;">true</span></pre>
+</div>
+<p><strong>　　如果传递了null作为参数，那么它将没有原型，所以也没有__proto__属性了。这就是在第2.2节说大部分对象都有__proto__属性的原因了。还有一种说法是：并不是所有对象最终都继承自Object。当然null也不继承自Object。</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> obj = Object.create(<span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> console.log(obj.__proto__);<span style="color: #008000;">//</span><span style="color: #008000;">undefined</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

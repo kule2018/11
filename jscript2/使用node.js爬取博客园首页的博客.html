@@ -1,0 +1,132 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用node.js爬取博客园首页的博客' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用node.js爬取博客园首页的博客</center></div><div class='banquan'>原文出处:本文由博客园博主我白给了提供。<br/>
+原文连接:https://www.cnblogs.com/guasses/p/11276597.html</div><br>
+    <h1 class="title">一个简单的博客园爬虫</h1>
+<p class="title">声明：本人第一次写博客，文中有什么错误之处还请指出，本例本着学习的精神，拿博客园做了一个例子，也不知道博客园有没有这块的规定，如有不当之处，望海涵！</p>
+<h2 class="title">分析页面</h2>
+<p class="title">1、首先打开博客园首页<a href="https://www.cnblogs.com/">https://www.cnblogs.com/</a>，按F12或Ctrl+Shift+I，然后打开network（网络）选项卡，连续翻页，分析翻页数据，发现翻页通过AJAX获取数据。<img src="./images/使用node.js爬取博客园首页的博客0.png" alt="" width="912" height="487" /></p>
+<p>&nbsp;2、获取PostList.aspx的URL。</p>
+<p><img src="./images/使用node.js爬取博客园首页的博客1.png" alt="" /></p>
+<p>3、不同的页面请求的文件相同，那么服务器怎么知道应该返回哪个页面的数据？答案是根据AJAX发送到服务器的数据不同。</p>
+<p><img style="margin-left: 10px; margin-right: 10px;" src="./images/使用node.js爬取博客园首页的博客2.png" alt="" width="334" height="336" /><img src="./images/使用node.js爬取博客园首页的博客3.png" alt="" width="335" height="336" /></p>
+<p>只要改变PageIndex的值就能获取到不同的页面数据了。</p>
+<p>4、分析DOM元素。</p>
+<p><img src="./images/使用node.js爬取博客园首页的博客4.png" alt="" width="874" height="389" /></p>
+<h2>确定开发工具</h2>
+<p>本例使用node.js自带的http模块和第三方superagent、cheerio模块。</p>
+<p>&nbsp;新建并进入项目文件夹，安装模块。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">npm install superagent
+npm install cheerio</span></pre>
+</div>
+<p>SuperAgent使用文档</p>
+<p>简书&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<span style="color: #333399;"><a href="https://www.jianshu.com/p/1432e0f29abd"><span style="color: #333399;">https://www.jianshu.com/p/1432e0f29abd</span></a></span></p>
+<p>官方&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<span style="color: #333399;"><a href="https://links.jianshu.com/go?to=http%3A%2F%2Fvisionmedia.github.io%2Fsuperagent" target="_blank"><span style="color: #333399;">http://visionmedia.github.io/superagent</span></a></span></p>
+<p><span style="color: #000000;">cheerio使用文档</span></p>
+<p><span style="color: #000000;">简书&nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<span style="color: #333399;"><a href="https://www.jianshu.com/p/629a81b4e013"><span style="color: #333399;">https://www.jianshu.com/p/629a81b4e013</span></a></span></span></p>
+<p><span style="color: #000000;">官方&nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<span style="color: #333399;"><a href="https://cheerio.js.org/"><span style="color: #333399;">https://cheerio.js.org/</span></a></span></span></p>
+<h2><span style="color: #000000;">开始coding</span></h2>
+<p><span style="color: #000000;">1、新建index.js文件。</span></p>
+<p><span style="color: #000000;">2、本人水平有限，感觉异步IO会打乱写入文件的顺序，所以每个页面写入完成再继续访问下一个页面。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">引入核心模块</span>
+const fs = require('fs'<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">引入第三方模块</span>
+const superagent = require('superagent'<span style="color: #000000;">);
+const cheerio </span>= require('cheerio'<span style="color: #000000;">);
+
+let i</span>=1;<span style="color: #008000;">//</span><span style="color: #008000;">页数</span>
+<span style="color: #000000;">getURLDataAndWriteFile(i);
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * @description desc 获取页面数据并写入到文件
+ * @param i desc 页数
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> getURLDataAndWriteFile(i){
+    superagent.post(</span>"https://www.cnblogs.com/mvc/AggSite/PostList.aspx"<span style="color: #000000;">)
+        .send({CategoryId: </span>808,     <span style="color: #008000;">//</span><span style="color: #008000;">发送数据到服务器</span>
+            CategoryType: "SiteHome"<span style="color: #000000;">,
+            ItemListActionName: </span>"PostList"<span style="color: #000000;">,
+            PageIndex: i,           </span><span style="color: #008000;">//</span><span style="color: #008000;">根据i获取相应的页面数据</span>
+            ParentCategoryId: 0<span style="color: #000000;">,
+            TotalPostCount: </span>4000<span style="color: #000000;">})
+        .end((error,response)</span>=&gt;{    <span style="color: #008000;">//</span><span style="color: #008000;">页面访问失败返回error，response为服务器返回的数据</span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;">(error){
+                console.log(`访问第${i}页失败！`</span>+<span style="color: #000000;">error);
+            }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">调用函数，并以键值对的形式</span>
+                let blogList =<span style="color: #000000;"> {[i]:getBlogList(response)};
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">追加数据到blog-list.txt文件，如果不存在则创建</span>
+                <span style="color: #008000;">//</span><span style="color: #008000;">blogList为JSON对象，要把它转换为字符串</span>
+                fs.appendFile("blog-list.txt",JSON.stringify(blogList),<span style="color: #0000ff;">function</span><span style="color: #000000;">(error){
+                    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(error){
+                        console.log(`第${i}页数据写入文件失败！${error}`)
+                    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+                        console.log(`第${i}页数据写入文件成功！`);
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">爬取200页</span>
+                        <span style="color: #0000ff;">if</span>(++i&lt;=200<span style="color: #000000;">){
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">再次调用该函数</span>
+<span style="color: #000000;">                            getURLDataAndWriteFile(i);
+                        }
+                    }
+                });
+                
+            }
+        });
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * @description desc 获取一个页面的博客标题、链接、概要等等
+ * @param response desc 服务器返回的数据
+ * @return Array 返回博客列表的数组 
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> getBlogList(response){
+    let blogList </span>= [];        <span style="color: #008000;">//</span><span style="color: #008000;">新建空列表，用来放一个页面的博客</span>
+    let $ =<span style="color: #000000;"> cheerio.load(response.text);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取所有class="post_item_body"的元素，然后遍历每一个元素</span>
+    $('.post_item&gt;.post_item_body').each((index,element)=&gt;<span style="color: #000000;">{
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">用键值对存放数据</span>
+        let blog =<span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">trim()方法用于删除字符串的头尾空格</span>
+            link:$(element).find('.titlelnk').attr('href'<span style="color: #000000;">).trim(),
+            title:$(element).find(</span>'.titlelnk'<span style="color: #000000;">).text().trim(),
+            summary:$(element).find(</span>'.post_item_summary'<span style="color: #000000;">).text().trim(),
+            author:$(element).find(</span>'.lightblue'<span style="color: #000000;">).text(),
+            time:$(element).find(</span>'.post_item_foot'<span style="color: #000000;">).clone().children().remove().end().text().trim(),
+            comment:$(element).find(</span>'.article_comment&gt;.gray'<span style="color: #000000;">).text().trim(),
+            view:$(element).find(</span>'.article_view&gt;.gray'<span style="color: #000000;">).text().trim()
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">添加到数组尾部</span>
+<span style="color: #000000;">        blogList.push(blog);
+    });
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> blogList;
+}</span></pre>
+</div>
+<p>3、测试</p>
+<p>进入项目文件夹，后输入</p>
+<div class="cnblogs_code">
+<pre><code>node ./index.js</pre>
+</div>
+<p><img style="margin-left: 10px; margin-right: 10px;" src="./images/使用node.js爬取博客园首页的博客5.png" alt="" width="260" height="321" /><img src="./images/使用node.js爬取博客园首页的博客6.png" alt="" width="406" height="326" /></p>
+<p>一个简单的node.js爬虫就完成了。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

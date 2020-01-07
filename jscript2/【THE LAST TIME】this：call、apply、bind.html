@@ -1,0 +1,562 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【THE LAST TIME】this：call、apply、bind' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【THE LAST TIME】this：call、apply、bind</center></div><div class='banquan'>原文出处:本文由博客园博主isNealyang提供。<br/>
+原文连接:https://www.cnblogs.com/Nealyang/p/11690314.html</div><br>
+    <h2 id="前言">前言</h2>
+<blockquote>
+<p>The last time, I have learned</p>
+</blockquote>
+<p>【THE LAST TIME】一直是我想写的一个系列，旨在厚积薄发，重温前端。</p>
+<p>也是给自己的查缺补漏和技术分享。</p>
+<p>欢迎大家多多评论指点吐槽。</p>
+<p><img src="./images/【THE LAST TIME】this：call、apply、bind0.png" /></p>
+<blockquote>
+<p>系列文章均首发于公众号【全栈前端精选】，笔者文章集合详见<a href="https://github.com/Nealyang/PersonalBlog">Nealyang/personalBlog</a>。目录皆为暂定</p>
+</blockquote>
+<p>讲道理，这篇文章有些拿捏不好尺度。准确的说，这篇文章讲解的内容基本算是基础的基础了，但是往往这种基础类的文章很难在啰嗦和详细中把持好。文中道不到的地方还望各位评论多多补充指正。</p>
+<h2 id="the-last-time-系列">THE LAST TIME 系列</h2>
+<ul>
+<li><a href="https://mp.weixin.qq.com/s/nQgsEQorv00fr4XqU764bA">【THE LAST TIME】彻底吃透 JavaScript 执行机制</a></li>
+</ul>
+<h2 id="this">This</h2>
+<p>相信使用过 JavaScript 库做过开发的同学对 <code>this</code> 都不会陌生。虽然在开发中 <code>this</code> 是非常非常常见的，但是想真正吃透 <code>this</code>，其实还是有些不容易的。包括对于一些有经验的开发者来说，也都要驻足琢磨琢磨~ 包括想写清楚 this 呢，其实还得聊一聊 JavaScript 的作用域和词法</p>
+<h3 id="this-的误解一this-指向他自己">This 的误解一：this 指向他自己</h3>
+<pre><code><code>function foo(num) {
+  console.log(&quot;foo:&quot;+num);
+  this.count++;
+}
+
+foo.count = 0;
+
+for(var i = 0;i&lt;10;i++){
+    foo(i);
+}
+
+console.log(foo.count);</code></pre>
+<p>通过运行上面的代码我们可以看到，<code>foo</code>函数的确是被调用了十次，但是<code>this.count</code>似乎并没有加到<code>foo.count</code>上。也就是说，<strong>函数中的this.count并不是foo.count</strong>。</p>
+<h3 id="this-的误解二this-指向他的作用域">This 的误解二：this 指向他的作用域</h3>
+<p>另一种对this的误解是它不知怎么的指向函数的作用域，其实从某种意义上来说他是正确的，但是从另一种意义上来说，这的确是一种误解。</p>
+<p>明确的说，this不会以任何方式指向函数的词法作用域，作用域好像是一个将所有可用标识符作为属性的对象，这从内部来说他是对的，但是JavaScript代码不能访问这个作用域“对象”，因为它是引擎内部的实现</p>
+<pre><code><code>function foo() {
+    var a = 2;
+    this.bar();
+}
+
+function bar() {
+    console.log( this.a );
+}
+
+foo(); //undefined</code></pre>
+<h3 id="全局环境中的-this">全局环境中的 This</h3>
+<p>既然是全局环境，我们当然需要去明确下<code>宿主环境</code>这个概念。简而言之，一门语言在运行的时候需要一个环境，而这个环境的就叫做<code>宿主环境</code>。对于 JavaScript 而言，宿主环境最为常见的就是 web 浏览器。</p>
+<p>如上所说，我们也可以知道环境不是唯一的，也就是 JavaScript 代码不仅仅可以在浏览器中跑，也能在其他提供了<code>宿主环境</code>的程序里面跑。另一个最为常见的就是 <code>Node</code> 了，同样作为<code>宿主环境</code>，<code>node</code> 也有自己的 <code>JavaScript</code> 引擎：<code>v8</code>.</p>
+<ul>
+<li>浏览器中，在全局范围内，<code>this</code> 等价于 <code>window</code> 对象</li>
+<li>浏览器中，用 <code>var</code> 声明一个变量等价于给 <code>this</code> 或者 <code>window</code> 添加属性</li>
+<li>如果你在声明一个变量的时候没有使用<code>var</code>或者<code>let(ECMAScript 6)</code>,你就是在给全局的<code>this</code>添加或者改变属性值</li>
+<li>在 node 环境里，如果使用 <code>REPL</code> 来执行程序，那么 <code>this</code> 就等于 <code>global</code></li>
+<li>在 node 环境中，如果是执行一个 js 脚本，那么 <code>this</code> 并不指向 <code>global</code> 而是<code>module.exports</code>为<code>{}</code></li>
+<li>在node环境里，在全局范围内，如果你用<code>REPL</code>执行一个脚本文件，用var声明一个变量并不会和在浏览器里面一样将这个变量添加给this</li>
+<li>如果你不是用REPL执行脚本文件，而是直接执行代码，结果和在浏览器里面是一样的</li>
+<li>在<code>node</code>环境里，用REPL运行脚本文件的时候，如果在声明变量的时候没有使用<code>var</code>或者<code>let</code>，这个变量会自动添加到<code>global</code>对象，但是不会自动添加给<code>this</code>对象。如果是直接执行代码，则会同时添加给<code>global</code>和<code>this</code></li>
+</ul>
+<p>这一块代码比较简单，我们不用码说话，改为用图说话吧！</p>
+<p><img src="./images/【THE LAST TIME】this：call、apply、bind1.png" /></p>
+<h3 id="函数方法中的-this">函数、方法中的 This</h3>
+<blockquote>
+<p>很多文章中会将函数和方法区分开，但是我觉得。。。没必要啊，咱就看谁点了如花这位菇凉就行</p>
+</blockquote>
+<p>当一个函数被调用的时候，会建立一个活动记录，也成为执行环境。这个记录包含函数是从何处（call-stack）被调用的，函数是 如何 被调用的，被传递了什么参数等信息。这个记录的属性之一，就是在函数执行期间将被使用的this引用。</p>
+<p>函数中的 this 是多变的，但是规则是不变的。</p>
+<p>你问这个函数：”<del>老妹</del>~ oh，不，函数！谁点的你？“</p>
+<p>”是他！！！“</p>
+<p>那么，this 就指向那个家伙！再学术化一些，所以！<strong>一般情况下！this不是在编译的时候决定的，而是在运行的时候绑定的上下文执行环境。this 与声明无关！</strong></p>
+<pre><code><code>function foo() {
+    console.log( this.a );
+}
+
+var a = 2;
+
+foo(); // 2</code></pre>
+<p>记住上面说的，<code>谁点的我！！！</code> =&gt; <code>foo()</code> = <code>windwo.foo()</code>,所以其中this 执行的是 window 对象，自然而然的打印出来 2.</p>
+<blockquote>
+<p>需要注意的是，对于严格模式来说，默认绑定全局对象是不合法的，this被置为undefined。</p>
+</blockquote>
+<pre><code><code>function foo() {
+    console.log( this.a );
+}
+
+var obj2 = {
+    a: 42,
+    foo: foo
+};
+
+var obj1 = {
+    a: 2,
+    obj2: obj2
+};
+
+obj1.obj2.foo(); // 42</code></pre>
+<p>虽然这位 xx 被点的多了。。。但是，我们只问点他的那个人，也就是 <code>ojb2</code>,所以 <code>this.a</code>输出的是 42.</p>
+<blockquote>
+<p>注意，我这里的点！不是你想的那个点哦，是<strong>运行时</strong>~</p>
+</blockquote>
+<h3 id="构造函数中的-this">构造函数中的 This</h3>
+<blockquote>
+<p>恩。。。这，就是从良了</p>
+</blockquote>
+<p>还是如上文说到的，this，我们不看在哪定义，而是看运行时。所谓的构造函数，就是关键字<code>new</code>打头！</p>
+<p><strong>谁给我 new，我跟谁</strong></p>
+<p>其实内部完成了如下事情：</p>
+<ul>
+<li>一个新的对象会被创建</li>
+<li>这个新创建的对象会被接入原型链</li>
+<li>这个新创建的对象会被设置为函数调用的this绑定</li>
+<li>除非函数返回一个他自己的其他对象，这个被new调用的函数将自动返回一个新创建的对象</li>
+</ul>
+<pre><code><code>foo = &quot;bar&quot;;
+function testThis(){
+  this.foo = &#39;foo&#39;;
+}
+console.log(this.foo);
+new testThis();
+console.log(this.foo);
+console.log(new testThis().foo)//自行尝试</code></pre>
+<h3 id="callapplybind-中的-this">call、apply、bind 中的 this</h3>
+<blockquote>
+<p>恩。。。这就是被包了</p>
+</blockquote>
+<p>在很多书中，call、apply、bind 被称之为 this 的强绑定。说白了，<strong>谁出力，我跟谁</strong>。那至于这三者的区别和实现以及原理呢，咱们下文说！</p>
+<pre><code><code>function dialogue () {
+  console.log (`I am ${this.heroName}`);
+}
+const hero = {
+  heroName: &#39;Batman&#39;,
+};
+dialogue.call(hero)//I am Batman</code></pre>
+<p>上面的<code>dialogue.call(hero)</code>等价于<code>dialogue.apply(hero)``dialogue.bind(hero)()</code>.</p>
+<p>其实也就是我明确的指定这个 this 是什么玩意儿！</p>
+<h3 id="箭头函数中的-this">箭头函数中的 this</h3>
+<p>箭头函数的 this 和 JavaScript 中的函数有些不同。箭头函数会永久地捕获 this值，阻止 apply或 call后续更改它。</p>
+<pre><code><code>let obj = {
+  name: &quot;Nealyang&quot;,
+  func: (a,b) =&gt; {
+      console.log(this.name,a,b);
+  }
+};
+obj.func(1,2); // 1 2
+let func = obj.func;
+func(1,2); //   1 2
+let func_ = func.bind(obj);
+func_(1,2);//  1 2
+func(1,2);//   1 2
+func.call(obj,1,2);// 1 2
+func.apply(obj,[1,2]);//  1 2</code></pre>
+<p>箭头函数内的 this值无法明确设置。此外，使用 call 、 apply或 bind等方法给 this传值，箭头函数会忽略。箭头函数引用的是箭头函数在创建时设置的 this值。</p>
+<p>箭头函数也不能用作构造函数。因此，我们也不能在箭头函数内给 this设置属性。</p>
+<h3 id="class-中的-this">class 中的 this</h3>
+<p>虽然 JavaScript 是否是一个面向对象的语言至今还存在一些争议。这里我们也不去争论。但是我们都知道，类，是 JavaScript 应用程序中非常重要的一个部分。</p>
+<p>类通常包含一个 constructor ， this可以指向任何新创建的对象。</p>
+<p>不过在作为方法时，如果该方法作为普通函数被调用， this也可以指向任何其他值。与方法一样，类也可能失去对接收器的跟踪。</p>
+<pre><code><code>class Hero {
+  constructor(heroName) {
+    this.heroName = heroName;
+  }
+  dialogue() {
+    console.log(`I am ${this.heroName}`)
+  }
+}
+const batman = new Hero(&quot;Batman&quot;);
+batman.dialogue();</code></pre>
+<p>构造函数里的 this指向新创建的 类实例。当我们调用 batman.dialogue()时， dialogue()作为方法被调用， batman是它的接收器。</p>
+<p>但是如果我们将 dialogue()方法的引用存储起来，并稍后将其作为函数调用，我们会丢失该方法的接收器，此时 this参数指向 undefined 。</p>
+<pre><code><code>const say = batman.dialogue;
+say();</code></pre>
+<p>出现错误的原因是JavaScript 类是隐式的运行在严格模式下的。我们是在没有任何自动绑定的情况下调用 say()函数的。要解决这个问题，我们需要手动使用 bind()将 dialogue()函数与 batman绑定在一起。</p>
+<pre><code><code>const say = batman.dialogue.bind(batman);
+say();</code></pre>
+<h3 id="this-的原理">this 的原理</h3>
+<blockquote>
+<p>咳咳，技术文章，咱们严肃点</p>
+</blockquote>
+<p>我们都说，this指的是函数运行时所在的环境。但是为什么呢？<br />
+<img src="./images/【THE LAST TIME】this：call、apply、bind2.png" /></p>
+<p>我们都知道，JavaScript 的一个对象的赋值是将地址赋值给变量的。引擎在读取变量的时候其实就是要了个地址然后再从原地址读出来对象。那么如果对象里属性也是引用类型的话（比如 <code>function</code>）,当然也是如此！</p>
+<p><img src="./images/【THE LAST TIME】this：call、apply、bind3.png" alt="截图自阮一峰博客" /></p>
+<p>而JavaScript 允许函数体内部，引用当前环境的其他变量，而这个变量是由运行环境提供的。由于函数又可以在不同的运行环境执行，所以需要个机制来<strong>给函数提供运行环境</strong>！而这个机制，也就是我们说到心在的 this。this的初衷也就是在函数内部使用，代指当前的运行环境。</p>
+<pre><code><code>var f = function () {
+  console.log(this.x);
+}
+
+var x = 1;
+var obj = {
+  f: f,
+  x: 2,
+};
+
+// 单独执行
+f() // 1
+
+// obj 环境执行
+obj.f() // 2</code></pre>
+<p><img src="./images/【THE LAST TIME】this：call、apply、bind4.png" alt="截图自阮一峰博客" /></p>
+<p><code>obj.foo()</code>是通过<code>obj</code>找到<code>foo</code>，所以就是在<code>obj</code>环境执行。一旦<code>var foo = obj.foo</code>，变量<code>foo</code>就直接指向函数本身，所以<code>foo()</code>就变成在<code>全局环境</code>执行.</p>
+<h3 id="总结">总结</h3>
+<ul>
+<li>函数是否在new中调用，如果是的话this绑定的是新创建的对象</li>
+</ul>
+<pre><code><code>var bar = new Foo();</code></pre>
+<ul>
+<li>函数是否通过call、apply或者其他硬性调用，如果是的话，this绑定的是指定的对象</li>
+</ul>
+<pre><code><code>var bar = foo.call(obj);</code></pre>
+<ul>
+<li>函数是否在某一个上下文对象中调用,如果是的话，this绑定的是那个上下文对象</li>
+</ul>
+<pre><code><code>var bar = obj.foo();</code></pre>
+<ul>
+<li>如果都不是的话，使用默认绑定，如果在严格模式下，就绑定到undefined，注意这里是方法里面的严格声明。否则绑定到全局对象</li>
+</ul>
+<pre><code><code>var bar = foo();</code></pre>
+<h3 id="小试牛刀">小试牛刀</h3>
+<pre><code><code>var number = 2;
+var obj = {
+  number: 4,
+  /*匿名函数自调*/
+  fn1: (function() {
+    var number;
+    this.number *= 2; //4
+
+    number = number * 2; //NaN
+    number = 3;
+    return function() {
+      var num = this.number;
+      this.number *= 2; //6
+      console.log(num);
+      number *= 3; //9
+      alert(number);
+    };
+  })(),
+
+  db2: function() {
+    this.number *= 2;
+  }
+};
+
+var fn1 = obj.fn1;
+
+alert(number);
+
+fn1();
+
+obj.fn1();
+
+alert(window.number);
+
+alert(obj.number);</code></pre>
+<blockquote>
+<p><strong>评论区留下你的答案吧</strong>~</p>
+</blockquote>
+<h2 id="call-applay">call &amp; applay</h2>
+<p>上文中已经提到了 <code>call</code>、<code>apply</code>和 <code>bind</code>,在 <code>MDN</code> 中定义的 <code>apply</code> 如下：</p>
+<blockquote>
+<p>apply() 方法调用一个函数, 其具有一个指定的this值，以及作为一个数组（或类似数组的对象）提供的参数</p>
+</blockquote>
+<p>语法：</p>
+<blockquote>
+<p>fun.apply(thisArg, [argsArray])</p>
+</blockquote>
+<ul>
+<li>thisArg：在 fun 函数运行时指定的 this 值。需要注意的是，指定的 this 值并不一定是该函数执行时真正的 this 值，如果这个函数处于非严格模式下，则指定为 null 或 undefined 时会自动指向全局对象（浏览器中就是window对象），同时值为原始值（数字，字符串，布尔值）的 this 会指向该原始值的自动包装对象。</li>
+<li>argsArray：一个数组或者类数组对象，其中的数组元素将作为单独的参数传给 fun 函数。如果该参数的值为null 或 undefined，则表示不需要传入任何参数。从ECMAScript 5 开始可以使用类数组对象。浏览器兼容性请参阅本文底部内容。</li>
+</ul>
+<p>如上概念 <code>apply</code> 类似.区别就是 apply 和 call 传入的第二个参数类型不同。</p>
+<p>call 的语法为：</p>
+<pre><code><code>fun.call(thisArg[, arg1[, arg2[, ...]]])</code></pre>
+<p>需要注意的是：</p>
+<ul>
+<li>调用 call 的对象，必须是个函数 Function</li>
+<li>call 的第一个参数，是一个对象。 Function 的调用者，将会指向这个对象。如果不传，则默认为全局对象 window。</li>
+<li>第二个参数开始，可以接收任意个参数。每个参数会映射到相应位置的 Function 的参数上。但是如果将所有的参数作为数组传入，它们会作为一个整体映射到 Function 对应的第一个参数上，之后参数都为空。</li>
+</ul>
+<p>apply 的语法为：</p>
+<pre><code><code>Function.apply(obj[,argArray])</code></pre>
+<p>需要注意的是：</p>
+<ul>
+<li>它的调用者必须是函数 Function，并且只接收两个参数</li>
+<li>第二个参数，必须是数组或者类数组，它们会被转换成类数组，传入 Function 中，并且会被映射到 Function 对应的参数上。这也是 call 和 apply 之间，很重要的一个区别。</li>
+</ul>
+<p>记忆技巧：<strong>apply，a 开头，array，所以第二参数需要传递数据。</strong></p>
+<blockquote>
+<p>请问！什么是类数组？</p>
+</blockquote>
+<h3 id="核心理念">核心理念</h3>
+<p><strong>借！</strong></p>
+<p>对，就是借。举个栗子！我没有女朋友，周末。。。额，不，我没有摩托车🏍，周末的时候天气很好，想出去压弯。但是我有没有钱！怎么办呢，找朋友借用一下啊~达到了目的，还节省开支！</p>
+<p>放到程序中我们可以理解为，某一个对象没有想用的方法去实现某个功能，但是不想浪费内存开销，就借用另一个有该方法的对象去借用一下。</p>
+<p>说白了，包括 bind，他们的核心理念都是<strong>借用方法</strong>，已达到节省开销的目的。</p>
+<h3 id="应用场景">应用场景</h3>
+<blockquote>
+<p>代码比较简单，就不做讲解了</p>
+</blockquote>
+<ul>
+<li>将类数组转换为数组</li>
+</ul>
+<pre><code><code>const arrayLike = {
+  0: &#39;qianlong&#39;,
+  1: &#39;ziqi&#39;,
+  2: &#39;qianduan&#39;,
+  length: 3
+}
+const arr = Array.prototype.slice.call(arrayLike);</code></pre>
+<p><img src="./images/【THE LAST TIME】this：call、apply、bind5.png" alt="运行结果" /></p>
+<ul>
+<li>求数组中的最大值</li>
+</ul>
+<pre><code><code>var arr = [34,5,3,6,54,6,-67,5,7,6,-8,687];
+Math.max.apply(Math, arr);
+Math.max.call(Math, 34,5,3,6,54,6,-67,5,7,6,-8,687);
+Math.min.apply(Math, arr);
+Math.min.call(Math, 34,5,3,6,54,6,-67,5,7,6,-8,687);</code></pre>
+<ul>
+<li>变量类型判断</li>
+</ul>
+<p><code>Object.prototype.toString</code>用来判断类型再合适不过,尤其是对于引用类型来说。</p>
+<pre><code><code>function isArray(obj){
+  return Object.prototype.toString.call(obj) == &#39;[object Array]&#39;;
+}
+isArray([]) // true
+isArray(&#39;qianlong&#39;) // false</code></pre>
+<ul>
+<li>继承</li>
+</ul>
+<pre><code><code>// 父类
+function supFather(name) {
+    this.name = name;
+    this.colors = [&#39;red&#39;, &#39;blue&#39;, &#39;green&#39;]; // 复杂类型
+}
+supFather.prototype.sayName = function (age) {
+    console.log(this.name, &#39;age&#39;);
+};
+// 子类
+function sub(name, age) {
+    // 借用父类的方法：修改它的this指向,赋值父类的构造函数里面方法、属性到子类上
+    supFather.call(this, name);
+    this.age = age;
+}
+// 重写子类的prototype，修正constructor指向
+function inheritPrototype(sonFn, fatherFn) {
+    sonFn.prototype = Object.create(fatherFn.prototype); // 继承父类的属性以及方法
+    sonFn.prototype.constructor = sonFn; // 修正constructor指向到继承的那个函数上
+}
+inheritPrototype(sub, supFather);
+sub.prototype.sayAge = function () {
+    console.log(this.age, &#39;foo&#39;);
+};
+// 实例化子类，可以在实例上找到属性、方法
+const instance1 = new sub(&quot;OBKoro1&quot;, 24);
+const instance2 = new sub(&quot;小明&quot;, 18);
+instance1.colors.push(&#39;black&#39;)
+console.log(instance1) // {&quot;name&quot;:&quot;OBKoro1&quot;,&quot;colors&quot;:[&quot;red&quot;,&quot;blue&quot;,&quot;green&quot;,&quot;black&quot;],&quot;age&quot;:24}
+console.log(instance2) // {&quot;name&quot;:&quot;小明&quot;,&quot;colors&quot;:[&quot;red&quot;,&quot;blue&quot;,&quot;green&quot;],&quot;age&quot;:18} </code></pre>
+<blockquote>
+<p>继承后面可能也会写一个篇【THE LAST TIME】。也是比较基础，不知道有没有这个必要</p>
+</blockquote>
+<p>简易版继承</p>
+<pre><code><code>ar Person = function (name, age) {
+  this.name = name;
+  this.age = age;
+};
+var Girl = function (name) {
+  Person.call(this, name);
+};
+var Boy = function (name, age) {
+  Person.apply(this, arguments);
+}
+var g1 = new Girl (&#39;qing&#39;);
+var b1 = new Boy(&#39;qianlong&#39;, 100);</code></pre>
+<h2 id="bind">bind</h2>
+<p>bind 和 call/apply 用处是一样的，但是 <code>bind</code> 会<strong>返回一个新函数！不会立即执行！</strong>而<code>call/apply</code>改变函数的 this 并且立即执行。<br />
+<img src="./images/【THE LAST TIME】this：call、apply、bind6.png" /></p>
+<h3 id="应用场景-1">应用场景</h3>
+<ul>
+<li>缓存参数</li>
+</ul>
+<blockquote>
+<p>原理其实就是返回闭包，毕竟 bind 返回的是一个函数的拷贝</p>
+</blockquote>
+<pre><code><code>for (var i = 1; i &lt;= 5; i++) {
+    // 缓存参数
+    setTimeout(function (i) {
+        console.log(&#39;bind&#39;, i) // 依次输出：1 2 3 4 5
+    }.bind(null, i), i * 1000);
+}</code></pre>
+<p>上述代码也是一个经典的面试题，具体也不展开了。</p>
+<ul>
+<li>this 丢失问题</li>
+</ul>
+<p>说道 this 丢失问题，应该最常见的就是 react 中定义一个方法然后后面要加 <code>bind(this)</code>的操作了吧！当然，箭头函数不需要，这个咱们上面讨论过。</p>
+<h2 id="手写实现">手写实现</h2>
+<h3 id="apply">apply</h3>
+<blockquote>
+<p>第一个手写咱们一步一步来</p>
+</blockquote>
+<ul>
+<li>从定义触发，因为是 function 调用者。所以肯定是给 function 添加方法咯,并且第一个参数是未来 this 上下文</li>
+</ul>
+<pre><code><code>Function.prototype.NealApply = function(context,args){}</code></pre>
+<ul>
+<li>如果context，this 指向 window</li>
+</ul>
+<pre><code><code>Function.prototype.NealApply = function(context,args){
+    context = context || window;
+    args = args || [];
+}</code></pre>
+<ul>
+<li>给 context 新增一个不可覆盖的 key，然后绑定 this</li>
+</ul>
+<blockquote>
+<p>对，我们没有黑魔法，既然绑定 this，还是逃不掉我们上文说的那些 this 方式</p>
+</blockquote>
+<pre><code><code>Function.prototype.NealApply = function(context,args){
+    context = context || window;
+    args = args || [];
+    //给context新增一个独一无二的属性以免覆盖原有属性
+    const key = Symbol();
+    context[key] = this;//这里的 this 是函数
+    context[key](...args);
+}</code></pre>
+<p>其实这个时候我们用起来已经有效果了。</p>
+<p><img src="./images/【THE LAST TIME】this：call、apply、bind7.png" /></p>
+<ul>
+<li>这个时候我们已经执行完了,我们需要将结果返回，并且清理自己产生的垃圾</li>
+</ul>
+<pre><code><code>Function.prototype.NealApply = function(context,args){
+    context = context || window;
+    args = args || [];
+    //给context新增一个独一无二的属性以免覆盖原有属性
+    const key = Symbol();
+    context[key] = this;//这里的 this 是 testFun
+    const result = context[key](...args);
+    // 带走产生的副作用
+    delete context[key];
+    return result;
+}
+
+var name = &#39;Neal&#39;
+
+function testFun(...args){
+    console.log(this.name,...args);
+}
+
+const testObj = {
+    name:&#39;Nealyang&#39;
+}
+
+testFun.NealApply(testObj,[&#39;一起关注&#39;,&#39;:&#39;,&#39;全栈前端精选&#39;]);</code></pre>
+<p>执行结果就是上方的截图。</p>
+<ul>
+<li>优化</li>
+</ul>
+<p><strong>一上来不说优化是因为希望大家把精力放到核心，然后再去修边幅！</strong> 罗马不是一日建成的，看别人的代码多牛批，其实也是一点一点完善出来的。</p>
+<p>道理是这么个道理，其实要做的优化还有很多，这里我们就把 context 的判断需要优化下：</p>
+<pre><code><code>    // 正确判断函数上下文对象
+    if (context === null || context === undefined) {
+       // 指定为 null 和 undefined 的 this 值会自动指向全局对象(浏览器中为window)
+        context = window 
+    } else {
+        context = Object(context) // 值为原始值（数字，字符串，布尔值）的 this 会指向该原始值的实例对象
+    }</code></pre>
+<p>别的优化大家可以添加各种的用户容错。比如对第二个参数的类数组做个容错</p>
+<pre><code><code>    function isArrayLike(o) {
+        if (o &amp;&amp;                                    // o不是null、undefined等
+            typeof o === &#39;object&#39; &amp;&amp;                // o是对象
+            isFinite(o.length) &amp;&amp;                   // o.length是有限数值
+            o.length &gt;= 0 &amp;&amp;                        // o.length为非负值
+            o.length === Math.floor(o.length) &amp;&amp;    // o.length是整数
+            o.length &lt; 4294967296)                  // o.length &lt; 2^32
+            return true;
+        else
+            return false;
+    }</code></pre>
+<blockquote>
+<p>打住！真的不再多啰嗦了，这篇文章篇幅不应这样的</p>
+</blockquote>
+<h3 id="call">call</h3>
+<p>丐版实现：</p>
+<pre><code><code>//传递参数从一个数组变成逐个传参了,不用...扩展运算符的也可以用arguments代替
+Function.prototype.NealCall = function (context, ...args) {
+    //这里默认不传就是给window,也可以用es6给参数设置默认参数
+    context = context || window;
+    args = args ? args : [];
+    //给context新增一个独一无二的属性以免覆盖原有属性
+    const key = Symbol();
+    context[key] = this;
+    //通过隐式绑定的方式调用函数
+    const result = context[key](...args);
+    //删除添加的属性
+    delete context[key];
+    //返回函数调用的返回值
+    return result;
+}</code></pre>
+<h3 id="bind-1">bind</h3>
+<p>bind的实现讲道理是比 apply 和call 麻烦一些的，也是面试频考题。因为需要去考虑函数的拷贝。但是也还是比较简单的，网上也有很多版本，这里就不具体展开了。具体的，咱们可以在群里讨论~</p>
+<pre><code><code>Function.prototype.myBind = function (objThis, ...params) {
+    const thisFn = this; // 存储源函数以及上方的params(函数参数)
+    // 对返回的函数 secondParams 二次传参
+    let fToBind = function (...secondParams) {
+        const isNew = this instanceof fToBind // this是否是fToBind的实例 也就是返回的fToBind是否通过new调用
+        const context = isNew ? this : Object(objThis) // new调用就绑定到this上,否则就绑定到传入的objThis上
+        return thisFn.call(context, ...params, ...secondParams); // 用call调用源函数绑定this的指向并传递参数,返回执行结果
+    };
+    if (thisFn.prototype) {
+        // 复制源函数的prototype给fToBind 一些情况下函数没有prototype，比如箭头函数
+        fToBind.prototype = Object.create(thisFn.prototype);
+    }
+    return fToBind; // 返回拷贝的函数
+};</code></pre>
+<pre><code><code>Function.prototype.myBind = function (context, ...args) {
+    const fn = this
+    args = args ? args : []
+    return function newFn(...newFnArgs) {
+        if (this instanceof newFn) {
+            return new fn(...args, ...newFnArgs)
+        }
+        return fn.apply(context, [...args,...newFnArgs])
+    }
+}</code></pre>
+<h2 id="最后">最后</h2>
+<p>别忘记了上面 this 的考核题目啊，同学，该交卷了！</p>
+<h2 id="参考链接">参考链接</h2>
+<ul>
+<li><a href="https://link.juejin.im/?target=https%3A%2F%2Fblog.bitsrc.io%2Fwhat-is-this-in-javascript-3b03480514a7">What is “this” in JavaScript?</a></li>
+<li><a href="http://www.ruanyifeng.com/blog/2018/06/javascript-this.html">JavaScript 的 this 原理</a></li>
+<li><a href="https://segmentfault.com/a/1190000002640298">JavaScript中的this陷阱的最全收集--没有之一</a></li>
+<li><a href="https://juejin.im/post/5d469e0851882544b85c32ef">js基础-面试官想知道你有多理解call,apply,bind？</a></li>
+</ul>
+<h3 id="学习交流">学习交流</h3>
+<p>关注公众号： 【全栈前端精选】 每日获取好文推荐。</p>
+<p>公众号内回复 【1】，加入全栈前端学习群，一起交流。</p>
+<p><img src="./images/【THE LAST TIME】this：call、apply、bind8.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

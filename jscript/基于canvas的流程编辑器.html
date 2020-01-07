@@ -1,0 +1,394 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于canvas的流程编辑器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于canvas的流程编辑器</center></div><div class='banquan'>原文出处:本文由博客园博主lixin_86提供。<br/>
+原文连接:https://www.cnblogs.com/lixincloud/p/11831095.html</div><br>
+    <p>&nbsp; &nbsp; &nbsp; &nbsp; 今年由于项目上需要给客户的流程管理系统进行升级，其中包含流程的可视化。于是在网上找<span style="font-size: 14px;">一些可以用的轮子</span>，考察了D3,js、GooFlow.js、G6-Editor等工具后，发现D3,js学习成本太高，G6-Editor功能基本够用，但是不能放大缩小图形和移动连接线是硬伤，而且GooFlow.js和G6-Editor目前已经闭源，于是就决定自己试着写一个流程编辑器。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; 由于之前画流程图基本使用的都是Visio，所以编辑器的操作风格基本和Visio一致，也吸收了一些G6-Editor的操作风格。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/基于canvas的流程编辑器0.png" alt="" width="676" height="587" /></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; HTML内容如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="utf-8"</span> <span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Test Page<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="viewport"</span><span style="color: #ff0000;"> content</span><span style="color: #0000ff;">="width=device-width, initial-scale=1, shrink-to-fit=no"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="shortcut icon"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="assets/img/favicon.jpg"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="stylesheet"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="assets/css/bootstrap.min.css"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text/css"</span> <span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="stylesheet"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="assets/css/font-awesome.min.css"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text/css"</span> <span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="stylesheet"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="assets/css/editor.css"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text/css"</span> <span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">style</span><span style="color: #0000ff;">="width:99%"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="toolbar"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="toolbar"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">i </span><span style="color: #ff0000;">data-command</span><span style="color: #0000ff;">="undo"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="fa fa-mail-reply"</span><span style="color: #ff0000;"> title</span><span style="color: #0000ff;">="撤销"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">i</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">i </span><span style="color: #ff0000;">data-command</span><span style="color: #0000ff;">="redo"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="fa fa-mail-forward"</span><span style="color: #ff0000;"> title</span><span style="color: #0000ff;">="重做"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">i</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">i </span><span style="color: #ff0000;">data-command</span><span style="color: #0000ff;">="delete"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="fa fa-trash-o"</span><span style="color: #ff0000;"> title</span><span style="color: #0000ff;">="删除"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">i</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">i </span><span style="color: #ff0000;">data-command</span><span style="color: #0000ff;">="save"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="fa fa-save"</span><span style="color: #ff0000;"> title</span><span style="color: #0000ff;">="保存"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">i</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #ff0000;"> style</span><span style="color: #0000ff;">="width:99%"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-md-2"</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="itempannel"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="itempannel"</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="node"</span><span style="color: #ff0000;"> data-type</span><span style="color: #0000ff;">="node"</span><span style="color: #ff0000;"> data-shape</span><span style="color: #0000ff;">="capsule"</span><span style="color: #ff0000;"> data-size</span><span style="color: #0000ff;">="80*40"</span><span style="color: #ff0000;"> data-label</span><span style="color: #0000ff;">="开始"</span><span style="color: #ff0000;"> data-color</span><span style="color: #0000ff;">="rgba(200,255,200,1)"</span><span style="color: #ff0000;"> data-edgecolor</span><span style="color: #0000ff;">="rgb(10,255,10,1)"</span> <span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">draggable</span><span style="color: #0000ff;">="false"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="assets/img/start.svg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> scrset</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="node"</span><span style="color: #ff0000;"> data-type</span><span style="color: #0000ff;">="node"</span><span style="color: #ff0000;"> data-shape</span><span style="color: #0000ff;">="rect"</span><span style="color: #ff0000;"> data-size</span><span style="color: #0000ff;">="100*50"</span><span style="color: #ff0000;"> data-label</span><span style="color: #0000ff;">="常规节点"</span><span style="color: #ff0000;"> data-color</span><span style="color: #0000ff;">="#E6F7FF"</span><span style="color: #ff0000;"> data-edgecolor</span><span style="color: #0000ff;">="#1890FF"</span> <span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">draggable</span><span style="color: #0000ff;">="false"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="assets/img/normal.svg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> scrset</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="node"</span><span style="color: #ff0000;"> data-type</span><span style="color: #0000ff;">="node"</span><span style="color: #ff0000;"> data-shape</span><span style="color: #0000ff;">="rhomb"</span><span style="color: #ff0000;"> data-size</span><span style="color: #0000ff;">="100*80"</span><span style="color: #ff0000;"> data-label</span><span style="color: #0000ff;">="判断"</span><span style="color: #ff0000;"> data-color</span><span style="color: #0000ff;">="#E6FFFB"</span><span style="color: #ff0000;"> data-edgecolor</span><span style="color: #0000ff;">="#5CDBD3"</span> <span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">draggable</span><span style="color: #0000ff;">="false"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="assets/img/judge.svg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> scrset</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="node"</span><span style="color: #ff0000;"> data-type</span><span style="color: #0000ff;">="node"</span><span style="color: #ff0000;"> data-shape</span><span style="color: #0000ff;">="capsule"</span><span style="color: #ff0000;"> data-size</span><span style="color: #0000ff;">="80*40"</span><span style="color: #ff0000;"> data-label</span><span style="color: #0000ff;">="结束"</span><span style="color: #ff0000;"> data-color</span><span style="color: #0000ff;">="rgba(255,200,200,1)"</span><span style="color: #ff0000;"> data-edgecolor</span><span style="color: #0000ff;">="rgb(255,50,50,1)"</span> <span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">draggable</span><span style="color: #0000ff;">="false"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="assets/img/end.svg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> scrset</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-md-7"</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="canvas"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-md-3"</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="detailpannel"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="detailpannel"</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">b</span><span style="color: #0000ff;">&gt;</span>属性详情<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">b</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="nodedetail"</span><span style="color: #ff0000;"> style</span><span style="color: #0000ff;">="display:none"</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-4 control-label"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+                                    节点名称
+                                </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-8"</span><span style="color: #0000ff;">&gt;</span>
+                                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="nodename"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span> <span style="color: #0000ff;">/&gt;</span>
+                                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-4 control-label"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+                                    字体大小
+                                </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-8"</span><span style="color: #0000ff;">&gt;</span>
+                                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="fontsize_node"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span> <span style="color: #0000ff;">/&gt;</span>
+                                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-4 control-label"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+                                    自定义属性
+                                </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-8"</span><span style="color: #0000ff;">&gt;</span>
+                                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="nodecustom"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span> <span style="color: #0000ff;">/&gt;</span>
+                                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="linedetail"</span><span style="color: #ff0000;"> style</span><span style="color: #0000ff;">="display:none"</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-4 control-label"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+                                    线条名称
+                                </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-8"</span><span style="color: #0000ff;">&gt;</span>
+                                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="linename"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span> <span style="color: #0000ff;">/&gt;</span>
+                                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-4 control-label"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+                                    字体大小
+                                </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-8"</span><span style="color: #0000ff;">&gt;</span>
+                                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="fontsize_line"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span> <span style="color: #0000ff;">/&gt;</span>
+                                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-4 control-label"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+                                    自定义属性
+                                </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-8"</span><span style="color: #0000ff;">&gt;</span>
+                                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="linecustom"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span> <span style="color: #0000ff;">/&gt;</span>
+                                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="assets\js\popper.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="assets\js\jquery.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="assets\js\bootstrap.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="assets\js\graphEditor.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="assets\js\index.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; 其中graphEditor.js就是编辑器的js文件，编辑器的画布加载在id为canvas的容器中。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;&nbsp;index.js文件内容如下：</p>
+<div class="cnblogs_code">
+<pre><code>const data =<span style="color: #000000;"> {};
+</span><span style="color: #008000;">//</span><span style="color: #008000;">节点格式</span>
+data.nodes =<span style="color: #000000;"> [
+    {
+        color:</span>"rgba(200,200,255,1)"<span style="color: #000000;">,
+        customProperties: {
+            nodestyle: </span>"11"<span style="color: #000000;">
+        },
+        edgeColor:</span>"#1890FF"<span style="color: #000000;">,
+        id: </span>"9471a484-7a2e-4ca9-949d-6ec4b495a1a2"<span style="color: #000000;">,
+        index: </span>1<span style="color: #000000;">,
+        label: </span>"测试加载节点"<span style="color: #000000;">,
+        shape: </span>"rect"<span style="color: #000000;">,
+        size: </span>"100*50"<span style="color: #000000;">,
+        type: </span>"node"<span style="color: #000000;">,
+        x: </span>282<span style="color: #000000;">,
+        y: </span>222<span style="color: #000000;">
+    },
+    {
+        color:</span>"rgba(200,200,255,1)"<span style="color: #000000;">,
+        customProperties: {
+            nodestyle: </span>"22"<span style="color: #000000;">
+        },
+        edgeColor:</span>"#1890FF"<span style="color: #000000;">,
+        id: </span>"9471a484-7a2e-4ca9-949d-6ec4b495a1a3"<span style="color: #000000;">,
+        index: </span>2<span style="color: #000000;">,
+        label: </span>"测试加载判断"<span style="color: #000000;">,
+        shape: </span>"rhomb"<span style="color: #000000;">,
+        size: </span>"100*80"<span style="color: #000000;">,
+        type: </span>"node"<span style="color: #000000;">,
+        x: </span>282<span style="color: #000000;">,
+        y: </span>422<span style="color: #000000;">,
+        fontSize: </span>"12px"<span style="color: #000000;">
+    }
+]
+</span><span style="color: #008000;">//</span><span style="color: #008000;">线条格式</span>
+data.lines =<span style="color: #000000;"> [
+    {
+        color:</span>"rgba(0,0,0,1)"<span style="color: #000000;">,
+        customProperties: {
+            btnstyle: </span>"test"<span style="color: #000000;">
+        },
+        index: </span>3<span style="color: #000000;">,
+        label: </span>"测试线条1"<span style="color: #000000;">,
+        fontSize: </span>"12px"<span style="color: #000000;">,
+        fromConOrder: </span>3<span style="color: #000000;">,
+        source: </span>"9471a484-7a2e-4ca9-949d-6ec4b495a1a2"<span style="color: #000000;">,
+        type: </span>"line"<span style="color: #000000;">,
+        endPoint: { x: </span>81, y: 210<span style="color: #000000;"> },
+        inflexionPoint: [
+            { x: </span>282, y: 272<span style="color: #000000;"> },
+            { x: </span>81, y: 272<span style="color: #000000;"> }
+        ]
+    },
+    {
+        color:</span>"rgba(0,0,0,1)"<span style="color: #000000;">,
+        customProperties: {
+            btnstyle: </span>"test"<span style="color: #000000;">
+        },
+        index: </span>4<span style="color: #000000;">,
+        label: </span>"测试线条2"<span style="color: #000000;">,
+        fontSize: </span>"14px"<span style="color: #000000;">,
+        toConOrder: </span>1<span style="color: #000000;">,
+        startPoint: { x: </span>555, y: 447<span style="color: #000000;"> },
+        target: </span>"9471a484-7a2e-4ca9-949d-6ec4b495a1a3"<span style="color: #000000;">,
+        type: </span>"line"<span style="color: #000000;">,
+        inflexionPoint: [
+            { x: </span>555, y: 357<span style="color: #000000;"> },
+            { x: </span>282, y: 357<span style="color: #000000;"> }
+        ]
+    }
+]
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建编辑器</span>
+const editor = <span style="color: #0000ff;">new</span><span style="color: #000000;"> GraphEditor();
+</span><span style="color: #008000;">//</span><span style="color: #008000;">编辑器加载数据</span><span style="color: #008000;">
+//</span><span style="color: #008000;">editor.load(data);</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;">绑定元素容器</span>
+editor.itemPannel = 'itempannel'<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">绑定详细属性栏</span>
+editor.detailPannel = 'detailpannel'<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">绑定工具栏</span>
+editor.toolbar = 'toolbar'<span style="color: #000000;">;
+const nodeDetail </span>= $('#nodedetail'<span style="color: #000000;">);
+const lineDetail </span>= $('#linedetail'<span style="color: #000000;">);
+const nodeName </span>= $('#nodename'<span style="color: #000000;">);
+const lineName </span>= $('#linename'<span style="color: #000000;">);
+const nodeCustom </span>= $('#nodecustom'<span style="color: #000000;">);
+const lineCustom </span>= $('#linecustom'<span style="color: #000000;">);
+const nodeFontSize </span>= $('#fontsize_node'<span style="color: #000000;">);
+const lineFontSize </span>= $('#fontsize_line'<span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">选择元素事件</span>
+editor.on('selectedElement', <span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(e.element.isNode){
+        lineDetail.hide();
+        nodeDetail.show();
+        nodeName.val(e.element.label);
+        nodeFontSize.val(e.element.fontSize);
+        nodeCustom.val(e.element.customProperties.nodestyle);
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (e.element.isLine){
+        nodeDetail.hide();
+        lineDetail.show();
+        lineName.val(e.element.label);
+        lineFontSize.val(e.element.fontSize);
+        lineCustom.val(e.element.customProperties.btnstyle);
+    }
+});
+</span><span style="color: #008000;">//</span><span style="color: #008000;">点击画布事件</span>
+editor.on('click', <span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+    </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">e.element){
+        nodeDetail.hide();
+        lineDetail.hide();
+    }
+});
+</span><span style="color: #008000;">//</span><span style="color: #008000;">撤销事件</span>
+editor.on('undo', <span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+    nodeDetail.hide();
+    lineDetail.hide();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">console.log(e.data);</span>
+<span style="color: #000000;">});
+</span><span style="color: #008000;">//</span><span style="color: #008000;">重做事件</span>
+editor.on('redo', <span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+    nodeDetail.hide();
+    lineDetail.hide();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">console.log(e.data);</span>
+<span style="color: #000000;">});
+</span><span style="color: #008000;">//</span><span style="color: #008000;">保存事件</span>
+editor.on('save', <span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {console.log(e.data)});
+
+nodeName.change(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+    updateEditor(e, </span>'label'<span style="color: #000000;">);
+});
+
+lineName.change(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+    updateEditor(e, </span>'label'<span style="color: #000000;">);
+});
+
+nodeFontSize.change(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+    updateEditor(e, </span>'fontSize'<span style="color: #000000;">);
+});
+
+lineFontSize.change(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+    updateEditor(e, </span>'fontSize'<span style="color: #000000;">);
+});
+
+nodeCustom.change(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+    updateEditor(e, </span>'nodestyle'<span style="color: #000000;">);
+});
+
+lineCustom.change(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+    updateEditor(e, </span>'btnstyle'<span style="color: #000000;">);
+});
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> updateEditor(e, name){
+    const property </span>=<span style="color: #000000;"> {};
+    property.name </span>=<span style="color: #000000;"> name;
+    property.value </span>= $('#' +<span style="color: #000000;">e.target.id).val();
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (editor.selectedElement){
+        editor.update(editor.selectedElement.id, property);
+    };
+}</span></pre>
+</div>
+<p>GraphEditor方法列表：</p>
+<ul>
+<li>load(data)：用于加载数据，data的结构参考index.js。</li>
+</ul>
+<p style="margin-left: 30px;">node节点的属性如下：</p>
+<div style="margin-left: 30px;">color：节点填充颜色</div>
+<div style="margin-left: 30px;">
+<div>edgeColor：节点边框颜色</div>
+<div>shape：&ldquo;rect&rdquo;为矩形，&ldquo;rhomb&rdquo;为菱形，&ldquo;capsule&rdquo;为胶囊</div>
+<div>id：节点编号</div>
+<div>
+<div>index：节点层级</div>
+<div>
+<div>label：文字内容</div>
+<div>
+<div>fontSize：文字大小</div>
+<div>size：节点的长和宽，例如&ldquo;100*50&rdquo;</div>
+<div>
+<div>type：&ldquo;node&rdquo;</div>
+<div>x：节点x轴坐标</div>
+<div>y：节点y轴坐标</div>
+<div>
+<div>customProperties：自定义属性，用于保存业务相关数据</div>
+<div>&nbsp;</div>
+<div>line线条的属性如下：</div>
+<div>color：线条颜色</div>
+<div>
+<div>id：线条编号</div>
+<div>
+<div>index：线条层级</div>
+<div>
+<div>label：文字内容</div>
+<div>fontSize：文字大小</div>
+<div>type：&ldquo;line&rdquo;</div>
+<div>
+<div>source：线条起始节点的编号</div>
+<div>
+<div>target：线条结束节点的编号</div>
+<div>
+<div>fromConOrder：起始节点对应的锚点编号</div>
+<div>
+<div>toConOrder：结束节点对应的锚点编号</div>
+<div>
+<div>startPoint：起始点坐标，用于无起始节点情况</div>
+<div>
+<div>endPoint：结束点坐标，用于无结束节点情况</div>
+<div>
+<div>inflexionPoint：线条拐点集合</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<ul>
+<li>update(id,property)</li>
+</ul>
+<p style="margin-left: 30px;">id：元素的编号</p>
+<p style="margin-left: 30px;">property：{ name: 要更新的属性名称,&nbsp;value：更新的值 }</p>
+<p>GraphEditor事件列表：</p>
+<ul>
+<li>selectedElement：选中任何canvas元素触发，事件对象的element属性存放选中的元素</li>
+<li>
+<div>click：点击canvas容器触发</div>
+</li>
+<li>
+<div>undo：撤销操作触发</div>
+</li>
+<li>
+<div>redo：重做操作触发</div>
+</li>
+<li>save：保存操作触发，事件对象的data属性存放画布中所有的元素，编辑器对象的data属性也包含画布所有元素</li>
+</ul>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/基于canvas的流程编辑器1.png" alt="" width="1229" height="533" /></p>
+<p>GraphEditor快捷键列表：</p>
+<ul>
+<li>Delete：删除画布上的元素</li>
+<li>Ctrl+z：撤销</li>
+<li>Ctrl+y：重做</li>
+<li>Ctrl+s：保存</li>
+</ul>
+<p>&nbsp;Demo下载地址：https://files.cnblogs.com/files/lixincloud/GraphEditorDemo.rar</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

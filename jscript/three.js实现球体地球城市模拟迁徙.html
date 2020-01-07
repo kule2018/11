@@ -1,0 +1,180 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修three.js实现球体地球城市模拟迁徙' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>three.js实现球体地球城市模拟迁徙</center></div><div class='banquan'>原文出处:本文由博客园博主baby_duoduo提供。<br/>
+原文连接:https://www.cnblogs.com/gaozhiqiang/p/11432157.html</div><br>
+    <p><strong>概况如下：</strong><br />1、<span style="color: #d0254e;">SphereGeometry</span>实现自转的地球；<br />2、<span style="color: #d0254e;">THREE.ImageUtils.loadTexture</span>加载地图贴图材质；<br />3、<span style="color: #d0254e;">THREE.Math.degToRad</span>，<span style="color: #d0254e;">Math.sin</span>，<span style="color: #d0254e;">Math.cos</span>实现地图经纬度与三位坐标x，y，z之间的转换；<br />4、轨迹中根据分段数与相应国家gdp值来实现城市标记。</p>
+<p><strong>效果图如下：</strong></p>
+<p><strong><img src="./images/three.js实现球体地球城市模拟迁徙0.png" alt="" width="700" height="420" /></strong></p>
+<p><strong>预览地址：<a title="three.js实现球体地球城市模拟迁徙" href="https://duoduoview.com/example/map-ball-world-metap/" target="_blank">three.js实现球体地球城市模拟迁徙</a></strong></p>
+<p>初始化场景、相机、渲染器，设置相机位置，初始化光源，光源采用<span style="color: #d0254e;">HemisphereLight</span>，设置光源位置为场景中心位置，并将光源加入场景中</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化场景</span>
+<span style="color: #0000ff;">var</span> scene = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.Scene();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化相机，第一个参数为摄像机视锥体垂直视野角度，第二个参数为摄像机视锥体长宽比，</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> 第三个参数为摄像机视锥体近端面，第四个参数为摄像机视锥体远端面</span>
+<span style="color: #0000ff;">var</span> camera = <span style="color: #0000ff;">new</span> THREE.PerspectiveCamera(20, dom.clientWidth / dom.clientHeight, 1, 100000<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置相机位置，对应参数分别表示x，y，z位置</span>
+camera.position.set(0, 0, 200<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> renderer = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.WebGLRenderer({
+      alpha: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+      antialias: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+});
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置光照</span>
+scene.add(<span style="color: #0000ff;">new</span> THREE.HemisphereLight('#ffffff', '#ffffff', 1<span style="color: #000000;">));</span></pre>
+</div>
+<p>设置场景窗口尺寸，并且初始化控制器，窗口尺寸默认与浏览器窗口尺寸保持一致，最后将渲染器加载到dom中。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 设置窗口尺寸，第一个参数为宽度，第二个参数为高度</span>
+<span style="color: #000000;">renderer.setSize(dom.clientWidth, dom.clientHeight);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化控制器</span>
+<span style="color: #0000ff;">var</span> orbitcontrols = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.OrbitControls(camera,renderer.domElement);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 将渲染器加载到dom中</span>
+<span style="color: #000000;">dom.appendChild(renderer.domElement);</span></pre>
+</div>
+<p>定义地球及其材质，地球通过<span style="color: #d0254e;"><code>SphereGeometry</code></span>来实现，通过<span style="color: #d0254e;"><code>ImageUtils</code></span>来导入贴图。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 定义地球材质</span>
+<span style="color: #0000ff;">var</span> earthTexture = THREE.ImageUtils.loadTexture(earthImg, {}, <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    renderer.render(scene, camera);
+});
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建地球</span>
+earthBall = <span style="color: #0000ff;">new</span> THREE.Mesh(<span style="color: #0000ff;">new</span> THREE.SphereGeometry(earthBallSize, 50, 50), <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.MeshBasicMaterial({
+    map: earthTexture
+}));
+scene.add(earthBall);</span></pre>
+</div>
+<p>标记地点经纬度坐标与三维x，y，z坐标转换方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 经纬度转换函数，longitude表示经度，latitude表示唯独，radius表示球体半径</span>
+<span style="color: #0000ff;">var</span> getPosition = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (longitude, latitude, radius) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将经度，纬度转换为rad坐标</span>
+    <span style="color: #0000ff;">var</span> lg =<span style="color: #000000;"> THREE.Math.degToRad(longitude);
+    </span><span style="color: #0000ff;">var</span> lt =<span style="color: #000000;"> THREE.Math.degToRad(latitude);
+    </span><span style="color: #0000ff;">var</span> temp = radius *<span style="color: #000000;"> Math.cos(lt);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取x，y，z坐标</span>
+    <span style="color: #0000ff;">var</span> x = temp *<span style="color: #000000;"> Math.sin(lg);
+    </span><span style="color: #0000ff;">var</span> y = radius *<span style="color: #000000;"> Math.sin(lt);
+    </span><span style="color: #0000ff;">var</span> z = temp *<span style="color: #000000;"> Math.cos(lg);
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+        x: x,
+        y: y,
+        z: z
+    }
+}</span></pre>
+</div>
+<p>添加两个城市之间轨迹的方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 添加轨迹函数</span>
+<span style="color: #0000ff;">var</span> addLine = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (v0, v3) {
+    </span><span style="color: #0000ff;">var</span> angle = (v0.angleTo(v3) * 180) /<span style="color: #000000;"> Math.PI;
+    </span><span style="color: #0000ff;">var</span> aLen = angle * 0.5 * (1 - angle / (Math.PI * earthBallSize * parseInt(earthBallSize / 10<span style="color: #000000;">)));
+    </span><span style="color: #0000ff;">var</span> hLen = angle * angle * 1.2 * (1 - angle / (Math.PI * earthBallSize * parseInt(earthBallSize / 10<span style="color: #000000;">)));
+    </span><span style="color: #0000ff;">var</span> p0 = <span style="color: #0000ff;">new</span> THREE.Vector3(0, 0, 0<span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 法线向量</span>
+    <span style="color: #0000ff;">var</span> rayLine = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.Ray(p0, getVCenter(v0.clone(), v3.clone()));
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 顶点坐标</span>
+    <span style="color: #0000ff;">var</span> vtop = rayLine.at(hLen / rayLine.at(1<span style="color: #000000;">).distanceTo(p0));
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 控制点坐标</span>
+    <span style="color: #0000ff;">var</span> v1 =<span style="color: #000000;"> getLenVcetor(v0.clone(), vtop, aLen);
+    </span><span style="color: #0000ff;">var</span> v2 =<span style="color: #000000;"> getLenVcetor(v3.clone(), vtop, aLen);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 绘制贝塞尔曲线</span>
+    <span style="color: #0000ff;">var</span> curve = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.CubicBezierCurve3(v0, v1, v2, v3);
+    </span><span style="color: #0000ff;">var</span> geometry = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.Geometry();
+    geometry.vertices </span>= curve.getPoints(100<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">var</span> line = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MeshLine();
+    line.setGeometry(geometry);
+    </span><span style="color: #0000ff;">var</span> material = <span style="color: #0000ff;">new</span><span style="color: #000000;"> MeshLineMaterial({
+        color: metapLineColor,
+        lineWidth: </span>0.1<span style="color: #000000;">,
+        transparent: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+        opacity: </span>1<span style="color: #000000;">
+    })
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+        curve: curve,
+        lineMesh: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.Mesh(line.geometry, material)
+    }
+}</span></pre>
+</div>
+<p>轨迹上运动的小球实现方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> animateDots =<span style="color: #000000;"> [];
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 线条对象集合</span>
+<span style="color: #0000ff;">var</span> groupLines = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.Group();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 线条</span>
+marking.children.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (item) {
+    </span><span style="color: #0000ff;">var</span> line = addLine(marking.children[0<span style="color: #000000;">].position, item.position);
+    groupLines.add(line.lineMesh);
+    animateDots.push(line.curve.getPoints(metapNum));
+})
+scene.add(groupLines);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 线上滑动的小球</span>
+<span style="color: #0000ff;">var</span> aGroup = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.Group();
+</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; animateDots.length; i ++<span style="color: #000000;">) {
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> j = 0; j &lt; markingNum; j ++<span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">var</span> aGeo = <span style="color: #0000ff;">new</span> THREE.SphereGeometry(slideBallSize, 10, 10<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">var</span> aMaterial = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.MeshBasicMaterial({
+            color: slideBallColor,
+            transparent: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+            opacity: </span>1 - j * 0.02<span style="color: #000000;">
+        })
+        </span><span style="color: #0000ff;">var</span> aMesh = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.Mesh(aGeo, aMaterial);
+        aGroup.add(aMesh);
+    }
+}
+</span><span style="color: #0000ff;">var</span> vIndex = 0<span style="color: #000000;">;
+</span><span style="color: #0000ff;">var</span> firstBool = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> animationLine () {
+    aGroup.children.forEach(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (elem, index) {
+        </span><span style="color: #0000ff;">var</span> _index = parseInt(index /<span style="color: #000000;"> markingNum);
+        </span><span style="color: #0000ff;">var</span> index2 = index - markingNum *<span style="color: #000000;"> _index;
+        </span><span style="color: #0000ff;">var</span> _vIndex = 0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (firstBool) {
+            _vIndex </span>= vIndex - index2 % markingNum &gt;= 0 ? vIndex - index2 % markingNum : 0<span style="color: #000000;">;
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            _vIndex </span>= vIndex - index2 % markingNum &gt;= 0 ? vIndex - index2 % markingNum : metapNum + vIndex -<span style="color: #000000;"> index2;
+        }
+        </span><span style="color: #0000ff;">var</span> v =<span style="color: #000000;"> animateDots[_index][_vIndex];
+        elem.position.set(v.x, v.y, v.z);
+    })
+    vIndex </span>++<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> (vIndex &gt;<span style="color: #000000;"> metapNum) {
+        vIndex </span>= 0<span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">if</span> (vIndex == metapNum &amp;&amp;<span style="color: #000000;"> firstBool) {
+        firstBool </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+    requestAnimationFrame(animationLine);
+}
+scene.add(aGroup);</span></pre>
+</div>
+<p>标记地点通过<span style="color: #d0254e;"><code>position</code></span>值来实现位置的确认，动画使用<span style="color: #d0254e;"><code>requestAnimationFrame</code></span>来实现。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 执行函数</span>
+<span style="color: #0000ff;">var</span> render = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    scene.rotation.y </span>-= 0.01<span style="color: #000000;">;
+    renderer.render(scene, camera);
+    orbitcontrols.update();
+    requestAnimationFrame(render);
+}</span></pre>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

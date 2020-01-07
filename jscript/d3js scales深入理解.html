@@ -1,0 +1,717 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修d3js scales深入理解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>d3js scales深入理解</center></div><div class='banquan'>原文出处:本文由博客园博主feiquan提供。<br/>
+原文连接:https://www.cnblogs.com/feiquan/p/10755868.html</div><br>
+    <div id="cnblogs_post_body" class="blogpost-body">
+<div class="content">
+<p><span style="font-size: 14pt;">转自：<span style="color: #800000;">https://www.cnblogs.com/kidsitcn/p/7182274.html</span></span></p>
+<p>比例尺函数是这样的javascript函数：</p>
+<ul>
+<li>接收通常是数字，日期，类别等data输入并且：</li>
+<li>返回一个代表可视化元素的值，比如坐标，颜色，长度或者半径等</li>
+</ul>
+<p>比例尺通常用于变换(或者说映射）抽象的数据值到可视量化变量（比如位置，长度，颜色等）</p>
+<p>比如，假设我们有以下数组数据：</p>
+<div class="cnblogs_code">
+<pre><code>[ 0, 2, 3, 5, 7.5, 9, 10 ]</pre>
+</div>
+<p>我们可以这样创建一个比例尺函数：</p>
+<div class="cnblogs_code">
+<pre><code>var myScale = d3.scaleLinear()
+  .domain([0, 10])
+  .range([0, 600]);</pre>
+</div>
+<p>d3将创建一个myScale函数用于接收[0,10]之间的数据输入(domain)映射为[0,600]像素的位置数据(range)</p>
+<p>我们可以使用myScale函数来计算对应数据的positions数据:</p>
+<div class="cnblogs_code">
+<pre><code>myScale(0);   // returns 0
+myScale(2);   // returns 120
+myScale(3);   // returns 180
+...
+myScale(10);  // returns </pre>
+</div>
+<p><img src="./images/d3js scales深入理解0.png" alt="" /></p>
+<p>如上面所说，比例尺主要用于将抽象数据映射为可视的量化元素，比如位置，长度，半径，颜色等。比如，他们可以这样应用</p>
+<ul>
+<li>将抽象数据映射为0到500的长度值以便在bar chart中使用</li>
+<li>将抽象数据映射为0到200之间的位置数据值以便作为line charts中点的坐标来使用</li>
+<li>将百分比变化数据(+4%,+10%,-5%等)映射为颜色的对应变化（比如使用红色表示为正值，正的越多越红，负值为绿色，负的越多绿色饱和度越高）</li>
+<li>将日期数据映射为x轴上的位置</li>
+</ul>
+<h3 id="constructing-scales">Constructing scales</h3>
+<p>这部分我们集中使用线性比例尺linear scale作为例子探讨scale的相关知识，在后面再探讨其他类型的比例尺</p>
+<div class="cnblogs_code">
+<pre><code>var myScale = d3.scaleLinear();</pre>
+</div>
+<p>&nbsp;</p>
+<blockquote>注意：v4和v3的声明方式是不同的 d3.scaleLinear() in v4 and d3.scale.linear() in&nbsp;</blockquote>
+<div class="cnblogs_code">
+<pre><code>myScale
+  .domain([0, 100])
+  .range([0, 800]);</pre>
+</div>
+<p>通过上面的代码，myScale就成为有特定意义的比例尺函数了。现在myScale可以接收任何在0，100之间的domain,而映射到0到800的range里面。我们可以像下面一样来调用这个比例尺函数：</p>
+<div class="cnblogs_code">
+<pre><code>myScale(0);    // returns 0
+myScale(50);   // returns 400
+myScale(100);  // returns 800</pre>
+</div>
+<h3 id="d3-scale-types">D3 scale types</h3>
+<p>D3大约有12种不同的比例尺类型（scaleLinear, scalePow, scaleQuantise, scaleOrdinal etc.) ，而总体来说我们可以分为3类</p>
+<ul>
+<li><a href="https://www.cnblogs.com/kidsitcn/p/7182274.html#scales-with-continuous-input-and-continuous-output">scales with continuous input and continuous output</a>（连续性输入连续性输出）</li>
+<li><a href="https://www.cnblogs.com/kidsitcn/p/7182274.html#scales-with-continuous-input-and-discrete-output">scales with continuous input and discrete output</a>&nbsp;（连续性输入离散性输出）</li>
+<li><a href="https://www.cnblogs.com/kidsitcn/p/7182274.html#scales-with-discrete-input-and-discrete-output">scales with discrete input and discrete output</a>&nbsp;（离散输入离散输出）</li>
+</ul>
+<p>下面我们一个一个地来仔细学习一下</p>
+<h3 id="scales-with-continuous-input-and-continuous-output">Scales with continuous input and continuous output（连续性输入连续性输出）</h3>
+<h4 id="scalelinear">scaleLinear</h4>
+<p>线性比例尺可能是应用最为广泛的比例尺类型了，因为他们最适合将数据转化为位置和长度。因此往往也以线性比例尺为例去讲解和学习比例次的知识</p>
+<p>他们使用一个线性函数(y=m*x+b)来表达(domain)和(range)之间的数学函数关系</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var linearScale = d3.scaleLinear()
+  .domain([0, 10])
+  .range([0, 600]);
+
+linearScale(0);   // returns 0
+linearScale(5);   // returns 300
+linearScale(10);  // returns 600</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>典型地，他们被用于将抽象数据转换为位置，长度等可视元素。因此当我们创bar chart,line chart，或者其他很多图标类型时，我们可以使用它。</p>
+<p>除了位置长度作为range，也可以使用颜色值哦（实际上颜色也可以作为连续性数据的）：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var linearScale = d3.scaleLinear()
+  .domain([0, 10])
+  .range(['yellow', 'red']);
+
+linearScale(0);   // returns "rgb(255, 255, 0)"
+linearScale(5);   // returns "rgb(255, 128, 0)"
+linearScale(10);  // returns "rgb(255, 0, 0)"</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>这个特性常常被用于等值线图(choropleth),当然我们也可以使用scaleQuantize,scaleQuantile和scaleThrshold.</p>
+<h3>scalePow</h3>
+<p>scalePow这个比例次使用<code>y = m * x^k + b这个数学函数来表达domain和range之间的数学函数关系。指数k使用.exponent()来设定：</code></p>
+<div class="cnblogs_code">
+<pre><code>var powerScale = d3.scalePow() .exponent(0.5) .domain([0, 100]) .range([0, 30]); 
+powerScale(0); // returns 0 
+powerScale(50); // returns 21.21... 
+powerScale(100); // returns 30</pre>
+</div>
+<h4 id="scalesqrt">scaleSqrt</h4>
+<p><code>scaleSqrt</code>&nbsp;比例次是一种scalePow的特殊形式(k=0.5)通常用于通过面积来表征圆（而不用半径）(当使用圆的大小来表达数据值的大小时，通常最佳实践是使用和数据等比例的面积而非半径来表达）</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var sqrtScale = d3.scaleSqrt()
+  .domain([0, 100])
+  .range([0, 30]);
+
+sqrtScale(0);   // returns 0
+sqrtScale(50);  // returns 21.21...
+sqrtScale(100); // returns 30</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>我们可以看到这个例子和上面的例子输出是一样的。</p>
+<p><img src="./images/d3js scales深入理解7.png" alt="" /></p>
+<h3>scaleLog</h3>
+<p>Log scales 使用数学对数函数(<code>y = m * log(x) + b</code>)来映射domain和range.如果数据之间有指数关系的话，这个log比例尺最适合</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var logScale = d3.scaleLog()
+  .domain([10, 100000])
+  .range([0, 600]);
+
+logScale(10);     // returns 0
+logScale(100);    // returns 150
+logScale(1000);   // returns 300
+logScale(100000); // returns 600</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p><img src="./images/d3js scales深入理解10.png" alt="" /></p>
+<h3>scaleTime</h3>
+<p><code>scaleTime和scaleLinear是类似的，唯一的区别是domain用于代表date的数组。（通常对于时间序列非常有用）</code></p>
+<div class="cnblogs_code">
+<pre><code>timeScale = d3.scaleTime() .domain([new Date(2016, 0, 1), new Date(2017, 0, 1)]) .range([0, 700]); 
+timeScale(new Date(2016, 0, 1)); // returns 0 
+timeScale(new Date(2016, 6, 1)); // returns 348.00... 
+timeScale(new Date(2017, 0, 1)); // returns 700</pre>
+</div>
+<p><img src="./images/d3js scales深入理解11.png" alt="" /></p>
+<h3>scaleSequential</h3>
+<p>scaleSequential用于将连续性的数据映射为由预定义或者定制的插值函数决定的range.(一个插值函数是一个接受0到1之间的数值而输出一个在两个数字，两个颜色值或者两个字符串之间的插值的函数）</p>
+<p>D3提供了很多预定义的插值函数，其中包含着很多颜色相关的插值函数。例如，我们可以使用d3.interpolateRainbow来创建著名的彩虹色系图：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var sequentialScale = d3.scaleSequential()
+  .domain([0, 100])
+  .interpolator(d3.interpolateRainbow);
+
+sequentialScale(0);   // returns 'rgb(110, 64, 170)'
+sequentialScale(50);  // returns 'rgb(175, 240, 91)'
+sequentialScale(100); // returns 'rgb(110, 64, 170)'</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p><img src="./images/d3js scales深入理解14.png" alt="" /></p>
+<p>需要注意的是插值函数决定了output range，因此你不需要对这个sequential scale来指定range</p>
+<p>下面的列子展示由d3提供的其他颜色插值范围函数：</p>
+<p><img src="./images/d3js scales深入理解15.png" alt="" /></p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var linearScale = d3.scaleLinear()
+    .domain([0, 100])
+    .range([0, 600]);
+
+var sequentialScale = d3.scaleSequential()
+    .domain([0, 100]);
+
+var interpolators = [
+    'interpolateViridis',
+    'interpolateInferno',
+    'interpolateMagma',
+    'interpolatePlasma',
+    'interpolateWarm',
+    'interpolateCool',
+    'interpolateRainbow',
+    'interpolateCubehelixDefault'
+];
+
+var myData = d3.range(0, 100, 2);
+
+function dots(d) {
+    sequentialScale
+        .interpolator(d3[d]);
+
+    d3.select(this)
+        .append('text')
+        .attr('y', -10)
+        .text(d);
+
+    d3.select(this)
+        .selectAll('rect')
+        .data(myData)
+        .enter()
+        .append('rect')
+        .attr('x', function(d) {
+            return linearScale(d);
+        })
+        .attr('width', 11)
+        .attr('height', 30)
+        .style('fill', function(d) {
+            return sequentialScale(d);
+        });
+}
+
+d3.select('#wrapper')
+    .selectAll('g.interpolator')
+    .data(interpolators)
+    .enter()
+    .append('g')
+    .classed('interpolator', true)
+    .attr('transform', function(d, i) {
+        return 'translate(0, ' + (i * 70) + ')';
+    })
+    .each(dots);</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+<p>除了d3定义的这些颜色插值范围函数，也有一个&nbsp;<a href="https://github.com/d3/d3-scale-chromatic">d3-scale-chromatic</a>&nbsp;plugin, 提供著名的&nbsp;<a href="http://colorbrewer2.org/#type=sequential&amp;scheme=BuGn&amp;n=3">ColorBrewer</a>&nbsp;colour schemes.</p>
+<h4 id="clamping">Clamping</h4>
+<p>默认情况下&nbsp;<code>scaleLinear</code>,&nbsp;<code>scalePow</code>,&nbsp;<code>scaleSqrt</code>,&nbsp;<code>scaleLog</code>,&nbsp;<code>scaleTime</code>&nbsp;and&nbsp;<code>scaleSequential</code>&nbsp;允许输入值在domain范围之外比如：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var linearScale = d3.scaleLinear()
+
+  .domain([0, 10])
+  .range([0, 100]);
+
+linearScale(20);  // returns 200
+linearScale(-10); // returns -100</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>在这种情况下scale函数就使用外推算法来返回domain范围之外的输入值对应的返回值。</p>
+<p>如果我们希望比例尺函数严格限制输入值必须在domain规定的范围内，我们则可以使用.clamp()调用</p>
+<div class="cnblogs_code">
+<pre><code>linearScale.clamp(true);
+
+linearScale(20);  // returns 100
+linearScale(-10); // returns 0</pre>
+</div>
+<p>我们也可以随时通过clamp(false)来关闭这个功能</p>
+<h4 id="nice">Nice</h4>
+<p>如果domain是由实际数据自动算出来的，比如使用d3.extent,d3.min/max来定义，那么起始和结束数据可能并不是整数。这本身并不是什么问题，但是如果使用这个比例尺函数来定义一个坐标轴，则显得很不整洁</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var data = [0.243, 0.584, 0.987, 0.153, 0.433];
+var extent = d3.extent(data);
+
+var linearScale = d3.scaleLinear()
+  .domain(extent)
+  .range([0, 100]);</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p><img src="./images/d3js scales深入理解22.png" alt="" /></p>
+<p>我们通过使用.nice()函数，那么就将domain做了nice处理:</p>
+<div class="cnblogs_code">
+<pre><code>linearScale.nice();</pre>
+</div>
+<p>需要注意的是.nice()函数必须在domain更新后每次都必须重新调用!</p>
+<h4 id="multiple-segments">Multiple segments</h4>
+<p>The domain and range of&nbsp;<code>scaleLinear</code>,&nbsp;<code>scalePow</code>,&nbsp;<code>scaleSqrt</code>,&nbsp;<code>scaleLog</code>&nbsp;and&nbsp;<code>scaleTime</code>&nbsp;usually consists of two values, but if we provide 3 or more values the scale function is subdivided into multiple segments:</p>
+<p>通常scaleLinear,scalePow,scaleSqrt,scaleLog和scaleTime比例尺的domain和range都只包含两个数值:起始和结束值来定义，但是如果我们提供3个甚至更多的值，那么比例尺函数就将被划分为几个段segments:</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var linearScale = d3.scaleLinear()
+  .domain([-10, 0, 10])
+  .range(['red', '#ddd', 'blue']);
+
+linearScale(-10);  // returns "rgb(255, 0, 0)"
+linearScale(0);    // returns "rgb(221, 221, 221)"
+linearScale(5);    // returns "rgb(128, 128, 255)"</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>看看一个例子效果：</p>
+<p><img src="./images/d3js scales深入理解25.png" alt="" /></p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var xScale = d3.scaleLinear()
+    .domain([-10, 10])
+    .range([0, 600]);
+
+var linearScale = d3.scaleLinear()
+    .domain([-10, 0, 10])
+    .range(['red', '#ddd', 'blue']);
+
+var myData = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10];
+
+d3.select('#wrapper')
+    .selectAll('circle')
+    .data(myData)
+    .enter()
+    .append('circle')
+    .attr('r', 10)
+    .attr('cx', function(d) {
+        return xScale(d);
+    })
+    .style('fill', function(d) {
+        return linearScale(d);
+    });</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>典型地，多segment的比例尺通常用于区分正负值（正如上面例子所示）。只要domain和range的段数是相同的，我们可以使用任意多segments的比例尺.</p>
+<h4 id="inversion">Inversion</h4>
+<p>&nbsp;<code>.invert()</code>&nbsp;方法接受一个range输出来反算对应的input domain</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var linearScale = d3.scaleLinear()
+  .domain([0, 10])
+  .range([0, 100]);
+
+linearScale.invert(50);   // returns 5
+linearScale.invert(100);  // returns 10</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>A common use case is when we want to convert a user&rsquo;s click along an axis into a domain value:</p>
+<p>这个方法的典型使用场景是我们将用户沿着某坐标轴点击坐标反转为domain值:</p>
+<p><img src="./images/d3js scales深入理解30.png" alt="" /></p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var width = 600;
+
+var linearScale = d3.scaleLinear()
+  .domain([-50, 50])
+  .range([0, width])
+  .nice();
+
+var clickArea = d3.select('.click-area').node();
+
+function doClick() {
+    var pos = d3.mouse(clickArea);
+    var xPos = pos[0];
+    var value = linearScale.invert(xPos);
+    d3.select('.info')
+        .text('You clicked ' + value.toFixed(2));
+}
+
+// Construct axis
+var axis = d3.axisBottom(linearScale);
+d3.select('.axis')
+    .call(axis);
+
+// Update click area size
+d3.select('.click-area')
+    .attr('width', width)
+    .attr('height', 40)
+    .on('click', doClick);</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<h3 id="scales-with-continuous-input-and-discrete-output">Scales with continuous input and discrete output</h3>
+<h4 id="scalequantize">scaleQuantize</h4>
+<p><code>scaleQuantize</code>&nbsp;接受连续性的range输入而输出由range定义的离散输出</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var quantizeScale = d3.scaleQuantize()
+  .domain([0, 100])
+  .range(['lightblue', 'orange', 'lightgreen', 'pink']);
+
+quantizeScale(10);   // returns 'lightblue'
+quantizeScale(30);  // returns 'orange'
+quantizeScale(90);  // returns 'pink'</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<pre><code>Each range value is mapped to an equal sized chunk in the domain so in the example above:<br />每一个range值都被映射为一个domain的等分量值区间</pre>
+<ul>
+<li>0 &le;&nbsp;<em>u</em>&nbsp;&lt; 25 is mapped to &lsquo;lightblue&rsquo;</li>
+<li>25 &le;&nbsp;<em>u</em>&nbsp;&lt; 50 is mapped to &lsquo;orange&rsquo;</li>
+<li>50 &le;&nbsp;<em>u</em>&nbsp;&lt; 75 is mapped to &lsquo;lightgreen&rsquo;</li>
+<li>75 &le;&nbsp;<em>u</em>&nbsp;&lt; 100 is mapped to &lsquo;pink&rsquo;</li>
+</ul>
+<p><em>u</em>&nbsp;是输入domain值</p>
+<p><img src="./images/d3js scales深入理解35.png" alt="" /></p>
+<p>注意由于我们使用了.clamp指示，因此quantizeScale(-10)返回'lightblue',而quantizeScale(110)返回'pink'</p>
+<h4 id="scalequantile">scaleQuantile</h4>
+<p><code>scaleQuantile</code>&nbsp;将输入的连续性domain值映射为离散的值。domain是由数组来定义:</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var myData = [0, 5, 7, 10, 20, 30, 35, 40, 60, 62, 65, 70, 80, 90, 100];
+
+var quantileScale = d3.scaleQuantile()
+  .domain(myData)
+  .range(['lightblue', 'orange', 'lightgreen']);
+
+quantileScale(0);   // returns 'lightblue'
+quantileScale(20);  // returns 'lightblue'
+quantileScale(30);  // returns 'orange'
+quantileScale(65);  // returns 'lightgreen'</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p><img src="./images/d3js scales深入理解38.png" alt="" /></p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var myData = [0, 5, 7, 10, 20, 30, 35, 40, 60, 62, 65, 70, 80, 90, 100];
+
+var linearScale = d3.scaleLinear()
+    .domain([0, 100])
+    .range([0, 600]);
+
+var quantileScale = d3.scaleQuantile()
+    .domain(myData)
+    .range(['lightblue', 'orange', 'lightgreen']);
+
+d3.select('#wrapper')
+    .selectAll('circle')
+    .data(myData)
+    .enter()
+    .append('circle')
+    .attr('r', 3)
+    .attr('cx', function(d) {
+        return linearScale(d);
+    })
+    .style('fill', function(d) {
+        return quantileScale(d);
+    });</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>排好序的domain数组被均分为n个子范围，这里n是range数值的个数</p>
+<p>这样在上面的例子中domain数组就被均分为3个groups:</p>
+<ul>
+<li>the first 5 values are mapped to &lsquo;lightblue&rsquo;</li>
+<li>the next 5 values to &lsquo;orange&rsquo; and</li>
+<li>the last 5 values to &lsquo;lightgreen&rsquo;.</li>
+</ul>
+<p>具体的domain均分点可以通过.quantiles()来访问</p>
+<div class="cnblogs_code">
+<pre><code>quantileScale.quantiles();  // returns [26.66..., 63]</pre>
+</div>
+<p>如果range包含4个值，那么quantileScale将这样计算quantiles: 最低25%的数据被映射为range[0], 下一个25%则映射为range[1]，以此类推。</p>
+<h4 id="scalethreshold">scaleThreshold</h4>
+<p><code>scaleThreshold</code>&nbsp;映射连续的输入domain为由range来定义的离散值. 如果range值有n个，则将会有n-1个切分点</p>
+<p>下面的例子我们在<code>0</code>,&nbsp;<code>50和</code><code>100处切分</code></p>
+<ul>
+<li><em>u</em>&nbsp;&lt; 0 is mapped to &lsquo;#ccc&rsquo;</li>
+<li>0 &le;&nbsp;<em>u</em>&nbsp;&lt; 50 to &lsquo;lightblue&rsquo;</li>
+<li>50 &le;&nbsp;<em>u</em>&nbsp;&lt; 100 to &lsquo;orange&rsquo;</li>
+<li><em>u</em>&nbsp;&ge; 100 to &lsquo;#ccc&rsquo;</li>
+</ul>
+<p><em>这里u</em>&nbsp;是input value.</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var thresholdScale = d3.scaleThreshold()
+  .domain([0, 50, 100])
+  .range(['#ccc', 'lightblue', 'orange', '#ccc']);
+
+thresholdScale(-10);  // returns '#ccc'
+thresholdScale(20);   // returns 'lightblue'
+thresholdScale(70);   // returns 'orange'
+thresholdScale(110);  // returns '#ccc'</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<h3><img src="./images/d3js scales深入理解43.png" alt="" /></h3>
+<p>详细代码如下：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var linearScale = d3.scaleLinear()
+    .domain([-10, 110])
+    .range([0, 600]);
+
+var thresholdScale = d3.scaleThreshold()
+    .domain([0, 50, 100])
+    .range(['#ccc', 'lightblue', 'orange', '#ccc']);
+
+var myData = d3.range(-10, 110, 2);
+
+d3.select('#wrapper')
+    .selectAll('rect')
+    .data(myData)
+    .enter()
+    .append('rect')
+    .attr('x', function(d) {
+        return linearScale(d);
+    })
+    .attr('width', 9)
+    .attr('height', 30)
+    .style('fill', function(d) {
+        return thresholdScale(d);
+    });</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<h3 id="scales-with-discrete-input-and-discrete-output">Scales with discrete input and discrete output</h3>
+<h4 id="scaleordinal">scaleOrdinal</h4>
+<p><code>scaleOrdinal</code>&nbsp;将离散的domain values array映射为离散的range values array. domain input array指定可能的输入value,而range array则定义对应的可能的输出value.如果range array比domain array要短，则range array会重复循环</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var myData = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+var ordinalScale = d3.scaleOrdinal()
+  .domain(myData)
+  .range(['black', '#ccc', '#ccc']);
+
+ordinalScale('Jan');  // returns 'black';
+ordinalScale('Feb');  // returns '#ccc';
+ordinalScale('Mar');  // returns '#ccc';
+ordinalScale('Apr');  // returns 'black';</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p><img src="./images/d3js scales深入理解48.png" alt="" /></p>
+<p>完整代码如下：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var myData = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+var linearScale = d3.scaleLinear()
+    .domain([0, 11])
+    .range([0, 600]);
+
+var ordinalScale = d3.scaleOrdinal()
+    .domain(myData)
+    .range(['black', '#ccc', '#ccc']);
+
+d3.select('#wrapper')
+    .selectAll('text')
+    .data(myData)
+    .enter()
+    .append('text')
+    .attr('x', function(d, i) {
+        return linearScale(i);
+    })
+    .text(function(d) {
+        return d;
+    })
+    .style('fill', function(d) {
+        return ordinalScale(d);
+    });</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>By default if a value that&rsquo;s not in the domain is used as input, the scale will implicitly add the value to the domain:</p>
+<p>默认情况下如果输入值不在domain范围内，scale会隐含地添加这个值到domain中去。</p>
+<div class="cnblogs_code">
+<pre><code>ordinalScale('Monday');  // returns 'black';</pre>
+</div>
+<p>如果这不是我们想要的行为，我们可以使用.unknown()函数来设定一个unknown values</p>
+<div class="cnblogs_code">
+<pre><code>ordinalScale.unknown('Not a month');
+ordinalScale('Tuesday'); // returns 'Not a month'</pre>
+</div>
+<p>D3也提供一些预定义好的color scheme</p>
+<div class="cnblogs_code">
+<pre><code>var ordinalScale = d3.scaleOrdinal()
+  .domain(myData)
+  .range(d3.schemePaired);</pre>
+</div>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var myData = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
+var linearScale = d3.scaleLinear()
+  .domain([0, 11])
+  .range([0, 600]);
+
+var ordinalScale = d3.scaleOrdinal()
+  .domain(myData)
+  .range(d3.schemePaired);
+
+d3.select('#wrapper')
+  .selectAll('text')
+  .data(myData)
+  .enter()
+  .append('text')
+  .attr('x', function(d, i) {
+    return linearScale(i);
+  })
+  .text(function(d) {
+    return d;
+  })
+  .style('fill', function(d) {
+    return ordinalScale(d);
+  });</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p><img src="./images/d3js scales深入理解53.png" alt="" /></p>
+<p>(Note that the Brewer colour schemes are defined within a separate file d3-scale-chromatic.js.)</p>
+<h4 id="scaleband">scaleBand</h4>
+<p>当创建一个bar chart时，scaleBand可以帮助我们来决定bar的几何形状，并且已经考虑好了各个bar之间的padding值。</p>
+<p>输入的domain通过一个数值数组来指定（每个值都对应一个band）并且range通过bands的最小和最大范围来定义(也就是bar chart的整个宽度)</p>
+<p>scaleBand会将range划分为n个bands(n是domain数组的数值个数)并且在考虑padding的情况下计算出每个band的位置和宽度.</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var bandScale = d3.scaleBand()
+  .domain(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
+  .range([0, 200]);
+
+bandScale('Mon'); // returns 0
+bandScale('Tue'); // returns 40
+bandScale('Fri'); // returns 160</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>每个band的宽度可以使用.bandWidth()来访问。</p>
+<div class="cnblogs_code">
+<pre><code>bandScale.bandwidth();  // returns 40</pre>
+</div>
+<p>有两种padding可以被配置：</p>
+<ul>
+<li><code>paddingInner</code>&nbsp;which specifies (as a percentage of the band width) the amount of padding between each band</li>
+<li><code>paddingOuter</code>&nbsp;which specifies (as a percentage of the band width) the amount of padding before the first band and after the last band</li>
+</ul>
+<p>我们在上面的例子中添加一点inner padding</p>
+<div class="cnblogs_code">
+<pre><code>bandScale.paddingInner(0.05);
+
+bandScale.bandWidth();  // returns 38.38...
+bandScale('Mon');       // returns 0
+bandScale('Tue');       // returns 40.40...</pre>
+</div>
+<p>Putting this all together we can create this bar chart:</p>
+<p>上面加起来我们可以得到下面的图表：</p>
+<p><img src="./images/d3js scales深入理解56.png" alt="" /></p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var myData = [
+    {day : 'Mon', value: 10},
+    {day : 'Tue', value: 40},
+    {day : 'Wed', value: 30},
+    {day : 'Thu', value: 60},
+    {day : 'Fri', value: 30}
+];
+
+var bandScale = d3.scaleBand()
+    .domain(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
+    .range([0, 200])
+    .paddingInner(0.05);
+
+d3.select('#wrapper')
+    .selectAll('rect')
+    .data(myData)
+    .enter()
+    .append('rect')
+    .attr('y', function(d) {
+        return bandScale(d.day);
+    })
+    .attr('height', bandScale.bandwidth())
+    .attr('width', function(d) {
+        return d.value;
+    });</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+<h4 id="scalepoint">scalePoint</h4>
+<p><code>scalePoint</code>&nbsp;将离散的输入数值映射为在range内等距的点:</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var pointScale = d3.scalePoint()
+  .domain(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
+  .range([0, 500]);
+
+pointScale('Mon');  // returns 0
+pointScale('Tue');  // returns 125
+pointScale('Fri');  // returns 500</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p><img src="./images/d3js scales深入理解61.png" alt="" /></p>
+<p>完整代碼：</p>
+<div class="cnblogs_code">
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+<pre><code>var myData = [
+    {day : 'Mon', value: 10},
+    {day : 'Tue', value: 40},
+    {day : 'Wed', value: 30},
+    {day : 'Thu', value: 60},
+    {day : 'Fri', value: 30}
+];
+
+var pointScale = d3.scalePoint()
+    .domain(['Mon', 'Tue', 'Wed', 'Thu', 'Fri'])
+    .range([0, 600]);
+
+d3.select('#wrapper')
+    .selectAll('circle')
+    .data(myData)
+    .enter()
+    .append('circle')
+    .attr('cx', function(d) {
+        return pointScale(d.day);
+    })
+    .attr('r', 4);</pre>
+<div class="cnblogs_code_toolbar"><span class="cnblogs_code_copy"><a title="复制代码"><img src="./images/d3js scales深入理解1.png" alt="复制代码" /></a></span></div>
+</div>
+<p>&nbsp;</p>
+<p>点之间的距离可以通过.step()来访问：</p>
+<div class="cnblogs_code">
+<pre><code>pointScale.step();  // returns 125</pre>
+</div>
+<p>outside padding可以通过和padding to point spacing的比例来指定。比如，如果希望设定outside padding为point spacing的1/4，那么可以这样设置：</p>
+<div class="cnblogs_code">
+<pre><code>pointScale.padding(0.25);
+
+pointScale('Mon');  // returns 27.77...
+pointScale.step();  // returns 111.11...</pre>
+</div>
+<p>&nbsp;</p>
+<h4 id="further-reading">参考阅读</h4>
+<p><a href="https://github.com/d3/d3-scale-chromatic">ColorBrewer schemes for D3</a></p>
+<p><a href="https://medium.com/@mbostock/introducing-d3-scale-61980c51545f#.lk2cs7x7k">Mike Bostock on d3-scale</a></p>
+</div>
+</div>
+<div id="MySignature">积小流以汇江海，细微做起</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

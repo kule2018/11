@@ -1,0 +1,239 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修有关this' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>有关this</center></div><div class='banquan'>原文出处:本文由博客园博主再见紫罗兰提供。<br/>
+原文连接:https://www.cnblogs.com/linxiyue/p/10638809.html</div><br>
+    <p><code>this</code>是<code>Javascript</code>函数内部的一个特殊对象，引用的是函数运行时的环境对象，也就是说，<code>this</code>是动态的(箭头函数除外)，是在运行时进行绑定的，并不是在编写时绑定(箭头函数是编写时绑定)。 <code>this</code>的绑定和函数声明的位置没有任何关系，只取决于函数的调用方式。</p>
+<h2 id="绑定规则">绑定规则</h2>
+<p><code>this</code>绑定根据函数的调用方式基本上有四种规则：</p>
+<h3 id="全局性调用">全局性调用</h3>
+<p>函数的最通常用法，<code>this</code>代表全局对象：</p>
+<pre><code><code>function sayColor() {
+  console.log(this.color)
+}
+var color = &#39;red&#39;
+sayColor()   // red</code></pre>
+<h3 id="作为对象的方法调用">作为对象的方法调用</h3>
+<p>函数作为某个对象的方法调用时，<code>this</code>指向这个上级对象：</p>
+<pre><code><code>let car = {
+  color: &#39;black&#39;,
+  sayColor
+}
+car.sayColor()  // black</code></pre>
+<p>当存在多重调用时，最后一层会决定调用位置：</p>
+<pre><code><code>let house = {
+  color: &#39;white&#39;,
+  car
+}
+house.car.sayColor()  // black</code></pre>
+<h3 id="使用applycallbind方法绑定调用对象">使用apply、call、bind方法绑定调用对象</h3>
+<p>函数可以使用<code>apply、call、bind</code>方法来改变调用对象。这些方法的第一个参数是一个对象，它们会把这个对象绑定到<code>this</code>：</p>
+<pre><code><code>let bindObj = {
+  color: &#39;green&#39;
+}
+sayColor.apply(bindObj)  // green
+sayColor.call(bindObj)  // green
+sayColor.bind(bindObj)()  // green</code></pre>
+<p>第一个参数为空时，默认绑定全局对象：</p>
+<pre><code><code>sayColor.apply()  // red</code></pre>
+<h3 id="构造函数调用">构造函数调用</h3>
+<p>当函数作为构造函数被调用时，<code>this</code>指向创建的新对象：</p>
+<pre><code><code>function Person(color) {
+  this.color = color
+}
+let p = new Person(&#39;yellow&#39;)
+p.color  // yellow</code></pre>
+<p>使用new操作符调用构造函数时，首先会创建一个新对象，然后将构造函数的作用域赋给新对象，<code>this</code>就指向了新对象，过程与下面代码类似：</p>
+<pre><code><code>let o = new Object()
+Person.call(o, &#39;yellow&#39;)
+o.color  // yellow</code></pre>
+<p>当然，构造函数不通过new调用时，与普通函数无区别，可以理解为实际上并不存在所谓的<strong>构造函数</strong>，只有对于函数的<strong>构造调用</strong>：</p>
+<pre><code><code>Person(&#39;yellow&#39;)
+// this指向了全局对象window
+window.color  // yellow</code></pre>
+<p>以上就是<code>this</code>绑定的四种规则，函数调用时，先找到调用位置，然后判断需要应用四条规则中的哪一条。</p>
+<h2 id="应用">应用</h2>
+<p>现在来看下实际应用的几种特殊情况。</p>
+<h3 id="回调函数">回调函数</h3>
+<p>当做回调函数调用时，一般是全局调用：</p>
+<pre><code><code>setTimeout(sayColor) // red 指向window
+
+let obj = {
+    color: &#39;green&#39;,
+    say () {
+        sayColor()
+    }
+}
+obj.say() // red  指向window</code></pre>
+<p>但在一些上下文中会进行隐式绑定,比如事件中的<code>this</code>是指向于事件的目标元素的,还有一些数组的操作方法可以使用第二个参数来绑定<code>this</code>：</p>
+<pre><code><code>[1, 2, 3].forEach(function () { console.log(this.color) })  // red red red  指向window
+[1, 2, 3].forEach(function () { console.log(this.color) }, car)  // black black black  指向car对象</code></pre>
+<h3 id="绑定丢失">绑定丢失</h3>
+<pre><code><code>function sayColor() {
+  console.log(this.color)
+}
+let car = {
+  color: &#39;black&#39;,
+  sayColor
+}
+var color = &#39;red&#39;
+
+let alias = car.sayColor
+alias() // red</code></pre>
+<p>上述代码中将对象的方法赋值给新变量<code>alias</code>，<code>alias</code>函数执行时，<code>this</code>指向了全局对象。<br />
+函数的名字仅仅是一个包含指向函数对象的指针的变量，car对象的sayColor属性保存在一个属性描述符对象中：</p>
+<pre><code><code>Object.getOwnPropertyDescriptor(car, &#39;sayColor&#39;)
+//  {value: ƒ, writable: true, enumerable: true, configurable: true}</code></pre>
+<p>其中描述符对象的value属性保存了指向sayColor函数的指针，<code>let alias = car.sayColor</code>语句将指向sayColor函数的指针赋值给变量<code>alias</code>，执行<code>alias</code>函数就是在全局对象中执行函数<code>sayColor</code>。<br />
+当做回调函数时：</p>
+<pre><code><code>setTimeout(car.sayColor, 500)  // red  指向window</code></pre>
+<p>因为Javascript中的函数参数都是按值传递的，上述代码将指向<code>sayColor</code>函数的指针赋值给了<code>setTimeout</code>函数的参数，也相当于在全局环境中执行<code>sayColor</code>函数。</p>
+<h3 id="闭包">闭包</h3>
+<p>匿名函数的执行一般具有全局性，在闭包中由于编写方式可能不会那么明显：</p>
+<pre><code><code>let obj = {
+  color: &#39;green&#39;,
+  say () {
+    return function() {
+      console.log(this.color)
+    }
+  }
+}
+obj.say()()  // red   this指向全局window</code></pre>
+<p>内部匿名函数是有自己的<code>this</code>变量的，所以无法访问到外部函数<code>say</code>的<code>this</code>变量，我们可以将外部<code>this</code>变量保存于一个闭包能够访问的变量之中：</p>
+<pre><code><code>let obj = {
+  color: &#39;green&#39;,
+  say () { 
+    let self = this
+    return function() {
+      console.log(self.color)
+    }
+  }
+}
+obj.say()()  // green</code></pre>
+<p>当然，现在可以用箭头函数来绑定this：</p>
+<pre><code><code>let obj = {
+  color: &#39;green&#39;,
+  say () { 
+    return () =&gt; {
+      console.log(this.color)
+    }
+  }
+}
+obj.say()()  // green</code></pre>
+<h2 id="优先级">优先级</h2>
+<p>全局性调用优先级是最低的。<br />
+使用<code>apply</code>等函数绑定<code>this</code>的优先级高于对象调用：</p>
+<pre><code><code>let car = {
+  color: &#39;black&#39;,
+  sayColor
+}
+let bindObj = {
+  color: &#39;green&#39;
+}
+
+car.sayColor()  // black
+car.sayColor.apply(bindObj)  // green</code></pre>
+<p>使用<code>new</code>操作符绑定高于使用<code>apply</code>等函数：</p>
+<pre><code><code>function Person(color) {
+  this.color = color
+}
+let obj = {}
+let bindPerson = Person.bind(obj)
+let p = new bindPerson(&#39;yellow&#39;)
+
+p.color  // yellow  this指向了创建的对象p
+obj.color  // undefined  没有指向obj</code></pre>
+<h2 id="箭头函数与this">箭头函数与this</h2>
+<p>ES6中引进了箭头函数，可以简化匿名函数的语法：</p>
+<pre><code><code>setTimeout(() =&gt; { console.log(this.color) }, 50)</code></pre>
+<p>箭头函数内部是没有<code>this</code>、<code>arguments</code>、<code>super</code>、<code>new.target</code>特殊变量的，访问它们时会指向最近的外层非箭头函数的相应变量：</p>
+<pre><code><code>function sayColor() {
+  return () =&gt; {
+    return () =&gt; {
+      console.log(this.color)
+    }
+  }
+}
+
+sayColor.call({ color: &#39;red&#39; })()()  // red 指向了外层sayColor函数的this对象
+sayColor.call({ color: &#39;red&#39; }).call({ color: &#39;green&#39; })()  // red 依然指向外层sayColor函数的this对象
+sayColor.call({ color: &#39;red&#39; }).call({ color: &#39;green&#39; }).call({ color: &#39;yellow&#39; })  // red箭头函数使用call是无法绑定this的</code></pre>
+<p>所以，箭头函数可以起到固定化<code>this</code>指向的效果，一定程度上可以说<code>this</code>是静态的，参考上面闭包的代码：</p>
+<pre><code><code>// ES6箭头函数
+let obj = {
+  color: &#39;green&#39;,
+  sayColor () { 
+    return () =&gt; {
+      console.log(this.color)
+    }
+  }
+}
+
+// ES5
+let obj = {
+  color: &#39;green&#39;,
+  sayColor () { 
+    let self = this
+    return function() {
+      console.log(self.color)
+    }
+  }
+}</code></pre>
+<p>当然，静态并不意味着箭头函数的<code>this</code>是永远不变的，而是随着外层函数的<code>this</code>变化而变化：</p>
+<pre><code><code>let obj = {
+  color: &#39;green&#39;,
+  sayColor () { 
+    return () =&gt; {
+      console.log(this.color)
+    }
+  }
+}
+
+obj.sayColor()()  // green
+obj.sayColor.call({ color: &#39;red&#39; })()  // red</code></pre>
+<h3 id="不适用情况">不适用情况</h3>
+<p>在事件中想将<code>this</code>指向目标元素时，箭头函数是不适用的：</p>
+<pre><code><code>btn.addEventListener(&#39;click&#39;, () =&gt; {
+  console.log(this)
+})</code></pre>
+<p>上述代码中<code>this</code>指向了全局对象，而不是事件的目标元素。</p>
+<p>将函数当做对象的方法调用并且想将<code>this</code>指向对象时，也是不适用的：</p>
+<pre><code><code>let obj = {
+  color: &#39;green&#39;,
+  sayColor: () =&gt; { 
+    console.log(this.color)
+  }
+}</code></pre>
+<p>上述代码中<code>this</code>也指向了全局对象。</p>
+<p>总之，需要<code>this</code>动态时使用非箭头函数，需要<code>this</code>静态时使用箭头函数：</p>
+<pre><code><code>function Person() {
+  this.color = &#39;yellow&#39;
+  setTimeout(() =&gt; { console.log(&#39;person color is&#39;,this.color) }, 50)
+  setTimeout(function() { console.log(&#39;global color is&#39;,this.color) }, 50)
+}
+var color = &#39;red&#39;
+new Person()
+//  输出
+person color is yellow
+global color is red</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

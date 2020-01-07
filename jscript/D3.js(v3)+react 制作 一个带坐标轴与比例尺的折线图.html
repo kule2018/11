@@ -1,0 +1,418 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修D3.js(v3)+react 制作 一个带坐标轴与比例尺的折线图' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>D3.js(v3)+react 制作 一个带坐标轴与比例尺的折线图</center></div><div class='banquan'>原文出处:本文由博客园博主溢杨年华提供。<br/>
+原文连接:https://www.cnblogs.com/littleSpill/p/10891161.html</div><br>
+    <div><span style="font-size: 18px;">本章使用路径生成器来绘制一个<strong>折线图</strong>。以中国和日本的GDP数据为例：</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span>  　　<span style="color: #008000;">//</span><span style="color: #008000;">数据</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">var</span> dataList =<span style="color: #000000;"> [
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 4</span>                 coountry : "china"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">                gdp : [
+</span><span style="color: #008080;"> 6</span>                     [2000,11920],[2001,13170],[2002,14550],[2003,16500],[2004,19440],[2005,22870<span style="color: #000000;">],
+</span><span style="color: #008080;"> 7</span>                     [2006,27930],[2007,35040],[2008,45470],[2009,51050],[2010,59490],[2011,73140<span style="color: #000000;">],
+</span><span style="color: #008080;"> 8</span>                     [2012,83860],[2013,103550<span style="color: #000000;">]
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">                ]
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;">12</span>                 coountry : "japan"<span style="color: #000000;">,
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">                gdp : [
+</span><span style="color: #008080;">14</span>                     [2000,47310],[2001,41590],[2002,39800],[2003,43020],[2004,46500],[2005,45710<span style="color: #000000;">],
+</span><span style="color: #008080;">15</span>                     [2006,43560],[2007,43560],[2008,48490],[2009,50350],[2010,54950],[2011,59050<span style="color: #000000;">],
+</span><span style="color: #008080;">16</span>                     [2012,59370],[2013,48980<span style="color: #000000;">]
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">                ]
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">19</span>         ]</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>
+<div><span style="font-size: 18px;"><span style="font-size: 18px;">dataList是一个数组，每一项是一个对象，对象里有两个成员，国家名称country和国民生产总值GDP。GDP也是一个数组，其中[2000,11920]表示2000年的GDP为11920亿美元。</span></span>
+<div><span style="font-size: 18px;">首先，定义x轴和y轴的比例尺，x轴表示年份，y轴表示GDP值。定义比例尺之前，要明确绘制区域和GDP的最大值:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1　　</span> 　　　<span style="color: #008000;">//</span><span style="color: #008000;">外边框</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">var</span> padding = {top : 50 , right : 50 , bottom : 100 , left : 200<span style="color: #000000;">};
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span>         <span style="color: #008000;">//</span><span style="color: #008000;">计算GDP的最大值</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">var</span> gdpmax = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; dataList.length ; i++<span style="color: #000000;">){
+</span><span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">var</span> currGdp = d3.max(dataList[i].gdp,<span style="color: #0000ff;">function</span><span style="color: #000000;">(d){
+</span><span style="color: #008080;"> 8</span>                 <span style="color: #0000ff;">return</span> d[1<span style="color: #000000;">]
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">if</span>(currGdp &gt;<span style="color: #000000;"> gdpmax){
+</span><span style="color: #008080;">11</span>                 gdpmax =<span style="color: #000000;"> currGdp
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">13</span>         }</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+<div>
+<div><span style="font-size: 18px;">padding是到SVG画板上下左右各边界的距离，单位为像素。GDP的最大值保存在gdpmax变量中。使用<strong>d3.max()</strong>可以很方便的求数组中的最大值。接下来，凭借padding和gdpmax定义比例尺的定义域和值域:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;">1</span>  　　　　 <span style="color: #008000;">//</span><span style="color: #008000;">定义比例尺,均为线性比例尺</span>
+<span style="color: #008080;">2</span>         <span style="color: #0000ff;">var</span> xScale = d3.scale.linear()                                  <span style="color: #008000;">//</span><span style="color: #008000;">定义一个比例尺</span>
+<span style="color: #008080;">3</span>                         .domain([min,max])                              <span style="color: #008000;">//</span><span style="color: #008000;">设定x轴的值域</span>
+<span style="color: #008080;">4</span>                         .range([0,width-padding.left - padding.right])  <span style="color: #008000;">//</span><span style="color: #008000;">设定x轴的定义域</span>
+<span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span>         <span style="color: #0000ff;">var</span> yScale = d3.scale.linear()                                  <span style="color: #008000;">//</span><span style="color: #008000;">定义一个比例尺</span>
+<span style="color: #008080;">7</span>                         .domain([0,gdpmax*1.1])                         <span style="color: #008000;">//</span><span style="color: #008000;">设定y轴的值域</span>
+<span style="color: #008080;">8</span>                         .range([height-padding.top-padding.bottom,0])   <span style="color: #008000;">//</span><span style="color: #008000;">设定y轴的定义域</span></span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+<div>
+<div><span style="font-size: 18px;">x轴的定义域是2000~2013，此外为了代码简洁手动指定了，实际应用时应从数据中获取。y轴的定义域是0~gdpmax*1.1,乘以1.1是为了使得图形不在坐标轴的边界绘制。接下来根据数据定义一个线段生成器:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;">1</span>   　　<span style="color: #008000;">//</span><span style="color: #008000;">创建一个线段生成器</span>
+<span style="color: #008080;">2</span>         <span style="color: #0000ff;">var</span> linePath = d3.svg.line()                                    <span style="color: #008000;">//</span><span style="color: #008000;">创建一个线段生成器</span>
+<span style="color: #008080;">3</span>                        
+<span style="color: #008080;">4</span>                         .x(<span style="color: #0000ff;">function</span>(d){<span style="color: #0000ff;">return</span> xScale(d[0])})            <span style="color: #008000;">//</span><span style="color: #008000;">设置x坐标的访问器</span>
+<span style="color: #008080;">5</span>                         .y(<span style="color: #0000ff;">function</span>(d){<span style="color: #0000ff;">return</span> yScale(d[1])})            <span style="color: #008000;">//</span><span style="color: #008000;">设置y坐标的访问器</span></span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+</div>
+<div>
+<div><span style="font-size: 18px;">该直线生成器的访问器x为xScale(d[0]),y为yScale(d[1])。接下来要传入的数据是gdp数组，如d为[2000,11920]这样的值:那么d[0]就是年份，d[1]是国民生产总值。对这两个值都使用比例尺变换，则输入的数据会自动按照比例伸缩后再生成直线路径。</span></div>
+<div>&nbsp;</div>
+<div>
+<div><span style="font-size: 18px;">定义两个RGB颜色，分别用于两条折现的着色。然后，添加与数组dataList长度相同数量的&lt;path&gt;元素，并设置为线段生成器计算的路径。代码:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span>   　　　　<span style="color: #008000;">//</span><span style="color: #008000;">定义两个颜色</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">var</span> colors = [d3.rgb(0,0,255),d3.rgb(0,255,0<span style="color: #000000;">)]
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加路径</span>
+<span style="color: #008080;"> 5</span>         svg.selectAll("path")                   <span style="color: #008000;">//</span><span style="color: #008000;">选择svg中所有的path</span>
+<span style="color: #008080;"> 6</span>             .data(dataList)                     <span style="color: #008000;">//</span><span style="color: #008000;">绑定数据</span>
+<span style="color: #008080;"> 7</span>             .enter()                            <span style="color: #008000;">//</span><span style="color: #008000;">获取enter部分</span>
+<span style="color: #008080;"> 8</span>             .append("path")                     <span style="color: #008000;">//</span><span style="color: #008000;">添加足够数量的&lt;path&gt;元素</span>
+<span style="color: #008080;"> 9</span>             .attr("transform","translate("+padding.left + "," + padding.top + ")")  <span style="color: #008000;">//</span><span style="color: #008000;">平移</span>
+<span style="color: #008080;">10</span>             .attr("d",<span style="color: #0000ff;">function</span><span style="color: #000000;">(d){
+</span><span style="color: #008080;">11</span>                 <span style="color: #0000ff;">return</span> linePath(d.gdp)          <span style="color: #008000;">//</span><span style="color: #008000;">返回线段生成器得到的路径</span>
+<span style="color: #008080;">12</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">13</span>             .attr("fill","none")                <span style="color: #008000;">//</span><span style="color: #008000;">填充色为none</span>
+<span style="color: #008080;">14</span>             .attr("stroke",<span style="color: #0000ff;">function</span><span style="color: #000000;">(d,i){
+</span><span style="color: #008080;">15</span>                 <span style="color: #0000ff;">return</span> colors[i]                <span style="color: #008000;">//</span><span style="color: #008000;">设置折线颜色</span>
+<span style="color: #008080;">16</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">17</span>             .attr("stroke-width","3px")         <span style="color: #008000;">//</span><span style="color: #008000;">设置折线的宽度</span></span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+</div>
+<div>
+<div><span style="font-size: 18px;">添加元素的形式"<strong>selectAll().data().enter().append()</strong>"，相信大家都已经很熟悉了。给属性<strong>transform</strong>赋予适当的值，令折线平移到指定的位置。在&lt;path&gt;元素的d属性中，使用线段生成器计算路径，注意<strong>linePath()</strong>的参数是d.gdp。此处的线段生成器是按照数组gdp的格式来设定访问器的，因此一定要以d.gdp，而不是以d作为参数。</span></div>
+<div>&nbsp;</div>
+<div>
+<div><span style="font-size: 18px;">接下来绘制坐标轴:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span>  　　　　<span style="color: #008000;">//</span><span style="color: #008000;">坐标轴x轴</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">var</span> xAxis = d3.svg.axis()               <span style="color: #008000;">//</span><span style="color: #008000;">创建一个新坐标轴</span>
+<span style="color: #008080;"> 3</span>                     .scale(xScale)              <span style="color: #008000;">//</span><span style="color: #008000;">设定x坐标轴的比例尺</span>
+<span style="color: #008080;"> 4</span>                     .ticks(6)                   <span style="color: #008000;">//</span><span style="color: #008000;">设定x坐标轴的分隔数</span>
+<span style="color: #008080;"> 5</span>                     .tickFormat(d3.format("d")) <span style="color: #008000;">//</span><span style="color: #008000;">刻度的数组用字符串表示</span>
+<span style="color: #008080;"> 6</span>                     .orient("bottom")           <span style="color: #008000;">//</span><span style="color: #008000;">设定x坐标轴的方向</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #008000;">//</span><span style="color: #008000;">坐标轴y轴</span>
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">var</span> yAxis = d3.svg.axis()               <span style="color: #008000;">//</span><span style="color: #008000;">创建一个新坐标</span>
+<span style="color: #008080;"> 9</span>                     .scale(yScale)              <span style="color: #008000;">//</span><span style="color: #008000;">设定y坐标轴的比例尺</span>
+<span style="color: #008080;">10</span>                     .orient("left")             <span style="color: #008000;">//</span><span style="color: #008000;">设定y坐标轴的方向</span>
+<span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加一个&lt;g&gt;元素用于放x轴</span>
+<span style="color: #008080;">13</span>         svg.append("g")                         <span style="color: #008000;">//</span><span style="color: #008000;">添加一个&lt;g&gt;元素</span>
+<span style="color: #008080;">14</span>             .attr("class","axis")               <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;">15</span>             .attr("transform","translate("+padding.left + "," + (height-padding.bottom) + ")")  <span style="color: #008000;">//</span><span style="color: #008000;">平移</span>
+<span style="color: #008080;">16</span>             .call(xAxis)                        <span style="color: #008000;">//</span><span style="color: #008000;">call()应用</span>
+<span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加一个&lt;g&gt;元素用于放y轴</span>
+<span style="color: #008080;">19</span>         svg.append("g")                         <span style="color: #008000;">//</span><span style="color: #008000;">添加一个&lt;g&gt;元素</span>
+<span style="color: #008080;">20</span>             .attr("class","axis")               <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;">21</span>             .attr("transform","translate("+ padding.left + "," + padding.top + ")")             <span style="color: #008000;">//</span><span style="color: #008000;">平移</span>
+<span style="color: #008080;">22</span>             .call(yAxis)                        <span style="color: #008000;">//</span><span style="color: #008000;">call()应用</span></span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+</div>
+<div>
+<div><span style="font-size: 18px;">由于x轴的刻度是年份的意思，而数据里的数据类型确实整数类型:所以如果直接在坐标轴上显示，2000年会显示成2,000, 2002年会显示成2,002多一个逗号。因此，加了一条<strong>tickFormat()</strong>，其中，<strong>d3.format("d")</strong>表示刻度的数组都用字符串表示。设定之后，年份之间的逗号就会消失。然后，将两个坐标轴分别放到两个&lt;g&gt;元素里。</span></div>
+<div>&nbsp;</div>
+<div>
+<div><span style="font-size: 18px;">现在的效果图如下:</span></div>
+<div>&nbsp;</div>
+<div><span style="font-size: 18px;"><img src="./images/D3.js(v3)+react 制作 一个带坐标轴与比例尺的折线图0.png" alt="" /></span></div>
+<div>&nbsp;</div>
+<div>
+<div><span style="font-size: 18px;">如果想要使一段一段的直线看起来更光滑一些，可以使用直线生成器的插值函数。之前给大家介绍过,不清楚的点:&nbsp;<a style="cursor: pointer;" onclick="window.open('https://www.cnblogs.com/littleSpill/p/10850364.html','','');return false;" href="https://www.cnblogs.com/littleSpill/p/10850364.html" target="_blank">https://www.cnblogs.com/littleSpill/p/10850364.html</a> &nbsp;设置为<strong>basis</strong>模式后，线段变为曲线。</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;">1</span>  　　　　<span style="color: #008000;">//</span><span style="color: #008000;">创建一个线段生成器</span>
+<span style="color: #008080;">2</span>         <span style="color: #0000ff;">var</span> linePath = d3.svg.line()                                    <span style="color: #008000;">//</span><span style="color: #008000;">创建一个线段生成器</span>
+<span style="color: #008080;">3</span>                        <strong> .interpolate("basis")                           <span style="color: #008000;">//</span><span style="color: #008000;">使用basis插值模式</span></strong>
+<span style="color: #008080;">4</span>                         .x(<span style="color: #0000ff;">function</span>(d){<span style="color: #0000ff;">return</span> xScale(d[0])})            <span style="color: #008000;">//</span><span style="color: #008000;">设置x坐标的访问器</span>
+<span style="color: #008080;">5</span>                         .y(<span style="color: #0000ff;">function</span>(d){<span style="color: #0000ff;">return</span> yScale(d[1])})            <span style="color: #008000;">//</span><span style="color: #008000;">设置y坐标的访问器</span></span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+<div><span style="font-size: 18px;">效果图:</span></div>
+<div>&nbsp;</div>
+<div><span style="font-size: 18px;"><img src="./images/D3.js(v3)+react 制作 一个带坐标轴与比例尺的折线图1.png" alt="" /></span></div>
+<div>&nbsp;</div>
+<div>
+<div><span style="font-size: 18px;">上面的折线图还缺少一个标记，用户不知道哪条直线是中国的GDP，哪条是日本的GDP。可添加两个矩形，分别填充为相应的颜色。矩形边上添加表示国家名称的文字。</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span>   　　　　<span style="color: #008000;">//</span><span style="color: #008000;">添加两个矩形标记</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">var</span> g = svg.selectAll("rect")           <span style="color: #008000;">//</span><span style="color: #008000;">将选择集赋值给变量g</span>
+<span style="color: #008080;"> 3</span>             .data(dataList)                     <span style="color: #008000;">//</span><span style="color: #008000;">绑定数据</span>
+<span style="color: #008080;"> 4</span>             .enter()                            <span style="color: #008000;">//</span><span style="color: #008000;">获取enter()部分</span>
+<span style="color: #008080;"> 5</span>             .append("g")                        <span style="color: #008000;">//</span><span style="color: #008000;">添加&lt;g&gt;元素</span>
+<span style="color: #008080;"> 6</span>         g.append("rect")                        <span style="color: #008000;">//</span><span style="color: #008000;">在&lt;g&gt;元素里添加&lt;rect&gt;矩形</span>
+<span style="color: #008080;"> 7</span>             .attr("fill",<span style="color: #0000ff;">function</span>(d,i){         <span style="color: #008000;">//</span><span style="color: #008000;">设定颜色</span>
+<span style="color: #008080;"> 8</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> colors[i]
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">10</span>             .attr("transform",<span style="color: #0000ff;">function</span>(d,i){    <span style="color: #008000;">//</span><span style="color: #008000;">平移</span>
+<span style="color: #008080;">11</span>                 <span style="color: #0000ff;">var</span> x = padding.left + i*150
+<span style="color: #008080;">12</span>                 <span style="color: #0000ff;">var</span> y = height - padding.bottom + 50
+<span style="color: #008080;">13</span>                 <span style="color: #0000ff;">return</span> "translate(" +x + "," + y + ")"
+<span style="color: #008080;">14</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">15</span>             .attr("width",20)                   <span style="color: #008000;">//</span><span style="color: #008000;">设定矩形的宽度</span>
+<span style="color: #008080;">16</span>             .attr("height",20)                  <span style="color: #008000;">//</span><span style="color: #008000;">设定矩形的高度</span>
+<span style="color: #008080;">17</span> 
+<span style="color: #008080;">18</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加注解</span>
+<span style="color: #008080;">19</span>         g.append("text")                        <span style="color: #008000;">//</span><span style="color: #008000;">添加文字</span>
+<span style="color: #008080;">20</span>             .attr("class","text")               <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;">21</span>             .attr("x",<span style="color: #0000ff;">function</span>(d,i){            <span style="color: #008000;">//</span><span style="color: #008000;">设定文字在x方向的位置</span>
+<span style="color: #008080;">22</span>                 <span style="color: #0000ff;">return</span> padding.left + i * 150 + 30
+<span style="color: #008080;">23</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">24</span>             .attr("y",<span style="color: #0000ff;">function</span>(d,i){            <span style="color: #008000;">//</span><span style="color: #008000;">设定文字在y方向的位置</span>
+<span style="color: #008080;">25</span>                 <span style="color: #0000ff;">return</span> height - padding.bottom + 50 + 15
+<span style="color: #008080;">26</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">27</span>             .text(<span style="color: #0000ff;">function</span>(d){                  <span style="color: #008000;">//</span><span style="color: #008000;">设定文字的内容</span>
+<span style="color: #008080;">28</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> d.coountry
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">30</span>             .attr("font-size","15px")           <span style="color: #008000;">//</span><span style="color: #008000;">设定文字的大小</span>
+<span style="color: #008080;">31</span>             .attr("fill","black")               <span style="color: #008000;">//</span><span style="color: #008000;">设定文字的颜色</span></span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+<div>
+<div><span style="font-size: 18px;">如下图: 一个完整的折线图就做好了。</span></div>
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;<img src="./images/D3.js(v3)+react 制作 一个带坐标轴与比例尺的折线图2.png" alt="" /></div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div><span style="font-size: 18px;">&nbsp;完整代码:&nbsp;</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;">  1</span> import React, { Component } from 'react'<span style="color: #000000;">;
+</span><span style="color: #008080;">  2</span> import * as d3 from 'd3'
+<span style="color: #008080;">  3</span> <span style="color: #000000;">class Line extends Component {
+</span><span style="color: #008080;">  4</span> <span style="color: #000000;">    constructor(props) {
+</span><span style="color: #008080;">  5</span> <span style="color: #000000;">        super(props);
+</span><span style="color: #008080;">  6</span>         <span style="color: #0000ff;">this</span>.state =<span style="color: #000000;"> {}
+</span><span style="color: #008080;">  7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">  8</span> 
+<span style="color: #008080;">  9</span> <span style="color: #000000;">    componentDidMount(){
+</span><span style="color: #008080;"> 10</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">.oneMethod()
+</span><span style="color: #008080;"> 11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 12</span> 
+<span style="color: #008080;"> 13</span> <span style="color: #000000;">    oneMethod(){
+</span><span style="color: #008080;"> 14</span> 
+<span style="color: #008080;"> 15</span>         <span style="color: #0000ff;">var</span> width = 800;                        <span style="color: #008000;">//</span><span style="color: #008000;">SVG绘制区域的宽度</span>
+<span style="color: #008080;"> 16</span>         <span style="color: #0000ff;">var</span> height = 600;                       <span style="color: #008000;">//</span><span style="color: #008000;">SVG绘制区域的高度</span>
+<span style="color: #008080;"> 17</span> 
+<span style="color: #008080;"> 18</span>         <span style="color: #0000ff;">var</span> svg = d3.select("#body")            <span style="color: #008000;">//</span><span style="color: #008000;">选择id为body的div</span>
+<span style="color: #008080;"> 19</span>                     .append("svg")              <span style="color: #008000;">//</span><span style="color: #008000;">在div中添加&lt;svg&gt;</span>
+<span style="color: #008080;"> 20</span>                     .attr("width",width)        <span style="color: #008000;">//</span><span style="color: #008000;">设定&lt;svg&gt;的宽度</span>
+<span style="color: #008080;"> 21</span>                     .attr("height",height)      <span style="color: #008000;">//</span><span style="color: #008000;">设定&lt;svg&gt;的高度</span>
+<span style="color: #008080;"> 22</span> 
+<span style="color: #008080;"> 23</span>         <span style="color: #008000;">//</span><span style="color: #008000;">数据</span>
+<span style="color: #008080;"> 24</span>         <span style="color: #0000ff;">var</span> dataList =<span style="color: #000000;"> [
+</span><span style="color: #008080;"> 25</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 26</span>                 coountry : "china"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 27</span> <span style="color: #000000;">                gdp : [
+</span><span style="color: #008080;"> 28</span>                     [2000,11920],[2001,13170],[2002,14550],[2003,16500],[2004,19440],[2005,22870<span style="color: #000000;">],
+</span><span style="color: #008080;"> 29</span>                     [2006,27930],[2007,35040],[2008,45470],[2009,51050],[2010,59490],[2011,73140<span style="color: #000000;">],
+</span><span style="color: #008080;"> 30</span>                     [2012,83860],[2013,103550<span style="color: #000000;">]
+</span><span style="color: #008080;"> 31</span> <span style="color: #000000;">                ]
+</span><span style="color: #008080;"> 32</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;"> 33</span> <span style="color: #000000;">            {
+</span><span style="color: #008080;"> 34</span>                 coountry : "japan"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 35</span> <span style="color: #000000;">                gdp : [
+</span><span style="color: #008080;"> 36</span>                     [2000,47310],[2001,41590],[2002,39800],[2003,43020],[2004,46500],[2005,45710<span style="color: #000000;">],
+</span><span style="color: #008080;"> 37</span>                     [2006,43560],[2007,43560],[2008,48490],[2009,50350],[2010,54950],[2011,59050<span style="color: #000000;">],
+</span><span style="color: #008080;"> 38</span>                     [2012,59370],[2013,48980<span style="color: #000000;">]
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">                ]
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">        ]
+</span><span style="color: #008080;"> 42</span> 
+<span style="color: #008080;"> 43</span>         <span style="color: #008000;">//</span><span style="color: #008000;">外边框</span>
+<span style="color: #008080;"> 44</span>         <span style="color: #0000ff;">var</span> padding = {top : 50 , right : 50 , bottom : 100 , left : 200<span style="color: #000000;">};
+</span><span style="color: #008080;"> 45</span> 
+<span style="color: #008080;"> 46</span>         <span style="color: #008000;">//</span><span style="color: #008000;">计算GDP的最大值</span>
+<span style="color: #008080;"> 47</span>         <span style="color: #0000ff;">var</span> gdpmax = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 48</span>         <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; dataList.length ; i++<span style="color: #000000;">){
+</span><span style="color: #008080;"> 49</span>             <span style="color: #0000ff;">var</span> currGdp = d3.max(dataList[i].gdp,<span style="color: #0000ff;">function</span><span style="color: #000000;">(d){
+</span><span style="color: #008080;"> 50</span>                 <span style="color: #0000ff;">return</span> d[1<span style="color: #000000;">]
+</span><span style="color: #008080;"> 51</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;"> 52</span>             <span style="color: #0000ff;">if</span>(currGdp &gt;<span style="color: #000000;"> gdpmax){
+</span><span style="color: #008080;"> 53</span>                 gdpmax =<span style="color: #000000;"> currGdp
+</span><span style="color: #008080;"> 54</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 56</span> 
+<span style="color: #008080;"> 57</span>         
+<span style="color: #008080;"> 58</span>         <span style="color: #008000;">//</span><span style="color: #008000;">先选出年份的最小值与最大值</span>
+<span style="color: #008080;"> 59</span>         <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; dataList.length ; i++<span style="color: #000000;">){
+</span><span style="color: #008080;"> 60</span>             <span style="color: #0000ff;">var</span> min = d3.min(dataList[i].gdp,<span style="color: #0000ff;">function</span>(d){<span style="color: #0000ff;">return</span> d[0<span style="color: #000000;">]})
+</span><span style="color: #008080;"> 61</span>             <span style="color: #0000ff;">var</span> max = d3.max(dataList[i].gdp,<span style="color: #0000ff;">function</span>(d){<span style="color: #0000ff;">return</span> d[0<span style="color: #000000;">]})
+</span><span style="color: #008080;"> 62</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 63</span>        <span style="color: #008000;">//</span><span style="color: #008000;">定义比例尺,均为线性比例尺</span>
+<span style="color: #008080;"> 64</span>         <span style="color: #0000ff;">var</span> xScale = d3.scale.linear()                                  <span style="color: #008000;">//</span><span style="color: #008000;">定义一个比例尺</span>
+<span style="color: #008080;"> 65</span>                         .domain([min,max])                              <span style="color: #008000;">//</span><span style="color: #008000;">设定x轴的值域</span>
+<span style="color: #008080;"> 66</span>                         .range([0,width-padding.left - padding.right])  <span style="color: #008000;">//</span><span style="color: #008000;">设定x轴的定义域</span>
+<span style="color: #008080;"> 67</span> 
+<span style="color: #008080;"> 68</span>         <span style="color: #0000ff;">var</span> yScale = d3.scale.linear()                                  <span style="color: #008000;">//</span><span style="color: #008000;">定义一个比例尺</span>
+<span style="color: #008080;"> 69</span>                         .domain([0,gdpmax*1.1])                         <span style="color: #008000;">//</span><span style="color: #008000;">设定y轴的值域</span>
+<span style="color: #008080;"> 70</span>                         .range([height-padding.top-padding.bottom,0])   <span style="color: #008000;">//</span><span style="color: #008000;">设定y轴的定义域</span>
+<span style="color: #008080;"> 71</span>         <span style="color: #008000;">//</span><span style="color: #008000;">创建一个线段生成器</span>
+<span style="color: #008080;"> 72</span>         <span style="color: #0000ff;">var</span> linePath = d3.svg.line()                                    <span style="color: #008000;">//</span><span style="color: #008000;">创建一个线段生成器</span>
+<span style="color: #008080;"> 73</span>                         .interpolate("basis")                           <span style="color: #008000;">//</span><span style="color: #008000;">使用basis插值模式</span>
+<span style="color: #008080;"> 74</span>                         .x(<span style="color: #0000ff;">function</span>(d){<span style="color: #0000ff;">return</span> xScale(d[0])})            <span style="color: #008000;">//</span><span style="color: #008000;">设置x坐标的访问器</span>
+<span style="color: #008080;"> 75</span>                         .y(<span style="color: #0000ff;">function</span>(d){<span style="color: #0000ff;">return</span> yScale(d[1])})            <span style="color: #008000;">//</span><span style="color: #008000;">设置y坐标的访问器</span>
+<span style="color: #008080;"> 76</span> 
+<span style="color: #008080;"> 77</span>         <span style="color: #008000;">//</span><span style="color: #008000;">定义两个颜色</span>
+<span style="color: #008080;"> 78</span>         <span style="color: #0000ff;">var</span> colors = [d3.rgb(0,0,255),d3.rgb(0,255,0<span style="color: #000000;">)]
+</span><span style="color: #008080;"> 79</span> 
+<span style="color: #008080;"> 80</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加路径</span>
+<span style="color: #008080;"> 81</span>         svg.selectAll("path")                   <span style="color: #008000;">//</span><span style="color: #008000;">选择svg中所有的path</span>
+<span style="color: #008080;"> 82</span>             .data(dataList)                     <span style="color: #008000;">//</span><span style="color: #008000;">绑定数据</span>
+<span style="color: #008080;"> 83</span>             .enter()                            <span style="color: #008000;">//</span><span style="color: #008000;">获取enter部分</span>
+<span style="color: #008080;"> 84</span>             .append("path")                     <span style="color: #008000;">//</span><span style="color: #008000;">添加足够数量的&lt;path&gt;元素</span>
+<span style="color: #008080;"> 85</span>             .attr("transform","translate("+padding.left + "," + padding.top + ")")  <span style="color: #008000;">//</span><span style="color: #008000;">平移</span>
+<span style="color: #008080;"> 86</span>             .attr("d",<span style="color: #0000ff;">function</span><span style="color: #000000;">(d){
+</span><span style="color: #008080;"> 87</span>                 <span style="color: #0000ff;">return</span> linePath(d.gdp)          <span style="color: #008000;">//</span><span style="color: #008000;">返回线段生成器得到的路径</span>
+<span style="color: #008080;"> 88</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;"> 89</span>             .attr("fill","none")                <span style="color: #008000;">//</span><span style="color: #008000;">填充色为none</span>
+<span style="color: #008080;"> 90</span>             .attr("stroke",<span style="color: #0000ff;">function</span><span style="color: #000000;">(d,i){
+</span><span style="color: #008080;"> 91</span>                 <span style="color: #0000ff;">return</span> colors[i]                <span style="color: #008000;">//</span><span style="color: #008000;">设置折线颜色</span>
+<span style="color: #008080;"> 92</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;"> 93</span>             .attr("stroke-width","3px")         <span style="color: #008000;">//</span><span style="color: #008000;">设置折线的宽度</span>
+<span style="color: #008080;"> 94</span> 
+<span style="color: #008080;"> 95</span>         <span style="color: #008000;">//</span><span style="color: #008000;">坐标轴x轴</span>
+<span style="color: #008080;"> 96</span>         <span style="color: #0000ff;">var</span> xAxis = d3.svg.axis()               <span style="color: #008000;">//</span><span style="color: #008000;">创建一个新坐标轴</span>
+<span style="color: #008080;"> 97</span>                     .scale(xScale)              <span style="color: #008000;">//</span><span style="color: #008000;">设定x坐标轴的比例尺</span>
+<span style="color: #008080;"> 98</span>                     .ticks(6)                   <span style="color: #008000;">//</span><span style="color: #008000;">设定x坐标轴的分隔数</span>
+<span style="color: #008080;"> 99</span>                     .tickFormat(d3.format("d")) <span style="color: #008000;">//</span><span style="color: #008000;">刻度的数组用字符串表示</span>
+<span style="color: #008080;">100</span>                     .orient("bottom")           <span style="color: #008000;">//</span><span style="color: #008000;">设定x坐标轴的方向</span>
+<span style="color: #008080;">101</span>         <span style="color: #008000;">//</span><span style="color: #008000;">坐标轴y轴</span>
+<span style="color: #008080;">102</span>         <span style="color: #0000ff;">var</span> yAxis = d3.svg.axis()               <span style="color: #008000;">//</span><span style="color: #008000;">创建一个新坐标</span>
+<span style="color: #008080;">103</span>                     .scale(yScale)              <span style="color: #008000;">//</span><span style="color: #008000;">设定y坐标轴的比例尺</span>
+<span style="color: #008080;">104</span>                     .orient("left")             <span style="color: #008000;">//</span><span style="color: #008000;">设定y坐标轴的方向</span>
+<span style="color: #008080;">105</span> 
+<span style="color: #008080;">106</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加一个&lt;g&gt;元素用于放x轴</span>
+<span style="color: #008080;">107</span>         svg.append("g")                         <span style="color: #008000;">//</span><span style="color: #008000;">添加一个&lt;g&gt;元素</span>
+<span style="color: #008080;">108</span>             .attr("class","axis")               <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;">109</span>             .attr("transform","translate("+padding.left + "," + (height-padding.bottom) + ")")  <span style="color: #008000;">//</span><span style="color: #008000;">平移</span>
+<span style="color: #008080;">110</span>             .call(xAxis)                        <span style="color: #008000;">//</span><span style="color: #008000;">call()应用</span>
+<span style="color: #008080;">111</span> 
+<span style="color: #008080;">112</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加一个&lt;g&gt;元素用于放y轴</span>
+<span style="color: #008080;">113</span>         svg.append("g")                         <span style="color: #008000;">//</span><span style="color: #008000;">添加一个&lt;g&gt;元素</span>
+<span style="color: #008080;">114</span>             .attr("class","axis")               <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;">115</span>             .attr("transform","translate("+ padding.left + "," + padding.top + ")")             <span style="color: #008000;">//</span><span style="color: #008000;">平移</span>
+<span style="color: #008080;">116</span>             .call(yAxis)                        <span style="color: #008000;">//</span><span style="color: #008000;">call()应用</span>
+<span style="color: #008080;">117</span> 
+<span style="color: #008080;">118</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加两个矩形标记</span>
+<span style="color: #008080;">119</span>         <span style="color: #0000ff;">var</span> g = svg.selectAll("rect")           <span style="color: #008000;">//</span><span style="color: #008000;">将选择集赋值给变量g</span>
+<span style="color: #008080;">120</span>             .data(dataList)                     <span style="color: #008000;">//</span><span style="color: #008000;">绑定数据</span>
+<span style="color: #008080;">121</span>             .enter()                            <span style="color: #008000;">//</span><span style="color: #008000;">获取enter()部分</span>
+<span style="color: #008080;">122</span>             .append("g")                        <span style="color: #008000;">//</span><span style="color: #008000;">添加&lt;g&gt;元素</span>
+<span style="color: #008080;">123</span>         g.append("rect")                        <span style="color: #008000;">//</span><span style="color: #008000;">在&lt;g&gt;元素里添加&lt;rect&gt;矩形</span>
+<span style="color: #008080;">124</span>             .attr("fill",<span style="color: #0000ff;">function</span>(d,i){         <span style="color: #008000;">//</span><span style="color: #008000;">设定颜色</span>
+<span style="color: #008080;">125</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> colors[i]
+</span><span style="color: #008080;">126</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">127</span>             .attr("transform",<span style="color: #0000ff;">function</span>(d,i){    <span style="color: #008000;">//</span><span style="color: #008000;">平移</span>
+<span style="color: #008080;">128</span>                 <span style="color: #0000ff;">var</span> x = padding.left + i*150
+<span style="color: #008080;">129</span>                 <span style="color: #0000ff;">var</span> y = height - padding.bottom + 50
+<span style="color: #008080;">130</span>                 <span style="color: #0000ff;">return</span> "translate(" +x + "," + y + ")"
+<span style="color: #008080;">131</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">132</span>             .attr("width",20)                   <span style="color: #008000;">//</span><span style="color: #008000;">设定矩形的宽度</span>
+<span style="color: #008080;">133</span>             .attr("height",20)                  <span style="color: #008000;">//</span><span style="color: #008000;">设定矩形的高度</span>
+<span style="color: #008080;">134</span> 
+<span style="color: #008080;">135</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加注解</span>
+<span style="color: #008080;">136</span>         g.append("text")                        <span style="color: #008000;">//</span><span style="color: #008000;">添加文字</span>
+<span style="color: #008080;">137</span>             .attr("class","text")               <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;">138</span>             .attr("x",<span style="color: #0000ff;">function</span>(d,i){            <span style="color: #008000;">//</span><span style="color: #008000;">设定文字在x方向的位置</span>
+<span style="color: #008080;">139</span>                 <span style="color: #0000ff;">return</span> padding.left + i * 150 + 30
+<span style="color: #008080;">140</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">141</span>             .attr("y",<span style="color: #0000ff;">function</span>(d,i){            <span style="color: #008000;">//</span><span style="color: #008000;">设定文字在y方向的位置</span>
+<span style="color: #008080;">142</span>                 <span style="color: #0000ff;">return</span> height - padding.bottom + 50 + 15
+<span style="color: #008080;">143</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">144</span>             .text(<span style="color: #0000ff;">function</span>(d){                  <span style="color: #008000;">//</span><span style="color: #008000;">设定文字的内容</span>
+<span style="color: #008080;">145</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> d.coountry
+</span><span style="color: #008080;">146</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">147</span>             .attr("font-size","15px")           <span style="color: #008000;">//</span><span style="color: #008000;">设定文字的大小</span>
+<span style="color: #008080;">148</span>             .attr("fill","black")               <span style="color: #008000;">//</span><span style="color: #008000;">设定文字的颜色</span>
+<span style="color: #008080;">149</span>             
+<span style="color: #008080;">150</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">151</span>     
+<span style="color: #008080;">152</span> <span style="color: #000000;">    render() {
+</span><span style="color: #008080;">153</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> (
+</span><span style="color: #008080;">154</span>             &lt;div id="body" &gt;
+<span style="color: #008080;">155</span>                 
+<span style="color: #008080;">156</span>             &lt;/div&gt;
+<span style="color: #008080;">157</span> <span style="color: #000000;">        );
+</span><span style="color: #008080;">158</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">159</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">160</span> 
+<span style="color: #008080;">161</span> export <span style="color: #0000ff;">default</span> Line;</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>&nbsp;</div>
+</div>
+</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

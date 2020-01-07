@@ -1,0 +1,74 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue结合后台导入导出Excel问题详解后续' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue结合后台导入导出Excel问题详解后续</center></div><div class='banquan'>原文出处:本文由博客园博主狂奔的蜗牛0828提供。<br/>
+原文连接:https://www.cnblogs.com/ttjm/p/11661133.html</div><br>
+    <p>接前几天写的一篇博客&nbsp;&nbsp;<a href="https://www.cnblogs.com/ttjm/p/11307462.html">https://www.cnblogs.com/ttjm/p/11307462.html</a></p>
+<p>在ie浏览器测试发现打不开，经调查问题如下</p>
+<p>&nbsp;1 如果在本地开发调试,请求接口报错如下</p>
+<p><img src="./images/Vue结合后台导入导出Excel问题详解后续0.png" alt="" width="367" height="141" /></p>
+<p>&nbsp;</p>
+<p>经查是项目启动和接口地址不同源ie有所限制,只需npm run build 放到服务器上测试即可</p>
+<p>&nbsp;</p>
+<p>2 ie对get请求中url长度的限制是2083字节（2k+35）（我项目的参数超过此字节）</p>
+<p>3 ie对get请求中参数可能不能有中文,(带验证)</p>
+<p>故代码修改如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">axios({
+  method: </span><span style="color: #800000;">'</span><span style="color: #800000;">post</span><span style="color: #800000;">'</span><span style="color: #000000;">,//请求方法改为post
+  url: </span><span style="color: #800000;">'</span><span style="color: #800000;">http://localhost:19090/exportUser</span><span style="color: #800000;">'</span>,<span style="color: #008000;">//</span><span style="color: #008000;">这个是请求的地址</span>
+  <span style="color: #0000ff;">params</span>: {<span style="color: #008000;">//</span><span style="color: #008000;">这个是请求的参数</span>
+   email: <span style="color: #0000ff;">this</span><span style="color: #000000;">.email,
+   startRegisterDate: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.registerStartTime,
+   endRegisterDate: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.registerEndTime
+  },
+  responseType: </span><span style="color: #800000;">'</span><span style="color: #800000;">blob</span><span style="color: #800000;">'</span><span style="color: #000000;">
+  }).then((res) </span>=&gt;<span style="color: #000000;"> {
+  let blob </span>= <span style="color: #0000ff;">new</span> Blob([res.data],{type: <span style="color: #800000;">'</span><span style="color: #800000;">application/vnd.ms-excel</span><span style="color: #800000;">'</span><span style="color: #000000;">});
+          </span><span style="color: #0000ff;">if</span> (window.navigator.msSaveBlob) {    <span style="color: #008000;">//</span><span style="color: #008000;">IE以及IE内核的浏览器使用</span>
+            <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+              window.navigator.msSaveBlob(blob, </span><span style="color: #800000;">'</span><span style="color: #800000;">支出明细</span><span style="color: #800000;">'</span> + <span style="color: #800000;">'</span><span style="color: #800000;">.xls</span><span style="color: #800000;">'</span><span style="color: #000000;">);    
+              </span><span style="color: #008000;">//</span><span style="color: #008000;"> window.navigator.msSaveOrOpenBlob(response, fileNm);    </span><span style="color: #008000;">//</span><span style="color: #008000;">fileNm是文件的名字</span>
+            } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+              console.log(e);
+            }
+          }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            </span><span style="color: #0000ff;">const</span> link = document.createElement(<span style="color: #800000;">'</span><span style="color: #800000;">a</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+            link.style.display </span>= <span style="color: #800000;">'</span><span style="color: #800000;">none</span><span style="color: #800000;">'</span><span style="color: #000000;">
+            link.href </span>=<span style="color: #000000;"> URL.createObjectURL(blob);
+            let num </span>= <span style="color: #800000;">''</span>
+            <span style="color: #0000ff;">for</span>(let i=<span style="color: #800080;">0</span>;i &lt; <span style="color: #800080;">10</span>;i++<span style="color: #000000;">){
+              num </span>+= Math.ceil(Math.random() * <span style="color: #800080;">10</span><span style="color: #000000;">)
+            }
+            link.setAttribute(</span><span style="color: #800000;">'</span><span style="color: #800000;">download</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">支出明细</span><span style="color: #800000;">'</span> + <span style="color: #800000;">'</span><span style="color: #800000;">.xls</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+          }
+  }).</span><span style="color: #0000ff;">catch</span>(error =&gt;<span style="color: #000000;"> {
+ 
+  console.log(error)
+  })</span></pre>
+</div>
+<p>如果是get请求，请求头不需要额外加参数，直接 window.location.href='http://localhost:19090/exportUser?email='+email+"&amp;start="+start ，（参数中的参数转码或者和后台商量不用中文即可）打开一个地址即可</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

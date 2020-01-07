@@ -1,0 +1,100 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Node.js官方文档：到底什么是阻塞(Blocking)与非阻塞(Non-Blocking)？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Node.js官方文档：到底什么是阻塞(Blocking)与非阻塞(Non-Blocking)？</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/overview-of-nodejs-blocking-vs-non-blocking.html</div><br>
+    <p><strong>译者按：</strong> Node.js文档阅读系列之一。</p>
+<ul>
+<li>原文: <a href="https://nodejs.org/en/docs/guides/blocking-vs-non-blocking/">Overview of Blocking vs Non-Blocking</a></li>
+<li>译者: <a href="https://www.fundebug.com/">Fundebug</a></li>
+</ul>
+<p><strong>为了保证可读性，本文采用意译而非直译。</strong></p>
+<p>这篇博客将介绍Node.js的阻塞(Blocking)与非阻塞(Non-Blocking)。我会提到Event Loop与libuv，但是不了解它们也不会影响阅读。读者只需要有一定的JavaScript基础，理解Node.js的回调函数(<a href="https://nodejs.org/en/knowledge/getting-started/control-flow/what-are-callbacks/">callback pattern</a>)就可以了。</p>
+<p>博客中提到了很多次<strong>I/O</strong>，它主要指的是<strong>使用<a href="http://libuv.org/">libuv</a>与系统的磁盘与网络进行交互。</strong></p>
+<h3 id="阻塞blocking">阻塞（Blocking）</h3>
+<p><strong>阻塞</strong>指的是一部分Node.js代码需要等到一些非Node.js代码执行完成之后才能继续执行。这是因为当阻塞发生时，Event Loop无法继续执行。</p>
+<p>对于Node.js来说，由于CPU密集的操作导致代码性能很差时，不能称为阻塞。当需要等待非Node.js代码执行时，才能称为阻塞。Node.js中依赖于libuv的同步方法(以Sync结尾)导致阻塞，是最常见的情况。当然，一些不依赖于libuv的原生Node.js方法有些也能导致阻塞。</p>
+<p>Node.js中所有与I/O相关的方法都提供了异步版本，它们是<strong>非阻塞</strong>的，可以指定回调函数，例如<a href="https://nodejs.org/api/fs.html#fs_fs_readfile_path_options_callback">fs.readFile</a>。其中一些方法也有对应的<strong>阻塞</strong>版本，它们的函数名以<strong>Sync</strong>结尾，例如<a href="https://nodejs.org/api/fs.html#fs_fs_readfilesync_path_options">fs.readFileSync</a>。</p>
+<h3 id="代码示例">代码示例</h3>
+<p>阻塞的方法是同步执行的，而非阻塞的方法是异步执行。</p>
+<p>以读文件为例，下面是同步执行的代码：</p>
+<pre><code><code>const fs = require(&#39;fs&#39;);
+const data = fs.readFileSync(&#39;/file.md&#39;); // 文件读取完成之前，代码会阻塞，不会执行后面的代码
+console.log(&quot;Hello, Fundebug!&quot;); // 文件读取完成之后才会打印</code></pre>
+<p>对应的异步代码如下：</p>
+<pre><code><code>const fs = require(&#39;fs&#39;);
+fs.readFile(&#39;/file.md&#39;, (err, data) =&gt; {
+  if (err) throw err;
+}); // 代码不会因为读文件阻塞，会继续执行后面的代码
+console.log(&quot;Hello, Fundebug!&quot;); // 文件读完之前就会打印</code></pre>
+<p>第一个示例代码看起来要简单很多，但是它的缺点是会阻塞代码执行，后面的代码需要等到整个文件读取完成之后才能继续执行。</p>
+<p>在同步代码中，如果读取文件出错了，则错误需要使用try...catch处理，否则进程会崩溃。对于异步代码，是否处理回调函数的错误则取决于开发者。</p>
+<p>我们可以将示例代码稍微修改一下，下面是同步代码：</p>
+<pre><code><code>const fs = require(&#39;fs&#39;);
+const data = fs.readFileSync(&#39;/file.md&#39;); 
+console.log(data);
+moreWork(); // console.log之后再执行</code></pre>
+<p>异步代码如下：</p>
+<pre><code><code>const fs = require(&#39;fs&#39;);
+fs.readFile(&#39;/file.md&#39;, (err, data) =&gt; {
+  if (err) throw err;
+  console.log(data);
+});
+moreWork(); // 先于console.log执行</code></pre>
+<p>在第一个示例中，<code>console.log</code>将会先于<code>moreWork()</code>执行。在第二个示例中，由于<code>fs.readFile()</code>是非阻塞的，代码可以继续执行，因此<code>moreWork()</code>会先于<code>console.log</code>执行。</p>
+<p><code>moreWork()</code>不用等待读取整个文件，可以继续执行，这是Node.js可以增加吞吐量的关键。</p>
+<h3 id="并发与吞吐量">并发与吞吐量</h3>
+<p>Node.js中JS代码执行是单线程的，因此并发指的是Event Loop可以在执行其他代码之后再去执行回调函数。如果希望代码可以并发执行，则所有非JavaScript代码比如I/O执行时，必须保证Event Loop继续运行。</p>
+<p>举个例子，假设Web服务器的每个请求需要50ms完成，其中45ms是数据库的I/O操作。如果使用非阻塞的异步方式执行数据库I/O的话，则可以节省45ms来处理其他请求，这可以极大地提高系统的吞吐量。</p>
+<p>Event Loop这种方式与其他许多语言都不一样，通常它们会创建新的线程来处理并发。</p>
+<h3 id="混用阻塞与非阻塞代码会出问题">混用阻塞与非阻塞代码会出问题</h3>
+<p>当我们处理I/O时，应该避免以下代码：</p>
+<pre><code><code>const fs = require(&#39;fs&#39;);
+fs.readFile(&#39;/file.md&#39;, (err, data) =&gt; {
+  if (err) throw err;
+  console.log(data);
+});
+fs.unlinkSync(&#39;/file.md&#39;);</code></pre>
+<p>上面的示例中，<code>fs.unlinkSync()</code>很可能在<code>fs.readFile()</code>之前执行，也就是说，我们在读取<code>file.md</code>之前，这个文件就已经被删掉了。</p>
+<p>为了避免这种情况，我们应该是要非阻塞方式，来保证它们按照正确的顺序执行。</p>
+<pre><code><code>const fs = require(&#39;fs&#39;);
+fs.readFile(&#39;/file.md&#39;, (readFileErr, data) =&gt; {
+  if (readFileErr) throw readFileErr;
+  console.log(data);
+  fs.unlink(&#39;/file.md&#39;, (unlinkErr) =&gt; {
+    if (unlinkErr) throw unlinkErr;
+  });
+});</code></pre>
+<p>上面的示例中，我们把非阻塞的<code>fs.unlink()</code>放在<code>fs.readFile()</code>的回调函数中。</p>
+<h3 id="参考">参考</h3>
+<ul>
+<li><a href="http://libuv.org/">libuv</a></li>
+<li><a href="https://nodejs.org/en/about/">About Node.js</a></li>
+</ul>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有Google、360、金山软件、百姓网等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+<p><img src="./images/Node.js官方文档：到底什么是阻塞(Blocking)与非阻塞(Non-Blocking)？0.png" /></p>
+<h3 id="版权声明">版权声明</h3>
+<p>转载时请注明作者<a href="https://www.fundebug.com/">Fundebug</a>以及本文地址：<br />
+<a href="https://blog.fundebug.com/2019/06/12/overview-of-nodejs-blocking-vs-non-blocking/" class="uri">https://blog.fundebug.com/2019/06/12/overview-of-nodejs-blocking-vs-non-blocking/</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

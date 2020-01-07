@@ -1,0 +1,140 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修AC自动机' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>AC自动机</center></div><div class='banquan'>原文出处:本文由博客园博主pluscat提供。<br/>
+原文连接:https://www.cnblogs.com/pluslius/p/10810471.html</div><br>
+    <h2 id="ac自动机">AC自动机</h2>
+<p><img src="./images/AC自动机0.png" alt="image" /></p>
+<pre><code><code>1.根据字符构造trie树
+2.构建失败匹配指针
+   1.根节点的所以一代子孩子失败指针都指向root
+   2.子节点匹配失败时，找到父节点的失败指针，找不到就一直找，直到找到root还匹配不到，直接指向root
+3.文本串匹配
+   1.如果已经匹配到完整的模式串或者压根匹配不到，根据失败指针切换线路继续向下查找
+   2.如果匹配到了，那么就继续向下匹配</code></pre>
+<pre class="js"><code>class ACNode {
+    constructor(data){
+        this.data = data
+        this.isEndingChar = false
+        this.children = new Map()
+        this.length = 0
+        this.fail = null
+    }
+}
+
+class ACTree {
+    constructor(){
+        this.root = new ACNode(&#39;/&#39;)
+    }
+    insert(text){
+        let node = this.root
+        for(let char of text ){
+            if(!node.children.get(char)){
+                node.children.set(char,new ACNode(char))
+            }
+            node = node.children.get(char)
+        }
+        node.isEndingChar = true
+        node.length = text.length
+    }
+    failurePointer(){
+        let root = this.root
+        let queue = []
+        queue.push(root)
+        while(queue.length &gt; 0){
+            let currentNode = queue.shift()
+            for(let child of currentNode.children.values()){
+                if(!child){
+                    continue
+                }
+
+                if(currentNode == root){
+                    child.fail = currentNode
+                }else{
+                    //不是一代子节点才指向
+                    let grandFatherNode = currentNode.fail
+                    while(grandFatherNode){
+                        let failNode = grandFatherNode.children.get(child.data)
+                        if(failNode){
+                            child.fail = failNode
+                            //找到失败节点就不往下找了
+                            break
+                        }
+                        grandFatherNode = grandFatherNode.fail
+                    }
+                    if(!grandFatherNode){
+                        child.fail = root
+                    }
+                }               
+                queue.push(child)
+            }
+        }
+    }
+    match(text){
+        let root = this.root
+        let len =  text.length
+        let currentNode
+        for(let i = 0; i &lt; len; i++){
+            let char = text[i]
+
+            if(!currentNode){
+                currentNode = root
+            }
+
+            while(!currentNode.children.get(char) &amp;&amp; currentNode != root){
+                //匹配不到就换线
+                currentNode = currentNode.fail
+            }
+
+            currentNode = currentNode.children.get(char)
+
+            let tmp = currentNode
+            while(tmp != root){
+                if(tmp.isEndingChar){
+                    console.log(`from ${i - tmp.length + 1} length: ${tmp.length} str: ${text.substr(i - tmp.length + 1,tmp.length)}`)
+                }
+                //匹配到了就继续看看其他线有没有可以匹配成功的
+                tmp = tmp.fail 
+            }
+
+        }
+    }
+}
+
+function match(text,patterns){
+    const autoMeta = new ACTree()
+    for(pattern of patterns){
+        autoMeta.insert(pattern)
+    }
+    autoMeta.failurePointer()
+    autoMeta.match(text)
+}
+
+let patterns = [&quot;at&quot;, &quot;art&quot;, &quot;oars&quot;, &quot;soar&quot;];
+let text = &quot;soarsoars&quot;;
+match(text, patterns);
+
+let patterns2 = [&quot;Fxtec Pro1&quot;, &quot;谷歌Pixel&quot;];
+let text2 = &quot;一家总部位于伦敦的公司Fxtex在MWC上就推出了一款名为Fxtec Pro1的手机，该机最大的亮点就是采用了侧滑式全键盘设计。DxOMark年度总榜发布 华为P20 Pro/谷歌Pixel 3争冠&quot;;
+match(text2, patterns2);</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,98 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue.js多页面开发环境搭建' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue.js多页面开发环境搭建</center></div><div class='banquan'>原文出处:本文由博客园博主lifefriend_007提供。<br/>
+原文连接:https://www.cnblogs.com/lifefriend/p/10758972.html</div><br>
+    <p>利用 vue-cli 搭建的项目大都是单页面应用项目，对于简单的项目，单页面就能满足要求。但对于有多个子项目的应用，如果创建多个单页面，显示有点重复，特别是 node_modules 会有多份相同的。如果全部放到单页面项目下，又显得有点乱，这时候通过改造 vue-cli 搭建的项目为多页面，就是一个比较好的解决方法。</p>
+<p>&nbsp;</p>
+<p>如何改造单页面 vue.js 项目为多页面项目？下面是这次改造的具体过程。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 14pt;"><strong>&nbsp;一、创建单页面 vue.js 项目</strong></span></p>
+<p>这里直接使用官方提供的脚手架 vue-cli3 创建，具体的过程请参考<a href="https://www.yuque.com/lifefriend/smvg9u/edygey" rel="noopener noreferrer" target="_blank">「</a><a href="https://mp.weixin.qq.com/s/bH3yhAGm_eSUJU3_OD63gw" rel="noopener noreferrer" target="_blank">vue-cli3.0 升级记录</a><a href="https://www.yuque.com/lifefriend/smvg9u/edygey" rel="noopener noreferrer" target="_blank">」</a></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 14pt;"><strong>二、多页面配置</strong></span></p>
+<p><strong>1、添加配置文件</strong></p>
+<p>在项目根路径下( 与 package.json 同目录 )添加 vue.config.js，内容如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> module.exports =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">  pages: {
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">    index: {
+</span><span style="color: #008080;"> 4</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 入口js的路径</span>
+<span style="color: #008080;"> 5</span>       entry: './src/main'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 页面模板路径</span>
+<span style="color: #008080;"> 7</span>       template: './src/public/index.html'
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">10</span> }</pre>
+</div>
+<p>&nbsp;</p>
+<p>上面的配置其实就是 vue-cli 建立项目的默认配置，如果增加页面，在 pages  节点下添加配置即可。但这种方式，每次增加一个新页面，就需要手动添加节点，这种重复的事情显然不智能。下面继续改造。</p>
+<p>&nbsp;</p>
+<p><strong>&nbsp;2、调整项目结构</strong></p>
+<p>要自动化，那么就需要按定一种规则把页面组织下。如把所有路由页面都放到 src/pages 目录下，改造后的结构如下：</p>
+<p>&nbsp;</p>
+<p><img src="./images/vue.js多页面开发环境搭建0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong>3、编写自动配置文件</strong></p>
+<p>在项目根路径下( 与 package.json 同目录 )添加 vue.util.js，内容如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> const path = require('path'<span style="color: #000000;">)
+</span><span style="color: #008080;"> 2</span> const glob = require('glob'<span style="color: #000000;">)
+</span><span style="color: #008080;"> 3</span> const START_PATH = '/src/pages/'
+<span style="color: #008080;"> 4</span> const PAGE_PATH = path.resolve(__dirname, '.' +<span style="color: #000000;"> START_PATH)
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> exports.pages = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;"> 7</span>   <span style="color: #0000ff;">var</span> entryFiles = glob.sync(PAGE_PATH + '/**/*.html'<span style="color: #000000;">)
+</span><span style="color: #008080;"> 8</span>   <span style="color: #0000ff;">var</span> obj =<span style="color: #000000;"> {}
+</span><span style="color: #008080;"> 9</span>   entryFiles.forEach((filePath) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">var</span> dirPath = filePath.substring(0, filePath.lastIndexOf('/'<span style="color: #000000;">))
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">var</span> dirName = dirPath.substring(dirPath.lastIndexOf('/') + 1<span style="color: #000000;">)
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">var</span> filename = filePath.substring(filePath.lastIndexOf(START_PATH) + START_PATH.length, filePath.lastIndexOf('/'<span style="color: #000000;">))
+</span><span style="color: #008080;">13</span>     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (filename.endsWith(dirName)) {
+</span><span style="color: #008080;">14</span>       obj[filename] =<span style="color: #000000;"> {
+</span><span style="color: #008080;">15</span>         entry: filePath.substring(0, filePath.lastIndexOf('.html')) + '.js'<span style="color: #000000;">,
+</span><span style="color: #008080;">16</span>         template: filePath.substring(0, filePath.lastIndexOf('.html')) + '.html'
+<span style="color: #008080;">17</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">  })
+</span><span style="color: #008080;">20</span>   <span style="color: #0000ff;">return</span><span style="color: #000000;"> obj
+</span><span style="color: #008080;">21</span> }</pre>
+</div>
+<p>&nbsp;</p>
+<p>在 vue.config.js 使用上面的配置</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> const utils = require('./vue.util'<span style="color: #000000;">)
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> module.exports =<span style="color: #000000;"> {
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">  pages: utils.pages()
+</span><span style="color: #008080;">5</span> }</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 14pt;"><strong>&nbsp;三、测试下</strong></span></p>
+<div class="cnblogs_code">
+<pre><code>yarn dev</pre>
+</div>
+<p>浏览器输入：</p>
+<p>http://localhost:8080/index.html 和 http://localhost:8080/index2.html</p>
+<p>OK，多页面配置完成</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

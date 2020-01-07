@@ -1,0 +1,83 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修compose函数' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>compose函数</center></div><div class='banquan'>原文出处:本文由博客园博主Shapeying提供。<br/>
+原文连接:https://www.cnblogs.com/shapeY/p/10693552.html</div><br>
+    <h1 id="compose函数">compose函数</h1>
+<p>在学习redux源码的时候看到了其中的工具函数<strong>compose</strong>，<strong>compose</strong>函数的作用就是组合函数，依次组合传入的函数：</p>
+<ol>
+<li><strong>后一个函数作为前一个函数的参数</strong></li>
+<li><strong>最后一个函数可以接受多个参数，前面的函数只能接受单个参数；后一个的返回值传给前一个</strong></li>
+</ol>
+<h2 id="reduce实现">reduce实现</h2>
+<p>redux中是使用<code>reduce</code>实现的</p>
+<pre><code><code>function compose(...funcs) {
+  //没有传入函数参数，就返回一个默认函数（直接返回参数）
+  if (funcs.length === 0) {
+    return arg =&gt; arg
+  }
+
+  if (funcs.length === 1) {
+  // 单元素数组时调用reduce，会直接返回该元素，不会执行callback;所以这里手动执行
+    return funcs[0]
+  }
+  // 依次拼凑执行函数
+  return funcs.reduce((a, b) =&gt; (...args) =&gt; a(b(...args)))
+}</code></pre>
+<p>reduce的详细说明可以查阅<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce">MDN</a>。</p>
+<p>举例分析:<code>compose(f4,f3,f2,f1)(c,d,e)</code></p>
+<ul>
+<li>reduce回调函数第一次执行时，返回值为 <strong>函数</strong> <code>(...args) =&gt; f4(f3(...args))</code>，作为下一次执行的a参数</li>
+<li>回调函数第二次执行时，返回值为 <strong>函数</strong><code>(...args) =&gt; f4(f3(f2(...args)))</code>,作为下一次执行的a参数</li>
+<li>回调函数第三次执行时，返回值为 <strong>函数</strong><code>(...args) =&gt; f4(f3(f2(f1(...args))))</code></li>
+</ul>
+<p>最右边的参数<code>f1</code>可以接受多个参数，然后返回结果传给下一个函数<code>f2</code>,返回结果再传入<code>f3</code>··· <code>f3</code>最先被调用，会等待<code>f2</code>的结果，再等待<code>f1</code>的结果。</p>
+<pre><code><code>    let a = (x,y) =&gt; x + y,
+        b = x =&gt; x * x,
+        c = x =&gt; x === 0 ? x : 1/x;
+    
+    compose(c,b,a)(1,2); // 1/9</code></pre>
+<p>那么如果想从左到右返回结果呢?</p>
+<ol>
+<li>使用<code>reduceRight</code></li>
+<li>将<code>funcs</code>倒序</li>
+</ol>
+<h2 id="迭代实现">迭代实现</h2>
+<p>用迭代的方式实现<strong>从右到左</strong>依次执行的组合函数。</p>
+<pre><code><code>    function compose(...funcs) {
+        let length = funcs.length;
+
+        return function(...arg) {
+            let index = length - 1,
+                result = length &gt; 0 ? funcs[index].apply(this,arg) : arg; //注意arg为数组，要用apply
+            while(--index &gt;=0 ) {
+                result = funcs[index].call(this,result);
+            }
+            return result;
+        }
+    }</code></pre>
+<p>通过<code>index</code>来标记应该执行哪个函数，这里是从最右边（<code>length - 1</code>）开始执行的，每执行一个<code>index</code>就减1，直到<code>index</code>为<code>0</code>（最左边）为止。<br />
+用<code>result</code>来记录每次函数执行的返回值，每次都会更新，直到所有函数都执行完。才会返回最终结果<br />
+如果传递的函数列表为空，则返回传入参数。</p>
+<p>同样的如果需要从左到右依次执行，则将<code>funcs</code>倒序即可。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

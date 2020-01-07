@@ -1,0 +1,199 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用three.js创建大小不随着场景变化的文字' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用three.js创建大小不随着场景变化的文字</center></div><div class='banquan'>原文出处:本文由博客园博主tengge提供。<br/>
+原文连接:https://www.cnblogs.com/tengge/p/11979854.html</div><br>
+    <p>使用three.js创建大小不随着场景变化的文字，需要以下两步：</p>
+<p>1、将文字绘制到画布上。</p>
+<p>2、创建着色器材质，把文字放到三维场景中。</p>
+<p><strong>优点：</strong></p>
+<p>1、跟用html实现文字相比，这些文字可以被模型遮挡，更具有三维效果。</p>
+<p>2、不会随着场景旋转缩放改变尺寸，不存在远处看不清的情况，适用于三维标注。</p>
+<p><strong>效果图：</strong></p>
+<p><img src="./images/使用three.js创建大小不随着场景变化的文字0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>示例代码1：<a href="https://github.com/tengge1/ShadowEditor/blob/master/ShadowEditor.Web/src/object/text/UnscaledText.js">https://github.com/tengge1/ShadowEditor/blob/master/ShadowEditor.Web/src/object/text/UnscaledText.js</a></p>
+<p>示例代码2：<a href="https://gitee.com/tengge1/ShadowEditor/blob/master/ShadowEditor.Web/src/object/text/UnscaledText.js">https://gitee.com/tengge1/ShadowEditor/blob/master/ShadowEditor.Web/src/object/text/UnscaledText.js</a></p>
+<p>&nbsp;</p>
+<h1>实现方法</h1>
+<p>&nbsp;</p>
+<p>1、使用canvas绘制文字，先用黑色绘制描边，然后用白色绘制文字。黑色描边主要为了让文字在白色背景处能看清。</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>let context = canvas.getContext('2d'<span style="color: #000000;">);
+
+context.imageSmoothingQuality </span>= 'high'<span style="color: #000000;">;
+context.textBaseline </span>= 'middle'<span style="color: #000000;">;
+context.textAlign </span>= 'center'<span style="color: #000000;">;
+context.lineWidth </span>= 4<span style="color: #000000;">;
+
+let halfWidth </span>= canvas.width / 2<span style="color: #000000;">;
+let halfHeight </span>= canvas.height / 2<span style="color: #000000;">;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 画描边</span>
+context.font = `16px "Microsoft YaHei"<span style="color: #000000;">`;
+context.strokeStyle </span>= '#000'<span style="color: #000000;">;
+context.strokeText(text, halfWidth, halfHeight);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 画文字</span>
+context.fillStyle = '#fff'<span style="color: #000000;">;
+context.fillText(text, halfWidth, halfHeight);</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>2、 创建着色器材质，将文字正对屏幕，渲染到三维场景中。</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>let geometry = <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.PlaneBufferGeometry();
+let material </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.ShaderMaterial({
+    vertexShader: UnscaledTextVertexShader,
+    fragmentShader: UnscaledTextFragmentShader,
+    uniforms: {
+        tDiffuse: {
+            value: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> THREE.CanvasTexture(canvas)
+        },
+        width: {
+            value: canvas.width
+        },
+        height: {
+            value: canvas.height
+        },
+        domWidth: {
+            value: renderer.domElement.width
+        },
+        domHeight: {
+            value: renderer.domElement.height
+        }
+    },
+    transparent: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+});
+
+let mesh </span>= <span style="color: #0000ff;">new</span> THREE.Mesh(geometry, material);</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>说明：</strong>由于canvas上绘制的文字边缘是半透明的，材质要设置成半透明才能实现文字边缘平滑效果。</p>
+<div>&nbsp;</div>
+<div>UnscaledTextVertexShader</div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code>precision highp <span style="color: #0000ff;">float</span><span style="color: #000000;">;
+
+uniform </span><span style="color: #0000ff;">float</span><span style="color: #000000;"> width;
+uniform </span><span style="color: #0000ff;">float</span><span style="color: #000000;"> height;
+uniform </span><span style="color: #0000ff;">float</span><span style="color: #000000;"> domWidth;
+uniform </span><span style="color: #0000ff;">float</span><span style="color: #000000;"> domHeight;
+
+varying vec2 vUv;
+ 
+</span><span style="color: #0000ff;">void</span><span style="color: #000000;"> main() {
+    vUv </span>=<span style="color: #000000;"> uv;
+    vec4 proj </span>= projectionMatrix * modelViewMatrix * vec4(0.0, 0.0, 0.0, 1.0<span style="color: #000000;">);
+    gl_Position </span>=<span style="color: #000000;"> vec4(
+        proj.x </span>/ proj.w  + position.x * width / domWidth * 2.0<span style="color: #000000;">,
+        proj.y </span>/ proj.w + position.y * height / domHeight * 2.0<span style="color: #000000;">,
+        proj.z </span>/<span style="color: #000000;"> proj.w,
+        </span>1.0<span style="color: #000000;">
+    );
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>说明：</strong></p>
+<p>a、(0.0, 0.0, 0.0)是平面中心世界坐标，左乘modelViewMatrix和projectionMatrix后，得到屏幕坐标系中的坐标。</p>
+<p>b、proj.x / proj.w + position.x * width / domWidth * 2.0的意思是把平板中心放到世界坐标系正确位置，让平板显示的宽度恰好等于屏幕上的像素数，避免文字缩放。</p>
+<p>c、乘以2.0是因为three.js默认生成的平板宽度和高度是1，屏幕坐标系宽度和高度都是从-1到1，是2。</p>
+<p>d、gl_Position.w为1.0时，是正投影，模型大小不随着屏幕深度变化而改变。</p>
+</div>
+<div>&nbsp;</div>
+<div>
+<div>UnscaledTextFragmentShader</div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code>precision highp <span style="color: #0000ff;">float</span><span style="color: #000000;">;
+
+uniform sampler2D tDiffuse;
+uniform </span><span style="color: #0000ff;">float</span><span style="color: #000000;"> width;
+uniform </span><span style="color: #0000ff;">float</span><span style="color: #000000;"> height;
+ 
+varying vec2 vUv;
+ 
+</span><span style="color: #0000ff;">void</span><span style="color: #000000;"> main() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 注意vUv一定要从画布整数坐标取颜色，否则会导致文字模糊问题。</span>
+    vec2 _uv =<span style="color: #000000;"> vec2(
+        (floor(vUv.s </span>* width) + 0.5) /<span style="color: #000000;"> width,
+        (floor(vUv.t </span>* height) + 0.5) /<span style="color: #000000;"> height
+    );
+
+    gl_FragColor </span>=<span style="color: #000000;"> texture2D( tDiffuse, _uv );</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>说明：</strong></p>
+<p>1、uv坐标一定要恰好对应画布上的像素点，否则会导致文字模糊问题。</p>
+</div>
+<div>&nbsp;</div>
+<h1>文字模糊的解决方法</h1>
+<div>使用three.js或WebGL绘制文字，很容易遇到文字模糊的问题，主要有以下几个方面的原因。</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div><strong>1、canvas上绘制线条，是从两个像素中心点画的。</strong></div>
+<div>&nbsp;</div>
+<div>在整数像素处绘制1px的线条，其实在1px线条两边，都有0.5px半透明的线条，实际绘制了2px。绘制时，一定要从（整数+0.5px）像素开始绘制。</div>
+<div>&nbsp;</div>
+<div>具体参考《canvas画布解决1px线条模糊的问题》：<a href="https://www.jianshu.com/p/c0970eecd843">https://www.jianshu.com/p/c0970eecd843</a></div>
+<div>&nbsp;</div>
+<div>在上面的代码中，字体大小和线宽都是偶数，不存在这个问题。</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>2、<strong>根据uv坐标从贴图取色的时候，一定要恰好取到贴图上的整数像素，否则会进行颜色插值，导致模糊。</strong></div>
+<div>&nbsp;</div>
+<div>我被这个问题卡了很久，具体现象就是<strong>随着视角改变，文字有时候清晰，有时候模糊</strong>，一闪一闪的。</div>
+<div>&nbsp;</div>
+<div>解决方法就是在片源着色器中对自动插值的uv坐标进行&ldquo;取整&rdquo;，恰好取到（整数+0.5像素）。为什么加0.5，看上面《canvas画布解决1px线条模糊的问题》的文章。</div>
+<div>&nbsp;</div>
+<div>实现代码：</div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code>vec2 _uv =<span style="color: #000000;"> vec2(
+    (floor(vUv.s </span>* width) + 0.5) /<span style="color: #000000;"> width,
+    (floor(vUv.t </span>* height) + 0.5) /<span style="color: #000000;"> height
+);</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>其中，width和height分别是贴图的宽度和高度。</div>
+<div>&nbsp;</div>
+<div>3、<strong>gl_Position.xy恰好对应屏幕上的像素点。</strong></div>
+<div>&nbsp;</div>
+<div>这是我猜测的一个原因，根据原因2进行修改后，文字不模糊了。所以，这个没有仔细测试。</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<h1>参考资料</h1>
+<div>1、基于three.js的开源三维场景编辑器：<a href="https://github.com/tengge1/ShadowEditor">https://github.com/tengge1/ShadowEditor</a></div>
+<div>2、canvas画布解决1px线条模糊的问题：<a href="https://www.jianshu.com/p/c0970eecd843">https://www.jianshu.com/p/c0970eecd843</a></div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

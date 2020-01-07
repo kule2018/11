@@ -1,0 +1,155 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修创建一个自己的Vue UI组件库，并将它发布在npm上' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>创建一个自己的Vue UI组件库，并将它发布在npm上</center></div><div class='banquan'>原文出处:本文由博客园博主RopeHuo提供。<br/>
+原文连接:https://www.cnblogs.com/rope/p/11634160.html</div><br>
+    <p>本文仅限于入门级，没有成规模制作，希望能对你有所帮助。</p>
+<p>因为在开发多个项目中可能会用到同一个组件，那么我们通过复制粘贴的形式更新，无异于是笨拙的，我们可以通过上传到npm后，不断迭代npm包来实现更新。</p>
+<h2 id="前期准备">前期准备</h2>
+<h3 id="初始化project">初始化project</h3>
+<p>这里我们使用<code>vue-cli</code>来初始化一个vue项目。</p>
+<p><code>npm install -g @vue/cli</code> or <code>yarn global add @vue/cli</code></p>
+<p><code>vue create personal-component-set</code></p>
+<p>首先我们来开发一个可复用的顶栏控件，这里是用<code>vuetify</code>UI库进行第二次开发。</p>
+<p><code>npm install vuetify</code> or <code>yarn add vuetify</code></p>
+<p>顶栏控件代码：</p>
+<p><code>src/components/TopBar.vue</code></p>
+<pre><code><code>&lt;template&gt;
+    &lt;v-toolbar&gt;
+      &lt;!-- 这里v开头的使用的是第三方ui组件库 --&gt;
+        &lt;v-toolbar-side-icon @click=&quot;toMainPage()&quot;&gt;&lt;/v-toolbar-side-icon&gt;
+        &lt;v-toolbar-title&gt;{{title}}&lt;/v-toolbar-title&gt;
+        &lt;v-spacer&gt;&lt;/v-spacer&gt;
+        &lt;v-toolbar-items class=&quot;hidden-sm-and-down&quot;&gt;
+            &lt;v-btn flat @click=&quot;openMyGithub()&quot;&gt;
+                &lt;v-avatar size=42&gt;
+                    &lt;img src=&quot;https://avatars3.githubusercontent.com/u/10973821?s=460&amp;v=4&quot;&gt;
+                &lt;/v-avatar&gt;
+                &lt;span style=&quot;margin-left:8px;&quot;&gt;About me: ssthouse&lt;/span&gt;
+            &lt;/v-btn&gt;
+            &lt;v-tooltip bottom&gt;
+                &lt;v-btn slot=&quot;activator&quot; flat :href=&quot;sourceCodeLink&quot;&gt;
+                    &lt;v-avatar size=42&gt;
+                        &lt;img src=&quot;../assets/logo.png&quot;&gt;
+                    &lt;/v-avatar&gt;
+                    Source Code
+                &lt;/v-btn&gt;
+                &lt;span class=&quot;top-bar-tooltip&quot;&gt;Welcome to fork &amp; star &lt;br/&gt; ; )&lt;/span&gt;
+            &lt;/v-tooltip&gt;
+        &lt;/v-toolbar-items&gt;
+    &lt;/v-toolbar&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+export default {
+  // 接受被组件化后传递的自定义属性
+  // 源代码连接
+  props: [&#39;sourceCodeLink&#39;, &#39;title&#39;],
+  methods: {
+    openMyGithub() {
+      // 自定义头像被点击的时候创建a标签并且跳转
+      const a = document.createElement(&#39;a&#39;)
+      a.target = &#39;_blank&#39;
+      a.href = &#39;https://github.com/mufengsm&#39;
+      a.click()
+    },
+    toMainPage() {
+      this.$emit(&#39;to-main-page&#39;)
+    }
+  }
+}
+&lt;/script&gt;
+
+&lt;style scoped&gt;
+.top-bar-tooltip {
+  font-size: 18px;
+}
+
+a {
+  color: black;
+}
+&lt;/style&gt;
+</code></pre>
+<h3 id="配置project">配置project</h3>
+<p>下面我们配置当前项目，让它可以发布在npm上</p>
+<p>首先我们编辑入口文件 <code>src/components/index.js</code>, 使其被作为 UI 库导入时能自动在<em>Vue</em>中注册我们的 Component:</p>
+<pre class="js"><code>import Vue from &#39;vue&#39;
+import TopBar from &#39;./TopBar.vue&#39;
+const Components = {
+  TopBar
+}
+
+Object.keys(Components).forEach(name =&gt; {
+  Vue.component(name, Components[name])
+})
+
+export default Components</code></pre>
+<p>接下来我们添加 build 项目的脚本到 <em>package.json</em> 的 <em>scripts</em> 中:</p>
+<pre class="json"><code>&quot;scripts&quot;: {
+    &quot;build-bundle&quot;: &quot;vue-cli-service build --target lib --name personal-component-set ./src/components/index.js&quot;,
+  },</code></pre>
+<p><strong>命令解释</strong>：--target打包为lib仓库构建，--name项目名称为personal-component-set，入口文件为./src/components/index.js</p>
+<p>运行命令后就可以在dist文件夹中看到打包后的文件了，这里我们选择默认发布我们的 **.common.js* 文件, 所以我们在 <em>package.json</em>中添加<em>main</em>属性。</p>
+<p>指定该属性后, 当我们引用该组件库时, 会默认加载 main 中指定的文件。</p>
+<p><code>&quot;main&quot;: &quot;./dist/personal-component-set.common.js&quot;,</code></p>
+<p>最后, 我们再配置 <em>package.json</em>中的 <em>files</em>属性, 来配置我们想要发布到 npm 上的文件有哪些。</p>
+<pre class="json"><code>&quot;files&quot;: [
+   &quot;dist/*&quot;,
+   &quot;src/*&quot;,
+   &quot;public/*&quot;,
+   &quot;*.json&quot;,
+   &quot;*.js&quot;
+ ],</code></pre>
+<h2 id="npm-发布">npm 发布</h2>
+<p>首先去<a href="https://www.npmjs.com/">npm官网</a>注册一个账号记得去查看邮箱邮件来认证邮箱，要不然会上传会不成功。</p>
+<p>然后在项目中打开命令行工具<code>npm adduser</code> or <code>npm login</code>输入你注册的用户名密码和邮箱，可以使用<code>npm whoami</code>查看登录状态。</p>
+<p>在发布之前, 我们修改一下项目的名称(注意不要和npm已有项目名称冲突，可以先去npm搜索一下), 推荐使用 <code>@你注册npm的用户名/项目名称</code> 的命名方式。</p>
+<p>接下来我们就可以发布我们的 UI 组件库了, 在发布之前我们再编译一次, 让<em>build</em>出的文件为我们最新的修改:</p>
+<p><code>npm run build-bundle</code></p>
+<p>我们使用下面的命令发布我们的项目:</p>
+<p><code>npm publish --access public</code></p>
+<p>需要注意的是 <em>package.json</em>中指定的<em>version</em>属性: 每次要更新我们的组件库都需要更新一下<em>version</em>(毕竟同一个<em>version</em> 的代码不同,很容易让人产生疑惑)</p>
+<h2 id="测试使用">测试使用</h2>
+<p>这样我们就完成了自己的 UI 组件库的发布. 接下来我们可以在任何需要使用到该组件库的项目中使用:</p>
+<p><code>npm install --save @你注册npm的用户名/项目名称</code></p>
+<p>然后在<em>index</em>文件 (如<em>src/main.js</em>) 中引入该组件库:</p>
+<p><code>import @你注册npm的用户名/项目名称</code></p>
+<p>接下来我们就可以在 <em>Vue</em>的<em>template</em>中使用组件库中的 <em>Component</em>了:</p>
+<pre><code><code>&lt;template&gt;
+  &lt;!-- v-app是vuetify中的 --&gt;
+  &lt;v-app id=&quot;app&quot;&gt;
+    &lt;top-bar :sourceCodeLink=&quot;sourceCodeLink&quot;&gt;&lt;/top-bar&gt;
+  &lt;/v-app&gt;
+&lt;/template&gt;</code></pre>
+<p>如果你完全按照上面教程来的，可记得在<code>src/main.js</code>中引入我们文章开头的第三方ui组件库<code>vuetify</code></p>
+<pre class="js"><code>// 使用第三方组件库
+import Vuetify from &#39;vuetify&#39;
+import &#39;vuetify/dist/vuetify.min.css&#39;
+
+Vue.use(Vuetify)</code></pre>
+<h2 id="最后">最后</h2>
+<p>经过上面这些步骤后, 我们就拥有了一个属于自己的组件库了. 我们可以随时更新, 发布自己新版的组件库.</p>
+<p>而依赖了该组件库的项目只需要使用简单的 npm 命令即可更新 : )</p>
+<hr />
+<p>参考文章：https://juejin.im/post/5b54120b5188251967307be4</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,683 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https</center></div><div class='banquan'>原文出处:本文由博客园博主RopeHuo提供。<br/>
+原文连接:https://www.cnblogs.com/rope/p/10750558.html</div><br>
+    <h1><strong>一、信息流小程序</strong><strong>-GET<span style="font-family: 宋体;">请求案例</span></strong></h1>
+<h2><strong>1.1<span style="font-family: 宋体;">服务端接口开发</span></strong></h2>
+<p>一定要养成接口的意识，前端单打独斗出不来任何效果，必须有接口配合，写一个带有分页、关键词查询的接口：</p>
+<p>分页接口：<a href="http://127.0.0.1:3000/info?page=1"><span style="text-decoration: underline;">http://127.0.0.1:3000/info?page=1</span></a></p>
+<p>查询接口：<a href="http://127.0.0.1:3000/info?page=1"><span style="text-decoration: underline;">http://127.0.0.1:3000/search?word=<span style="font-family: 宋体;">李</span></span></a></p>
+<p>详情接口：<a href="http://127.0.0.1:3000/info?page=1"><span style="text-decoration: underline;">http://127.0.0.1:3000/xiangqing?id=2</span></a></p>
+<div class="cnblogs_code">
+<pre><code>const express = require("express"<span style="color: #000000;">);
+const app </span>=<span style="color: #000000;"> express();
+const url </span>= require("url"<span style="color: #000000;">);
+<span style="color: #ff0000;">const info </span></span><span style="color: #ff0000;">= require("./info.js"</span><span style="color: #000000;"><span style="color: #ff0000;">);</span>
+app.use(express.static(</span>"www"<span style="color: #000000;">));
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">显示分页的明星信息</span>
+<span style="color: #ff0000;">app.get("/info" , (req,res) =&gt; {
+    const page = url.parse(req.url , true).query.page; //得到GET请求的page参数
+
+    //提供分页的接口
+    res.json({
+        "arr" : info.slice((page-1) * 4 , page * 4)
+    });
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">关键字筛选查询</span>
+app.get("/search" , (req,res) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">得到用户的查询词</span>
+    <span style="color: #0000ff;">var</span> word = url.parse(req.url , <span style="color: #0000ff;">true</span><span style="color: #000000;">).query.word;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">将字符串word变为正则表达式</span>
+    <span style="color: #0000ff;">var</span> wordExp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> RegExp(word);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历，筛选</span>
+<span style="color: #000000;">    res.json({
+        </span>"arr" : info.filter(item =&gt;<span style="color: #000000;"> wordExp.test(item.name))
+    });
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">某明星详情</span>
+app.get("/xiangqing" , (req,res) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">得到用户的查询的明星id</span>
+    <span style="color: #0000ff;">var</span> id = url.parse(req.url , <span style="color: #0000ff;">true</span><span style="color: #000000;">).query.id;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历，筛选</span>
+<span style="color: #000000;">    res.json({
+        </span>"xiangqing" : info.filter(item =&gt; item.id == id)[0<span style="color: #000000;">]
+    });
+})
+app.listen(</span>3000);</pre>
+</div>
+<p><img src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https0.png" alt="" /></p>
+<p><img src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https1.png" alt="" /></p>
+<p><img src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https2.png" alt="" /></p>
+<hr />
+<h2><strong>1</strong><strong>.2</strong><strong>小程序开发</strong></h2>
+<p>学习scrioll-view容器（可滚动视图区域）和发起请求。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scroll-view </span><span style="color: #ff0000;">style</span><span style="color: #0000ff;">="height:<span style="color: #ff0000;">{{wH}}</span>px;"</span><span style="color: #ff0000;"> scroll-y bindscrolltolower</span><span style="color: #0000ff;">="tolower"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>乱起八早<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>乱起八早<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>乱起八早<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+.....
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scroll-view</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>bindscrolltolower表示滚动到底部的事件，但这个盒子必须有高度。</p>
+<p><span style="font-family: 宋体;">如果希望这个盒子的高度和窗口的高度一样，此时调用微信</span>API<span style="font-family: 宋体;">，读取设备窗口高度。</span></p>
+<p>&nbsp;</p>
+<p>app.js使用微信小程序的API得到屏幕的高度：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">app.js</span>
+<span style="color: #000000;">App({
+</span><span style="color: #008000;">//</span><span style="color: #008000;">用户首次打开小程序，触发 onLaunch函数（全局只触发一次）</span>
+<span style="color: #000000;">    onLaunch(){
+        </span><span style="color: #ff0000;">var self = this;
+        //读取设备信息的API
+        wx.getSystemInfo({
+            success: function(res){
+                self.globalData.gWH = res.windowHeight; //获取窗口高度赋值给全局gWH对象
+</span><span style="color: #000000;"><span style="color: #ff0000;">            }
+        });</span>
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">全局数据</span>
+<span style="color: #000000;">    globalData : {
+        gWH : </span>0<span style="color: #000000;">
+    }
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>index.js<span style="font-family: 宋体;">中可以获取</span><span style="font-family: Consolas;">app.js</span><span style="font-family: 宋体;">的全局数据</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">每个页面可以无条件、不引包的，直接使用getApp()函数，表示调用小程序的主体</span>
+<span style="color: #ff0000;">var app =</span><span style="color: #000000;"><span style="color: #ff0000;"> getApp();</span> 
+
+Page({
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当页面加载的时候</span>
+<span style="color: #000000;">    onLoad(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">得到窗口的高度，globalData.gWH数据是从全局获取的</span>
+        <span style="color: #ff0000;">this</span><span style="color: #000000;"><span style="color: #ff0000;">.setData({
+            wH: app.globalData.gWH
+        });</span>
+},
+</span><span style="color: #008000;">//</span><span style="color: #008000;">局部数据</span>
+<span style="color: #ff0000;">    data:{
+        wH: 0  //当前屏幕的高度
+</span><span style="color: #000000;"><span style="color: #ff0000;">    }</span>
+    tolower(){
+        console.log(</span>"已经滚到底部了"<span style="color: #000000;">)
+    }
+});</span></pre>
+</div>
+<hr />
+<h2><strong>1.3<span style="font-family: 宋体;">页面布局</span></strong></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">index.wxml</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">scroll-view </span><span style="color: #ff0000;">style</span><span style="color: #0000ff;">="height:{{wH}}px"</span><span style="color: #ff0000;"> scroll-y bindscrolltolower</span><span style="color: #0000ff;">="tolower"</span><span style="color: #0000ff;">&gt;</span>
+　<span style="color: #0000ff;">　&lt;view class="mingxing"&gt;
+            &lt;view class="box"</span><span style="color: #ff0000;"> wx:for</span><span style="color: #ff0000;">="{{mingxing}}" wx:key</span><span style="color: #0000ff;"><span style="color: #ff0000;">="{{index}}</span>"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="left"</span><span style="color: #0000ff;">&gt;</span>
+                    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">image </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="<span style="color: #ff0000;">{{baseURL}}</span>/images/<span style="color: #ff0000;">{{item.pic}}</span>"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">image</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;">
+                    {{item.name}}
+                </span><span style="color: #0000ff;">&lt;/view&gt;
+                &lt;view class="right"&gt;</span><span style="color: #ff0000;">
+                    {{item.b_info}}
+                </span><span style="color: #0000ff;">&lt;/view&gt;
+            &lt;/view&gt;
+　　　　&lt;/view&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">scroll-view</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>index.wxss</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('b353fef0-9e95-45e5-ad80-a20b40911d17')"><img id="code_img_closed_b353fef0-9e95-45e5-ad80-a20b40911d17" class="code_img_closed" src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https3.png" alt="" /><img id="code_img_opened_b353fef0-9e95-45e5-ad80-a20b40911d17" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('b353fef0-9e95-45e5-ad80-a20b40911d17',event)" src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https4.png" alt="" />
+<div id="cnblogs_code_open_b353fef0-9e95-45e5-ad80-a20b40911d17" class="cnblogs_code_hide">
+<pre><code><span style="color: #800000;">page </span>{<span style="color: #ff0000;"> background-color</span>:<span style="color: #0000ff;">#36b3ff</span>; }<span style="color: #800000;">  
+.box</span>{<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;">720rpx</span>;<span style="color: #ff0000;">display</span>:<span style="color: #0000ff;"> flex</span>;<span style="color: #ff0000;">margin</span>:<span style="color: #0000ff;">10px auto</span>;<span style="color: #ff0000;">font-size</span>:<span style="color: #0000ff;"> 14px</span>;<span style="color: #ff0000;">
+    line-height</span>:<span style="color: #0000ff;">24px</span>;<span style="color: #ff0000;">color</span>:<span style="color: #0000ff;">#333</span>;<span style="color: #ff0000;"> padding</span>:<span style="color: #0000ff;">10px</span>;<span style="color: #ff0000;"> background</span>:<span style="color: #0000ff;"> #fff</span>;<span style="color: #ff0000;">
+    box-sizing</span>:<span style="color: #0000ff;">border-box</span>;<span style="color: #ff0000;"> border-radius</span>:<span style="color: #0000ff;">6px</span>;<span style="color: #ff0000;"> box-shadow</span>:<span style="color: #0000ff;"> 1px 1px 1px rgba(0,0,0,0.5)</span>;
+}<span style="color: #800000;">
+.left</span>{<span style="color: #ff0000;">flex</span>:<span style="color: #0000ff;">1</span>;}<span style="color: #800000;">
+.left image</span>{<span style="color: #ff0000;">width</span>:<span style="color: #0000ff;">180rpx</span>;<span style="color: #ff0000;"> height</span>:<span style="color: #0000ff;">180rpx</span>;}<span style="color: #800000;">
+.right</span>{<span style="color: #ff0000;">flex</span>:<span style="color: #0000ff;">3</span>;<span style="color: #ff0000;">box-sizing</span>:<span style="color: #0000ff;"> border-box</span>;<span style="color: #ff0000;">padding-left</span>:<span style="color: #0000ff;">10px</span>;}</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<hr />
+<h2><strong>1.4<span style="font-family: 宋体;">请求分页数据</span><span style="font-family: 华文中宋;">-</span><span style="font-family: 宋体;">显示页面效果</span></strong></h2>
+<p>index.js<span style="font-family: 宋体;">中加载默认数据</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Page({
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当页面加载的时候</span>
+<span style="color: #000000;">    onLoad(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">得到窗口的高度，是从全局来的</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+            wH: appInstance.globalData.wH
+        });
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">核心语句：请求服务器的数据，参数page表示第几页，当前第几页就请求第几页</span>
+        <span style="color: #0000ff;">var</span> self = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+       <span style="color: #ff0000;"> wx.request({
+            </span></span><span style="color: #ff0000;">//请求的地址
+            url: 'http://127.0.0.1:3000/info?page=' + this.data.page,
+            //成功的回调
+</span><span style="color: #000000;"><span style="color: #ff0000;">            success({data}){
+                self.setData({
+                    mingxing: [
+                        ...self.data.mingxing,
+                        ...data.arr
+                    ]
+                });
+            }
+        });</span>
+    },
+    data : {
+        wH : </span>0, <span style="color: #008000;">//</span><span style="color: #008000;">当前屏幕的高度</span>
+        <span style="color: #ff0000;">mingxing: [], //信息流，现在是空的，等服务器返回
+        page : 1, //当前第几页，默认第一页</span>
+<span style="color: #000000;">    }
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>index.js<span style="font-family: 宋体;">下拉请求更多</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> app =<span style="color: #000000;"> getApp(); 
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">请求服务器上某一个页面的明星，参数page表示第几页</span>
+<span style="color: #0000ff;">function queryServer(<span style="color: #ff0000;">page</span>){
+//显示一个Toast，Toast就是提示文本，黑色背景的方框。</span>
+<strong><span style="color: #000000;">wx.showToast({
+   title: </span>'正在加载更多'<span style="color: #000000;">,
+   icon: </span>'loading'<span style="color: #000000;">,
+   duration: </span>2000000  <span style="color: #008000;">//</span><span style="color: #008000;">持续时间，非常长，因为靠回调函数给它隐藏。</span>
+<span style="color: #000000;">});
+    </span></strong><span style="color: #0000ff;">var</span> self = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">核心语句，请求服务器的数据，分页请求，当前第几页就请求第几页</span>
+<span style="color: #0000ff;">    wx.request({
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">请求的地址</span>
+        <span style="color: #ff0000;">url: this.data.baseURL + '/info?page=' + page,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">成功的回调</span>
+<span style="color: #ff0000;">        success({ data }){
+</span><span style="color: #008000;">//</span><span style="color: #008000;">隐藏Toast</span>
+<strong><span style="color: #000000;">        wx.hideToast();
+            </span></strong><span style="color: #008000;">//</span><span style="color: #008000;">看一下请求的数组长度是不是0，如果是0此时就改变信号量</span>
+            <span style="color: #ff0000;">if(data.arr.length == 0){
+                self.setData({
+                    isMore : false
+                });
+                return;
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果不是0，改变值，追加数据</span>
+<span style="color: #000000;">            self.setData({
+                mingxing: [
+                    ...self.data.mingxing,
+                    ...data.arr
+                ]
+            });
+        }
+   <span style="color: #0000ff;"> });
+}</span>
+
+Page({
+    onLoad(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">指定queryServer函数的上下文，绑定好后，调用时上下文自动就是这里的this了</span><span style="color: #008000;">
+//</span><span style="color: #008000;">不需要queryServer.call(this)了。</span>
+        <span style="color: #ff0000;">queryServer = queryServer.bind(this</span><span style="color: #000000;"><span style="color: #ff0000;">);</span> 
+          
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">得到窗口的高度，是从全局来的</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+            wH: app.globalData.wH
+        });
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">请求第1页的数据</span>
+       <span style="color: #ff0000;"> queryServer(1</span><span style="color: #000000;"><span style="color: #ff0000;">);</span>
+    },
+    data : {
+        wH : </span>0<span style="color: #000000;"> ,
+        mingxing: [],
+        page : </span>1<span style="color: #000000;">,
+        <span style="color: #ff0000;">baseURL:</span></span><span style="color: #ff0000;">"http://127.0.0.1/3000",  //基路径
+        isMore : true //是否还有更多？</span>
+<span style="color: #000000;">    },
+    tolower(){
+        </span><span style="color: #ff0000;">if(this.data.isMore){
+            //页面数加1
+            this.setData({
+                page : this.data.page + 1
+            });
+            //下拉到底部请求更多
+            queryServer(this</span><span style="color: #000000;"><span style="color: #ff0000;">.data.page);
+        }</span>
+    }
+});</span></pre>
+</div>
+<hr />
+<h2><strong>1</strong><strong>.</strong><strong>5<span style="font-family: 宋体;">关键字</span></strong><strong>查询</strong></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">index.wxml</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view </span><span style="color: #0000ff;">class</span><span style="color: #0000ff;">="s_b"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #0000ff;">value="{{searchWord}}" bindconfirm="doSearch" class="s_box"</span><span style="color: #ff0000;">  type</span><span style="color: #0000ff;">="text"</span> <span style="color: #0000ff;">/&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #0000ff;">bindtap</span><span style="color: #0000ff;">='clearSearch'</span><span style="color: #0000ff;">&gt;</span>&times;<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>index.wxss&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('0f3d7781-d595-42c7-995b-562b96d4ac39')"><img id="code_img_closed_0f3d7781-d595-42c7-995b-562b96d4ac39" class="code_img_closed" src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https3.png" alt="" /><img id="code_img_opened_0f3d7781-d595-42c7-995b-562b96d4ac39" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('0f3d7781-d595-42c7-995b-562b96d4ac39',event)" src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https4.png" alt="" />
+<div id="cnblogs_code_open_0f3d7781-d595-42c7-995b-562b96d4ac39" class="cnblogs_code_hide">
+<pre><code><span style="color: #800000;">.s_box</span>{<span style="color: #ff0000;"> background</span>:<span style="color: #0000ff;"> white</span>;<span style="color: #ff0000;">width</span>:<span style="color: #0000ff;">700rpx</span>;<span style="color: #ff0000;">margin</span>:<span style="color: #0000ff;"> 0 auto</span>;}<span style="color: #800000;">
+.s_b</span>{<span style="color: #ff0000;"> position</span>:<span style="color: #0000ff;">relative</span>;}<span style="color: #800000;">
+.s_b button</span>{<span style="color: #ff0000;">
+position</span>:<span style="color: #0000ff;"> absolute</span>;<span style="color: #ff0000;"> right</span>:<span style="color: #0000ff;">10px</span>;<span style="color: #ff0000;">top</span>:<span style="color: #0000ff;">0</span>;<span style="color: #ff0000;"> z-index</span>:<span style="color: #0000ff;"> 999</span>;<span style="color: #ff0000;">padding</span>:<span style="color: #0000ff;">0</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;">20px</span>;<span style="color: #ff0000;">height</span>:<span style="color: #0000ff;">20px</span>;<span style="color: #ff0000;">line-height</span>:<span style="color: #0000ff;"> 20px</span>;<span style="color: #ff0000;">text-align</span>:<span style="color: #0000ff;"> center</span>;
+}</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p>index.js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Page({
+    data : {
+        ...
+    },
+    tolower(){
+        ...
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">执行查询</span>
+<span style="color: #ff0000;">    doSearch(event){
+        var self = this;
+        wx.request({
+            url: baseURL + "/search?word=" + event.detail.value ,
+            success({data}){
+                self.setData({
+                    mingxing : data.arr
+                });
+            }
+        });
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">清空查询</span>
+<span style="color: #ff0000;">    clearSearch(){
+        this.setData({
+            searchWord : "",
+            mingxing : []
+        });
+        //重新请求当前的页码，显示全部
+        //循环请求，比如当前页码是2，此时就要请求2、1
+        for(let i = 1 ; i &lt;= this.data.page ; i++</span><span style="color: #000000;"><span style="color: #ff0000;">){
+            queryServer(i);
+        }
+    }</span>
+});</span></pre>
+</div>
+<p><img src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https7.png" alt="" /></p>
+<hr />
+<h2><strong>1</strong><strong>.</strong><strong>6</strong><strong>点击查看详情</strong><strong>页</strong></h2>
+<p>index.wxml</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="mingxing"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="box"</span><span style="color: #ff0000;"> wx:for</span><span style="color: #0000ff;">="{{mingxing}}"</span><span style="color: #0000ff;"> data-mid="{{item.id}}" bindtap</span><span style="color: #0000ff;">='tapBox' </span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+        .....
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>info.wxml<span style="font-family: 宋体;">详情页</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;">{{name}}</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">image </span><span style="color: #ff0000;">wx:if</span><span style="color: #ff0000;">="{{pic != ''}}" src</span><span style="color: #0000ff;"><span style="color: #ff0000;">="{{baseURL}}/images/{{pic}}</span>"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">image</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;">
+        {{info}}
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>index.js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Page({
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">点击了一个小白框，进入详情页</span>
+<span style="color: #0000ff;">    tapBox(event){
+        //通过自己的data-mid标签，知道自己是谁
+        <span style="color: #ff0000;">var mid = event.currentTarget.dataset.mid;</span>
+        //带给下一个页面
+        wx.navigateTo({
+            //通过?传参给info页面，是微信小程序的语法约定，而并不是GET请求
+            <span style="color: #ff0000;">url: '/pages/info/info?mid=' +</span></span><span style="color: #000000;"><span style="color: #0000ff;"><span style="color: #ff0000;"> mid</span>
+        })
+    }</span>
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>info.js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">基路径</span>
+const baseURL = "http://127.0.0.1:3000"<span style="color: #000000;">;
+
+Page({
+   <span style="color: #0000ff;"> onLoad({<span style="color: #ff0000;">mid</span>}){
+        </span></span><span style="color: #0000ff;"><span style="color: #ff0000;">var self = this;</span>
+        wx.request({
+            <span style="color: #ff0000;">url : baseURL + "/xiangqing?id=" + mid ,</span>
+            success({data}){
+                self.setData({
+                   <span style="color: #ff0000;"> name: data.xiangqing[0].name,
+                    pic : data.xiangqing[0].pic,
+                    info: data.xiangqing[0</span></span><span style="color: #000000;"><span style="color: #0000ff;"><span style="color: #ff0000;">].info</span>
+                })
+            }
+        })
+    },</span>
+    data : {
+       <span style="color: #ff0000;"> name : </span></span><span style="color: #ff0000;">"",
+        pic : "",
+        info : ""</span><span style="color: #000000;"><span style="color: #ff0000;">,</span>
+        baseURL
+    }
+});</span></pre>
+</div>
+<hr />
+<h1><strong><span style="font-family: 宋体;">二、文件上传和相册</span>API</strong></h1>
+<h2><strong>2.1<span style="font-family: 宋体;">小程序和</span><span style="font-family: 华文中宋;">Nodejs</span><span style="font-family: 宋体;">后端</span></strong></h2>
+<p><span style="font-family: 宋体;">前端是小程序，后端</span>Nodejs<span style="font-family: 宋体;">，用</span><span style="font-family: Consolas;">formidable</span><span style="font-family: 宋体;">来处理</span><span style="font-family: Consolas;">POST</span><span style="font-family: 宋体;">请求，上传图片。</span></p>
+<p>&nbsp;</p>
+<p>在小程序中发起POST<span style="font-family: 宋体;">请求</span>：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">index.wxml</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">bindtap</span><span style="color: #0000ff;">="fasong"</span><span style="color: #0000ff;">&gt;</span>按我将{a:8}这个信息用POST请求发给服务器<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>index.js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Page({
+   <span style="color: #0000ff;"> fasong: </span></span><span style="color: #0000ff;">function</span><span style="color: #000000;"><span style="color: #0000ff;">(){</span>
+       <strong> wx.request({
+            </strong></span><span style="color: #ff0000;">//请求地址
+            url: 'http://127.0.0.1:3000/tijiao',
+            //请求类型
+            method : "POST" ,
+            //提交给服务端的数据
+            data : {
+                a : 8
+            },
+            //成功的回调函数
+            success : function</span><span style="color: #000000;"><span style="color: #ff0000;">({data}){
+                console.log(data.result);
+            }</span>
+      <span style="color: #ff0000;">  });</span>
+    <span style="color: #0000ff;">}</span>
+});</span></pre>
+</div>
+<p>后端：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('40601bbb-53c1-419c-9626-d28d6101507e')"><img id="code_img_closed_40601bbb-53c1-419c-9626-d28d6101507e" class="code_img_closed" src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https3.png" alt="" /><img id="code_img_opened_40601bbb-53c1-419c-9626-d28d6101507e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('40601bbb-53c1-419c-9626-d28d6101507e',event)" src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https4.png" alt="" />
+<div id="cnblogs_code_open_40601bbb-53c1-419c-9626-d28d6101507e" class="cnblogs_code_hide">
+<pre><code>const express = require("express"<span style="color: #000000;">);
+const app </span>=<span style="color: #000000;"> express();
+const formidable </span>= require("formidable"<span style="color: #000000;">);
+
+app.post(</span>"/tijiao", (req,res)=&gt;<span style="color: #000000;">{
+    </span><span style="color: #0000ff;">var</span> form = <span style="color: #0000ff;">new</span><span style="color: #000000;"> formidable.IncomingForm();
+    form.parse(req, (err, data) </span>=&gt;<span style="color: #000000;"> {
+        console.log(data);
+        res.json({result:</span>"ok"<span style="color: #000000;">});
+    });
+});
+
+app.listen(</span>3000);</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<hr />
+<h2><strong>2</strong><strong>.2 </strong><strong>图片的上传</strong></h2>
+<p>在微信中是两个事：</p>
+<p>第一：调用wx.chooseImage()<span style="font-family: 宋体;">这个</span>API<span style="font-family: 宋体;">，让用户选择一个图片文件或者拍照；</span></p>
+<p>第二：<span style="font-family: 宋体;">调用</span>wx.uploadFile()<span style="font-family: 宋体;">这个</span>API<span style="font-family: 宋体;">，来传输文件。</span></p>
+<p>&nbsp;</p>
+<p><strong>从本地相册选择图片或使用相机拍照</strong><strong>的</strong><strong>API<span style="font-family: 宋体;">：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>wx.chooseImage();</pre>
+</div>
+<p><img src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https10.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">上传文件的</span>API<span style="font-family: 宋体;">：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>wx.uploadFile();</pre>
+</div>
+<p><img src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https11.png" alt="" /></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">index.wxml</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #0000ff;">bindtap</span><span style="color: #0000ff;">="chooseImg"</span><span style="color: #0000ff;">&gt;</span>选择图片<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>前端代码index.js：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Page({
+   <span style="color: #0000ff;"> chooseImg(){
+        </span></span><span style="color: #008000;">//</span><span style="color: #008000;">选择图片或者进行拍照</span>
+<span style="color: #000000;"><span style="color: #0000ff;">        wx.chooseImage({</span>
+            count : </span>1, <span style="color: #008000;">//</span><span style="color: #008000;">只能选择1张</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">选择图片成功之后做的事情</span>
+<span style="color: #000000;">            success(<span style="color: #ff0000;">{tempFilePaths}</span>){
+            <span style="color: #0000ff;">    wx.uploadFile({</span>
+                    url : </span>"http://127.0.0.1:3000/tijiao" , <span style="color: #008000;">//</span><span style="color: #008000;">上传地址</span>
+                    <span style="color: #ff0000;">filePath: tempFilePaths[0], //要上传的文件，只有1张图片也是数组，所以[0]
+                    name: "tupian",   //key </span>
+<span style="color: #000000;">                    success({data}){
+                       <span style="color: #ff0000;"> wx.showToast(</span>{
+                            title: </span>"上传成功！"<span style="color: #000000;">
+                        }<span style="color: #ff0000;">);</span>
+                    }
+                <span style="color: #0000ff;">});</span> 
+            }
+      <span style="color: #0000ff;">  });
+    }</span>
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">后端</span>formidable<span style="font-family: 宋体;">可以处理图片的上传，只需要加一句话：</span></p>
+<div class="cnblogs_code">
+<pre><code>const express = require("express"<span style="color: #000000;">);
+const app </span>=<span style="color: #000000;"> express();
+const formidable </span>= require("formidable"<span style="color: #000000;">);
+
+app.post(</span>"/tijiao", (req,res)=&gt;<span style="color: #000000;">{
+    </span><span style="color: #0000ff;">var</span> form = <span style="color: #0000ff;">new</span><span style="color: #000000;"> formidable.IncomingForm();
+    <span style="color: #ff0000;">form.uploadDir </span></span><span style="color: #ff0000;">= "./uploads";     //设置图片的保存路径
+    form.keepExtensions = true;      //保留拓展名</span>
+<span style="color: #000000;">
+    form.parse(req, (err, fileds, file)</span>=&gt;<span style="color: #000000;">{
+        res.json({result: </span>"ok"<span style="color: #000000;">});
+    });
+});
+
+app.listen(</span>3000);</pre>
+</div>
+<p>&nbsp;</p>
+<p>开启下拉刷新，在需要下拉刷新的页面中index.json中添加：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    </span><span style="color: #0000ff;">"enablePullDownRefresh" :</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">&lt;!--</span><span style="color: #008000;">index.wxml</span><span style="color: #008000;">--&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">view </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">bindtap</span><span style="color: #0000ff;">="chooseImg"</span><span style="color: #0000ff;">&gt;</span>选择图片<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+   <span style="color: #ff0000;"><span style="color: #0000ff;"> &lt;view</span> wx:for="{{imgList}}" wx:key="{{index}}"<span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;image</span> mode="center" src="http://127.0.0.1:3000/uploads/{{item}}"<span style="color: #0000ff;">&gt;&lt;/image&gt;</span>
+  <span style="color: #0000ff;">  &lt;/view&gt;</span></span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">view</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">后端</span>app.js</p>
+<div class="cnblogs_code">
+<pre><code>const express = require("express"<span style="color: #000000;">);
+const app </span>=<span style="color: #000000;"> express();
+const formidable </span>= require("formidable"<span style="color: #000000;">);
+const fs </span>= require("fs"<span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">静态化图片目录</span>
+<span style="color: #ff0000;">app.use("/uploads" , express.static("uploads"));
+
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">处理用户的提交</span>
+app.post("/tijiao" , (req,res) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">var</span> form = <span style="color: #0000ff;">new</span><span style="color: #000000;"> formidable.IncomingForm();
+    form.uploadDir </span>= "./uploads"; <span style="color: #008000;">//</span><span style="color: #008000;">设置图片的保存路径</span>
+    form.keepExtensions = <span style="color: #0000ff;">true</span>;   <span style="color: #008000;">//</span><span style="color: #008000;">保留拓展名</span>
+<span style="color: #000000;">
+    form.parse(req , (err , fileds , files) </span>=&gt;<span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">将上传文件改名为现在的时间戳，就是1970年1月1日到现在的毫秒数</span>
+       <span style="color: #ff0000;"> var date = Date.parse(new Date());
+    　　 var ext = path.extname(files.tupian.path); //获取文件扩展名
+        //改名
+        fs.rename(`./${files.tupian.path}`, `./uploads/${date}${ext}`, function(){
+            res.json({result : "ok"</span><span style="color: #000000;"><span style="color: #ff0000;">});
+        });</span>
+    });
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">列出所有文件的清单</span>
+<span style="color: #0000ff;">app.get("/list" , (req,res)=&gt;{
+    <span style="color: #ff0000;">fs.readdir("./uploads", (err, files) =&gt;</span></span><span style="color: #000000;"><span style="color: #0000ff;"><span style="color: #ff0000;"> {
+        res.json({ imgList: files.reverse()});
+    });</span>
+});</span>
+
+app.listen(</span>3000);</pre>
+</div>
+<p>&nbsp;</p>
+<p>index.js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Page({
+    xuantu(){
+       ...
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">显示所有已经上传的图片</span>
+<span style="color: #0000ff;">    onLoad(){
+       </span> var self = this;<span style="color: #0000ff;">
+        <span style="color: #ff0000;">wx.request({
+            url: "http://127.0.0.1:3000/list",
+            success({data}){
+                self.setData({
+                    imgList: data.imgList
+                })
+            }
+        });</span>
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">当下拉刷新的时候</span>
+<span style="color: #0000ff;">    onPullDownRefresh(){
+        </span>var self = this;<span style="color: #ff0000;">
+        wx.request({
+            url: "http://127.0.0.1:3000/list"</span><span style="color: #000000;"><span style="color: #0000ff;"><span style="color: #ff0000;">,
+            success({data}){
+                self.setData({
+                    imgList: data.imgList
+                })
+            }
+        });</span>
+    }</span>
+});</span></pre>
+</div>
+<hr />
+<h2><strong>2.3<span style="font-family: 宋体;">获取微信用户信息</span></strong></h2>
+<div class="cnblogs_code" onclick="cnblogs_code_show('075a7b56-32fe-4a59-960b-b71e11c98d08')"><img id="code_img_closed_075a7b56-32fe-4a59-960b-b71e11c98d08" class="code_img_closed" src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https3.png" alt="" /><img id="code_img_opened_075a7b56-32fe-4a59-960b-b71e11c98d08" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('075a7b56-32fe-4a59-960b-b71e11c98d08',event)" src="./images/前端笔记之微信小程序（三）GET请求案例&amp;文件上传和相册API&amp;配置https4.png" alt="" />
+<div id="cnblogs_code_open_075a7b56-32fe-4a59-960b-b71e11c98d08" class="cnblogs_code_hide">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">得到app本身，为什么要得到，因为一会就能使用app.globalData.userInfo</span>
+const app =<span style="color: #000000;"> getApp();
+
+Page({
+...
+    addPics(){
+        ...
+},
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">*************这里面的代码是从HelloWorld案例抄的 start*************</span>
+    onLoad: <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (app.globalData.userInfo) {
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+                userInfo: app.globalData.userInfo,
+                hasUserInfo: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+            })
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.data.canIUse){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 由于 getUserInfo 是网络请求，可能会在 Page.onLoad 之后才返回</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> 所以此处加入 callback 以防止这种情况</span>
+            app.userInfoReadyCallback = res =&gt;<span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+                    userInfo: res.userInfo,
+                    hasUserInfo: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+                })
+            }
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">在没有 open-type=getUserInfo 版本的兼容处理</span>
+<span style="color: #000000;">            wx.getUserInfo({
+                success: res </span>=&gt;<span style="color: #000000;"> {
+                    app.globalData.userInfo </span>=<span style="color: #000000;"> res.userInfo;
+                    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+                        userInfo: res.userInfo,
+                        hasUserInfo: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+                    });
+                }
+            })
+        }
+    },
+    getUserInfo: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+        app.globalData.userInfo </span>=<span style="color: #000000;"> e.detail.userInfo;
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+            userInfo: e.detail.userInfo,
+            hasUserInfo: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+        });
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">*************这里面的代码是从Hello World案例抄的 end*************</span>
+})</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<hr />
+<h1><strong><span style="font-family: 宋体;">三、</span>Nodejs<span style="font-family: 宋体;">配置</span><span style="font-family: Consolas;">https</span></strong></h1>
+<p><span style="font-family: 宋体;">首先，需要申请</span>SSL<span style="font-family: 宋体;">证书，证书可以在阿里云、腾讯云、宝塔等平台申请，申请成功后会提供</span><span style="font-family: Consolas;">SSL</span><span style="font-family: 宋体;">证书下载地址，下载好</span><span style="font-family: Consolas;">SSL</span><span style="font-family: 宋体;">证书会看见一个压缩包，里面包含很多版本的证书文件（</span><span style="font-family: Consolas;">IIS</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">Apache</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">Nginx</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">Tomcat</span><span style="font-family: 宋体;">）等，</span><span style="font-family: Consolas;">Nodejs</span><span style="font-family: 宋体;">服务端采用</span><span style="font-family: Consolas;">Nginx</span><span style="font-family: 宋体;">版本即可，里面有两个文件分别是：</span><span style="font-family: Consolas;">.key</span><span style="font-family: 宋体;">和</span><span style="font-family: Consolas;">.pem</span><span style="font-family: 宋体;">文件。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">将文件放在你的</span>Node<span style="font-family: 宋体;">项目中的某个文件夹中，这里我放在根目录的</span><span style="font-family: Consolas;">ssl</span><span style="font-family: 宋体;">文件夹中。</span></p>
+<p><span style="font-family: 宋体;">然后写以下</span>Node<span style="font-family: 宋体;">代码即可开启</span><span style="font-family: Consolas;">https</span></p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">注意：要修改自己的</span>key<span style="font-family: 宋体;">和</span><span style="font-family: Consolas;">pem</span><span style="font-family: 宋体;">文件路径和名称</span></strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">使用node自带的https模块开启https服务</span>
+<span style="color: #0000ff;">var</span> https = require("https"<span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">读取https配置文件</span><span style="color: #008000;">
+//</span><span style="color: #008000;">读取https配置</span>
+<span style="color: #0000ff;">var</span> httpsOption =<span style="color: #000000;"> {
+    key : fs.readFileSync(</span>"./ssl/0_iqd.webqianduan.cn.key"<span style="color: #000000;">),
+    cert: fs.readFileSync(</span>"./ssl/1_iqd.webqianduan.cn_bundle.pem"<span style="color: #000000;">)
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">监听端口</span>
+http.createServer(app).listen(80<span style="color: #000000;">);
+https.createServer(httpsOption, app).listen(</span>443);</pre>
+</div>
+<hr />
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

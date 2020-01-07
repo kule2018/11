@@ -1,0 +1,142 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修浏览器缓存机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>浏览器缓存机制</center></div><div class='banquan'>原文出处:本文由博客园博主大黑兔提供。<br/>
+原文连接:https://www.cnblogs.com/mcad/p/10687237.html</div><br>
+    <blockquote>
+<p>本文整理在，我的<a href="https://github.com/XiaodongTong/blog/blob/master/Networks%26Browsers/%E7%BC%93%E5%AD%98%E6%9C%BA%E5%88%B6.md">github</a>上。欢迎Star。</p>
+</blockquote>
+<h1 id="关于3xx系列的状态码">关于3xx系列的状态码</h1>
+<ul>
+<li>300 多资源选择</li>
+<li>301 永久重定向</li>
+<li>302 临时重定向</li>
+<li><p>303 告诉用户，使用另一个url获取资源</p>
+<blockquote>
+<p>主要目的是允许POST请求的响应将客户端定位到某个资源上。比如说，在文件上传完成后让客户端自动重定向到一个上传成功的结果页面。</p>
+</blockquote></li>
+<li>307 通知用户临时从其他URL响应，重定向的页面展示给用户，让用户去点重定向URL链接。</li>
+<li><p>304 服务端没有变更</p>
+<blockquote>
+<p>通知浏览器，可以使用缓存。<strong>这篇博文要描述的重点</strong></p>
+</blockquote></li>
+</ul>
+<h1 id="浏览器http缓存机制">浏览器（http）缓存机制</h1>
+<h2 id="类型">类型</h2>
+<p>说到浏览器缓存，通常会遇到一下两种。</p>
+<ul>
+<li>200（from cache）</li>
+<li>304</li>
+</ul>
+<p>那么，这两种http状态，对应什么样的机制，流程呢？</p>
+<h2 id="缓存机制">缓存机制</h2>
+<p>综合以上描述，浏览器在请求一个资源时，使用缓存的流程大概如下。</p>
+<ol>
+<li>首先浏览器会判断，这个资源是否有缓存。没有的话，正常请求。<br />
+</li>
+<li><p>如果有缓存的话，浏览会判断缓存是否过期。如果缓存没有过期，则直接使用。此时就是 <strong>200（from cache）</strong>。</p>
+<blockquote>
+<p>通过上次缓存留下的：cache-control max-age 和 Expires。<br />
+注意：cache-control的优先级高于Expires。</p>
+</blockquote></li>
+<li><p>如果浏览器的缓存过期了，它会请求服务器。服务器会校验缓存的数据是否真的发生了更改。如果服务器端发现数据没有变。就会返回一个<strong>304</strong>告诉浏览器，你请求的数据 “Not Modified”，可以继续用缓存。同时，浏览器会更新缓存首部的过期时间等信息。</p>
+<blockquote>
+<p>这里浏览器发起请求时，会用到上次缓存首部的Last-Modified/E-tag。<br />
+具体做法是：<br />
+取出上次缓存的Last-Modified的值，放在本次请求header的 <strong>If-Modified-Since</strong> 中。<br />
+取出上次缓存的E-tag的值，放在本次请求header中的 <strong>If-None-Match</strong> 中。<br />
+服务器会据此判断资源是否发生过修改，浏览器中的缓存是否依然可用。</p>
+</blockquote></li>
+<li><p>如果服务器端修改了上次缓存的内容，则直接返回200，并携带新的内容。</p></li>
+</ol>
+<p><div align="center"><img src="./images/浏览器缓存机制0.png" alt="浏览器缓存流程图" /></div></p>
+<h2 id="相关http头">相关http头</h2>
+<p>上文中提到了几个http头，这里做一下详细的解释。</p>
+<h3 id="cache-control"><strong>Cache-Control</strong></h3>
+<ul>
+<li>public: 所有内容都将被缓存</li>
+<li>private: 内容只缓存到似有缓存中</li>
+<li>no-cache: 所有内容都不会被缓存</li>
+<li>no-store: 所有内容都不会被缓存到缓存或者internet临时文件中</li>
+<li>must-revalidation/proxy-revalidation: 如果缓存的内容失效，请求必须发送到服务器/代理以进行重新验证(主要用于控制浏览器的前进、后退)</li>
+<li>max-age=xxx( xxx is numeric ): 缓存的内容将在 xxx 秒后失效, 这个选项只在HTTP 1.1可用, 并如果和Last-Modified一起使用时, 优先级较高</li>
+</ul>
+<h3 id="expires"><strong>Expires</strong></h3>
+<p>头部字段提供一个日期和时间。<br />
+（cache-control max-age 和 s-maxage 将覆盖 Expires 头部。）</p>
+<h3 id="last-modifiede-tag"><strong>Last-Modified/E-tag</strong></h3>
+<ul>
+<li><p>若服务器在响应一个资源时添加了Last-Modified字段，那么当下一次浏览器再一次向服务器请求该资源时（前提是浏览器中上一次的资源被缓存过了），会在请求header中包含If-Modified-Since字段，且值与服务器第一次响应给浏览器的Last-Modified字段一致。</p></li>
+<li><p>若服务器在响应一个资源时添加了ETag字段，那么当下一次浏览器再一次向服务器请求该资源时（前提是浏览器中上一次的资源被缓存过了），会在请求header中包含If-None-Match字段，且值与服务器第一次响应给浏览器的ETag字段一致<br />
+那么上述是遵循了Http协议的浏览器会自动实现的，而要实现304的功能，就需要服务器（比如Apache对于静态资源会自动实现这两个字段的响应）或者我们手动在服务器端编写响应的逻辑来实现。</p></li>
+</ul>
+<p>写到这，整个<strong>浏览器及http缓存机制</strong>应该彻底介绍清楚了。<br />
+那么，就只剩下如何应用了。</p>
+<h1 id="原理与应用">原理与应用</h1>
+<h2 id="静态资源">静态资源</h2>
+<p>所谓静态资源，就是很少会修改的内容，包括前端常年打交道的css、js及图片文件等等。<br />
+通常情况下，静态资源的http头是这样配置的。</p>
+<pre><code><code>Cache-Control: public, max-age=31536000
+Expires: (一年后的今天)
+ETag: (基于内容生成)
+Last-Modified: (过去某个时间)
+Vary: Accept-Encoding</code></pre>
+<p>到这里，可以据此给站点中全部的静态资源配置缓存头。这里我有两个建议。</p>
+<ul>
+<li>建议给每个静态资源路径添加指纹信息。可以使用gulp或者webpack等构建工具。通过不同版本的指纹信息控制更新缓存。<br />
+</li>
+<li>项目中引用的依赖，建议使用CDN资源。依据缓存原理，浏览器只要访问过相同CDN的资源，就会留下缓存，哪怕其他站点。</li>
+</ul>
+<h2 id="动态资源">动态资源</h2>
+<h3 id="基础配置"><strong>基础配置</strong></h3>
+<p>对于非私密性和经常性变动的资源，我们可以这样做。</p>
+<pre><code><code>Cache-Control: public, max-age=0
+Expires: (当前时间)
+ETag: (基于内容生成)
+Last-Modified: (过去某个时间)
+Vary: Accept-Encoding</code></pre>
+<p>这样配置的意义在于，内容可以被浏览器缓存起来。但是因为过期时间的问题，每次都会到服务端判断是否过期。未过期的话，就会收到304，进而继续使用缓存。</p>
+<h3 id="控制返回前进"><strong>控制返回、前进</strong></h3>
+<p>你如果需要更严格的控制，需要告知浏览器即使当用户点击了「返回／前进」按钮，也需要重新检查这些资源文件，那么可以使用：</p>
+<pre><code><code>Cache-Control: public, no-cache, no-store</code></pre>
+<h3 id="私密性缓存"><strong>私密性缓存</strong></h3>
+<p>对于私密或者针对用户的内容，需要把 public 替换为 private 以避免内容被代理缓存。</p>
+<pre><code><code>Cache-Control: private, …</code></pre>
+<h3 id="关于etag"><strong>关于ETag</strong></h3>
+<p>建议避免使用 ETag。尤其是使用Apache，又配置了负载均衡的情况下。</p>
+<blockquote>
+<p>针对生成的 ETag，默认的Apache方法需要把文件的索引节（inode），大小（size）和最后修改时间作为输入求值得到。这会导致在负载均衡的环境中，生成的 ETag 值变得毫无用处，因为每个服务器都会针对相同的文件生成一个不同的 Etag 值。这个可能就是唯一的问题导致很多人完全禁用 ETag，其实只要精确地针对一个匹配的文件生成一个独一无二的 ETag 值，就没有必要禁用 ETag 了。</p>
+</blockquote>
+<h3 id="vary-accept-encoding"><strong>Vary: Accept-Encoding</strong></h3>
+<p>指定“Vary: Accept-Encoding”标头，用一句话来说明它的意义，就是“告诉代理服务器缓存两种版本的资源：压缩和非压缩，这有助于避免一些公共代理不能正确地检测Content-Encoding标头的问题。<br />
+还有一个现实的原因：IE 浏览器不缓存任何带有 Vary 头但值不为 Accept-Encoding 和 User-Agent 的资源。所以通过这种方式添加这个头，才能确保这些资源在 IE 下被缓存。<br />
+总的来说，加这么一句肯定没错，相当于“多喝热水”。</p>
+<h1 id="参考文献">参考文献</h1>
+<ul>
+<li>[1] <a href="https://aotu.io/notes/2016/09/22/http-caching/">http缓存</a></li>
+<li>[2] <a href="https://www.cnblogs.com/168dongze/p/3641416.html">浏览器缓存和304小结</a></li>
+<li>[3] <a href="http://www.laruence.com/2010/03/05/1332.html?cp=2#comment-6618">浏览器缓存机制</a></li>
+<li>[4] <a href="https://aotu.io/notes/2016/01/28/3xx-of-http-status/">你所知道的3xx状态码</a></li>
+<li>[5] <a href="http://www.webkaka.com/blog/archives/how-to-set-Vary-Accept-Encoding-header.html">标头“Vary:Accept-Encoding”指定方法及其重要性分析</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

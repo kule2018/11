@@ -1,0 +1,168 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JS 深拷贝' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JS 深拷贝</center></div><div class='banquan'>原文出处:本文由博客园博主郭佬提供。<br/>
+原文连接:https://www.cnblogs.com/guolao/p/10720069.html</div><br>
+    <p><strong>注意：</strong>以下深拷贝仅针对对象。</p>
+<p>对于深拷贝，我平时用得很少，一般都是用 JSON 的方法来实现：</p>
+<pre><code><code>let newObj = JSON.parse(JSON.stringify(oldObj))</code></pre>
+<p>但前几天踩了坑，在网上查了才发现问题，只能说坑只有踩过才知道深浅。</p>
+<h3 id="坑">坑</h3>
+<hr />
+<ol>
+<li><p>对于 function、undefined，会丢失这些属性。</p></li>
+<li><p>对于 RegExp、Error 对象，只会得到空对象</p></li>
+<li><p>对于 date 对象，得到的结果是 string，而不是 date 对象</p></li>
+<li><p>对于 NaN、Infinity、-Infinity，会变成 null</p>
+<pre><code><code>let oldObj = {
+  test1: null,
+  test2: undefined,
+  fn: () =&gt; {console.log(&#39;fn&#39;)},
+  date: new Date(),
+  RegExp: /(a|b)/g,
+  Error: new Error(&#39;err&#39;),
+  NaN: Number(&#39;NaN&#39;)
+}
+
+let newObj = JSON.parse(JSON.stringify(oldObj))
+
+// 丢失 function、undefined
+// Error、RegExp 为空对象
+// NaN 变为 null
+// date 对象变为 string
+newObj
+/*
+{
+ Error: {}
+ RegExp: {}
+ date: &quot;2019-04-16T11:43:05.870Z&quot;
+ NaN: null
+ test1: null
+}
+*/</code></pre></li>
+<li><p>无法处理循环引用</p>
+<pre><code><code>let oldObj = { }
+oldObj.obj = oldObj
+
+// 会报错
+let newObj = JSON.parse(JSON.stringify(oldObj))
+// TypeError: Converting circular structure to JSON</code></pre></li>
+</ol>
+<h3 id="浅拷贝">浅拷贝</h3>
+<hr />
+<p>浅拷贝方法还是挺多的，列举一二：</p>
+<ol>
+<li><p>Object.assign()</p>
+<pre><code><code>let oldObj = {
+  name: &#39;parent&#39;,
+  children: &#39;children&#39;
+}
+
+let newObj = Object.assign({}, oldObj)</code></pre></li>
+<li><p>循环</p>
+<pre><code><code>/*
+ * 浅拷贝，仅针对对象
+ * params {object} obj
+ */
+function shallowCopy (obj) {
+  if (Object.prototype.toString.call(obj) !== &#39;[object Object]&#39;) {
+    throw new TypeError(`${obj} is not a object`)
+  }
+
+  let res = {}
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+         res[key] = obj[key]
+    }
+  }
+
+  return res
+}</code></pre></li>
+</ol>
+<h3 id="深拷贝">深拷贝</h3>
+<hr />
+<p>深拷贝的实现也是可以使用<strong>for...in + 递归</strong>实现的：</p>
+<pre><code><code>function isObject (obj) {
+  return Object.prototype.toString.call(obj) === &#39;[object Object]&#39;
+}
+
+/*
+ * 深拷贝，仅针对对象
+ * params {object} obj
+ */
+function deepCopy (obj) {
+  if (!isObject(obj)) {
+    throw new TypeError(`${obj} is not a object`)
+  }
+  
+  let res = {}
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      res[key] = isObject(obj[key]) ? deepCopy(obj[key]) : obj[key]
+    }
+  }
+  
+  return res
+}</code></pre>
+<p>虽然解决了大部分<code>JSON.parse(JSON.stringify(oldObj))</code>的问题，但依然无法解决循环引用的问题。</p>
+<pre><code><code>let oldObj = {}
+oldObj.obj = oldObj
+
+let newObj = deepCopy(oldObj)
+
+newObj.obj === oldObj.obj // true</code></pre>
+<h3 id="解决循环引用">解决循环引用</h3>
+<hr />
+<p>其实只要将已被拷贝的对象存储下来，每次递归之前都检查一遍该对象是否已经被拷贝，就可以解决循环引用的问题了。</p>
+<pre><code><code>/*
+ * 深拷贝，仅针对对象
+ * params {object} obj
+ */
+function deepCopy (obj, list = new WeakMap()) {
+  if (list.has(obj)) {
+    return list.get(obj)
+  }
+  
+  if (!isObject(obj)) {
+    throw new TypeError(`${obj} is not a object`)
+  }
+  
+  let res = {}
+  list.set(obj, res)
+  for (let key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      res[key] = isObject(obj[key]) ? deepCopy(obj[key], list) : obj[key]
+    }
+  }
+  
+  return res
+}</code></pre>
+<p>这样循环引用的问题就解决啦，是不是很简单。</p>
+<pre><code><code>let oldObj = {}
+oldObj.obj = oldObj
+
+let newObj = deepCopy(oldObj)
+
+newObj.obj === oldObj.obj // false</code></pre>
+<p>当然，WeakMap 可能会存在兼容性问题，所以可以将 list 改成数组。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

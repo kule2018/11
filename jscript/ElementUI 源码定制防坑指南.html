@@ -1,0 +1,118 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ElementUI 源码定制防坑指南' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ElementUI 源码定制防坑指南</center></div><div class='banquan'>原文出处:本文由博客园博主暗夜余晖提供。<br/>
+原文连接:https://www.cnblogs.com/limitcode/p/11797076.html</div><br>
+    <h3 class="content-subtitle">背景</h3>
+<p>我司OA系统公文管理模块Office在线编辑使用的是金格IWebOffice中间件【PPAPI插件，通过&lt;object&gt;标签加载】，IWebOffice在chrome中设置div盒子的css样式display:none会造成控件的奔溃，出现空白等异常情况。用过ElementUI的都知道Tabs标签页，标签之间切换用的正是display属性，笔者要改的是使用width:0px;height:0px;opacity:0;visibility:hidden;做标签的切换。</p>
+<p><img title="" src="./images/ElementUI 源码定制防坑指南0.png" alt="" /></p>
+<h3 class="content-subtitle">Fork element 源码</h3>
+<p>GitHub仓库地址：<a href="https://github.com/ElemeFE/element">https://github.com/ElemeFE/element</a></p>
+<p>首先Fork一份源码到自己的github帐号。</p>
+<p><img title="" src="./images/ElementUI 源码定制防坑指南1.png" alt="" /></p>
+<p>接着使用git命令行工具将源码clone到本地。</p>
+<div class="cnblogs_code">
+<pre><code>git clone https:<span style="color: #008000;">//</span><span style="color: #008000;">github.com/itwmike/element.git</span></pre>
+</div>
+<p>笔者项目中使用的是 element 2.5.4 版本，所以从&nbsp;2.5.4 这个tag签出一个自己的分支进行开发。</p>
+<div class="cnblogs_code">
+<pre><code>git checkout -b v2.<span style="color: #800080;">5.4</span> lk-element-ui  #从 v2.<span style="color: #800080;">5.4</span> tag 创建分支</pre>
+</div>
+<h3 class="content-subtitle">本地调试 element</h3>
+<div class="cnblogs_code">
+<pre><code>npm <span style="color: #0000ff;">install</span><span style="color: #000000;"> #安装相应的依赖包
+npm run dev   #运行调试，如果有报错看看是否为 ESlint 语法检测提示的错误。</span></pre>
+</div>
+<p><img title="" src="./images/ElementUI 源码定制防坑指南2.png" alt="" /></p>
+<h3 class="content-subtitle">修改 tabs 源码</h3>
+<p>为了不污染源码，笔者复制 tab-pane.vue 新建了一个自己的组件并命名为 LoElTabPane，修改其内的源码如下：</p>
+<p><img title="" src="./images/ElementUI 源码定制防坑指南3.png" alt="" width="100%" /></p>
+<p><img title="" src="./images/ElementUI 源码定制防坑指南4.png" alt="" /></p>
+<p>接着修改&nbsp;tabs.vue 中代码使其支持 新加的组件：</p>
+<p><img title="" src="./images/ElementUI 源码定制防坑指南5.png" alt="" width="100%" /></p>
+<p>组件修改好后需要导出并进行全局注册。</p>
+<h3 class="content-subtitle">全局注册 LoTabPane</h3>
+<p>在&nbsp;packages 文件夹下增加&nbsp;lo-tab-pane 文件夹并添加&nbsp;index.js 文件，该文件主要用于导出 LoTabPane 。</p>
+<div class="cnblogs_code">
+<pre><code>import LoTabPane from '../tabs/src/lo-tab-pane.vue'<span style="color: #000000;">;
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore next </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+LoTabPane.install </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(Vue) {
+  Vue.component(LoTabPane.name, LoTabPane);
+};
+
+export </span><span style="color: #0000ff;">default</span> LoTabPane;</pre>
+</div>
+<p>接着修改根目录下的&nbsp;components.json 文件，在文件中加入&nbsp;lo-tab-pane 。该文件的主要作用是在构建时生成 src/index.js，在 index.js 中进行了组件的全局注册和导出。</p>
+<div class="cnblogs_code">
+<pre><code>"lo-tab-pane": "./packages/lo-tab-pane/index.js",</pre>
+</div>
+<h3 class="content-subtitle">添加组件 TypeScript 支持</h3>
+<p>在 types 目录下新建 lo-tab-pane.d.ts 文件，除了类名外其他内容和 tab-pane.d.ts 相同。</p>
+<div class="cnblogs_code">
+<pre><code>import { ElementUIComponent } from './component'
+
+<span style="color: #008000;">/*</span><span style="color: #008000;">* Tab Pane Component </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+export declare class LoElTabPane extends ElementUIComponent {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">* Title of the tab </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    label: string
+
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">* Whether Tab is disabled </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    disabled: </span><span style="color: #0000ff;">boolean</span>
+
+    <span style="color: #008000;">/*</span><span style="color: #008000;">* Identifier corresponding to the activeName of Tabs, representing the alias of the tab-pane </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    name: string
+
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">* Whether Tab is closable </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    closable: </span><span style="color: #0000ff;">boolean</span>
+
+    <span style="color: #008000;">/*</span><span style="color: #008000;">* Whether Tab is lazily rendered </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    lazy: </span><span style="color: #0000ff;">boolean</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<p>同时在 types/element-ui.d.ts 文件中导入新增的类。</p>
+<div class="cnblogs_code">
+<pre><code>import { LoElTabPane } from './lo-tab-pane' <span style="color: #008000;">//</span><span style="color: #008000;"> 导入</span>
+<span style="color: #000000;">
+export class LoTabPane extends LoElTabPane {} </span><span style="color: #008000;">//</span><span style="color: #008000;"> 导出</span></pre>
+</div>
+<h3 class="content-subtitle">添加组件到 examples 菜单</h3>
+<p>组件开发完成后添加到 examples 中进行测试。</p>
+<p><img title="" src="./images/ElementUI 源码定制防坑指南6.png" alt="" /></p>
+<p>拷贝&nbsp;examples\docs\zh-CN\tabs.md 到同级目录并命名为&nbsp;lo-tabs.md，将其内的 el-tab-pane 组件换成 lo-el-tab-pane。</p>
+<p><img title="" src="./images/ElementUI 源码定制防坑指南7.png" alt="" /></p>
+<p>在&nbsp;examples\nav.config.json 中增加 lo-tabs 菜单。</p>
+<p><img title="" src="./images/ElementUI 源码定制防坑指南8.png" alt="" /></p>
+<h3 class="content-subtitle">组件发布</h3>
+<p>网上博友说修改包名和版本号可以将自己DIY出的 element 发布到 npm，使用 npm install 安装使用。其实这种做法是错误的误导，笔者亲验纯属瞎扯蛋。</p>
+<p>使用 npm run dist 打包后的文件在 lib 文件夹下，其中&nbsp;element-ui.common.js 为包入口，打开这个文件可以看到存在很多类似&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>module.exports = require("element-ui/lib/mixins/emitter");</pre>
+</div>
+<p>这样的代码，使用的都是 element-ui 开头的相对路径。如果你的包名换成其他，我敢保证在项目中打包的时候会报 xxx not find 错误。</p>
+<p>正确的做法应该是将包发布到 git仓库，如github这样的平台，使用 npm install git仓库 这样的方式安装。</p>
+<div class="cnblogs_code">
+<pre><code>npm <span style="color: #0000ff;">install</span> git+https:<span style="color: #008000;">//</span><span style="color: #008000;">github.com/itwmike/element.git</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>本文转载自：<a title="极限编程网" href="https://www.limitcode.com/detail/5db589bf10dcbf0b1852b349.html" target="_blank">https://www.limitcode.com/detail/5db589bf10dcbf0b1852b349.html</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,59 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修pc vue 项目中的菜单权限控制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>pc vue 项目中的菜单权限控制</center></div><div class='banquan'>原文出处:本文由博客园博主周明杰提供。<br/>
+原文连接:https://www.cnblogs.com/zhoumingjie/p/11692454.html</div><br>
+    <p>在pc 管理系统这种类型的产品，通常会涉及到账号权限的控制，不同的账号权限能浏览的功能模块是不同的，对应侧边栏菜单模块的显示也会不同。</p>
+<h3 id="场景一电商类管理系统">场景一、（电商类管理系统）</h3>
+<ol>
+<li>登录</li>
+<li>登录后，依次获取账号 tokenId、店铺列表、默认店铺ID、菜单列表</li>
+<li>通过菜单列表生成侧边栏，注意router 文件里面定义了全部的页面路由，所以配置新菜单时候需要提供给后端前端定义的页面路径</li>
+<li>menuList 数据存起来，可以存在 vuex、sessionStorage，这个数据可以用于router 里面非白名单页面的拦截比对，如果访问当前账号无权限的页面，可将其跳转 404 页面</li>
+<li>在路由卫士里面拦截检查</li>
+</ol>
+<h3 id="场景二电商类单点登录系统">场景二、（电商类单点登录系统）</h3>
+<p>单点登录类系统，通常会多个项目公用一套登录系统，项目首页直接就是dashboard 或者 index页面，菜单权限数据会放在项目初始化时候通过登录系统返回的 tokenID（可以存放到cookie） 来请求接口获取，然后存到 sessionStorage ，到这里可能会有个问题，每次刷新页面时候都会重复请求这个接口，是没必要的，可以定义一个登录状态标识符，第一次登录成功后就做一个标识，之后项目页面刷新时候不再进行菜单权限接口请求，退出或者tokenID 过期失效时候，进行重置。</p>
+<p>同样在路由卫士这样的地方进行跳转路径检查，白名单放行，无权限地址导到 404。</p>
+<h3 id="场景三关于-vuex-的数据刷新丢失">场景三、（关于 vuex 的数据刷新丢失）</h3>
+<p>vuex 实际上是以全局变量的形式存储数据，每次刷新页面，就丢失了，可以通过几种方式来实现刷新数据保留</p>
+<p>一、使用插件 vuex-persistedstate ，可以实现持久化state, 其支持设置 localStorage、sessionStorage、cookie 三种形式的存储，默认 localStorage，如果不想把所有state 都持久化，该插件也是支持配置指定的state 持久化。</p>
+<p>二、 监听页面刷新（beforeunload），将 vuex 的 state 转存到 sessionStorage，根 vue实例 created 时候将 sessionStorage 里的数据在转存到 vuex 里（vuex.store的replaceState方法）。</p>
+<pre><code><code>export default {
+  name: &#39;App&#39;,
+  created () {
+    //在页面加载时读取sessionStorage里的状态信息
+    if (sessionStorage.getItem(&quot;store&quot;) ) {
+        this.$store.replaceState(Object.assign({}, this.$store.state,JSON.parse(sessionStorage.getItem(&quot;store&quot;))))
+    } 
+
+    //在页面刷新时将vuex里的信息保存到sessionStorage里
+    window.addEventListener(&quot;beforeunload&quot;,()=&gt;{
+        sessionStorage.setItem(&quot;store&quot;,JSON.stringify(this.$store.state))
+    })
+  }
+}
+[参考](https://juejin.im/post/5c809599f265da2dbe030ec6)</code></pre>
+<h3 id="场景四页面内权限">场景四、（页面内权限）</h3>
+<p>通常页面内的增、删、改、查，操作也是需要有对应的权限控制的，所有页面模块的权限数据统一以对象形式在一个数组列表里面，存到 vuex，然后在每个页面的 created 时候，获取并绑定当前页面的 CURD 权限，控制相关操作区域的渲染。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

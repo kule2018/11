@@ -1,0 +1,225 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修浅析libuv源码-node事件轮询解析(2)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>浅析libuv源码-node事件轮询解析(2)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10825884.html</div><br>
+    <p>　　上一篇讲了轮询的边角料，这篇进入正题。(竟然真有人看我博客，上两个图给你们整理下思路)</p>
+<p>　　这是轮询总流程图。</p>
+<p><img src="./images/浅析libuv源码-node事件轮询解析(2)0.png" alt="" /></p>
+<p>　　下图为本节内容简图。</p>
+<p><img src="./images/浅析libuv源码-node事件轮询解析(2)1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong>Poll for I/O</strong></p>
+<blockquote>
+<p>　　The loop blocks for I/O. At this point the loop will block for I/O for the duration calculated in the previous step. All I/O related handles that were monitoring a given file descriptor for a read or write operation get their callbacks called at this point.</p>
+</blockquote>
+<p>　　简单来讲，就两点：</p>
+<p>1、根据计算的timeout来进行I/O操作，这里的操作包括fs.readFile、fs.stat等，期间进程将被阻塞。</p>
+<p>2、所有I/O的handles会使用一个给定的文件描述符进行操作，并会调用对应的callbacks。</p>
+<p>&nbsp;</p>
+<p><strong>Call pengding callbacks</strong></p>
+<blockquote>
+<p>　　Pending callbacks are called. All I/O callbacks are called right after polling for I/O, for the most part. There are cases, however, in which calling such a callback is deferred for the next loop iteration. If the previous iteration deferred any I/O callback it will be run at this point.</p>
+</blockquote>
+<p>　　从解释中看不出什么信息，但只有这一步真正调用我们从JS传过去的callback。</p>
+<p>&nbsp;</p>
+<p>　　既然要解析，那么不如从一个API入手，走一遍看代码流向。</p>
+<p>　　这里还是用之前fs.stat方法，虽然在前面(<a href="https://www.cnblogs.com/QH-Jimmy/p/9395985.html">https://www.cnblogs.com/QH-Jimmy/p/9395985.html</a>)有过看似很深入的解释，但也只是走马观花的看了一遍，这次重新梳理一遍。</p>
+<p>　　与上篇一样，省略大量无关源码。</p>
+<p>&nbsp;</p>
+<p><strong>JavaScript层</strong></p>
+<p>　　同样从简易的lib/fs.js文件中出发，这次着重注意的是传过去的三个参数。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> stat(path, options, callback) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> FSReqCallback是来源于c++层的一个class</span>
+  const req = <span style="color: #0000ff;">new</span><span style="color: #000000;"> FSReqCallback(options.bigint);
+  req.oncomplete </span>=<span style="color: #000000;"> callback;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里的第三个参数是一个Object 回调函数仅作为一个oncomplete属性</span>
+<span style="color: #000000;">  binding.stat(pathModule.toNamespacedPath(path), options.bigint, req);
+}</span></pre>
+</div>
+<p>　　如下:</p>
+<p>1、第一个是处理过的路径path</p>
+<p>2、第二个是一个可选参数，一般情况没人传，本文也不会做解析，毕竟不是重点</p>
+<p>3、第三个是一个新生成的对象，而不是将我们的function直接作为参数传到stat方法中</p>
+<p>&nbsp;</p>
+<p><strong>node层</strong></p>
+<p>　　接下来直接到src/node_file.cc文件中，这里会检测参数并做包装，不用懂C++直接看注释。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> Stat(<span style="color: #0000ff;">const</span> FunctionCallbackInfo&lt;Value&gt;&amp;<span style="color: #000000;"> args) {
+  Environment</span>* env =<span style="color: #000000;"> Environment::GetCurrent(args);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检测参数数量是否大于2</span>
+  <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> argc =<span style="color: #000000;"> args.Length();
+  CHECK_GE(argc, </span><span style="color: #800080;">2</span><span style="color: #000000;">);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检测path参数合法性</span>
+  BufferValue path(env-&gt;isolate(), args[<span style="color: #800080;">0</span><span style="color: #000000;">]);
+  CHECK_NOT_NULL(</span>*<span style="color: #000000;">path);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检测是否传了use_bigint</span>
+  <span style="color: #0000ff;">bool</span> use_bigint = args[<span style="color: #800080;">1</span>]-&gt;<span style="color: #000000;">IsTrue();
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 在同步调用stat的情况下 这个class为空指针
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> if、else后面有同步/异步调用时参数情况</span>
+  FSReqBase* req_wrap_async = GetReqWrap(env, args[<span style="color: #800080;">2</span><span style="color: #000000;">], use_bigint);
+  </span><span style="color: #0000ff;">if</span> (req_wrap_async != nullptr) {  <span style="color: #008000;">//</span><span style="color: #008000;"> stat(path, use_bigint, req)</span>
+    AsyncCall(env, req_wrap_async, args, <span style="color: #800000;">"</span><span style="color: #800000;">stat</span><span style="color: #800000;">"</span><span style="color: #000000;">, UTF8, AfterStat,
+              uv_fs_stat, </span>*<span style="color: #000000;">path);
+  } </span><span style="color: #0000ff;">else</span> {  <span style="color: #008000;">//</span><span style="color: #008000;"> stat(path, use_bigint, undefined, ctx)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 同步情况...</span>
+<span style="color: #000000;">  }
+}</span></pre>
+</div>
+<p>　　在之前那一篇讲node架构时，这块只是简单说了一下，直接跳到同步调用那块了。</p>
+<p>　　但是只有在异步调用的时候才会出现poll for I/O，所以这次跳过同步情况，来看异步调用情况。(那一篇的异步情况是瞎鸡儿乱说的，根本没法看)</p>
+<p>　　首先整理一下AsyncCall方法的参数。</p>
+<div class="cnblogs_code">
+<pre><code>AsyncCall(env, req_wrap_async, args, <span style="color: #800000;">"</span><span style="color: #800000;">stat</span><span style="color: #800000;">"</span>, UTF8, AfterStat,uv_fs_stat, *path);</pre>
+</div>
+<p>env =&gt; 一个万能的全局对象，能存东西能做事情。可以通过env-&gt;isolate获当前取V8引擎实例，env-&gt;SetMethod设置JS的对象属性等等</p>
+<p>req_wrap_async =&gt; 一个包装类</p>
+<p>args =&gt; 从JavaScript层传过来的函数数组，可以简单理解为arguments</p>
+<p>"stat" =&gt; 需要调用的fs方法名字符串</p>
+<p>UTF8 =&gt; 编码类型</p>
+<p>AfterStat =&gt; 一个内置的一个回调函数</p>
+<p>uv_fs_stat =&gt; 异步调用的实际方法</p>
+<p>*path =&gt; 路径参数</p>
+<p>　　参数看完，可以进到方法里，这是一个模版函数，不过也没啥。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> Func类型为普通函数
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Args为路径path</span>
+template &lt;typename Func, typename... Args&gt;<span style="color: #000000;">
+inline FSReqBase</span>* AsyncCall(Environment*<span style="color: #000000;"> env,
+    FSReqBase</span>*<span style="color: #000000;"> req_wrap,
+    </span><span style="color: #0000ff;">const</span> FunctionCallbackInfo&lt;Value&gt;&amp;<span style="color: #000000;"> args,
+    </span><span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>* syscall, <span style="color: #0000ff;">enum</span><span style="color: #000000;"> encoding enc,
+    uv_fs_cb after, Func fn, Args... fn_args) {
+  </span><span style="color: #0000ff;">return</span> AsyncDestCall(env, req_wrap, args, syscall, nullptr, <span style="color: #800080;">0</span><span style="color: #000000;">, enc, after, fn, fn_args...);
+}
+
+template </span>&lt;typename Func, typename... Args&gt;<span style="color: #000000;">
+inline FSReqBase</span>* AsyncDestCall(Environment*<span style="color: #000000;"> env,
+    FSReqBase</span>*<span style="color: #000000;"> req_wrap,
+    </span><span style="color: #0000ff;">const</span> FunctionCallbackInfo&lt;Value&gt;&amp;<span style="color: #000000;"> args,
+    </span><span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>* syscall, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>*<span style="color: #000000;"> dest, size_t len,
+    </span><span style="color: #0000ff;">enum</span><span style="color: #000000;"> encoding enc, uv_fs_cb after, Func fn, Args... fn_args) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 异步调用这个类不能为空指针</span>
+<span style="color: #000000;">  CHECK_NOT_NULL(req_wrap);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 依次调用包装类的方法</span>
+  req_wrap-&gt;<span style="color: #000000;">Init(syscall, dest, len, enc);
+  </span><span style="color: #0000ff;">int</span> err = req_wrap-&gt;<span style="color: #000000;">Dispatch(fn, fn_args..., after);
+  </span><span style="color: #0000ff;">if</span> (err &lt; <span style="color: #800080;">0</span><span style="color: #000000;">) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 出现error的情况 不用看...</span>
+  } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    req_wrap</span>-&gt;<span style="color: #000000;">SetReturnValue(args);
+  }
+
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> req_wrap;
+}</span></pre>
+</div>
+<p>　　看似一大团，实际上函数内容非常少，仅仅只有一个Init、一个Dispatch便完成了整个stat操作。</p>
+<p>　　由于都来源于req_wrap类，所以需要回头去看一下这个类的内容。</p>
+<div class="cnblogs_code">
+<pre><code>FSReqBase* req_wrap_async = GetReqWrap(env, args[<span style="color: #800080;">2</span><span style="color: #000000;">], use_bigint);
+inline FSReqBase</span>* GetReqWrap(Environment* env, Local&lt;Value&gt; value, <span style="color: #0000ff;">bool</span> use_bigint = <span style="color: #0000ff;">false</span><span style="color: #000000;">) {
+  </span><span style="color: #0000ff;">if</span> (value-&gt;<span style="color: #000000;">IsObject()) {
+    </span><span style="color: #0000ff;">return</span> Unwrap&lt;FSReqBase&gt;(value.As&lt;Object&gt;<span style="color: #000000;">());
+  } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (value-&gt;StrictEquals(env-&gt;<span style="color: #000000;">fs_use_promises_symbol())) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Promise情况...</span>
+<span style="color: #000000;">  }
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> nullptr;
+}</span></pre>
+</div>
+<p>　　不用看Promise的情况，在最开始的讲过，传过来的第三个参数是一个新生成的对象，所以这里的args[2]正好满足value-&gt;IsObject()。</p>
+<p>　　这里的return比较魔性，没有C++基础的不太好讲，先看看源码。</p>
+<div class="cnblogs_code">
+<pre><code>template &lt;<span style="color: #0000ff;">class</span> T&gt;
+<span style="color: #0000ff;">static</span> inline T* Unwrap(v8::Local&lt;v8::Object&gt;<span style="color: #000000;"> handle) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里是类型强转</span>
+  <span style="color: #0000ff;">return</span> static_cast&lt;T*&gt;<span style="color: #000000;">(wrap);
+}
+
+</span><span style="color: #0000ff;">class</span> FSReqBase : <span style="color: #0000ff;">public</span> ReqWrap&lt;uv_fs_t&gt;<span style="color: #000000;"> {
+ </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #0000ff;">void</span> Init(<span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>* syscall, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>* data, size_t len, <span style="color: #0000ff;">enum</span><span style="color: #000000;"> encoding encoding) {}
+}
+
+template </span>&lt;typename T&gt;
+<span style="color: #0000ff;">class</span> ReqWrap : <span style="color: #0000ff;">public</span> AsyncWrap, <span style="color: #0000ff;">public</span><span style="color: #000000;"> ReqWrapBase {
+ </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  inline <span style="color: #0000ff;">int</span><span style="color: #000000;"> Dispatch(LibuvFunction fn, Args... args);
+
+ </span><span style="color: #0000ff;">private</span><span style="color: #000000;">:
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+};</pre>
+</div>
+<p>　　剔除了所有无关的代码，留下了一些关键信息。</p>
+<p>　　简单来讲，这里的Unwrap是一个模版方法，作用仅仅是做一个强转，关键在于强转的FsReqBase类。这个类的继承链比较长，可以看出类本身有一个Init，而在父类ReqWrap上有Dispatch方法，知道方法怎么来的，这就足够了。</p>
+<p>　　这里重新看那两步调用。</p>
+<div class="cnblogs_code">
+<pre><code>req_wrap-&gt;<span style="color: #000000;">Init(syscall, dest, len, enc);
+</span><span style="color: #0000ff;">int</span> err = req_wrap-&gt;Dispatch(fn, fn_args..., after);</pre>
+</div>
+<p>　　首先是Init。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span> Init(<span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>* syscall, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>* data, size_t len, <span style="color: #0000ff;">enum</span><span style="color: #000000;"> encoding encoding) {
+  syscall_ </span>=<span style="color: #000000;"> syscall;
+  encoding_ </span>=<span style="color: #000000;"> encoding;
+
+  </span><span style="color: #0000ff;">if</span> (data !=<span style="color: #000000;"> nullptr) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">  }
+}</span></pre>
+</div>
+<p>　　四个参数实际上分别是字符串"stat"、nullptr、0、枚举值UFT8，所以这里的if不会走，只是两个赋值操作。</p>
+<p>　　接下来就是Dispatch。</p>
+<div class="cnblogs_code">
+<pre><code>template &lt;typename T&gt;<span style="color: #000000;">
+template </span>&lt;typename LibuvFunction, typename... Args&gt;
+<span style="color: #0000ff;">int</span> ReqWrap&lt;T&gt;<span style="color: #000000;">::Dispatch(LibuvFunction fn, Args... args) {
+  Dispatched();
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> This expands as:
+  </span><span style="color: #008000;">//</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> int err = fn(env()-&gt;event_loop(), req(), arg1, arg2, Wrapper, arg3, ...)
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">              ^                                       ^        ^
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">              |                                       |        |
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">              \-- Omitted if `fn` has no              |        |
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">                  first `uv_loop_t*` argument         |        |
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">                                                      |        |
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">        A function callback whose first argument      |        |
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">        matches the libuv request type is replaced ---/        |
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">        by the `Wrapper` method defined above                  |
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">                                                               |
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">               Other (non-function) arguments are passed  -----/
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">               through verbatim</span>
+  <span style="color: #0000ff;">int</span> err = CallLibuvFunction&lt;T, LibuvFunction&gt;::Call(fn, env()-&gt;event_loop(), req(), MakeLibuvRequestCallback&lt;T, Args&gt;::For(<span style="color: #0000ff;">this</span><span style="color: #000000;">, args)...);
+  </span><span style="color: #0000ff;">if</span> (err &gt;= <span style="color: #800080;">0</span><span style="color: #000000;">)
+    env()</span>-&gt;<span style="color: #000000;">IncreaseWaitingRequestCounter();
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> err;
+}</span></pre>
+</div>
+<p>　　这个方法的内容展开之后巨麻烦，懒得讲了，直接看官方给的注释。</p>
+<p>　　简单来说，就是相当于直接调用给的uv_fs_stat，参数依次为事件轮询的全局对象loop、fs专用handle、路径path、包装的callback函数。</p>
+<p>　　这篇先这样。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,174 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack loader实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack loader实现</center></div><div class='banquan'>原文出处:本文由博客园博主HashTang提供。<br/>
+原文连接:https://www.cnblogs.com/hashtang/p/11666815.html</div><br>
+    <h6 id="正值前端组件化开发时代那么必然离不开目前最火的构建工具webpackgruntgulp等暂且不谈说到这里刚好有几个问题">正值前端组件化开发时代，那么必然离不开目前最火的构建工具——webpack（grunt，gulp等暂且不谈）。说到这里，刚好有几个问题：</h6>
+<ul>
+<li>为什么运行打包命令之后，<code>.vue</code> 文件可以转成 <code>.js</code> 文件</li>
+<li>为什么运行打包命令之后，<code>.less</code> 文件可以转成 <code>.css</code> 文件</li>
+<li><p>为什么运行打包命令之后，<code>ES6+</code> 语法可以转成 <code>ES5</code> 语法<br />
+<a href="https://www.npmjs.com/package/vue-hash-calendar">[外链图片转存失败,源站可能有防盗链机制,建议将图片保存下来直接上传(img-mr86zPPH-1570953160209)(https://img.shields.io/npm/v/vue-hash-calendar.svg)]</a></p>
+<blockquote>
+<p>上面这几个问题，就引出了我们的主角——【loader】。<br />
+<code>loader</code> 是 <code>webpack</code> 的一块很重要的组成部分。我们都知道 <code>webpack</code> 是用于资源打包的，里面的所有资源都是“模块”，内部实现了对模块资源进行加载的机制。但是 <code>Webpack</code> 本身只能处理 <code>js</code> 模块，如果要处理其他类型的文件，就需要使用 <code>loader</code> 进行转换。 <code>Loader</code> 可以理解为是模块和资源的转换器，它本身是一个函数，接收文件源码作为参数，返回转换的结果，例如可以使用 <code>loader</code> 加载器可以快速编译预处理器 <code>(less,sass,coffeeScript)</code>。<code>Loader</code> 可以在 <code>require()</code> 引用模块的时候添加，也可以在 <code>webpack</code> 全局配置中进行绑定，还可以通过命令行的方式使用。（本篇中的参数配置及使用方式均基于 <code>webpack4.0</code> 版本）</p>
+</blockquote></li>
+</ul>
+<h3 id="一loader的特点">一、loader的特点</h3>
+<p>1、<code>loader</code> 的执行顺序和代码书写的顺序是相反的，即：从下至上，从右至左。<br />
+2、第一个执行的 <code>loader</code> 会接收源文件做为参数，下一次执行的 <code>loader</code> 会接收前一个 <code>loader</code> 执行的返回值做为参数<br />
+3、需要严格遵循“单一职责”原则，即每个 <code>loader</code> 只负责自己需要负责的事情</p>
+<h3 id="二loader-api">二、loader API</h3>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">methods</th>
+<th style="text-align: left;">含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">this.request</td>
+<td style="text-align: left;">被解析出来的 request 字符串。例子：&quot;/abc/loader1.js?xyz!/abc/node_modules/loader2/index.js!/abc/resource.js?rrr&quot;</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.loaders</td>
+<td style="text-align: left;">所有 loader 组成的数组。它在 pitch 阶段的时候是可以写入的。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.loaderIndex</td>
+<td style="text-align: left;">当前 loader 在 loader 数组中的索引。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.async</td>
+<td style="text-align: left;">告诉 <a href="https://github.com/webpack/loader-runner">loader-runner</a> 这个 loader 将会异步地回调</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.callback</td>
+<td style="text-align: left;">一个可以同步或者异步调用的可以返回多个结果的函数</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.data</td>
+<td style="text-align: left;">在 pitch 阶段和正常阶段之间共享的 data 对象。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.cacheable</td>
+<td style="text-align: left;">设置是否可缓存标志的函数</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.resource</td>
+<td style="text-align: left;">request 中的资源部分，包括 query 参数</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.resourcePath</td>
+<td style="text-align: left;">资源文件的路径。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.resourceQuery</td>
+<td style="text-align: left;">资源的 query 参数</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.target</td>
+<td style="text-align: left;">编译的目标。从配置选项中传递过来的。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.webpack</td>
+<td style="text-align: left;">如果是由 webpack 编译的，这个布尔值会被设置为真</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.sourceMap</td>
+<td style="text-align: left;">应该生成一个 source map。因为生成 source map 可能会非常耗时，你应该确认 source map 确实有必要请求。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.emitWarning</td>
+<td style="text-align: left;">发出一个警告。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.emitError</td>
+<td style="text-align: left;">发出一个错误。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.loadModule</td>
+<td style="text-align: left;">解析给定的 request 到一个模块，应用所有配置的 loader ，并且在回调函数中传入生成的 source 、sourceMap 和 模块实例（通常是 <a href="https://github.com/webpack/webpack/blob/master/lib/NormalModule.js"><code>NormalModule</code></a> 的一个实例）。如果你需要获取其他模块的源代码来生成结果的话，你可以使用这个函数。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.resolve</td>
+<td style="text-align: left;">像 require 表达式一样解析一个 request 。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.emitFile</td>
+<td style="text-align: left;">产生一个文件。这是 webpack 特有的。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.fs</td>
+<td style="text-align: left;">用于访问 compilation 的 inputFileSystem 属性。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">this.value</td>
+<td style="text-align: left;">向下一个 loader 传值。如果你知道了作为模块执行后的结果，请在这里赋值（以单元素数组的形式）。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">this.inputValue</td>
+<td style="text-align: left;">从上一个 loader 那里传递过来的值。如果你会以模块的方式处理输入参数，建议预先读入这个变量（为了性能因素）。</td>
+</tr>
+</tbody>
+</table>
+<h6 id="更多详细api以及各api的用法示例可以访问官网查看地址httpswww.webpackjs.comapiloaders">更多详细API，以及各API的用法示例，可以访问官网查看。地址：<a href="https://www.webpackjs.com/api/loaders" class="uri">https://www.webpackjs.com/api/loaders</a></h6>
+<h3 id="三写loader之前的需求整理">三、写loader之前的需求整理</h3>
+<p>现在有这样一个需求，使用 <code>hxkj-loader</code> 加载并处理名称为 <code>*.hxkj.vip</code> 的文件，将里面的<code>哈希空间</code>全部替换为 <code>www.hxkj.vip</code>。需要实现的转换如下：</p>
+<p>转换前的内容：</p>
+<pre><code><code>&lt;div&gt;
+    &lt;h1&gt;欢迎访问哈希空间&lt;/h1&gt;
+    &lt;p&gt;哎哟，终于等到你。这里就是让人流连忘返的哈希空间呀！&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+<p>转换后的内容：</p>
+<pre><code><code>&lt;div&gt;
+    &lt;h1&gt;欢迎访问www.hxkj.vip&lt;/h1&gt;
+    &lt;p&gt;哎哟，终于等到你。这里就是让人流连忘返的www.hxkj.vip呀！&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+<h3 id="四编写loader">四、编写loader</h3>
+<p>在与 <code>webpack.config.js</code> 同级目录下新建 <code>hxkj-loader.js</code>，文件的内容如下：</p>
+<pre class="js"><code>module.exports = function(source){
+    var content=&quot;&quot;;
+    content = source.replace(&quot;/哈希空间/g&quot;,&quot;www.hxkj.vip&quot;);
+    return content; 
+}</code></pre>
+<p>接下来，需要在 <code>webpack.config.js</code> 文件中增加以下的配置:</p>
+<pre class="js"><code>const path = require(&quot;path&quot;); // 引入 node 的 path 模块
+...
+module:{
+    rules:[{
+        test: /\.hxkj\.vip$/, // 正则匹配以 hxkj.vip 结尾的文件
+        use:[{
+            loader:path.resolve(__dirname, &quot;hxkj-loader&quot;) // 使用 path 模块找到 hxkj-loader 的路径
+        }]
+    }]
+}</code></pre>
+<h5 id="好到此一个简易版的-loader-就已经写完了目前-loader-是直接写在本地的可以考虑将自己写好的-loader-发布到-npm这样就更加完善了">好，到此，一个简易版的 <code>loader</code> 就已经写完了。目前 <code>loader</code> 是直接写在本地的，可以考虑将自己写好的 <code>loader</code> 发布到 <code>npm</code>，这样就更加完善了。</h5>
+<h4 id="at-last看完之后有什么不懂的可以留言反馈">At last，看完之后有什么不懂的，可以留言反馈。</h4>
+<blockquote>
+<p>转载请注明出处：<a href="https://www.jianshu.com/p/51b793f6fa0e" class="uri">https://www.jianshu.com/p/51b793f6fa0e</a><br />
+作者：TSY<br />
+个人空间：<a href="https://hxkj.vip" class="uri">https://hxkj.vip</a></p>
+</blockquote>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

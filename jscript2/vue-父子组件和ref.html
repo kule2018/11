@@ -1,0 +1,258 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue-父子组件和ref' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue-父子组件和ref</center></div><div class='banquan'>原文出处:本文由博客园博主跌倒的小黄瓜提供。<br/>
+原文连接:https://www.cnblogs.com/ygjzs/p/11828206.html</div><br>
+    <h2 id="父组件向子组件传值">父组件向子组件传值</h2>
+<pre><code><code> &lt;div id=&quot;app&quot;&gt;
+    &lt;!-- 父组件，可以在引用子组件的时候， 通过 属性绑定（v-bind:） 的形式, 把 需要传递给 子组件的数据，以属性绑定的形式，传递到子组件内部，供子组件使用 --&gt;
+    &lt;com1 v-bind:parentmsg=&quot;msg&quot;&gt;&lt;/com1&gt;
+  &lt;/div&gt;</code></pre>
+<pre class="javascript"><code>// 创建 Vue 实例，得到 ViewModel
+    var vm = new Vue({
+      el: &#39;#app&#39;,
+      data: {
+        msg: &#39;123 啊-父组件中的数据&#39;
+      },
+      methods: {},
+
+      components: {
+        // 结论：经过演示，发现，子组件中，默认无法访问到 父组件中的 data 上的数据 和 methods 中的方法
+        com1: {
+          data() { // 注意： 子组件中的 data 数据，并不是通过 父组件传递过来的，而是子组件自身私有的，比如： 子组件通过 Ajax ，请求回来的数据，都可以放到 data 身上；
+            // data 上的数据，都是可读可写的；
+            return {
+              title: &#39;123&#39;,
+              content: &#39;qqq&#39;
+            }
+          },
+          template: &#39;&lt;h1 @click=&quot;change&quot;&gt;这是子组件 --- {{ parentmsg }}&lt;/h1&gt;&#39;,
+          // 注意： 组件中的 所有 props 中的数据，都是通过 父组件传递给子组件的
+          // props 中的数据，都是只读的，无法重新赋值
+          props: [&#39;parentmsg&#39;], // 把父组件传递过来的 parentmsg 属性，先在 props 数组中，定义一下，这样，才能使用这个数据，只读，写的话会报警告
+          directives: {},
+          filters: {},
+          components: {},
+          methods: {
+            change() {
+              this.parentmsg = &#39;被修改了&#39;
+            }
+          }
+        }
+      }
+    });</code></pre>
+<h2 id="父组件向子组件传方法">父组件向子组件传方法</h2>
+<pre><code><code>&lt;div id=&quot;app&quot;&gt;
+    &lt;!-- 父组件向子组件 传递 方法，使用的是 事件绑定机制； v-on, 当我们自定义了 一个 事件属性之后，那么，子组件就能够，通过某些方式，来调用 传递进去的 这个 方法了 --&gt;
+    &lt;com2 @func=&quot;show&quot;&gt;&lt;/com2&gt;
+  &lt;/div&gt;
+
+  &lt;template id=&quot;tmpl&quot;&gt;
+    &lt;div&gt;
+      &lt;h1&gt;这是 子组件&lt;/h1&gt;
+      &lt;input type=&quot;button&quot; value=&quot;这是子组件中的按钮 - 点击它，触发 父组件传递过来的 func 方法&quot; @click=&quot;myclick&quot;&gt;
+    &lt;/div&gt;
+  &lt;/template&gt;</code></pre>
+<pre class="javascript"><code> // 定义了一个字面量类型的 组件模板对象
+    var com2 = {
+      template: &#39;#tmpl&#39;, // 通过指定了一个 Id, 表示 说，要去加载 这个指定Id的 template 元素中的内容，当作 组件的HTML结构
+      data() {
+        return {
+          sonmsg: { name: &#39;小头儿子&#39;, age: 6 }
+        }
+      },
+      methods: {
+        myclick() {
+          // 当点击子组件的按钮的时候，如何 拿到 父组件传递过来的 func 方法，并调用这个方法？？？
+          //  emit 英文原意： 是触发，调用、发射的意思
+          // this.$emit(&#39;func123&#39;, 123, 456)
+          this.$emit(&#39;func&#39;, this.sonmsg)
+        }
+      }
+    }
+
+
+    // 创建 Vue 实例，得到 ViewModel
+    var vm = new Vue({
+      el: &#39;#app&#39;,
+      data: {
+        datamsgFormSon: null
+      },
+      methods: {
+        show(data) {
+          // console.log(&#39;调用了父组件身上的 show 方法: --- &#39; + data)
+          console.log(data);
+          this.datamsgFormSon = data
+        }
+      },
+
+      components: {
+        com2
+        // com2: com2
+      }
+    });</code></pre>
+<h2 id="vue本地存储实现评论功能">vue+本地存储实现评论功能</h2>
+<p><strong>难道在于理解父组件向子组件传方法</strong></p>
+<pre><code><code>&lt;div id=&quot;app&quot;&gt;
+
+
+    &lt;cmt-box @func=&quot;loadComments&quot;&gt;&lt;/cmt-box&gt;
+
+
+    &lt;ul class=&quot;list-group&quot;&gt;
+      &lt;li class=&quot;list-group-item&quot; v-for=&quot;item in list&quot; :key=&quot;item.id&quot;&gt;
+        &lt;span class=&quot;badge&quot;&gt;评论人： {{ item.user }}&lt;/span&gt;
+        {{ item.content }}
+      &lt;/li&gt;
+    &lt;/ul&gt;
+
+
+  &lt;/div&gt;
+
+
+  &lt;template id=&quot;tmpl&quot;&gt;
+    &lt;div&gt;
+
+      &lt;div class=&quot;form-group&quot;&gt;
+        &lt;label&gt;评论人：&lt;/label&gt;
+        &lt;input type=&quot;text&quot; class=&quot;form-control&quot; v-model=&quot;user&quot;&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;form-group&quot;&gt;
+        &lt;label&gt;评论内容：&lt;/label&gt;
+        &lt;textarea class=&quot;form-control&quot; v-model=&quot;content&quot;&gt;&lt;/textarea&gt;
+      &lt;/div&gt;
+
+      &lt;div class=&quot;form-group&quot;&gt;
+        &lt;input type=&quot;button&quot; value=&quot;发表评论&quot; class=&quot;btn btn-primary&quot; @click=&quot;postComment&quot;&gt;
+      &lt;/div&gt;
+
+    &lt;/div&gt;
+  &lt;/template&gt;</code></pre>
+<pre class="javascript"><code>var commentBox = {
+      data() {
+        return {
+          user: &#39;&#39;,
+          content: &#39;&#39;
+        }
+      },
+      template: &#39;#tmpl&#39;,
+      methods: {
+        postComment() { // 发表评论的方法
+          // 分析：发表评论的业务逻辑
+          // 1. 评论数据存到哪里去？？？   存放到了 localStorage 中  localStorage.setItem(&#39;cmts&#39;, &#39;&#39;)
+          // 2. 先组织出一个最新的评论数据对象
+          // 3. 想办法，把 第二步中，得到的评论对象，保存到 localStorage 中：
+          //  3.1 localStorage 只支持存放字符串数据， 要先调用 JSON.stringify 
+          //  3.2 在保存 最新的 评论数据之前，要先从 localStorage 获取到之前的评论数据（string）， 转换为 一个  数组对象， 然后，把最新的评论， push 到这个数组
+          //  3.3 如果获取到的 localStorage 中的 评论字符串，为空不存在， 则  可以 返回一个 &#39;[]&#39;  让 JSON.parse 去转换
+          //  3.4  把 最新的  评论列表数组，再次调用 JSON.stringify 转为  数组字符串，然后调用 localStorage.setItem()
+
+          var comment = { id: Date.now(), user: this.user, content: this.content }
+
+          // 从 localStorage 中获取所有的评论
+          var list = JSON.parse(localStorage.getItem(&#39;cmts&#39;) || &#39;[]&#39;)
+          list.unshift(comment)
+          // 重新保存最新的 评论数据
+          localStorage.setItem(&#39;cmts&#39;, JSON.stringify(list))
+
+          this.user = this.content = &#39;&#39;
+
+          // this.loadComments() // ?????
+          this.$emit(&#39;func&#39;)
+        }
+      }
+    }
+
+    // 创建 Vue 实例，得到 ViewModel
+    var vm = new Vue({
+      el: &#39;#app&#39;,
+      data: {
+        list: [
+          { id: Date.now(), user: &#39;李白&#39;, content: &#39;天生我材必有用&#39; },
+          { id: Date.now(), user: &#39;江小白&#39;, content: &#39;劝君更尽一杯酒&#39; },
+          { id: Date.now(), user: &#39;小马&#39;, content: &#39;我姓马， 风吹草低见牛羊的马&#39; }
+        ]
+      },
+      beforeCreate(){ // 注意：这里不能调用 loadComments 方法，因为在执行这个钩子函数的时候，data 和 methods 都还没有被初始化好
+
+      },
+      created(){
+        this.loadComments()
+      },
+      methods: {
+        loadComments() { // 从本地的 localStorage 中，加载评论列表
+          var list = JSON.parse(localStorage.getItem(&#39;cmts&#39;) || &#39;[]&#39;)
+          this.list = list
+        }
+      },
+      components: {
+        &#39;cmt-box&#39;: commentBox
+      }
+    });</code></pre>
+<h2 id="ref获取dom和组件">ref获取DOM和组件</h2>
+<p><strong>vue中如何操作DOM</strong></p>
+<pre><code><code> &lt;div id=&quot;app&quot;&gt;
+    &lt;input type=&quot;button&quot; value=&quot;获取元素&quot; @click=&quot;getElement&quot; ref=&quot;mybtn&quot;&gt;
+
+    &lt;h3 id=&quot;myh3&quot; ref=&quot;myh3&quot;&gt;哈哈哈， 今天天气太好了！！！&lt;/h3&gt;
+
+    &lt;hr&gt;
+
+    &lt;login ref=&quot;mylogin&quot;&gt;&lt;/login&gt;
+  &lt;/div&gt;</code></pre>
+<pre class="javascript"><code>var login = {
+      template: &#39;&lt;h1&gt;登录组件&lt;/h1&gt;&#39;,
+      data() {
+        return {
+          msg: &#39;son msg&#39;
+        }
+      },
+      methods: {
+        show() {
+          console.log(&#39;调用了子组件的方法&#39;)
+        }
+      }
+    }
+
+    // 创建 Vue 实例，得到 ViewModel
+    //vm中有一个属性叫ref
+    var vm = new Vue({
+      el: &#39;#app&#39;,
+      data: {},
+      methods: {
+        getElement() {
+          // console.log(document.getElementById(&#39;myh3&#39;).innerText)
+
+          //  ref  是 英文单词 【reference】   值类型 和 引用类型  referenceError
+          // console.log(this.$refs.myh3.innerText)
+
+          console.log(this.$refs.mylogin.msg)
+          this.$refs.mylogin.show()
+        }
+      },
+      components: {
+        login
+      }
+    });</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

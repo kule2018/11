@@ -1,0 +1,117 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修瀑布流的实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>瀑布流的实现</center></div><div class='banquan'>原文出处:本文由博客园博主若水一方提供。<br/>
+原文连接:https://www.cnblogs.com/ruo-shui-yi-fang/p/11478201.html</div><br>
+    <p>现在很多网站都会使用瀑布流的一个效果，什么是瀑布流呢，用在哪些地方呢？</p>
+<p><img src="./images/瀑布流的实现0.png" alt="" width="285" height="331" /></p>
+<p>大概就是这样的一个效果，一般用于无法保证图片大小的网站。</p>
+<p>先看下布局+css</p>
+<div class="cnblogs_code">
+<pre><code> 1 <span>    .cont{margin: 0 auto;position: relative;}
+ 2 <span>        .box{float: left;padding: 6px}
+ 3 <span>        .imgbox{border: solid 1px black;border-radius: 6px;padding: 6px}
+ 4 <span>        .imgbox img{width:200px;display: block;}
+ 5 
+ 6 
+ 7     &lt;div class="cont"&gt;
+ 8         &lt;div class="box"&gt;
+ 9             &lt;div class="imgbox"&gt;
+10                 &lt;img src="images/4.jpg" alt=""&gt;
+11             &lt;/div&gt;
+12         &lt;/div&gt;
+13     &lt;/div&gt;<br /></span></span></span></span></pre>
+</div>
+<p>&nbsp;实现的一个大概思路：</p>
+<div>
+<div>　　瀑布流：第一行正常浮动，从第二行开始，每个元素都定位到上一行的最小高度的元素下</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　1.获取元素</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　2.布局</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　3.区分第一行和后面的行</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;4.在第一行，找到第一行所有的高度</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;5.在后面的行，找到最小高度</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;&nbsp;&nbsp;　　设置定位，left，top</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;　　&nbsp;6.修改之前的最小高度</div>
+<div>思路就是这样，这里的难点在于找到第一行和最小高度；将思路列出就会很清晰的知道自己要做些什么；所以还是比较推荐用面向对象去写，后续的使用会更多。可以用这些小案例来练手，增加熟练度。
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> Waterfall(){
+</span><span style="color: #008080;"> 2</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 1.获取元素</span>
+<span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">this</span>.ocont = document.querySelector(".cont"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">this</span>.abox = document.querySelectorAll(".box"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 将来准备存放第一行元素所有高度的数组</span>
+<span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">this</span>.heightArr =<span style="color: #000000;"> [];
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 2.布局</span>
+<span style="color: #008080;">10</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.init()
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">12</span>         Waterfall.prototype.init = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">13</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 布局</span>
+<span style="color: #008080;">14</span>             <span style="color: #0000ff;">this</span>.num = Math.floor(document.documentElement.clientWidth / <span style="color: #0000ff;">this</span>.abox[0<span style="color: #000000;">].offsetWidth)
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>             <span style="color: #0000ff;">this</span>.ocont.style.width = <span style="color: #0000ff;">this</span>.num * <span style="color: #0000ff;">this</span>.abox[0].offsetWidth + "px"<span style="color: #000000;">;
+</span><span style="color: #008080;">17</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 3.区分第一行</span>
+<span style="color: #008080;">18</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.firstLine();
+</span><span style="color: #008080;">19</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 和后面的行</span>
+<span style="color: #008080;">20</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.otherLine();
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">22</span>         Waterfall.prototype.firstLine = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">23</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 4.在第一行，找到第一行所有的高度</span>
+<span style="color: #008080;">24</span>             <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;<span style="color: #0000ff;">this</span>.num;i++<span style="color: #000000;">){
+</span><span style="color: #008080;">25</span>                 <span style="color: #0000ff;">this</span>.heightArr.push(<span style="color: #0000ff;">this</span><span style="color: #000000;">.abox[i].offsetHeight)
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">28</span>         Waterfall.prototype.otherLine = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">29</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 5.在后面的行，找到最小高度</span>
+<span style="color: #008080;">30</span>             <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=<span style="color: #0000ff;">this</span>.num;i&lt;<span style="color: #0000ff;">this</span>.abox.length;i++<span style="color: #000000;">){
+</span><span style="color: #008080;">31</span>                 <span style="color: #0000ff;">var</span> min = getMin(<span style="color: #0000ff;">this</span><span style="color: #000000;">.heightArr);
+</span><span style="color: #008080;">32</span>                 <span style="color: #0000ff;">var</span> minIndex = <span style="color: #0000ff;">this</span><span style="color: #000000;">.heightArr.indexOf(min);
+</span><span style="color: #008080;">33</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 设置定位，left，top</span>
+<span style="color: #008080;">34</span>                 <span style="color: #0000ff;">this</span>.abox[i].style.position = "absolute"<span style="color: #000000;">;
+</span><span style="color: #008080;">35</span>                 <span style="color: #0000ff;">this</span>.abox[i].style.top = min + "px"<span style="color: #000000;">;
+</span><span style="color: #008080;">36</span>                 <span style="color: #0000ff;">this</span>.abox[i].style.left = minIndex * <span style="color: #0000ff;">this</span>.abox[0].offsetWidth + "px"<span style="color: #000000;">;
+</span><span style="color: #008080;">37</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 6.修改之前的最小高度</span>
+<span style="color: #008080;">38</span>                 <span style="color: #0000ff;">this</span>.heightArr[minIndex] += <span style="color: #0000ff;">this</span><span style="color: #000000;">.abox[i].offsetHeight;
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">41</span> 
+<span style="color: #008080;">42</span>         <span style="color: #0000ff;">function</span><span style="color: #000000;"> getMin(arr){
+</span><span style="color: #008080;">43</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 注意数组的深浅拷贝：深拷贝</span>
+<span style="color: #008080;">44</span>             <span style="color: #0000ff;">var</span> myarr =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">45</span>             arr.forEach(val =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">                myarr.push(val);
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">48</span>             <span style="color: #0000ff;">return</span> myarr.sort((a,b)=&gt;a-b)[0<span style="color: #000000;">];
+</span><span style="color: #008080;">49</span>         }</pre>
+</div>
+<p>还有一个无限加载的小功能，我简单说下思路吧，可以自己写写看！</p>
+<div>
+<div>　　W1.准备数据---&gt;自己模拟数组，假装后台给的</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;W2-0.绑定滚动事件</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;W2.找到页面是否到底---&gt;可视区域的高度+滚走的距离&nbsp;&gt;=&nbsp;总高度-100（数值自己感受）</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;W3.渲染页面</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;W4.生效瀑布流布局</div>
+<div>思路就是这样，有疑问可以找我哈！加油冲吧！</div>
+</div>
+</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

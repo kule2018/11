@@ -1,0 +1,139 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修React 项目引入 Dva' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>React 项目引入 Dva</center></div><div class='banquan'>原文出处:本文由博客园博主Raychan提供。<br/>
+原文连接:https://www.cnblogs.com/wx1993/p/11677764.html</div><br>
+    <p><img src="./images/React 项目引入 Dva0.png" alt="file" /></p>
+<h3 id="背景">背景</h3>
+<p>现在手上在做的 React 项目因为年代久远，用的 <a href="https://www.redux.org.cn">Redux</a>，写代码的体验不太好，所以想升级一下引入 dva。以往使用 dva 都是使用 <a href="https://dvajs.com/guide/getting-started.html#安装-dva-cli">dva-cli</a> 直接生成 dva 项目，或者在使用 <a href="https://pro.ant.design/docs/getting-started-cn">ant design pro</a> 的时候使用 umi 直接生成 react + antd + dva 项目，省去了大量配置的成本。但是这些案例都是在项目初期的时候直接引入了 dva，而针对已有的 react 项目，想要升级到 dva，应该如何引入呢？引入 dva 的过程又会遇到哪些问题？花了半天时间升级到 dva，这里就讲升级过程中遇到的问题做个汇总。</p>
+<h3 id="介绍">介绍</h3>
+<ul>
+<li>项目情况：nw.js + react + redux + antd (客户端应用)</li>
+<li>目标： redux -&gt; dva</li>
+</ul>
+<h3 id="准备">准备</h3>
+<ol>
+<li><p>首先安装 dva （目前版本 2.4.1）<br />
+<code>npm install dva —save</code></p></li>
+<li><p>参考官方文档，改造项目为 dva 模式，在 src 下新增或修改入口文件 <code>index.js</code></p></li>
+</ol>
+<pre><code><code>import dva from ‘dva’;
+import createHistory from ‘history/createHashHistory’;
+
+//1.Initialize
+const app = dva({
+history: createHistory(),
+});
+
+//2.Plugins
+//app.use({});
+
+//3.Model
+//app.model(require(‘./models/app’).default);
+
+//4.Router
+app.router(require(‘./router’).default);
+
+//5.Start
+app.start(‘#root’);</code></pre>
+<ol>
+<li>然后在同级目录下添加路由文件 <code>router.js</code></li>
+</ol>
+<pre><code><code>import React from ‘react’;
+import { Router, Route, Switch } from ‘dva/router’;
+
+import App from ‘./containers/App’;
+import{ Account, Articles, Channels, Editor } from ‘./containers’;
+const { ArticleList } = Articles;
+
+const RouterConfig = (({ history }) =&gt; (
+    &lt;Routerhistory={history}&gt;
+        &lt;Switch&gt;
+            &lt;Route path=‘/‘ component={App}&gt;
+                &lt;IndexRoute component={Account} /&gt;
+                &lt;Route path=‘account’ component={Account} exact /&gt;
+                &lt;Route path=‘articles’ component={ArticleList
+ exact /&gt;
+                &lt;Route path=‘channels’ component={Channels} exact /&gt;
+                &lt;Route path=‘editor’ component={Editor} exact /&gt;
+            &lt;/Route&gt;
+        &lt;/Switch&gt;
+    &lt;/Router&gt;
+));
+
+export default RouterConfig;</code></pre>
+<p>说明：App 组件是整个页面的容器组件，包含了 menu、header、footer 和一些公用部分，通过切换菜单匹配对应路由，从而跳转到各个子组件页面，所以路由配置需要写成嵌套形式。<br />
+更多路由配置，参考 <a href="http://react-guide.github.io/react-router-cn/docs/guides/basics/RouteConfiguration.html">react-router 官方文档</a>。</p>
+<p>到这里，一个最简单的 dva 模式已经配置好了，只要在对应组件里面设置 model、reducer 并在页面中 connect ，就可以使用 dva 来管理状态了。</p>
+<h3 id="问题解决">问题解决</h3>
+<p>配置完成后重新启动一下项目，查看页面效果如下：<br />
+<img src="./images/React 项目引入 Dva1.png" alt="file" /></p>
+<p>发现容器部分渲染成功，但是子路由对应的页面（默认是 Account）并没有渲染，再看控制台发现报错了。</p>
+<ol>
+<li>首先是这样一个警告信息：</li>
+</ol>
+<pre class="txt"><code>Warning: Please use `require(“history”).createHashHistory` instead of `require(“history/createHashHistory”)`. Support for the latter will be removed in the next major release.</code></pre>
+<p>在 dva 的 <a href="https://github.com/dvajs/dva/issues/2115">issure</a> 里面查找到相同的问题，按照提示改成下面的格式就可以了。</p>
+<pre><code><code>const createHistory = require(‘history’).createBrowserHistory;</code></pre>
+<ol>
+<li>然后是一个路由问题的警告：</li>
+</ol>
+<pre class="txt"><code>Warning: You should not use &lt;Route component&gt; and &lt;Route children&gt; in the same route; &lt;Route children&gt; will be ignored</code></pre>
+<p>React-router 4.0 以上版本已经不建议像下面这样使用嵌套路由了</p>
+<pre><code><code>&lt;Route path=‘/‘ component={App} &gt;
+    &lt;Route path=‘account’ component={Account} /&gt;
+&lt;/Route&gt;</code></pre>
+<p>对应的，直接改成组件嵌套的形式（注意子路由的 path 要加上 /）就可以了。</p>
+<pre><code><code>&lt;App&gt;
+    &lt;Route path=‘/account’component={Account} /&gt;
+&lt;/App&gt;</code></pre>
+<p>改完之后然后重新，这两个警告就没有了。继续看路由和渲染的问题。</p>
+<ol>
+<li>按理来说，进入应用默认会显示 Account 组件（因为配置了 <a href="http://react-guide.github.io/react-router-cn/docs/guides/basics/IndexRoutes.html">IndexRoute</a>），而且当修改文件刷新页面时候，页面直接报错了，如下：<br />
+<img src="./images/React 项目引入 Dva2.png" alt="file" /></li>
+</ol>
+<p>由此猜想是页面路由的配置出了问题，查找了相关的资料（<a href="https://blog.csdn.net/weixin_39168678/article/details/79756305">React填坑之react-router刷新后报错解决方法</a>），发现原来是 dva 中使用 <em>BrowserHistory</em> 的问题，所以直接把 BrowserHistory 改成 <em>HashHistory</em><br />
+就可以了。</p>
+<pre><code><code>//const createHistory = require(‘history’).createBrowserHistory;
+const createHistory = require(‘history’).createHashHistory;</code></pre>
+<p>重新启动项目，尝试切换路由，发现一切正常了。<br />
+<img src="./images/React 项目引入 Dva3.png" alt="file" /></p>
+<p>后面就可以在页面中进行 dva 的改造了，dva 中 model 、reducer 的用法都比较简单，根据文档进行尝试就可以了，这里便不一一叙述了。</p>
+<h3 id="总结">总结</h3>
+<p>总结一下项目引入 dva 遇到的几个问题。</p>
+<ol>
+<li><code>import createHistory from ‘history/createHashHistory’;</code> 写法带来 的警告</li>
+<li>使用 <code>createHashHistory</code> 导致的页面刷新失败的问题。</li>
+<li>嵌套路由配置的问题。</li>
+</ol>
+<h3 id="参考资料">参考资料</h3>
+<ol>
+<li><a href="https://blog.csdn.net/xw505501936/article/details/80621740">基于create-react-app官方脚手架搭建dva模式的项目（一）</a></li>
+<li><a href="http://react-guide.github.io/react-router-cn/docs/Introduction.html">React-Router 中文文档</a></li>
+<li><a href="https://dvajs.com/knowledgemap/#stateless-functional-components">DvaJS 文档</a></li>
+</ol>
+<p><img src="./images/React 项目引入 Dva4.png" alt="file" /></p>
+<blockquote>
+<p>本文由博客一文多发平台 <a href="https://openwrite.cn?from=article_bottom">OpenWrite</a> 发布！</p>
+</blockquote>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

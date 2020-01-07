@@ -1,0 +1,81 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用webAudio和canvas实现音频可视化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用webAudio和canvas实现音频可视化</center></div><div class='banquan'>原文出处:本文由博客园博主王不留形提供。<br/>
+原文连接:https://www.cnblogs.com/wblx/p/10986047.html</div><br>
+    <p>前两天遇到了要显示音频波形图的需求，因为时间紧，就直接用了wavesufer.js，这两天有空，就研究了一下怎么用webAudio实现音频的可视化。</p>
+<p>大致流程是对音源进行解析，解析得到的数据是个频谱数组，然后使用canvas将数组形象化显示出来。</p>
+<p>随音乐的播放不断重复上述过程，就能得到一个随着音乐不断跳动的频谱动画，非常酷炫！</p>
+<p>废话不多说，下面上代码。</p>
+<p><span style="font-size: 18px;">1.准备工作</span></p>
+<p>首先获取各个对象：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> AudioContext = AudioContext ||<span style="color: #000000;"> webkitAudioContext;
+</span><span style="color: #0000ff;">var</span> audio = document.getElementById(<span style="color: #800000;">"</span><span style="color: #800000;">snd</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> canvas = document.getElementById(<span style="color: #800000;">"</span><span style="color: #800000;">canvas</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> ctx = canvas.getContext(<span style="color: #800000;">"</span><span style="color: #800000;">2d</span><span style="color: #800000;">"</span>);</pre>
+</div>
+<p>加载音频源有很多种方式，可以用file加载本地音乐，可以用ajax，这里就简单点用audio标签。</p>
+<p><span style="font-size: 18px;">2.创建音源和解析器</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> atx = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AudioContext();
+</span><span style="color: #0000ff;">var</span> source =<span style="color: #000000;"> atx.createMediaElementSource(audio);
+</span><span style="color: #0000ff;">var</span> analyser = atx.createAnalyser();</pre>
+</div>
+<p><span style="font-size: 18px;">3.连接</span></p>
+<p>连接的顺序为：音源 ==&gt; 解析器 ==&gt; 最终输出</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">source.connect(analyser);
+analyser.connect(atx.destination);</span></pre>
+</div>
+<p>直接连接音源和最终输出（比如扬声器）就可以播放声音，中间连接各种效果节点可以实现音频的各种增益，这里要实现音频可视化，就需要一个解析器。</p>
+<p><span style="font-size: 18px;">4.可视化</span></p>
+<p>这里就不得不提到解析器的fftSize属性，它的值必须是从32到32768范围内的2的非零幂; 其默认值为2048。</p>
+<p>这个值越大，图形就越详细。</p>
+<div class="cnblogs_code">
+<pre><code>analyser.fftSize = 2048<span style="color: #000000;">;
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> draw(){
+    </span><span style="color: #0000ff;">var</span> cWidth =<span style="color: #000000;"> canvas.width,
+        cHeight </span>=<span style="color: #000000;"> canvas.height,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> frequencyBinCount的值固定为fftSize的一半</span>
+        audioArray = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Uint8Array(analyser.frequencyBinCount);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 解析频率数据，放入audioArray数组中</span>
+<span style="color: #000000;">    analyser.getByteFrequencyData(audioArray);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 填充为柱状图</span>
+    ctx.clearRect(0,0<span style="color: #000000;">,cWidth,cHeight);
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0;i &lt; audioArray.length;i ++<span style="color: #000000;">){
+        ctx.fillRect(i</span>*3,cHeight-audioArray[i],2<span style="color: #000000;">,cHeight);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 刷新</span>
+<span style="color: #000000;">    requestAnimationFrame(draw);
+}
+draw();
+audio.play();</span></pre>
+</div>
+<p>到这里音频的可视化就完成了，其实挺简单的。</p>
+<p>ps：上面2到4步的内容最好放到一个按钮的点击事件里，这是由于谷歌浏览器最新的安全策略。</p>
+<p>ps2：音频可视化需要放在http或https服务器上，不用说也是出于浏览器安全性考虑...</p>
+<p>最后附上MDN关于音频可视化的一个讲解（比我这个好多啦）：</p>
+<p><a href="https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API">https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Visualizations_with_Web_Audio_API</a></p>
+<p>题外话：</p>
+<p>写完了感觉有点儿不对劲，我本来是要实现类似wavesufer默认的那种静态效果，结果变成随音乐播放刷新的动态效果，酷炫是酷炫了，可是偏离了本意，有空再补上静态的。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

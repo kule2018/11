@@ -1,0 +1,300 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修浅析libuv源码-node事件轮询解析(4)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>浅析libuv源码-node事件轮询解析(4)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10857886.html</div><br>
+    <p>　　这篇应该能结，简图如下。</p>
+<p><img src="./images/浅析libuv源码-node事件轮询解析(4)0.png" alt="" /></p>
+<p>　　上一篇讲到了uv__work_submit方法，接着写了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span> uv__work_submit(uv_loop_t*<span style="color: #000000;"> loop,
+                     </span><span style="color: #0000ff;">struct</span> uv__work*<span style="color: #000000;"> w,
+                     </span><span style="color: #0000ff;">enum</span><span style="color: #000000;"> uv__work_kind kind,
+                     </span><span style="color: #0000ff;">void</span> (*work)(<span style="color: #0000ff;">struct</span> uv__work*<span style="color: #000000;"> w),
+                     </span><span style="color: #0000ff;">void</span> (*done)(<span style="color: #0000ff;">struct</span> uv__work* w, <span style="color: #0000ff;">int</span><span style="color: #000000;"> status)) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 上篇主要讲的这里 初始化线程池等</span>
+  uv_once(&amp;<span style="color: #000000;">once, init_once);
+  w</span>-&gt;loop =<span style="color: #000000;"> loop;
+  w</span>-&gt;work =<span style="color: #000000;"> work;
+  w</span>-&gt;done =<span style="color: #000000;"> done;
+  post(</span>&amp;w-&gt;<span style="color: #000000;">wq, kind);
+}</span></pre>
+</div>
+<p>　　从post开始。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> post(QUEUE* q, <span style="color: #0000ff;">enum</span><span style="color: #000000;"> uv__work_kind kind) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 因为存在队列插入操作 需要加锁</span>
+  uv_mutex_lock(&amp;<span style="color: #000000;">mutex);
+  </span><span style="color: #0000ff;">if</span> (kind ==<span style="color: #000000;"> UV__WORK_SLOW_IO) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">跳...</span>
+<span style="color: #000000;">  }
+
+  QUEUE_INSERT_TAIL(</span>&amp;<span style="color: #000000;">wq, q);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果有空闲线程 唤醒</span>
+  <span style="color: #0000ff;">if</span> (idle_threads &gt; <span style="color: #800080;">0</span><span style="color: #000000;">)
+    uv_cond_signal(</span>&amp;<span style="color: #000000;">cond);
+  uv_mutex_unlock(</span>&amp;<span style="color: #000000;">mutex);
+}</span></pre>
+</div>
+<p>　　wq就是上一篇讲的线程都会用到的那个队列，这里负责插入任务，worker中取出任务。</p>
+<p>　　没想到post到这里没了，这点东西并到上一篇就好了。以后写这种系列博客还是先规划一下，不能边看源码边写&hellip;&hellip;</p>
+<p>　　函数到这里就断了，看似没有线索，实际上在上一节的worker方法中，还漏了一个地方。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> worker(<span style="color: #0000ff;">void</span>*<span style="color: #000000;"> arg) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #0000ff;">for</span><span style="color: #000000;"> (;;) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里调用内部fs方法处理任务</span>
+    w = QUEUE_DATA(q, <span style="color: #0000ff;">struct</span><span style="color: #000000;"> uv__work, wq);
+    w</span>-&gt;<span style="color: #000000;">work(w);
+
+    uv_mutex_lock(</span>&amp;w-&gt;loop-&gt;<span style="color: #000000;">wq_mutex);
+    w</span>-&gt;work =<span style="color: #000000;"> NULL; 
+    QUEUE_INSERT_TAIL(</span>&amp;w-&gt;loop-&gt;wq, &amp;w-&gt;<span style="color: #000000;">wq);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这个是漏了的关键</span>
+    uv_async_send(&amp;w-&gt;loop-&gt;<span style="color: #000000;">wq_async);
+    uv_mutex_unlock(</span>&amp;w-&gt;loop-&gt;<span style="color: #000000;">wq_mutex);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">  }
+}</span></pre>
+</div>
+<p>　　每一条线程在每次处理完一条事务并将其插入工作队列wq后，都会调用一下这个uv_async_send方法，上一篇没讲这个。</p>
+<p>　　这里的wq_async是一个在loop上面的变量，在轮询初始化的时候出现过，这里先不看。</p>
+<p>　　uv_async_send这个方法又涉及到另外一个大模块，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> uv_async_send(uv_async_t*<span style="color: #000000;"> handle) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 错误处理...</span>
+  <span style="color: #0000ff;">if</span> (!uv__atomic_exchange_set(&amp;handle-&gt;<span style="color: #000000;">async_sent)) {
+    POST_COMPLETION_FOR_REQ(loop, </span>&amp;handle-&gt;<span style="color: #000000;">async_req);
+  }
+
+  </span><span style="color: #0000ff;">return</span> <span style="color: #800080;">0</span><span style="color: #000000;">;
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 将操作结果推到iocp上面</span>
+<span style="color: #0000ff;">#define</span> POST_COMPLETION_FOR_REQ(loop, req)                              \
+  <span style="color: #0000ff;">if</span> (!PostQueuedCompletionStatus((loop)-&gt;<span style="color: #000000;">iocp,                         \
+                                  </span><span style="color: #800080;">0</span><span style="color: #000000;">,                                    \
+                                  </span><span style="color: #800080;">0</span><span style="color: #000000;">,                                    \
+                                  </span>&amp;((req)-&gt;<span style="color: #000000;">u.io.overlapped))) {         \
+    uv_fatal_error(GetLastError(), </span><span style="color: #800000;">"</span><span style="color: #800000;">PostQueuedCompletionStatus</span><span style="color: #800000;">"</span><span style="color: #000000;">);       \
+  }</span></pre>
+</div>
+<p>　　<strong>这个地方说实话我并不是明白windows底层API的操作原理，IOCP这部分我没有去研究，只能从字面上去理解。</strong></p>
+<p>　　关于PostXXX方法官网解释如下：</p>
+<blockquote>
+<p>Posts an I/O completion packet to an I/O completion port.</p>
+</blockquote>
+<p>　　将一个I/O完成的数据打包到I/O完成的端口，翻译过来就是这样，个人理解上的话大概是把一个async_req丢到IOCP那里保存起来。</p>
+<p>&nbsp;</p>
+<p>　　接下来终于可以回到事件轮询部分，点题了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> uv_run(uv_loop_t *<span style="color: #000000;">loop, uv_run_mode mode) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+
+  <span style="color: #0000ff;">while</span> (r != <span style="color: #800080;">0</span> &amp;&amp; loop-&gt;stop_flag == <span style="color: #800080;">0</span><span style="color: #000000;">) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> call pending callbacks</span>
+    ran_pending =<span style="color: #000000;"> uv_process_reqs(loop);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> poll for I/O</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (pGetQueuedCompletionStatusEx)
+      uv__poll(loop, timeout);
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+      uv__poll_wine(loop, timeout);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+}</pre>
+</div>
+<p>　　截取了剩下的poll for I/O、call pending callback，也就是剩下的两部分了。if判断不用管，只是一个方法兼容，最终的目的是一样的。</p>
+<p>　　所以只看uv__poll部分。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> uv__poll(uv_loop_t*<span style="color: #000000;"> loop, DWORD timeout) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设定阻塞时间</span>
+<span style="color: #000000;">  uint64_t timeout_time;
+  timeout_time </span>= loop-&gt;time +<span style="color: #000000;"> timeout;
+
+  </span><span style="color: #0000ff;">for</span> (repeat = <span style="color: #800080;">0</span>; ; repeat++<span style="color: #000000;">) {
+    success </span>= GetQueuedCompletionStatusEx(loop-&gt;<span style="color: #000000;">iocp,
+                                          overlappeds,
+                                          ARRAY_SIZE(overlappeds),
+                                          </span>&amp;<span style="color: #000000;">count,
+                                          timeout,
+                                          FALSE);
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (success) {
+      </span><span style="color: #0000ff;">for</span> (i = <span style="color: #800080;">0</span>; i &lt; count; i++<span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (overlappeds[i].lpOverlapped) {
+          req </span>=<span style="color: #000000;"> uv_overlapped_to_req(overlappeds[i].lpOverlapped);
+          uv_insert_pending_req(loop, req);
+        }
+      }
+      uv_update_time(loop);
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (GetLastError() !=<span style="color: #000000;"> WAIT_TIMEOUT) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+    } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (timeout &gt; <span style="color: #800080;">0</span><span style="color: #000000;">) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 超时处理...</span>
+<span style="color: #000000;">    }
+    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+  }
+}</span></pre>
+</div>
+<p>　　这里的GetQueueXXX方法与之前的PostQueueXXX正好是一对方法，都是基于IOCP，一个是存储，一个是取出。</p>
+<p>　　遍历操作就很容易懂了，取出数据后，一个个的塞到pending callback的队列中。</p>
+<p>　　把uv_insert_pending_req、uv_process_reqs两个方法结合起来看。</p>
+<div class="cnblogs_code">
+<pre><code>INLINE <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> uv_insert_pending_req(uv_loop_t* loop, uv_req_t*<span style="color: #000000;"> req) {
+  req</span>-&gt;next_req =<span style="color: #000000;"> NULL;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 插入到pending_reqs_tail上</span>
+  <span style="color: #0000ff;">if</span> (loop-&gt;<span style="color: #000000;">pending_reqs_tail) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> DEBUG...</span>
+<span style="color: #000000;">
+    req</span>-&gt;next_req = loop-&gt;pending_reqs_tail-&gt;<span style="color: #000000;">next_req;
+    loop</span>-&gt;pending_reqs_tail-&gt;next_req =<span style="color: #000000;"> req;
+    loop</span>-&gt;pending_reqs_tail =<span style="color: #000000;"> req;
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    req</span>-&gt;next_req =<span style="color: #000000;"> req;
+    loop</span>-&gt;pending_reqs_tail =<span style="color: #000000;"> req;
+  }
+}
+
+INLINE </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> uv_process_reqs(uv_loop_t*<span style="color: #000000;"> loop) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理pending_reqs_tail</span>
+  first = loop-&gt;pending_reqs_tail-&gt;<span style="color: #000000;">next_req;
+  next </span>=<span style="color: #000000;"> first;
+  loop</span>-&gt;pending_reqs_tail =<span style="color: #000000;"> NULL;
+
+  </span><span style="color: #0000ff;">while</span> (next !=<span style="color: #000000;"> NULL) {
+    req </span>=<span style="color: #000000;"> next;
+    next </span>= req-&gt;next_req != first ? req-&gt;<span style="color: #000000;">next_req : NULL;
+
+    </span><span style="color: #0000ff;">switch</span> (req-&gt;<span style="color: #000000;">type) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> handle各类req...</span>
+<span style="color: #000000;">    }
+  }
+
+  </span><span style="color: #0000ff;">return</span> <span style="color: #800080;">1</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　就这样，完美的把poll for I/O与call pending callback两块内容连接到了一起，也同时理解了一个异步I/O操作是如何在node内部被处理的。</p>
+<p>&nbsp;</p>
+<p>　　最后还是剩一个尾巴，就是丢到IOCP的那个async_req怎么回事？这个变量在轮询的初始化方法中出现，如下。</p>
+<div class="cnblogs_code">
+<pre><code>typedef <span style="color: #0000ff;">struct</span><span style="color: #000000;"> uv_loop_s uv_loop_t;
+
+</span><span style="color: #0000ff;">struct</span><span style="color: #000000;"> uv_loop_s {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">  UV_LOOP_PRIVATE_FIELDS
+};
+
+</span><span style="color: #0000ff;">#define</span> UV_LOOP_PRIVATE_FIELDS                                                \
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 其余变量</span>
+<span style="color: #000000;">  uv_async_t wq_async;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> uv__word_done是这个handle的回调函数</span>
+<span style="color: #0000ff;">int</span> uv_loop_init(uv_loop_t*<span style="color: #000000;"> loop) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  err = uv_async_init(loop, &amp;loop-&gt;<span style="color: #000000;">wq_async, uv__work_done);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 第一篇中演示过handle的初始化和运行 很常规的init、start两步</span>
+<span style="color: #0000ff;">int</span> uv_async_init(uv_loop_t* loop, uv_async_t*<span style="color: #000000;"> handle, uv_async_cb async_cb) {
+  uv_req_t</span>*<span style="color: #000000;"> req;
+
+  uv__handle_init(loop, (uv_handle_t</span>*<span style="color: #000000;">) handle, UV_ASYNC);
+  handle</span>-&gt;async_sent = <span style="color: #800080;">0</span><span style="color: #000000;">;
+  handle</span>-&gt;async_cb =<span style="color: #000000;"> async_cb;
+
+  req </span>= &amp;handle-&gt;<span style="color: #000000;">async_req;
+  UV_REQ_INIT(req, UV_WAKEUP);
+  req</span>-&gt;data =<span style="color: #000000;"> handle;
+
+  uv__handle_start(handle);
+
+  </span><span style="color: #0000ff;">return</span> <span style="color: #800080;">0</span><span style="color: #000000;">;
+}
+
+# define UV_REQ_INIT(req, typ)                                                \
+  </span><span style="color: #0000ff;">do</span><span style="color: #000000;"> {                                                                        \
+    (req)</span>-&gt;type =<span style="color: #000000;"> (typ);                                                      \
+  }                                                                           \
+  </span><span style="color: #0000ff;">while</span> (<span style="color: #800080;">0</span>)</pre>
+</div>
+<p>　　从代码里面可以知道，loop上本身带有一个uv_async_t的变量wq_async，初始化后有四个属性。其中需要注意，这个类型的type被设置为UV_WAKEUP。</p>
+<p>　　再回到uv_process_reqs中，处理从IOCP取出的req那块。</p>
+<div class="cnblogs_code">
+<pre><code>INLINE <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">int</span> uv_process_reqs(uv_loop_t*<span style="color: #000000;"> loop) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+
+  <span style="color: #0000ff;">while</span> (next !=<span style="color: #000000;"> NULL) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+    <span style="color: #0000ff;">switch</span> (req-&gt;<span style="color: #000000;">type) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+      <span style="color: #0000ff;">case</span><span style="color: #000000;"> UV_WAKEUP:
+        uv_process_async_wakeup_req(loop, (uv_async_t</span>*) req-&gt;<span style="color: #000000;">data, req);
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">    }
+  }
+
+  </span><span style="color: #0000ff;">return</span> <span style="color: #800080;">1</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　我们找到了处理UV_WAKEUP的case，参数参考上面那个初始化的代码也很容易得知，req-&gt;data就是loop初始化的那个handle，req是那个async_req。</p>
+<p>　　方法代码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span> uv_process_async_wakeup_req(uv_loop_t* loop, uv_async_t* handle, uv_req_t*<span style="color: #000000;"> req) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 丢进IOCP的时候被设置为1了 具体在uv_async_send的uv__atomic_exchange_set方法中</span>
+  handle-&gt;async_sent = <span style="color: #800080;">0</span><span style="color: #000000;">;
+  </span><span style="color: #0000ff;">if</span> (handle-&gt;flags &amp;<span style="color: #000000;"> UV_HANDLE_CLOSING) {
+    uv_want_endgame(loop, (uv_handle_t</span>*<span style="color: #000000;">)handle);
+  } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (handle-&gt;async_cb !=<span style="color: #000000;"> NULL) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 进的else分支</span>
+    handle-&gt;<span style="color: #000000;">async_cb(handle);
+  }
+}</span></pre>
+</div>
+<p>　　这里的async_cb也是初始化就定义了，实际函数名是uv__work_done。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span> uv__work_done(uv_async_t*<span style="color: #000000;"> handle) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">
+  loop </span>=<span style="color: #000000;"> container_of(handle, uv_loop_t, wq_async);
+  uv_mutex_lock(</span>&amp;loop-&gt;<span style="color: #000000;">wq_mutex);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 还是那个熟悉的队列</span>
+  QUEUE_MOVE(&amp;loop-&gt;wq, &amp;<span style="color: #000000;">wq);
+  uv_mutex_unlock(</span>&amp;loop-&gt;<span style="color: #000000;">wq_mutex);
+
+  </span><span style="color: #0000ff;">while</span> (!QUEUE_EMPTY(&amp;<span style="color: #000000;">wq)) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+    w-&gt;<span style="color: #000000;">done(w, err);
+  }
+}</span></pre>
+</div>
+<p>　　这个done，就是用户从JS传过去的callback&hellip;&hellip;</p>
+<p>　　也就是说call pending callback实际上是调用用户传过来的callback，第二篇的图其实是有问题的，系列完结撒花！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

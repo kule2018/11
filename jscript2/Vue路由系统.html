@@ -1,0 +1,1363 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue路由系统' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue路由系统</center></div><div class='banquan'>原文出处:本文由博客园博主与鹿逐秋提供。<br/>
+原文连接:https://www.cnblogs.com/wangyueping/p/11451404.html</div><br>
+    <h1 id="vue路由系统">Vue路由系统</h1>
+<p>一切分离都是为了更好的结合，本文详细介绍了前后端分离架构之后，前端如何实现路由控制，即Vue路由系统。</p>
+<p><br></p>
+<h1 id="一vuerouter实现原理">一、VueRouter实现原理</h1>
+<p>VueRouter的实现原理是根据监控锚点值的改变，从而不断修改组件内容来实现的，我们来试试不使用VueRouter，自己实现路由控制，如下代码：</p>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;title&gt;Title&lt;/title&gt;
+  &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+  &lt;style&gt;
+    body {
+      margin: 0;
+    }
+    .login {
+      width: 100%;
+      height: 1200px;
+      background-color: #0FC57C;
+    }
+    .register {
+      width: 100%;
+      height: 1200px;
+      background-color: yellow;
+    }
+    .home {
+      width: 100%;
+      height: 1200px;
+      background-color: #2aabd2;
+    }
+    a {
+      text-decoration: none;
+    }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;
+      &lt;a href=&quot;#/home&quot;&gt;首页&lt;/a&gt;
+      &lt;a href=&quot;#/login&quot;&gt;登录&lt;/a&gt;
+      &lt;a href=&quot;#/register&quot;&gt;注册&lt;/a&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        let oDiv = document.getElementById(&quot;app&quot;);
+
+        window.onhashchange = function () {
+            console.log(location.hash);
+            // vue-router的实现原理是根据锚点值的改变
+            // 对页面进行切换
+            switch (location.hash) {
+                case &quot;#/login&quot;:
+                    oDiv.innerHTML = `&lt;h3 class=&#39;login&#39;&gt;这是登录页面&lt;/h3&gt;`;
+                    break;
+                case &quot;#/register&quot;:
+                    oDiv.innerHTML = `&lt;h3 class=&#39;register&#39;&gt;这是注册页面&lt;/h3&gt;`;
+                    break;
+                default:
+                    oDiv.innerHTML = `&lt;h3 class=&#39;home&#39;&gt;这是首页&lt;/h3&gt;`;
+                    break;
+            }
+        };
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>可以看到，通过监控锚点值的改变，页面上面的内容可以跳转到我们需要显示的页面。</p>
+<p><br></p>
+<h1 id="二vuerouter安装使用">二、VueRouter安装使用</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;title&gt;Title&lt;/title&gt;
+  &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+  &lt;!--1. 引入vue-router--&gt;
+  &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+  &lt;div id=&quot;app&quot;&gt;
+
+  &lt;/div&gt;
+
+  &lt;script&gt;
+    let Home = {
+      template: `
+        &lt;div&gt;这是首页&lt;/div&gt;
+      `
+    };
+
+    let Login = {
+      template: `
+          &lt;div&gt;登录页面&lt;/div&gt;
+      `
+    };
+
+      let Register = {
+        template: `
+            &lt;div&gt;注册页面&lt;/div&gt;
+        `
+      };
+
+      let App = {
+        template: `
+          &lt;div&gt;
+            &lt;router-link to=&quot;/home&quot;&gt;首页&lt;/router-link&gt;
+            &lt;router-link to=&quot;/login&quot;&gt;登录&lt;/router-link&gt;
+            &lt;router-link to=&quot;/register&quot;&gt;注册&lt;/router-link&gt;
+
+            &lt;router-view&gt;&lt;/router-view&gt;
+          &lt;/div&gt;
+        `
+      };
+
+      // 2. 在vue中中使用vue-router对象
+      Vue.use(VueRouter);
+
+      // 3. 创建一个vue-router对象
+      let router = new VueRouter({
+        // 此处要特别注意是routes，不是routers
+        routes: [
+          {
+            path: &#39;/home&#39;,
+            component: Home,
+          },
+            {
+              path: &quot;/login&quot;,
+              component: Login
+            },
+            {
+              path: &quot;/register&quot;,
+              component: Register,
+            }
+        ]
+      });
+
+      // 4. 在vue实例中使用新创建的vue-router对象
+      new Vue({
+        el: &quot;#app&quot;,
+        template: `&lt;app&gt;&lt;/app&gt;`,
+        components: {
+          &quot;app&quot;: App,
+        },
+        router: router
+      })
+  &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<h1 id="三vuerouter命名路由">三、VueRouter命名路由</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        let Login = {
+            template: `
+                &lt;div&gt;登录页面&lt;/div&gt;
+            `
+        };
+
+        let Register = {
+            template: `
+                &lt;div&gt;注册页面&lt;/div&gt;
+            `
+        };
+
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link :to=&quot;{ name: &#39;login&#39;}&quot;&gt;登录&lt;/router-link&gt;
+                    &lt;router-link :to=&quot;{ name: &#39;register&#39;}&quot;&gt;注册&lt;/router-link&gt;
+
+                    &lt;router-view&gt;&lt;/router-view&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        // 在vue中中使用vue-router对象
+        Vue.use(VueRouter);
+
+        // 创建一个vue-router对象
+        let router = new VueRouter({
+            // 此处要特别注意是routes，不是routers
+            routes: [
+                {
+                    name: &#39;login&#39;,
+                    path: &quot;/login&quot;,
+                    component: Login
+                },
+                {
+                    name: &#39;register&#39;,
+                    path: &quot;/register&quot;,
+                    component: Register,
+                }
+            ]
+        });
+
+        // 在vue实例中使用新创建的vue-router对象
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            components: {
+                &quot;app&quot;: App,
+            },
+            router: router
+        })
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>此外，还有另一种命名路由方式，如下所示:</p>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link to=&quot;/&quot;&gt;首页&lt;/router-link&gt;
+
+                    &lt;router-view name=&quot;header&quot;&gt;&lt;/router-view&gt;
+                    &lt;router-view name=&quot;footer&quot;&gt;&lt;/router-view&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        Vue.use(VueRouter);
+
+        let router = new VueRouter({
+            routes: [
+                {
+                    path: &#39;/&#39;,
+                    components: {
+                        header: {
+                            template: `
+                                &lt;div&gt;头部&lt;/div&gt;
+                            `
+                        },
+                        footer: {
+                            template: `
+                                &lt;div&gt;底部&lt;/div&gt;
+                            `
+                        }
+                    }
+                }
+            ]
+        });
+
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            router: router,
+            components: {
+                &#39;app&#39;: App
+            }
+        })
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<h1 id="四vuerouter路由中使用参数">四、VueRouter路由中使用参数</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        // 常用的两种查询方式
+        // xxx.html/user/1
+        // xxx.html/user/id=1
+
+        let userParams = {
+            template: `
+                &lt;div&gt;用户一信息&lt;/div&gt;
+            `
+        };
+
+        let userQuery = {
+            template: `
+                &lt;div&gt;用户二信息&lt;/div&gt;
+            `
+        };
+
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link :to=&quot;{ name: &#39;userParams&#39;, params: { userId: 1} }&quot;&gt;用户一&lt;/router-link&gt;
+                    &lt;router-link :to=&quot;{ name: &#39;userQuery&#39;, query: { userId: 2 } }&quot;&gt;用户二&lt;/router-link&gt;
+
+                    &lt;router-view&gt;&lt;/router-view&gt;
+
+                &lt;/div&gt;
+            `,
+        };
+
+        // 在vue中使用vue-router
+        Vue.use(VueRouter);
+
+        // 创建一个VueRouter对象
+        let router = new VueRouter({
+            routes: [
+                {
+                    name: &#39;userParams&#39;,
+                    path: &#39;/users/:userId&#39;,
+                    component: userParams
+                },
+                {
+                    name: &#39;userQuery&#39;,
+                    path: &#39;/users&#39;,
+                    component: userQuery,
+                }
+            ]
+        });
+
+        // 在vue中使用vue-router
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            components: {
+                &#39;app&#39;: App,
+            },
+            router: router
+        })
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<h1 id="五vuerouter参数实现原理">五、VueRouter参数实现原理</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        // 常用的两种查询方式
+        // xxx.html/user/1
+        // xxx.html/user/id=1
+
+        let userParams = {
+            template: `
+                &lt;div&gt;用户一信息&lt;/div&gt;
+            `,
+            created () {
+              console.log(&#39;this: &#39;, this);
+              console.log(this.$route);
+              console.log(this.$route.params.userId);
+            }
+        };
+
+        let userQuery = {
+            template: `
+                &lt;div&gt;用户二信息&lt;/div&gt;
+            `,
+            created () {
+              console.log(this.$route);
+              console.log(this.$route.query.userId);
+            }
+        };
+
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link :to=&quot;{ name: &#39;userParams&#39;, params: { userId: 1} }&quot;&gt;用户一&lt;/router-link&gt;
+                    &lt;router-link :to=&quot;{ name: &#39;userQuery&#39;, query: { userId: 2 } }&quot;&gt;用户二&lt;/router-link&gt;
+
+                    &lt;router-view&gt;&lt;/router-view&gt;
+
+                &lt;/div&gt;
+            `,
+        };
+
+        // 在vue中使用vue-router
+        Vue.use(VueRouter);
+
+        // 创建一个VueRouter对象
+        let router = new VueRouter({
+            routes: [
+                {
+                    name: &#39;userParams&#39;,
+                    path: &#39;/users/:userId&#39;,
+                    component: userParams
+                },
+                {
+                    name: &#39;userQuery&#39;,
+                    path: &#39;/users&#39;,
+                    component: userQuery,
+                }
+            ]
+        });
+
+        // 在vue中使用vue-router
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            components: {
+                &#39;app&#39;: App,
+            },
+            router: router,
+          created () {
+              console.log(&#39;this: &#39;, this);
+              console.log(this.$route);
+            }
+        })
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<h1 id="六vuerouter子路由">六、VueRouter子路由</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;style&gt;
+        .home {
+            width: 500px;
+            height: 500px;
+            background-color: #0FC57C;
+        }
+        .courses {
+            width: 500px;
+            height: 500px;
+            background-color: #5b80b2;
+        }
+
+    &lt;/style&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        let Home = {
+            template: `
+                &lt;div class=&quot;home&quot;&gt;这是首页&lt;/div&gt;
+            `
+        };
+
+        let Courses = {
+            template: `
+                &lt;div class=&quot;courses&quot;&gt;课程页面
+                    &lt;div class=&quot;details&quot;&gt;
+                        &lt;router-link to=&quot;details&quot;&gt;课程详情&lt;/router-link&gt;
+                        &lt;router-link to=&quot;students&quot;&gt;学员故事&lt;/router-link&gt;
+
+                        &lt;router-view&gt;&lt;/router-view&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        let Details = {
+            template: `
+                &lt;div&gt;课程详情页&lt;/div&gt;
+            `
+        };
+
+        let Students = {
+            template: `
+                &lt;div&gt;学员故事&lt;/div&gt;
+            `
+        };
+
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link to=&quot;/&quot;&gt;首页&lt;/router-link&gt;
+                    &lt;router-link to=&quot;/courses&quot;&gt;课程页面&lt;/router-link&gt;
+
+                    &lt;router-view&gt;&lt;/router-view&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        let routes = [
+            {
+                path: &#39;/&#39;,
+                component: Home
+            },
+            {
+                path: &#39;/courses&#39;,
+                component: Courses,
+                children: [
+                    {
+                        path: &#39;details&#39;,
+                        component: Details,
+                    },
+                    {
+                        path: &#39;students&#39;,
+                        component: Students
+                    }
+                ]
+            }
+        ];
+
+        Vue.use(VueRouter);
+
+        let router = new VueRouter({
+            routes: routes,
+        });
+
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            router: router,
+            components: {
+                &#39;app&#39;: App,
+            }
+        })
+
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<h1 id="七vuerouter子路由append">七、VueRouter子路由append</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;style&gt;
+        .home {
+            width: 500px;
+            height: 500px;
+            background-color: #0FC57C;
+        }
+        .courses {
+            width: 500px;
+            height: 500px;
+            background-color: #5b80b2;
+        }
+
+    &lt;/style&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        let Home = {
+            template: `
+                &lt;div class=&quot;home&quot;&gt;这是首页&lt;/div&gt;
+            `
+        };
+
+        let Courses = {
+            template: `
+                &lt;div class=&quot;courses&quot;&gt;课程页面
+                    &lt;div class=&quot;details&quot;&gt;
+                        &lt;router-link to=&quot;details&quot; append&gt;课程详情&lt;/router-link&gt;
+                        &lt;router-link to=&quot;students&quot;&gt;学员故事&lt;/router-link&gt;
+
+                        &lt;router-view&gt;&lt;/router-view&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        let Details = {
+            template: `
+                &lt;div&gt;课程详情页&lt;/div&gt;
+            `
+        };
+
+        let Students = {
+            template: `
+                &lt;div&gt;学员故事&lt;/div&gt;
+            `
+        };
+
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link to=&quot;/&quot;&gt;首页&lt;/router-link&gt;
+                    &lt;router-link to=&quot;/courses&quot;&gt;课程页面&lt;/router-link&gt;
+
+                    &lt;router-view&gt;&lt;/router-view&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        let routes = [
+            {
+                path: &#39;/&#39;,
+                component: Home
+            },
+            {
+                path: &#39;/courses&#39;,
+                component: Courses,
+                children: [
+                    {
+                        path: &#39;details&#39;,
+                        component: Details,
+                    },
+                    {
+                        path: &#39;students&#39;,
+                        component: Students
+                    }
+                ]
+            }
+        ];
+
+        Vue.use(VueRouter);
+
+        let router = new VueRouter({
+            routes: routes,
+        });
+
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            router: router,
+            components: {
+                &#39;app&#39;: App,
+            }
+        })
+
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>使用以上方式，路径是写死在属性中的，所以子路径会不断的append到最后，导致访问不到相应页面。可以采用另一种，动态绑定属性，如下代码所示：</p>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;title&gt;Title&lt;/title&gt;
+  &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+  &lt;style&gt;
+    body {
+      margin: 0;
+    }
+    .all {
+      width: 500px;
+      height: 500px;
+    }
+    .home {
+      background-color: #2aabd2;
+    }
+    .login {
+      background-color: #7acce4;
+    }
+    .register {
+      background-color: #4cae4c;
+    }
+    .courses {
+      background-color: #0FC57C;
+    }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+  &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+  &lt;script&gt;
+    Vue.use(VueRouter);
+
+    let Home = {
+      template: `
+        &lt;div class=&quot;home all&quot;&gt;
+          &lt;h1&gt;这是首页页面&lt;/h1&gt;
+        &lt;/div&gt;
+      `
+    };
+
+    let Login = {
+      template: `
+        &lt;div class=&quot;login all&quot;&gt;
+          &lt;h1&gt;这是登录页面&lt;/h1&gt;
+        &lt;/div&gt;
+      `
+    };
+
+    let Register = {
+      template: `
+        &lt;div class=&quot;register all&quot;&gt;
+          &lt;h1&gt;这是注册页面&lt;/h1&gt;
+        &lt;/div&gt;
+      `
+    };
+
+    let Courses = {
+      template: `
+        &lt;div class=&quot;courses all&quot;&gt;
+          &lt;h1&gt;这是课程页面&lt;/h1&gt;
+          &lt;router-link :to=&quot;{ name: &#39;lightcourses&#39; }&quot; append&gt;轻课&lt;/router-link&gt;
+          &lt;router-link :to=&quot;{ name: &#39;degreecourses&#39; }&quot;&gt;学位课&lt;/router-link&gt;
+
+          &lt;router-view&gt;&lt;router-view&gt;
+        &lt;/div&gt;
+      `
+    };
+
+    let LightCourses = {
+      template: `
+        &lt;div&gt;
+          &lt;h1&gt;这是学位课程页面&lt;/h1&gt;
+        &lt;/div&gt;
+      `
+    };
+
+    let DegreeCourses = {
+      template: `
+        &lt;div&gt;
+          &lt;h1&gt;这是轻课课程页面&lt;/h1&gt;
+        &lt;/div&gt;
+      `
+    };
+
+    let App = {
+      template: `
+        &lt;div&gt;
+          &lt;router-link :to=&quot;{ name: &#39;home&#39; }&quot;&gt;首页&lt;/router-link&gt;
+          &lt;router-link :to=&quot;{ name: &#39;login&#39; }&quot;&gt;登录&lt;/router-link&gt;
+          &lt;router-link :to=&quot;{ name: &#39;register&#39; }&quot;&gt;注册&lt;/router-link&gt;
+          &lt;router-link :to=&quot;{ name: &#39;courses&#39; }&quot;&gt;课程&lt;/router-link&gt;
+
+          &lt;router-view&gt;&lt;router-view&gt;
+        &lt;/div&gt;
+      `,
+    };
+
+    let routes = [
+      {
+        name: &#39;home&#39;,
+        path: &#39;/home&#39;,
+        component: Home,
+      },
+      {
+        name: &#39;login&#39;,
+        path: &#39;/login&#39;,
+        component: Login,
+      },
+      {
+        name: &#39;register&#39;,
+        path: &#39;/register&#39;,
+        component: Register
+      },
+      {
+        name: &#39;courses&#39;,
+        path: &#39;/courses&#39;,
+        component: Courses,
+        children: [
+          {
+            name: &#39;lightcourses&#39;,
+            path: &#39;lightcourses&#39;,
+            component: LightCourses
+          },
+          {
+            name: &#39;degreecourses&#39;,
+            path: &#39;degreecourses&#39;,
+            component: DegreeCourses
+          }
+        ]
+      }
+    ];
+
+    let router = new VueRouter({
+      routes: routes,
+      mode: &#39;history&#39;,
+    });
+
+    new Vue({
+      el: &quot;#app&quot;,
+      template: `&lt;App&gt;&lt;/App&gt;`,
+      components: {
+        App,
+      },
+      router: router,
+    })
+  &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>注意，必须使用name查找组件和路径的对应关系，而不能使用path。</p>
+<h1 id="八vuerouter子路由非append">八、VueRouter子路由非append</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;style&gt;
+        .home {
+            width: 500px;
+            height: 500px;
+            background-color: #0FC57C;
+        }
+        .courses {
+            width: 500px;
+            height: 500px;
+            background-color: #5b80b2;
+        }
+
+    &lt;/style&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        let Home = {
+            template: `
+                &lt;div class=&quot;home&quot;&gt;这是首页&lt;/div&gt;
+            `
+        };
+
+        let Courses = {
+            template: `
+                &lt;div class=&quot;courses&quot;&gt;课程页面
+                    &lt;div class=&quot;details&quot;&gt;
+                        &lt;router-link to=&quot;/courses/details&quot;&gt;课程详情&lt;/router-link&gt;
+                        &lt;router-link to=&quot;/courses/students&quot;&gt;学员故事&lt;/router-link&gt;
+
+                        &lt;router-view&gt;&lt;/router-view&gt;
+                    &lt;/div&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        let Details = {
+            template: `
+                &lt;div&gt;课程详情页&lt;/div&gt;
+            `
+        };
+
+        let Students = {
+            template: `
+                &lt;div&gt;学员故事&lt;/div&gt;
+            `
+        };
+
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link to=&quot;/&quot;&gt;首页&lt;/router-link&gt;
+                    &lt;router-link to=&quot;/courses&quot;&gt;课程页面&lt;/router-link&gt;
+
+                    &lt;router-view&gt;&lt;/router-view&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        let routes = [
+            {
+                path: &#39;/&#39;,
+                component: Home
+            },
+            {
+                path: &#39;/courses&#39;,
+                component: Courses,
+                children: [
+                    {
+                        path: &#39;/courses/details&#39;,
+                        component: Details,
+                    },
+                    {
+                        path: &#39;/courses/students&#39;,
+                        component: Students
+                    }
+                ]
+            }
+        ];
+
+        Vue.use(VueRouter);
+
+        let router = new VueRouter({
+            routes: routes,
+        });
+
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            router: router,
+            components: {
+                &#39;app&#39;: App,
+            }
+        })
+
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<h1 id="九vuerouter路由重定向redirect">九、VueRouter路由重定向redirect</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;style&gt;
+        .home {
+            width: 500px;
+            height: 500px;
+            background-color: #0FC57C;
+        }
+        .login {
+            width: 500px;
+            height: 500px;
+            background-color: #5b80b2;
+        }
+
+    &lt;/style&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        let Home = {
+            template: `
+                &lt;div class=&quot;home&quot;&gt;这是首页&lt;/div&gt;
+            `
+        };
+
+        let Login = {
+            template: `
+                &lt;div class=&quot;login&quot;&gt;这是登录页面&lt;/div&gt;
+            `
+        };
+
+        let Details = {
+            template: `
+                &lt;div&gt;课程详情页&lt;/div&gt;
+            `
+        };
+
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link to=&quot;/&quot;&gt;首页&lt;/router-link&gt;
+                    &lt;router-link to=&quot;/login&quot;&gt;登录页面&lt;/router-link&gt;
+                    &lt;router-link to=&quot;/details&quot;&gt;课程详情页&lt;/router-link&gt;
+
+                    &lt;router-view&gt;&lt;/router-view&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        let routes = [
+            {
+                path: &#39;/&#39;,
+                component: Home
+            },
+            {
+                path: &#39;/login&#39;,
+                component: Login,
+            },
+            {
+                path: &#39;/details&#39;,
+                redirect: &#39;/login&#39;,
+                component: Details
+            }
+        ];
+
+        Vue.use(VueRouter);
+
+        let router = new VueRouter({
+            routes: routes,
+        });
+
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            router: router,
+            components: {
+                &#39;app&#39;: App,
+            }
+        })
+
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<h1 id="十vuerouter手动路由">十、VueRouter手动路由</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;style&gt;
+        .home {
+            width: 500px;
+            height: 500px;
+            background-color: #0FC57C;
+        }
+        .details {
+            width: 500px;
+            height: 500px;
+            background-color: #5b80b2;
+        }
+    &lt;/style&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        let Home = {
+            template: `
+                &lt;div&gt;
+                    &lt;div class=&quot;home&quot;&gt;这是首页&lt;/div&gt;
+                &lt;/div&gt;
+            `,
+        };
+
+        let Details = {
+            template: `
+                &lt;div class=&quot;details&quot;&gt;课程详情页&lt;/div&gt;
+            `
+        };
+
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link to=&quot;/&quot;&gt;首页&lt;/router-link&gt;
+                    &lt;button @click=&quot;myClick&quot;&gt;点击跳转到课程详情页面&lt;/button&gt;
+
+                    &lt;router-view&gt;&lt;/router-view&gt;
+                &lt;/div&gt;
+            `,
+            methods: {
+                myClick: function () {
+                    this.$router.push(&#39;/details&#39;);
+                }
+            }
+        };
+
+        let routes = [
+            {
+                path: &#39;/&#39;,
+                component: Home
+            },
+            {
+                path: &#39;/details&#39;,
+                component: Details
+            }
+        ];
+
+        Vue.use(VueRouter);
+
+        let router = new VueRouter({
+            routes: routes,
+        });
+
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            router: router,
+            components: {
+                &#39;app&#39;: App,
+            }
+        })
+
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<h1 id="十一vuerouter路由钩子">十一、VueRouter路由钩子</h1>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;style&gt;
+        .home {
+            width: 500px;
+            height: 500px;
+            background-color: #0FC57C;
+        }
+        .login {
+            width: 500px;
+            height: 500px;
+            background-color: #5b80b2;
+        }
+        .user {
+            width: 500px;
+            height: 500px;
+            background-color: #5b80b2;
+        }
+
+    &lt;/style&gt;
+    &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+    &lt;!--1. 引入vue-router--&gt;
+    &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+    &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+    &lt;script&gt;
+        let homePage = {
+            template: `
+                &lt;div class=&quot;home&quot;&gt;&lt;h3&gt;这是首页&lt;/h3&gt;&lt;/div&gt;
+            `
+        };
+
+        let loginPage = {
+            template: `
+                &lt;div class=&quot;login&quot;&gt;&lt;h3&gt;这是登录页面&lt;/h3&gt;&lt;/div&gt;
+            `
+        };
+
+        let userPage = {
+            template: `
+                &lt;div class=&quot;user&quot;&gt;&lt;h3&gt;这是用户管理页面&lt;/h3&gt;&lt;/div&gt;
+            `
+        };
+
+        let App = {
+            template: `
+                &lt;div&gt;
+                    &lt;router-link to=&quot;/&quot;&gt;首页&lt;/router-link&gt;
+                    &lt;router-link to=&quot;/login&quot;&gt;登录&lt;/router-link&gt;
+                    &lt;router-link to=&quot;userinfo&quot;&gt;用户&lt;/router-link&gt;
+
+                    &lt;router-view&gt;&lt;/router-view&gt;
+                &lt;/div&gt;
+            `
+        };
+
+        let routes = [
+            {
+                path: &#39;/&#39;,
+                component: homePage
+            },
+            {
+                path: &#39;/login&#39;,
+                component: loginPage,
+            },
+            {
+                path: &#39;/userinfo&#39;,
+                component: userPage,
+            }
+        ];
+
+        Vue.use(VueRouter);
+
+        let router = new VueRouter({
+            routes: routes,
+        });
+
+        router.beforeEach(function (to, from, next) {
+            // 如果next的参数是具体的路径，则跳转到该路径
+            // 如果next没有被传入参数，则什么都不做，保持原来不变
+            // 如果next的参数是一个error实例，跳转终止
+            next();
+        });
+
+        new Vue({
+            el: &quot;#app&quot;,
+            template: `&lt;app&gt;&lt;/app&gt;`,
+            components: {
+                &#39;app&#39;: App
+            },
+            router: router,
+        })
+    &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<h1 id="十二vuerouter在路径中去掉号">十二、VueRouter在路径中去掉#号</h1>
+<p>在创建路由实例时，我们可以新增一个属性，该属性用来去掉在路径中显示#号，它的属性名为mode，属性值为’history’</p>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;title&gt;Title&lt;/title&gt;
+  &lt;script src=&quot;../statics/vue.min.js&quot;&gt;&lt;/script&gt;
+  &lt;script src=&quot;../statics/vue-router.js&quot;&gt;&lt;/script&gt;
+  &lt;style&gt;
+    body {
+      margin: 0;
+    }
+    .box {
+      line-height: 100px;
+      text-align: center;
+    }
+    .home {
+      background-color: #2aabd2;
+      width: 500px;
+      height: 500px;
+    }
+    .login {
+      background-color: #2b9b2d;
+      width: 500px;
+      height: 500px;
+    }
+    .register {
+      background-color: #4cae4c;
+      width: 500px;
+      height: 500px;
+    }
+  &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+
+  &lt;div id=&quot;app&quot;&gt;&lt;/div&gt;
+
+  &lt;script&gt;
+    Vue.use(VueRouter);
+
+    let Home = {
+      template: `
+        &lt;div class=&quot;home&quot;&gt;
+          &lt;h1&gt;这是首页页面&lt;/h1&gt;
+        &lt;/div&gt;
+      `
+    };
+
+    let Login = {
+      template: `
+        &lt;div class=&quot;login&quot;&gt;
+          &lt;h1&gt;这是登录页面&lt;/h1&gt;
+        &lt;/div&gt;
+      `
+    };
+
+    let Register = {
+      template: `
+        &lt;div class=&quot;register&quot;&gt;
+          &lt;h1&gt;这是注册页面&lt;/h1&gt;
+        &lt;/div&gt;
+      `
+    };
+
+    let App = {
+      template: `
+        &lt;div&gt;
+          &lt;router-link :to=&quot;{ name: &#39;home&#39; }&quot;&gt;首页&lt;/router-link&gt;
+          &lt;router-link :to=&quot;{ name: &#39;login&#39; }&quot;&gt;登录&lt;/router-link&gt;
+          &lt;router-link :to=&quot;{ name: &#39;register&#39; }&quot;&gt;注册&lt;/router-link&gt;
+
+          &lt;router-view&gt;&lt;router-view&gt;
+        &lt;/div&gt;
+      `,
+    };
+
+    let routes = [
+      {
+        name: &#39;home&#39;,
+        path: &#39;/home&#39;,
+        component: Home,
+      },
+      {
+        name: &#39;login&#39;,
+        path: &#39;/login&#39;,
+        component: Login,
+      },
+      {
+        name: &#39;register&#39;,
+        path: &#39;/register&#39;,
+        component: Register
+      }
+    ];
+
+    let router = new VueRouter({
+      routes: routes,
+      mode: &#39;history&#39;,
+    });
+
+    new Vue({
+      el: &quot;#app&quot;,
+      template: `&lt;App&gt;&lt;/App&gt;`,
+      components: {
+        App,
+      },
+      router: router,
+    })
+  &lt;/script&gt;
+
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><br></p>
+<p><br></p>
+<p><br></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

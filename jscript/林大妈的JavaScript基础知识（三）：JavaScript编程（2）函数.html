@@ -1,0 +1,281 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修林大妈的JavaScript基础知识（三）：JavaScript编程（2）函数' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>林大妈的JavaScript基础知识（三）：JavaScript编程（2）函数</center></div><div class='banquan'>原文出处:本文由博客园博主林大妈提供。<br/>
+原文连接:https://www.cnblogs.com/BlogOfMotherLyn/p/11266530.html</div><br>
+    <p>　　JavaScript是一门函数式的面向对象编程语言。了解函数将会是了解对象创建和操作、原型及原型方法、模块化编程等的重要基础。函数包含一组语句，它的主要功能是代码复用、隐藏信息和组合调用。我们编程就是把一个需求拆分成若干函数和数据结构的组合实现，其中算法又是实现正确函数的方法论。我们先介绍基础知识：① 在JavaScript中，函数对象背后到底有什么；② 函数调用的模式有多少种；③ 作用域与闭包。至于递归、记忆、回调、级联、模块、柯里化等，我们放到进阶知识中再涉猎。</p>
+<p>一、 函数对象</p>
+<p>　　前面我们提到，<strong>在JavaScript中，函数也是对象</strong>，一般对象的原型连接到Object.prototype，函数对象则连接到Function.prototype，再连接到Object.prototype。我们可以看看这两个对象中具有什么样的属性：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> sum = <span style="color: #0000ff;">function</span><span style="color: #000000;">(a, b) {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">return</span> a +<span style="color: #000000;"> b;
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> console.log(sum.prototype);</pre>
+</div>
+<p>　　输出发现，这个Function.prototype中有一个constructor构造器属性，值就是刚才我们定义的这个函数的内容。而Function.prototype则连接到Object.prototype。也就是说当我们创建一个函数对象时，Function的构造器会自动运行类似这样的一些代码：&nbsp;<span class="cnblogs_code"><span style="color: #0000ff;">this</span>.prototype = {constructor: <span style="color: #0000ff;">this</span>};</span>&nbsp;。换句话说，其实constructor属性的意义不大，因为它自己本身就是这个属性。只是因为JavaScript为了模仿其他的面向对象语言，做出了这样一个&ldquo;伪类&rdquo;，以constructor作为中间层而已。</p>
+<p>二、函数调用</p>
+<p>　　函数的特别之处在于：它可以被调用。调用函数时，操作系统会暂停当前函数的执行，把控制权和参数传递给调用的函数。函数除了收到给出的形式参数，还会接收两个新参数：this 和 arguments。我们在面向对象的编程中最需要注意的就是需要用到的方法里面<strong>this的值到底是什么</strong>。实际上，this的值取决于函数调用的模式。<strong>在JavaScript中，函数调用的模式一共有4种，分别是：方法调用模式、函数调用模式、构造器调用模式和apply调用模式：</strong></p>
+<p>　　1. 方法调用模式</p>
+<p>　　对象中的函数我们称为方法。<strong>此时，该函数中this的值为直接所属的对象。</strong></p>
+<p><strong>　　</strong>注：但由于设计失误，如果将对象中的方法存入一个变量中，再调用这个变量，这一个this又将指向全局变量：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> obj =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 2</span>     property: 'hello'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span>     method: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;"> 5</span>         console.log(<span style="color: #0000ff;">this</span><span style="color: #000000;">.property);
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">};
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #0000ff;">var</span> func =<span style="color: #000000;"> obj.method;
+</span><span style="color: #008080;">10</span> func();</pre>
+</div>
+<p>　　像上述这种情况，最终会输出undefined，因为当你将方法赋值给func变量时，func中就只有这个代码段的空壳而已，调用它就像调用一个普通的函数，this指向的是全局变量。只有单独调用&nbsp;<span class="cnblogs_code">obj.method();</span>&nbsp;才不会出现上述情况。</p>
+<p>　　为此，ECMA后来提出了一个解决方案：在一整段JavaScript代码的开头一行&nbsp;<span class="cnblogs_code">'use strict';</span>&nbsp;，让浏览器执行严格模式排除错误。但当你看到前面这句话时，就要立马反应过来我所使用的浏览器的版本是否可以执行严格模式了（假如你的浏览器版本不支持严格模式，那这一行代码只会被当成普通的字符串执行，不会有什么结果）。如果在上述的代码放入严格模式下执行，this会被JavaScript定向为undefined，接着抛出一个TypeError错误。</p>
+<p>&nbsp;</p>
+<p>　　2. 函数调用模式</p>
+<p>　　当函数不是对象的属性，也就是在一般情况下，我们像上面举例的代码一样直接声明的一个函数。<strong>此时，该函数中this的值指向全局对象。</strong>这种调用方法是最简单直接的方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> sub = <span style="color: #0000ff;">function</span><span style="color: #000000;">(a, b) {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">return</span> a -<span style="color: #000000;"> b;
+</span><span style="color: #008080;">3</span> }</pre>
+</div>
+<p><strong>　　</strong>但需要注意的是，由于语言设计的失误，一个函数的内部函数this的值，本应该为这个函数this的值，而<strong>真实情况是它却指向了全局对象</strong>，因此，我们需要更机智地提供一种解决方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> motherLyn =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 2</span>     generation: 'mother'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 3</span>     name: 'Lyn'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 4</span>     getFullName: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">var</span> getGeneration = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> that.generation;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span>         <span style="color: #0000ff;">var</span> getName = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> that.name;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>         <span style="color: #0000ff;">return</span> getGeneration() +<span style="color: #000000;"> getName();
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">17</span> }</pre>
+</div>
+<p>　　如果我们缺少了第五行的代码，由于getGeneration和getName两个函数处于getFullName函数的内部，它们的this会指向window对象（全局对象），而window对象中没有generation和name属性，将会返回undefined。而在getFullName函数中声明一个that变量并让它指向this，避免了在内部函数中使用this，才能让代码向我们期望的方向运行。</p>
+<p>　　<strong>还有一种解决方案，就是使用ES6中的箭头函数：</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> motherLyn =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 2</span>     generation: 'mother'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 3</span>     name: 'Lyn'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 4</span>     getFullName: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">var</span> getGeneration = () =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 6</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.generation;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">var</span> getName = () =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.name;
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span>         <span style="color: #0000ff;">return</span> getGeneration() +<span style="color: #000000;"> getName();
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span> }</pre>
+</div>
+<p>　　ES6中，箭头函数可以取代内部函数调用，它的出现正是为了修正内部函数this指引不正确的问题。</p>
+<p>&nbsp;</p>
+<p>　　3. 构造器调用模式</p>
+<p>　　使用这种方式时，我们务必要把函数名字的首字母大写，以与函数调用方式区分开来，每当看到首字母大写的函数就会本能地加上new关键字。这也是大家的一种约定，使我们不会因为疏忽而调用时忘记添加new关键字，增加测试工作：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> MotherLyn = <span style="color: #0000ff;">function</span><span style="color: #000000;">(generation, name) {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">this</span>.generation =<span style="color: #000000;"> generation;
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">5</span> 
+<span style="color: #008080;">6</span> <span style="color: #0000ff;">var</span> person = <span style="color: #0000ff;">new</span> MotherLyn("mother", "Lyn");</pre>
+</div>
+<p>　　<strong>这时候this仍然指向全局变量，只有使用new关键字时this才会指向函数对象本身</strong>，JavaScript也会提示此构造函数可能会转换为类声明。在可以不使用new的情况下，我们可以尽量不使用这种形式的构造器，因为当发生错误时，既没有编译时警告，也没有运行时警告。</p>
+<p>　　在以后关于对象创建的讲解中我们将看到多种创建对象的方式，也包括完全不使用new的创建方法，我们需要结合不同情况使用。</p>
+<p>　　在以后关于原型的讲解中我们会看到一个对象的实例、它的构造器和它的原型三者之间的关系，这非常重要。</p>
+<p>&nbsp;</p>
+<p>　　4. Apply调用模式</p>
+<p>　　前面提到，函数本质上就是对象，因此函数是可以具有方法的。例如使用Function.apply方法，我们可以重定义某个方法内this的值，以数组的形式传递期望传入的参数。这样哪怕一个对象没有继承另一个对象，也可以使用它里面的方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> myArray = [5, 6<span style="color: #000000;">];
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">var</span> addArray = sum.apply(<span style="color: #0000ff;">null</span>, myArray); <span style="color: #008000;">//</span><span style="color: #008000;">调用到文章首部的sum函数，结果值为11</span>
+<span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span> <span style="color: #0000ff;">var</span> myObj =<span style="color: #000000;"> {
+</span><span style="color: #008080;">5</span>     generation: 'my'<span style="color: #000000;">,
+</span><span style="color: #008080;">6</span>     name: 'Obj'
+<span style="color: #008080;">7</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">8</span> <span style="color: #0000ff;">var</span> getObjName =<span style="color: #000000;"> motherLyn.getFullName.apply(myObj);
+</span><span style="color: #008080;">9</span> <span style="color: #008000;">//</span><span style="color: #008000;">调用到上面的motherLyn对象中的getFullName方法，结果输出myObj</span></pre>
+</div>
+<p>　　我们发现，哪怕上述的myObj并没有继承自motherLyn对象，它仍然能通过apply方法，重定义this的值，重用其中的方法。</p>
+<p>&nbsp;</p>
+<p>　　注：上面我们用到了apply方法以数组的形式重定义了arguments参数，但实际上由于语言设计的失误，arguments参数并不是一个数组，而是一个array-like对象。也就是说，它除了有一个length属性以外，没有Array.prototype中的像concat这样的其他方法。</p>
+<p>&nbsp;</p>
+<p>三、 作用域与闭包</p>
+<p>　　1. 作用域</p>
+<p>　　在编程语言中，作用域控制变量的可见性、生命周期、名称冲突和内存管理，对于程序员来说是一项重要的服务。尽管像其他类C语法的语言一样，<strong>JavaScript也拥有函数作用域，可是直到ES5标准却一直没有块级作用域</strong>。这一点也是设计上比较糟糕的地方：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; 5; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">    console.log(i);
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span> console.log(i);</pre>
+</div>
+<p>　　像以上的代码会输出从0到5的六个i，原因是因为JavaScript缺少块级作用域，i的确从for语句中被泄露出来了。为此在ES6标准中let和const两种声明变量的方式被提出了（当然这两个关键字还会解决很多其他问题），这一点我们会放到后续的进阶知识中讲解到。像以上这个代码使用let取代var保证了i不会被泄露，而且i不会被声明为window对象的属性，有效避免了污染全局对象的问题。</p>
+<p>　　在很多现代语言中，我们更加推荐延迟声明变量。但在JavaScript中，由于缺少块级作用域，尽管使用var声明变量还会得到变量提升（先使用再声明也是可以的），但延迟声明变量可能会编写出混乱的难以维护的代码。因此我们还是要在函数体的顶部将所有需要使用到的变量全部声明出来。</p>
+<p>　　2. 闭包</p>
+<p>　　所谓<strong>闭包，就是可以访问被它被创建时所处的上下文环境的函数。</strong>闭包支持了JavaScript实现更灵活更有逻辑性的表达方式，先前我们提到这么多次&ldquo;由于设计失误&rdquo;，现在我们终于可以夸奖一次&ldquo;设计非常精彩&rdquo;了。闭包最常见的用法就是返回一个函数：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> getMe = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">var</span> name = 'MotherLyn'<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">var</span> displayName = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">        console.log(name);
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">6</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> displayName;
+</span><span style="color: #008080;">7</span> }</pre>
+</div>
+<p>　　上述例子中的displayName函数就是典型的一个闭包，它可以获得它被创建时上下文环境（也就是getMe函数）中的变量，这些变量将持续地保留直至内部函数不再需要使用（当然这一定程度上也会影响性能）。当我们需要调用这个displayName函数，我们这样来写：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> me =<span style="color: #000000;"> getMe();
+</span><span style="color: #008080;">2</span> me();</pre>
+</div>
+<p>　　第一句调用到了getMe函数，将它的返回值给到了内部函数，并赋值给了me，此时name值已经确定好了。最后调用到me函数来调用displayName函数。观察以上的函数，或许我们可以考虑下闭包的作用：</p>
+<p>　　① 在DOM操作中，我们的代码通常是作为用户行为的回调函数执行，也就是说为了响应用户的某些行为而存在。因此在编写可复用的web代码时，闭包具有重要意义：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="red"</span><span style="color: #0000ff;">&gt;</span>Red<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">2</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="green"</span><span style="color: #0000ff;">&gt;</span>Green<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="#"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="blue"</span><span style="color: #0000ff;">&gt;</span>Blue<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> changeColor(color) {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;"> 3</span>         document.body.style.backgroundColor =<span style="color: #000000;"> color;
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #0000ff;">var</span> change2Red = changeColor('red'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 8</span> <span style="color: #0000ff;">var</span> change2Green = changeColor('green'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">var</span> change2Blue = changeColor('blue'<span style="color: #000000;">);
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> document.getElementById('red').onclick =<span style="color: #000000;"> change2Red;
+</span><span style="color: #008080;">12</span> document.getElementById('green').onclick =<span style="color: #000000;"> change2Green;
+</span><span style="color: #008080;">13</span> document.getElementById('blue').onclick = chage2Blue ;</pre>
+</div>
+<p>　　上面的代码跟面向对象的代码有点类似，它先建立了一个改换背景颜色的模板函数，通过赋不同的值创建不同的函数对象进行应用。</p>
+<p>　　② 数据隐藏和封装（这也是模块化编程的基础）：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> motherLyn = <span style="color: #0000ff;">function</span><span style="color: #000000;">(generation, name) {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">var</span> myGeneration =<span style="color: #000000;"> generation;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> myName =<span style="color: #000000;"> name;
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">var</span> str = ''<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 6</span>         getFullName: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">return</span> str + myGeneration +<span style="color: #000000;"> myName;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span> <span style="color: #0000ff;">var</span> me = motherLyn('mother', 'Lyn'<span style="color: #000000;">);
+</span><span style="color: #008080;">13</span> 
+<span style="color: #008080;">14</span> console.log(me.getFullName())</pre>
+</div>
+<p>　　在这个例子中，motherLyn作为一个构造函数，返回一个对象，我们不能使用new关键字创建实例，因此函数名我们采用了小写开头。创造了一个me实例以后，无法直接访问myGeneration、myName和str三个变量，只能得到getFullName函数的返回值，这样的封装效果就非常强了。由于<strong>JavaScript中内部函数的生命周期比它的外部函数要长</strong>，我们利用这一点模仿了面向对象的私有对象。</p>
+<p>　　③ 设计失误（for循环闭包详解）</p>
+<p>　　JavaScript中有一个非常常见的关于闭包的设计失误，当我们在for循环中加入一层闭包，将会出现意外的结果：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">2</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">4</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>4<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> pList = document.querySelectorAll('p'<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; pList.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">4</span>     pList[i].onclick = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">        console.log(i);
+</span><span style="color: #008080;">6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">7</span> }</pre>
+</div>
+<p>　　观察代码，我们获取到HTML中的所有四个p结点，作为一个结点数组。我们期望循环这个数组，让其每一个结点被点击时输出它在数组中的位置。但不幸的是，结果是每一次都输出for循环结束以后i的值。也就是在以上的例子中会永远输出4。原因是内部函数实际上访问外部函数的实际变量而非它的复制，对于这个问题，我们有许多种解决方案，最简单的莫过于：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">for</span>(let i = 0; i &lt; pList.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">2</span>     pList[i].onclick = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">        console.log(i);
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">5</span> }</pre>
+</div>
+<p>　　使用ES6标准中的let取代var，使i的作用域变为块级作用域，这样闭包中访问到的i也被修正为循环过程中的i。我们也可以创建一个辅助函数，让这个辅助函数返回<strong>绑定了当前i值的函数</strong>：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> helper = <span style="color: #0000ff;">function</span><span style="color: #000000;">(i) {
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">        console.log(i);
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">6</span> 
+<span style="color: #008080;">7</span> <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; pList.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">8</span>     pList[i].onclick =<span style="color: #000000;"> helper(i);
+</span><span style="color: #008080;">9</span> }</pre>
+</div>
+<p>　　当然还有其他的方法，我们比较不推荐的是将i绑定到循环当前的对象中作为一个属性存在，这样会污染当前的对象。</p>
+<p>&nbsp;</p>
+<p>四、 箭头函数</p>
+<p>　　在常人的理解里，在内部函数中，this的指向应该是跟随它的外部函数的。在讲述函数调用模式时我们发现了这个问题，<strong>由于JavaScript的设计失误，内部函数的this居然指向全局对象。</strong>我们只有使用这种hack写法，声明一个that变量指向跟this指向一样的内容来作为修正：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> obj =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 2</span>     name: 'an object'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span>     oldExpression: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span>         <span style="color: #0000ff;">var</span> intervalFunction = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> that.name;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span> }</pre>
+</div>
+<p>　　为了修正这一问题，箭头函数被提出，用以取代普通的内部函数写法了：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> obj =<span style="color: #000000;"> {
+</span><span style="color: #008080;">2</span>     name: 'an object'<span style="color: #000000;">,
+</span><span style="color: #008080;">3</span> 
+<span style="color: #008080;">4</span>     newExpression: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">5</span>         <span style="color: #0000ff;">var</span> intervalFunction = () =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">6</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.name;
+</span><span style="color: #008080;">7</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">8</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">9</span> }</pre>
+</div>
+<p>　　箭头函数的语法为：&nbsp;<span class="cnblogs_code">() =&gt; {code}</span>&nbsp;，括号内填入参数，大括号内填入内部函数的所有内容，内部的this被修正为外部函数的this。常见的用法例如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> let array = [5, 2, 3, 8, 1, 6, 4<span style="color: #000000;">];
+</span><span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 从小到大排序</span>
+<span style="color: #008080;">4</span> array.sort((x, y) =&gt; {<span style="color: #0000ff;">return</span> x - y;});</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>总结：1. 在JavaScript中函数也是一个对象，它的原型被连接到Function.prototype，再连接到Object.prototype；</p>
+<p>　　　2. 函数有四种调用模式，分别是：① 方法调用模式， ② 函数调用模式， ③ 构造器调用模式， ④ Apply调用模式；</p>
+<p>　　　3. 为了合理运用函数，我们需要掌握两个要点，分别是① 作用域（ES5中只有函数作用域没有块作用域），② 闭包（尤其是for循环闭包的解决方案例子）。</p>
+<p>　　　4. 箭头函数的使用。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

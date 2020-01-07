@@ -1,0 +1,158 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue-其他' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue-其他</center></div><div class='banquan'>原文出处:本文由博客园博主跌倒的小黄瓜提供。<br/>
+原文连接:https://www.cnblogs.com/ygjzs/p/12042128.html</div><br>
+    <h2 id="vue-resource">vue-resource</h2>
+<pre><code><code>// 2.1 导入 vue-resource
+import VueResource from &#39;vue-resource&#39;
+// 2.2 安装 vue-resource
+Vue.use(VueResource)
+// 设置请求的根路径
+Vue.http.options.root = &#39;http://vue.studyit.io&#39;;
+// 全局设置 post 时候表单数据格式组织形式   application/x-www-form-urlencoded
+Vue.http.options.emulateJSON = true;</code></pre>
+<h2 id="moment">moment</h2>
+<pre><code><code>// 导入格式化时间的插件
+import moment from &#39;moment&#39;
+// 定义全局的过滤器
+Vue.filter(&#39;dateFormat&#39;, function (dataStr, pattern = &quot;YYYY-MM-DD HH:mm:ss&quot;) {
+  return moment(dataStr).format(pattern)
+})
+</code></pre>
+<h2 id="preview">preview</h2>
+<pre><code><code>// 安装 图片预览插件
+import VuePreview from &#39;vue-preview&#39;
+Vue.use(VuePreview)</code></pre>
+<p>缩略图使用实例</p>
+<pre class="html"><code>&lt;template&gt;
+  &lt;div class=&quot;photoinfo-container&quot;&gt;
+    &lt;h3&gt;{{ photoinfo.title }}&lt;/h3&gt;
+    &lt;p class=&quot;subtitle&quot;&gt;
+      &lt;span&gt;发表时间：{{ photoinfo.add_time | dateFormat }}&lt;/span&gt;
+      &lt;span&gt;点击：{{ photoinfo.click }}次&lt;/span&gt;
+    &lt;/p&gt;
+
+    &lt;hr&gt;
+
+    &lt;!-- 缩略图区域 --&gt;
+    &lt;div class=&quot;thumbs&quot;&gt;
+      &lt;img class=&quot;preview-img&quot; v-for=&quot;(item, index) in list&quot; :src=&quot;item.src&quot; height=&quot;100&quot; @click=&quot;$preview.open(index, list)&quot; :key=&quot;item.src&quot;&gt;
+    &lt;/div&gt;
+
+    &lt;!-- 图片内容区域 --&gt;
+    &lt;div class=&quot;content&quot; v-html=&quot;photoinfo.content&quot;&gt;&lt;/div&gt;
+
+    &lt;!-- 放置一个现成的 评论子组件 --&gt;
+    &lt;cmt-box :id=&quot;id&quot;&gt;&lt;/cmt-box&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+// 1. 导入评论子组件
+import comment from &quot;../subcomponents/comment.vue&quot;;
+
+export default {
+  data() {
+    return {
+      id: this.$route.params.id, // 从路由中获取到的 图片Id
+      photoinfo: {}, // 图片详情
+      list: [] // 缩略图的数组
+    };
+  },
+  created() {
+    this.getPhotoInfo();
+    this.getThumbs();
+  },
+  methods: {
+    getPhotoInfo() {
+      // 获取图片的详情
+      this.$http.get(&quot;api/getimageInfo/&quot; + this.id).then(result =&gt; {
+        if (result.body.status === 0) {
+          this.photoinfo = result.body.message[0];
+        }
+      });
+    },
+    getThumbs() {
+      // 获取缩略图
+      this.$http.get(&quot;api/getthumimages/&quot; + this.id).then(result =&gt; {
+        if (result.body.status === 0) {
+          // 循环每个图片数据，补全图片的宽和高
+          result.body.message.forEach(item =&gt; {
+            item.w = 600;
+            item.h = 400;
+          });
+          // 把完整的数据保存到 list 中
+          this.list = result.body.message;
+        }
+      });
+    }
+  },
+  components: {
+    // 注册 评论子组件
+    &quot;cmt-box&quot;: comment
+  }
+};
+&lt;/script&gt;
+
+&lt;style lang=&quot;scss&quot; scoped&gt;
+.photoinfo-container {
+  padding: 3px;
+  h3 {
+    color: #26a2ff;
+    font-size: 15px;
+    text-align: center;
+    margin: 15px 0;
+  }
+  .subtitle {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+  }
+
+  .content {
+    font-size: 13px;
+    line-height: 30px;
+  }
+
+  .thumbs{
+    img{
+      margin: 10px;
+      box-shadow: 0 0 8px #999;
+    }
+  }
+}
+&lt;/style&gt;
+</code></pre>
+<h2 id="图片懒加载muit提供">图片懒加载(muit提供)</h2>
+<pre class="html"><code>&lt;!-- 图片列表区域 --&gt;
+    &lt;ul class=&quot;photo-list&quot;&gt;
+      &lt;router-link v-for=&quot;item in list&quot; :key=&quot;item.id&quot; :to=&quot;&#39;/home/photoinfo/&#39; + item.id&quot; tag=&quot;li&quot;&gt;
+        &lt;img v-lazy=&quot;item.img_url&quot;&gt;
+        &lt;div class=&quot;info&quot;&gt;
+          &lt;h1 class=&quot;info-title&quot;&gt;{{ item.title }}&lt;/h1&gt;
+          &lt;div class=&quot;info-body&quot;&gt;{{ item.zhaiyao }}&lt;/div&gt;
+        &lt;/div&gt;
+      &lt;/router-link&gt;
+    &lt;/ul&gt;</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

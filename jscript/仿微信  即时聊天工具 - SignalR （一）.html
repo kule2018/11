@@ -1,0 +1,902 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修仿微信  即时聊天工具 - SignalR （一）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>仿微信  即时聊天工具 - SignalR （一）</center></div><div class='banquan'>原文出处:本文由博客园博主colyn提供。<br/>
+原文连接:https://www.cnblogs.com/colyn/p/11976006.html</div><br>
+    <p>话不多说，先上图</p>
+<p><img src="./images/仿微信  即时聊天工具 - SignalR （一）0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><img src="./images/仿微信  即时聊天工具 - SignalR （一）1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>背景：</p>
+<p>微信聊天，经常会遇见视频发不了，嗯，还有聊天不方便的问题，于是我就自己买了服务器，部署了一套可以直接在微信打开的网页进行聊天，这样只需要发送个url给朋友，就能聊天了！</p>
+<p>由于自己无聊弄着玩的，代码比较粗糙，各位多指正！</p>
+<p>1、首先安装SignalR，这步我就不做过多说明了</p>
+<p>安装好以后在根目录新建一个Hubs文件夹，做用户的注册和通知</p>
+<p>MessageHub.cs 文件</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using Microsoft.AspNet.SignalR;
+using Microsoft.AspNet.SignalR.Hubs;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Web;
+
+namespace SignalR.Hubs
+{
+    [HubName("MessageHub")]
+    public class MessageHub : Hub
+        {
+            private readonly ChatTicker ticker;
+            public MessageHub()
+            {
+                ticker = ChatTicker.Instance;
+            }
+
+            public void register(string username, string group = "default")
+            {
+                var list = (List&lt;SiginalRModel&gt;)HttpRuntime.Cache.Get("msg_hs");
+                if (list == null)
+                {
+                    list = new List&lt;SiginalRModel&gt;();
+                }
+               
+
+                if (list.Any(x =&gt; x.connectionId == Context.ConnectionId))
+                {
+                    Clients.Client(Context.ConnectionId).broadcastMessage("已经注册，无需再次注册");
+                }
+            else if (list.Any(x =&gt; x.name == username))
+            {
+                var model = list.Where(x =&gt; x.name == username &amp;&amp; x.group == group).FirstOrDefault();
+                if (model != null)
+                {
+                    //注册到全局  
+                    ticker.GlobalContext.Groups.Add(Context.ConnectionId, group);
+                    Clients.Client(model.connectionId).exit();
+                    ticker.GlobalContext.Groups.Remove(model.connectionId, group);
+                    list.Remove(model);
+                    model.connectionId = Context.ConnectionId;
+                    list.Add(model);
+                    Clients.Group(group).removeUserList(model.connectionId);
+                    Thread.Sleep(200);
+                    var gourpList = list.Where(x =&gt; x.group == group).ToList();
+                    Clients.Group(group).appendUserList(Context.ConnectionId, gourpList);
+                    HttpRuntime.Cache.Insert("msg_hs", list);
+                    // Clients.Client(model.connectionId).broadcastMessage("名称重复，只能注册一个");
+                }
+                //Clients.Client(Context.ConnectionId).broadcastMessage("名称重复，只能注册一个");
+            }
+            else
+                {
+                    list.Add(new SiginalRModel() { name = username, group = group, connectionId = Context.ConnectionId });
+
+                    //注册到全局  
+                    ticker.GlobalContext.Groups.Add(Context.ConnectionId, group);
+                    Thread.Sleep(200);
+
+                    var gourpList = list.Where(x =&gt; x.group == group).ToList();
+                    Clients.Group(group).appendUserList(Context.ConnectionId, gourpList);
+                    HttpRuntime.Cache.Insert("msg_hs", list);
+                }
+
+            }
+
+            public void Say(string msg)
+            {
+                var list = (List&lt;SiginalRModel&gt;)HttpRuntime.Cache.Get("msg_hs");
+                if (list == null)
+                {
+                    list = new List&lt;SiginalRModel&gt;();
+                }
+                var userModel = list.Where(x =&gt; x.connectionId == Context.ConnectionId).FirstOrDefault();
+                if (userModel != null )
+                {
+                    Clients.Group(userModel.group).Say(userModel.name, msg);
+                }
+            }
+
+        public void Exit()
+        {
+            OnDisconnected(true);
+        }
+
+        public override Task OnDisconnected(bool s)
+                {
+                    var list = (List&lt;SiginalRModel&gt;)HttpRuntime.Cache.Get("msg_hs");
+                    if (list == null)
+                    {
+                        list = new List&lt;SiginalRModel&gt;();
+                    }
+                    var closeModel = list.Where(x =&gt; x.connectionId == Context.ConnectionId).FirstOrDefault();
+
+                    if (closeModel != null)
+                    {
+                        list.Remove(closeModel);
+
+                        Clients.Group(closeModel.group).removeUserList(Context.ConnectionId);
+
+                     }
+                    HttpRuntime.Cache.Insert("msg_hs", list);
+                
+                    return base.OnDisconnected(s);
+                }
+            }
+        
+
+    public class ChatTicker
+        {
+            #region 实现一个单例
+
+            private static readonly ChatTicker _instance =
+                new ChatTicker(GlobalHost.ConnectionManager.GetHubContext&lt;MessageHub&gt;());
+
+            private readonly IHubContext m_context;
+
+            private ChatTicker(IHubContext context)
+            {
+
+                m_context = context;
+                //这里不能直接调用Sender，因为Sender是一个不退出的&ldquo;死循环&rdquo;，否则这个构造函数将不会退出。  
+                //其他的流程也将不会再执行下去了。所以要采用异步的方式。  
+                //Task.Run(() =&gt; Sender());
+            }
+
+            public IHubContext GlobalContext
+            {
+                get { return m_context; }
+            }
+
+            public static ChatTicker Instance
+            {
+                get { return _instance; }
+            }
+
+            #endregion
+        }
+
+    public class SiginalRModel {
+        public string connectionId { get; set; }
+
+        public string group { get; set; }
+        public string name { get; set; }
+    }
+}<br /><br />我把类和方法都写到一块了，大家最好是分开！</pre>
+</div>
+<p>&nbsp;</p>
+<p>接下来是控制器</p>
+<p>HomeController.cs</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using Microsoft.AspNet.SignalR;
+using Microsoft.AspNet.SignalR.Client;
+using SignalR.Hubs;
+using SignalR.ViewModels;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+using Newtonsoft.Json;
+using System.Diagnostics;
+using System.Text.RegularExpressions;
+
+namespace SignalR.Controllers
+{
+    public class HomeController : Controller
+    {
+        public ActionResult Index()
+        {
+    
+            return View();
+        }
+
+
+        public ActionResult GetV(string v)
+        {
+            if (!string.IsNullOrEmpty(v))
+            {
+                string url = RedisHelper.Get(v)?.ToString();
+                if (!string.IsNullOrEmpty(url))
+                {
+                    return Json(new { isOk = true, m = url }, JsonRequestBehavior.AllowGet);
+                }
+                return Json(new { isOk = false}, JsonRequestBehavior.AllowGet);
+            }
+            return Json(new { isOk = false }, JsonRequestBehavior.AllowGet);
+        }
+
+        public ActionResult getkey(string url)
+        {
+            if (!string.IsNullOrEmpty(url))
+            {
+                var s = "v" + Util.GetRandomLetterAndNumberString(new Random(), 5).ToLower();
+                var dt = Convert.ToDateTime(DateTime.Now.AddDays(1).ToString("yyyy-MM-dd 04:00:00"));
+                int min = Convert.ToInt16((dt - DateTime.Now).TotalMinutes);
+                RedisHelper.Set(s, url, min);
+                return Json(new { isOk = true, m = s }, JsonRequestBehavior.AllowGet);
+            }
+            return Json(new { isOk = false }, JsonRequestBehavior.AllowGet);
+        }
+
+        public ActionResult upfile()
+        {
+            try
+            {
+                if (Request.Files.Count &gt; 0)
+                {
+                    var file = Request.Files[0];
+                    if (file != null)
+                    {
+                        var imgList = new List&lt;string&gt;() { ".gif", ".jpg", ".bmp", ".png" };
+                        var videoList = new List&lt;string&gt;() { ".mp4" };
+                        FileModel fmodel = new FileModel();
+
+                        string name = Guid.NewGuid().ToString();
+                        string fileExt = Path.GetExtension(file.FileName).ToLower();//上传文件扩展名
+                        string path = Server.MapPath("~/files/") + name + fileExt;
+                        file.SaveAs(path);
+
+                        string extension = new FileInfo(path).Extension;
+
+                        if (extension == ".mp4")
+                        {
+                            fmodel.t = 2;
+                        }
+                        else if (imgList.Contains(extension))
+                        {
+                            fmodel.t = 1;
+                        }
+                        else
+                        {
+                            fmodel.t = 0;
+                        }
+                        string url = Guid.NewGuid().ToString();
+                        fmodel.url = "http://" + Request.Url.Host;
+                        if (Request.Url.Port != 80)
+                        {
+                            fmodel.url += ":" + Request.Url.Port;
+                        }
+                        fmodel.url += "/files/" + name + fileExt;
+                        GetImageThumb(Server.MapPath("~") + "files\\" + name + fileExt, name);
+                        return Json(new { isOk = true, m = "file:" + JsonConvert.SerializeObject(fmodel) }, JsonRequestBehavior.AllowGet);
+                    }
+                }
+            }
+            catch(Exception ex)
+            {
+                Log.Info(ex);
+            }
+           
+           
+            return Content("");
+        }
+
+        public string GetImageThumb(string localVideo,string name)
+        {
+            string path = AppDomain.CurrentDomain.BaseDirectory;
+            string ffmpegPath = path + "/ffmpeg.exe";
+            string oriVideoPath = localVideo;
+            int frameIndex = 5;
+            int _thubWidth;
+            int _thubHeight;
+            GetMovWidthAndHeight(localVideo, out _thubWidth, out _thubHeight);
+            int thubWidth = 200;
+            int thubHeight = _thubWidth == 0 ? 200 : (thubWidth * _thubHeight / _thubWidth );  
+            
+            string thubImagePath = path +  "files\\" + name + ".jpg";
+            string command = string.Format("\"{0}\" -i \"{1}\" -ss {2} -vframes 1 -r 1 -ac 1 -ab 2 -s {3}*{4} -f image2 \"{5}\"", ffmpegPath, oriVideoPath, frameIndex, thubWidth, thubHeight, thubImagePath);
+            Cmd.RunCmd(command);
+            return name;
+        }
+
+        /// &lt;summary&gt;
+        /// 获取视频的帧宽度和帧高度
+        /// &lt;/summary&gt;
+        /// &lt;param name="videoFilePath"&gt;mov文件的路径&lt;/param&gt;
+        /// &lt;returns&gt;null表示获取宽度或高度失败&lt;/returns&gt;
+        public static void GetMovWidthAndHeight(string videoFilePath, out int width, out int height)
+        {
+            try
+            {
+
+                //执行命令获取该文件的一些信息 
+                string ffmpegPath = AppDomain.CurrentDomain.BaseDirectory +  "/ffmpeg.exe";
+                string output;
+                string error;
+                ExecuteCommand("\"" + ffmpegPath + "\"" + " -i " + "\"" + videoFilePath + "\"", out output, out error);
+                if (string.IsNullOrEmpty(error))
+                {
+                    width = 0;
+                    height = 0;
+                }
+
+                //通过正则表达式获取信息里面的宽度信息
+                Regex regex = new Regex("(\\d{2,4})x(\\d{2,4})", RegexOptions.Compiled);
+                Match m = regex.Match(error);
+                if (m.Success)
+                {
+                    width = int.Parse(m.Groups[1].Value);
+                    height = int.Parse(m.Groups[2].Value);
+                }
+                else
+                {
+                    width = 0;
+                    height = 0;
+                }
+            }
+            catch (Exception)
+            {
+                width = 0;
+                height = 0;
+            }
+        }
+
+        public static void ExecuteCommand(string command, out string output, out string error)
+        {
+            try
+            {
+                //创建一个进程
+                Process pc = new Process();
+                pc.StartInfo.FileName = command;
+                pc.StartInfo.UseShellExecute = false;
+                pc.StartInfo.RedirectStandardOutput = true;
+                pc.StartInfo.RedirectStandardError = true;
+                pc.StartInfo.CreateNoWindow = true;
+
+                //启动进程
+                pc.Start();
+
+                //准备读出输出流和错误流
+                string outputData = string.Empty;
+                string errorData = string.Empty;
+                pc.BeginOutputReadLine();
+                pc.BeginErrorReadLine();
+
+                pc.OutputDataReceived += (ss, ee) =&gt;
+                {
+                    outputData += ee.Data;
+                };
+
+                pc.ErrorDataReceived += (ss, ee) =&gt;
+                {
+                    errorData += ee.Data;
+                };
+
+                //等待退出
+                pc.WaitForExit();
+
+                //关闭进程
+                pc.Close();
+
+                //返回流结果
+                output = outputData;
+                error = errorData;
+            }
+            catch (Exception)
+            {
+                output = null;
+                error = null;
+            }
+        }
+
+    }
+
+    public class Util
+    {
+        public static string GetRandomLetterAndNumberString(Random random, int length)
+        {
+            if (length &lt; 0)
+            {
+                throw new ArgumentOutOfRangeException("length");
+            }
+            char[] pattern = new char[] { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+        'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
+        'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
+            string result = "";
+            int n = pattern.Length;
+            for (int i = 0; i &lt; length; i++)
+            {
+                int rnd = random.Next(0, n);
+                result += pattern[rnd];
+            }
+            return result;
+        }
+    }
+
+    class Cmd
+    {
+        private static string CmdPath = @"C:\Windows\System32\cmd.exe";
+        /// &lt;summary&gt;
+        /// 执行cmd命令 返回cmd窗口显示的信息
+        /// 多命令请使用批处理命令连接符：
+        /// &lt;![CDATA[
+        /// &amp;:同时执行两个命令
+        /// |:将上一个命令的输出,作为下一个命令的输入
+        /// &amp;&amp;：当&amp;&amp;前的命令成功时,才执行&amp;&amp;后的命令
+        /// ||：当||前的命令失败时,才执行||后的命令]]&gt;
+        /// &lt;/summary&gt;
+        /// &lt;param name="cmd"&gt;执行的命令&lt;/param&gt;
+        public static string RunCmd(string cmd)
+        {
+            cmd = cmd.Trim().TrimEnd('&amp;') + "&amp;exit";//说明：不管命令是否成功均执行exit命令，否则当调用ReadToEnd()方法时，会处于假死状态
+            using (Process p = new Process())
+            {
+                p.StartInfo.FileName = CmdPath;
+                p.StartInfo.UseShellExecute = false;        //是否使用操作系统shell启动
+                p.StartInfo.RedirectStandardInput = true;   //接受来自调用程序的输入信息
+                p.StartInfo.RedirectStandardOutput = true;  //由调用程序获取输出信息
+                p.StartInfo.RedirectStandardError = true;   //重定向标准错误输出
+                p.StartInfo.CreateNoWindow = true;          //不显示程序窗口
+                p.Start();//启动程序
+
+                //向cmd窗口写入命令
+                p.StandardInput.WriteLine(cmd);
+                p.StandardInput.AutoFlush = true;
+
+                //获取cmd窗口的输出信息
+                string output = p.StandardOutput.ReadToEnd();
+                p.WaitForExit();//等待程序执行完退出进程
+                p.Close();
+
+                return output;
+            }
+        }
+    }
+}<br /><br />我还是都写到一块了，大家记得分开！</pre>
+</div>
+<p>SController.cs&nbsp; 这个是针对手机端单独拎出来的，里面不需要什么内容</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+
+namespace SignalR.Controllers
+{
+    public class SController : Controller
+    {
+        // GET: S
+        public ActionResult Index()
+        {
+            return View();
+        }
+    }
+}
+</pre>
+</div>
+<p>　根目录新建一个ViewModels文件夹，里面新建FileModel.cs文件</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+
+namespace SignalR.ViewModels
+{
+    public class FileModel
+    {
+        /// &lt;summary&gt;
+        /// 1 : 图片  2：视频
+        /// &lt;/summary&gt;
+        public int t { get; set; }
+
+        public string url { get; set; }
+    }
+}　</pre>
+</div>
+<p>RedisHelper.cs</p>
+<div class="cnblogs_Highlighter">
+<pre><code>using Microsoft.AspNet.SignalR.Messaging;
+using StackExchange.Redis;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Net;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading.Tasks;
+using System.Web;
+
+namespace SignalR
+{
+    public class RedisHelper
+    {
+        private static string Constr = "xxxx.cn:6379";
+
+        private static object _locker = new Object();
+        private static ConnectionMultiplexer _instance = null;
+
+        /// &lt;summary&gt;
+        /// 使用一个静态属性来返回已连接的实例，如下列中所示。这样，一旦 ConnectionMultiplexer 断开连接，便可以初始化新的连接实例。
+        /// &lt;/summary&gt;
+        public static ConnectionMultiplexer Instance
+        {
+            get
+            {
+                if (Constr.Length == 0)
+                {
+                    throw new Exception("连接字符串未设置！");
+                }
+                if (_instance == null)
+                {
+                    lock (_locker)
+                    {
+                        if (_instance == null || !_instance.IsConnected)
+                        {
+                            _instance = ConnectionMultiplexer.Connect(Constr);
+                        }
+                    }
+                }
+                //注册如下事件
+                _instance.ConnectionFailed += MuxerConnectionFailed;
+                _instance.ConnectionRestored += MuxerConnectionRestored;
+                _instance.ErrorMessage += MuxerErrorMessage;
+                _instance.ConfigurationChanged += MuxerConfigurationChanged;
+                _instance.HashSlotMoved += MuxerHashSlotMoved;
+                _instance.InternalError += MuxerInternalError;
+                return _instance;
+            }
+        }
+
+        static RedisHelper()
+        {
+        }
+
+
+        /// &lt;summary&gt;
+        /// 
+        /// &lt;/summary&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static IDatabase GetDatabase()
+        {
+            return Instance.GetDatabase();
+        }
+
+        /// &lt;summary&gt;
+        /// 这里的 MergeKey 用来拼接 Key 的前缀，具体不同的业务模块使用不同的前缀。
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private static string MergeKey(string key)
+        {
+            return "SignalR:"+ key;
+            //return BaseSystemInfo.SystemCode + key;
+        }
+
+        /// &lt;summary&gt;
+        /// 根据key获取缓存对象
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static T Get&lt;T&gt;(string key)
+        {
+            key = MergeKey(key);
+            return Deserialize&lt;T&gt;(GetDatabase().StringGet(key));
+        }
+
+        /// &lt;summary&gt;
+        /// 根据key获取缓存对象
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static object Get(string key)
+        {
+            key = MergeKey(key);
+            return Deserialize&lt;object&gt;(GetDatabase().StringGet(key));
+        }
+
+        /// &lt;summary&gt;
+        /// 设置缓存
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;param name="value"&gt;&lt;/param&gt;
+        /// &lt;param name="expireMinutes"&gt;&lt;/param&gt;
+        public static void Set(string key, object value, int expireMinutes = 0)
+        {
+            key = MergeKey(key);
+            if (expireMinutes &gt; 0)
+            {
+                GetDatabase().StringSet(key, Serialize(value), TimeSpan.FromMinutes(expireMinutes));
+            }
+            else
+            {
+                GetDatabase().StringSet(key, Serialize(value));
+            }
+
+        }
+
+
+        /// &lt;summary&gt;
+        /// 判断在缓存中是否存在该key的缓存数据
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static bool Exists(string key)
+        {
+            key = MergeKey(key);
+            return GetDatabase().KeyExists(key); //可直接调用
+        }
+
+        /// &lt;summary&gt;
+        /// 移除指定key的缓存
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static bool Remove(string key)
+        {
+            key = MergeKey(key);
+            return GetDatabase().KeyDelete(key);
+        }
+
+        /// &lt;summary&gt;
+        /// 异步设置
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;param name="value"&gt;&lt;/param&gt;
+        public static async Task SetAsync(string key, object value)
+        {
+            key = MergeKey(key);
+            await GetDatabase().StringSetAsync(key, Serialize(value));
+        }
+
+        /// &lt;summary&gt;
+        /// 根据key获取缓存对象
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static async Task&lt;object&gt; GetAsync(string key)
+        {
+            key = MergeKey(key);
+            object value = await GetDatabase().StringGetAsync(key);
+            return value;
+        }
+
+        /// &lt;summary&gt;
+        /// 实现递增
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static long Increment(string key)
+        {
+            key = MergeKey(key);
+            //三种命令模式
+            //Sync,同步模式会直接阻塞调用者，但是显然不会阻塞其他线程。
+            //Async,异步模式直接走的是Task模型。
+            //Fire - and - Forget,就是发送命令，然后完全不关心最终什么时候完成命令操作。
+            //即发即弃：通过配置 CommandFlags 来实现即发即弃功能，在该实例中该方法会立即返回，如果是string则返回null 如果是int则返回0.这个操作将会继续在后台运行，一个典型的用法页面计数器的实现：
+            return GetDatabase().StringIncrement(key, flags: CommandFlags.FireAndForget);
+        }
+
+        /// &lt;summary&gt;
+        /// 实现递减
+        /// &lt;/summary&gt;
+        /// &lt;param name="key"&gt;&lt;/param&gt;
+        /// &lt;param name="value"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static long Decrement(string key, string value)
+        {
+            key = MergeKey(key);
+            return GetDatabase().HashDecrement(key, value, flags: CommandFlags.FireAndForget);
+        }
+
+        /// &lt;summary&gt;
+        /// 序列化对象
+        /// &lt;/summary&gt;
+        /// &lt;param name="o"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private static byte[] Serialize(object o)
+        {
+            if (o == null)
+            {
+                return null;
+            }
+            BinaryFormatter binaryFormatter = new BinaryFormatter();
+            using (MemoryStream memoryStream = new MemoryStream())
+            {
+                binaryFormatter.Serialize(memoryStream, o);
+                byte[] objectDataAsStream = memoryStream.ToArray();
+                return objectDataAsStream;
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// 反序列化对象
+        /// &lt;/summary&gt;
+        /// &lt;typeparam name="T"&gt;&lt;/typeparam&gt;
+        /// &lt;param name="stream"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        private static T Deserialize&lt;T&gt;(byte[] stream)
+        {
+            if (stream == null)
+            {
+                return default(T);
+            }
+            BinaryFormatter binaryFormatter = new BinaryFormatter();
+            using (MemoryStream memoryStream = new MemoryStream(stream))
+            {
+                T result = (T)binaryFormatter.Deserialize(memoryStream);
+                return result;
+            }
+        }
+
+        /// &lt;summary&gt;
+        /// 配置更改时
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private static void MuxerConfigurationChanged(object sender, EndPointEventArgs e)
+        {
+            //LogHelper.SafeLogMessage("Configuration changed: " + e.EndPoint);
+        }
+
+        /// &lt;summary&gt;
+        /// 发生错误时
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private static void MuxerErrorMessage(object sender, RedisErrorEventArgs e)
+        {
+            //LogHelper.SafeLogMessage("ErrorMessage: " + e.Message);
+        }
+
+        /// &lt;summary&gt;
+        /// 重新建立连接之前的错误
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private static void MuxerConnectionRestored(object sender, ConnectionFailedEventArgs e)
+        {
+            //LogHelper.SafeLogMessage("ConnectionRestored: " + e.EndPoint);
+        }
+
+        /// &lt;summary&gt;
+        /// 连接失败 ， 如果重新连接成功你将不会收到这个通知
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private static void MuxerConnectionFailed(object sender, ConnectionFailedEventArgs e)
+        {
+            //LogHelper.SafeLogMessage("重新连接：Endpoint failed: " + e.EndPoint + ", " + e.FailureType +(e.Exception == null ? "" : (", " + e.Exception.Message)));
+        }
+
+        /// &lt;summary&gt;
+        /// 更改集群
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private static void MuxerHashSlotMoved(object sender, HashSlotMovedEventArgs e)
+        {
+            //LogHelper.SafeLogMessage("HashSlotMoved:NewEndPoint" + e.NewEndPoint + ", OldEndPoint" + e.OldEndPoint);
+        }
+
+        /// &lt;summary&gt;
+        /// redis类库错误
+        /// &lt;/summary&gt;
+        /// &lt;param name="sender"&gt;&lt;/param&gt;
+        /// &lt;param name="e"&gt;&lt;/param&gt;
+        private static void MuxerInternalError(object sender, InternalErrorEventArgs e)
+        {
+            //LogHelper.SafeLogMessage("InternalError:Message" + e.Exception.Message);
+        }
+
+        //场景不一样，选择的模式便会不一样，大家可以按照自己系统架构情况合理选择长连接还是Lazy。
+        //建立连接后，通过调用ConnectionMultiplexer.GetDatabase 方法返回对 Redis Cache 数据库的引用。从 GetDatabase 方法返回的对象是一个轻量级直通对象，不需要进行存储。
+
+        /// &lt;summary&gt;
+        /// 使用的是Lazy，在真正需要连接时创建连接。
+        /// 延迟加载技术
+        /// 微软azure中的配置 连接模板
+        /// &lt;/summary&gt;
+        //private static Lazy&lt;ConnectionMultiplexer&gt; lazyConnection = new Lazy&lt;ConnectionMultiplexer&gt;(() =&gt;
+        //{
+        //    //var options = ConfigurationOptions.Parse(constr);
+        //    ////options.ClientName = GetAppName(); // only known at runtime
+        //    //options.AllowAdmin = true;
+        //    //return ConnectionMultiplexer.Connect(options);
+        //    ConnectionMultiplexer muxer = ConnectionMultiplexer.Connect(Coonstr);
+        //    muxer.ConnectionFailed += MuxerConnectionFailed;
+        //    muxer.ConnectionRestored += MuxerConnectionRestored;
+        //    muxer.ErrorMessage += MuxerErrorMessage;
+        //    muxer.ConfigurationChanged += MuxerConfigurationChanged;
+        //    muxer.HashSlotMoved += MuxerHashSlotMoved;
+        //    muxer.InternalError += MuxerInternalError;
+        //    return muxer;
+        //});
+
+
+        #region  当作消息代理中间件使用 一般使用更专业的消息队列来处理这种业务场景
+
+        /// &lt;summary&gt;
+        /// 当作消息代理中间件使用
+        /// 消息组建中,重要的概念便是生产者,消费者,消息中间件。
+        /// &lt;/summary&gt;
+        /// &lt;param name="channel"&gt;&lt;/param&gt;
+        /// &lt;param name="message"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static long Publish(string channel, string message)
+        {
+            StackExchange.Redis.ISubscriber sub = Instance.GetSubscriber();
+            //return sub.Publish("messages", "hello");
+            return sub.Publish(channel, message);
+        }
+
+        /// &lt;summary&gt;
+        /// 在消费者端得到该消息并输出
+        /// &lt;/summary&gt;
+        /// &lt;param name="channelFrom"&gt;&lt;/param&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static void Subscribe(string channelFrom)
+        {
+            StackExchange.Redis.ISubscriber sub = Instance.GetSubscriber();
+            sub.Subscribe(channelFrom, (channel, message) =&gt;
+            {
+                Console.WriteLine((string)message);
+            });
+        }
+
+        #endregion
+
+        /// &lt;summary&gt;
+        /// GetServer方法会接收一个EndPoint类或者一个唯一标识一台服务器的键值对
+        /// 有时候需要为单个服务器指定特定的命令
+        /// 使用IServer可以使用所有的shell命令，比如：
+        /// DateTime lastSave = server.LastSave();
+        /// ClientInfo[] clients = server.ClientList();
+        /// 如果报错在连接字符串后加 ,allowAdmin=true;
+        /// &lt;/summary&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static IServer GetServer(string host, int port)
+        {
+            IServer server = Instance.GetServer(host, port);
+            return server;
+        }
+
+        /// &lt;summary&gt;
+        /// 获取全部终结点
+        /// &lt;/summary&gt;
+        /// &lt;returns&gt;&lt;/returns&gt;
+        public static EndPoint[] GetEndPoints()
+        {
+            EndPoint[] endpoints = Instance.GetEndPoints();
+            return endpoints;
+        }
+    }
+}
+</pre>
+</div>
+<p>　　</p>
+<p>　总体项目结构是这样的</p>
+<p><img src="./images/仿微信  即时聊天工具 - SignalR （一）2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>下期我将把前端代码列出来，这个我只是为了实现功能，大神勿喷</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,295 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【js】vue 2.5.1 源码学习 （三）   Vue.extend 和 data的合并策略' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【js】vue 2.5.1 源码学习 （三）   Vue.extend 和 data的合并策略</center></div><div class='banquan'>原文出处:本文由博客园博主朝花夕拾*_*提供。<br/>
+原文连接:https://www.cnblogs.com/yeujuan/p/10968982.html</div><br>
+    <div>大体思路 （三）</div>
+<div>&nbsp;1. 子类父类</div>
+<div>&nbsp;2.Vue.extend()&nbsp; &nbsp; &nbsp; //创建vue的子类</div>
+<div>　　组件的语法器 Vue.extend(options)</div>
+<div>　　Profile().$mount('#app') // 挂在app上，并替换app</div>
+<div>　　新建 initExend</div>
+<div>　　==》 Vue.extend</div>
+<div>&nbsp;3. strat.data</div>
+<div>　　==&gt; if(!vm){子组件中data的值是一个方法function ==&gt; mergeDataorFn()} // 数据的合并</div>
+<div>　　==&gt; else {} //通过实例绑定的data 实际是一个函数 mergeDataorFn</div>
+<div>　　==》 mergeDataorFn if(!vm) mergeDataFn ==&gt; mergeData()</div>
+<div>　　　　　　　　　　　　else ==》mergedInstanceDataFn ==&gt;mergeData()</div>
+<div>　&nbsp; &nbsp;mergeData(to,from) //终极合并</div>
+<div>　　jquery.extend // 深copy和浅copy</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #008000;">//</span><span style="color: #008000;">  大体思路  （二）</span>
+<span style="color: #008080;">  2</span> <span style="color: #008000;">//</span><span style="color: #008000;">  1. 子类父类  </span>
+<span style="color: #008080;">  3</span> <span style="color: #008000;">/*</span> 
+<span style="color: #008080;">  4</span> <span style="color: #008000;">     2.Vue.extend()    //创建vue的子类
+</span><span style="color: #008080;">  5</span> <span style="color: #008000;">     组件的语法器  Vue.extend(options)
+</span><span style="color: #008080;">  6</span> <span style="color: #008000;">     Profile().$mount('#app')  //  挂在app上，并替换app
+</span><span style="color: #008080;">  7</span> <span style="color: #008000;">     新建  initExend   
+</span><span style="color: #008080;">  8</span> <span style="color: #008000;">          ==》 Vue.extend 
+</span><span style="color: #008080;">  9</span> 
+<span style="color: #008080;"> 10</span> <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 11</span> <span style="color: #008000;">/*</span><span style="color: #008000;">  3. strat.data    
+</span><span style="color: #008080;"> 12</span> <span style="color: #008000;">    ==&gt; if(!vm){子组件中data的值是一个方法function ==&gt; mergeDataorFn()} // 数据的合并
+</span><span style="color: #008080;"> 13</span> <span style="color: #008000;">    ==&gt; else {}  //通过实例绑定的data  实际是一个函数 mergeDataorFn 
+</span><span style="color: #008080;"> 14</span> <span style="color: #008000;">    ==》 mergeDataorFn if(!vm) mergeDataFn  ==&gt; mergeData()   
+</span><span style="color: #008080;"> 15</span> <span style="color: #008000;">         else  ==》mergedInstanceDataFn ==&gt;mergeData()
+</span><span style="color: #008080;"> 16</span> <span style="color: #008000;">    mergeData(to,from)  //终极合并
+</span><span style="color: #008080;"> 17</span> <span style="color: #008000;">    jquery.extend  // 深copy和浅copy
+</span><span style="color: #008080;"> 18</span> <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 19</span> 
+<span style="color: #008080;"> 20</span>   
+<span style="color: #008080;"> 21</span> 
+<span style="color: #008080;"> 22</span> (<span style="color: #0000ff;">function</span><span style="color: #000000;">(global,factory){
+</span><span style="color: #008080;"> 23</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 兼容 cmd  </span>
+<span style="color: #008080;"> 24</span>     <span style="color: #0000ff;">typeof</span> exports === 'object'  &amp;&amp; module !== 'undefined' ? module.exports =<span style="color: #000000;"> factory():   
+</span><span style="color: #008080;"> 25</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> Amd</span>
+<span style="color: #008080;"> 26</span>     <span style="color: #0000ff;">typeof</span> define  === 'function' &amp;&amp; define.amd ?  define(factory) : global.Vue =<span style="color: #000000;"> factory();
+</span><span style="color: #008080;"> 27</span> })(<span style="color: #0000ff;">this</span>,<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;"> 28</span>     <span style="color: #0000ff;">var</span> uip = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 29</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> warn(string){
+</span><span style="color: #008080;"> 30</span>         console.error('Vue Wran:' +<span style="color: #000000;"> string)
+</span><span style="color: #008080;"> 31</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 32</span> 
+<span style="color: #008080;"> 33</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> resolveConstructorOptions(Con){
+</span><span style="color: #008080;"> 34</span>         <span style="color: #0000ff;">var</span> options =<span style="color: #000000;"> Con.options;
+</span><span style="color: #008080;"> 35</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 判断是否为vm的实例 或者是子类</span>
+<span style="color: #008080;"> 36</span>           <span style="color: #0000ff;">return</span><span style="color: #000000;"> options
+</span><span style="color: #008080;"> 37</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 38</span>     <span style="color: #0000ff;">var</span> hasOwnPropeerty =<span style="color: #000000;"> Object.prototype.hasOwnProperty
+</span><span style="color: #008080;"> 39</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> hasOwn(obj , key){
+</span><span style="color: #008080;"> 40</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> hasOwnPropeerty.call(obj,key)
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 42</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> makeMap(str, expectsLoweraseC){
+</span><span style="color: #008080;"> 43</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;">(expectsLoweraseC){
+</span><span style="color: #008080;"> 44</span>             str =<span style="color: #000000;"> str.toLowerCase()
+</span><span style="color: #008080;"> 45</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 46</span>         <span style="color: #0000ff;">var</span> map = Object.create(<span style="color: #0000ff;">null</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 47</span>         <span style="color: #0000ff;">var</span> list = str.split(','<span style="color: #000000;">)
+</span><span style="color: #008080;"> 48</span>         <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0 ; i &lt; list.length; i++<span style="color: #000000;">){
+</span><span style="color: #008080;"> 49</span>             map[list[i]] = <span style="color: #0000ff;">true</span>
+<span style="color: #008080;"> 50</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 51</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(key){
+</span><span style="color: #008080;"> 52</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> map[key]
+</span><span style="color: #008080;"> 53</span>         
+<span style="color: #008080;"> 54</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 56</span>     <span style="color: #0000ff;">var</span>  isbuiltInTag = makeMap('slot,component',<span style="color: #0000ff;">true</span><span style="color: #000000;">)
+</span><span style="color: #008080;"> 57</span>     <span style="color: #0000ff;">var</span> isHTMLTag =<span style="color: #000000;"> makeMap(
+</span><span style="color: #008080;"> 58</span>         'html,body,base,head,link,meta,style,title,' +
+<span style="color: #008080;"> 59</span>         'address,article,aside,footer,header,h1,h2,h3,h4,h5,h6,hgroup,nav,section,' +
+<span style="color: #008080;"> 60</span>         'div,dd,dl,dt,figcaption,figure,picture,hr,img,li,main,ol,p,pre,ul,' +
+<span style="color: #008080;"> 61</span>         'a,b,abbr,bdi,bdo,br,cite,code,data,dfn,em,i,kbd,mark,q,rp,rt,rtc,ruby,' +
+<span style="color: #008080;"> 62</span>         's,samp,small,span,strong,sub,sup,time,u,var,wbr,area,audio,map,track,video,' +
+<span style="color: #008080;"> 63</span>         'embed,object,param,source,canvas,script,noscript,del,ins,' +
+<span style="color: #008080;"> 64</span>         'caption,col,colgroup,table,thead,tbody,td,th,tr,' +
+<span style="color: #008080;"> 65</span>         'button,datalist,fieldset,form,input,label,legend,meter,optgroup,option,' +
+<span style="color: #008080;"> 66</span>         'output,progress,select,textarea,' +
+<span style="color: #008080;"> 67</span>         'details,dialog,menu,menuitem,summary,' +
+<span style="color: #008080;"> 68</span>         'content,element,shadow,template,blockquote,iframe,tfoot'
+<span style="color: #008080;"> 69</span> <span style="color: #000000;">    );
+</span><span style="color: #008080;"> 70</span>     <span style="color: #0000ff;">var</span> isSVG =<span style="color: #000000;"> makeMap(
+</span><span style="color: #008080;"> 71</span>         'svg,animate,circle,clippath,cursor,defs,desc,ellipse,filter,font-face,' +
+<span style="color: #008080;"> 72</span>         'foreignObject,g,glyph,image,line,marker,mask,missing-glyph,path,pattern,' +
+<span style="color: #008080;"> 73</span>         'polygon,polyline,rect,switch,symbol,text,textpath,tspan,use,view'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 74</span>         <span style="color: #0000ff;">true</span>
+<span style="color: #008080;"> 75</span> <span style="color: #000000;">    );
+</span><span style="color: #008080;"> 76</span>     <span style="color: #0000ff;">var</span> isReservedTag = <span style="color: #0000ff;">function</span><span style="color: #000000;">(key){
+</span><span style="color: #008080;"> 77</span>         <span style="color: #0000ff;">return</span> isHTMLTag(key) ||<span style="color: #000000;"> isSVG(key) 
+</span><span style="color: #008080;"> 78</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 79</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> validataComponentName(key){
+</span><span style="color: #008080;"> 80</span>         <span style="color: #008000;">//</span><span style="color: #008000;">检测component 的自定义名称是否合格 </span>
+<span style="color: #008080;"> 81</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 只能是字母开头或下划线，必须是字母开头</span>
+<span style="color: #008080;"> 82</span>         <span style="color: #0000ff;">if</span>(!(/^[a-zA-Z][\w-]*$/<span style="color: #000000;">g.test(key))){
+</span><span style="color: #008080;"> 83</span>            warn('组件的名称必须是字母或中横线，必须由字母开头'<span style="color: #000000;">)
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 85</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 1. 不能为内置对象，2.不能是html ,和avg的内部标签</span>
+<span style="color: #008080;"> 86</span>         <span style="color: #0000ff;">if</span>( isbuiltInTag(key) ||<span style="color: #000000;"> isReservedTag(key)){
+</span><span style="color: #008080;"> 87</span>             warn('不能为html标签或者avg的内部标签'<span style="color: #000000;">)
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">        } 
+</span><span style="color: #008080;"> 89</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 90</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> checkComonpents(child){
+</span><span style="color: #008080;"> 91</span>         <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> key <span style="color: #0000ff;">in</span><span style="color: #000000;"> child.component){
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">            validataComponentName(key)
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 95</span>    <span style="color: #008000;">//</span><span style="color: #008000;"> 配置对象</span>
+<span style="color: #008080;"> 96</span>     <span style="color: #0000ff;">var</span> config =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 97</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 自定义的策略</span>
+<span style="color: #008080;"> 98</span> <span style="color: #000000;">        optionMergeStrategies:{}
+</span><span style="color: #008080;"> 99</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">100</span>     <span style="color: #0000ff;">var</span> strats =<span style="color: #000000;"> config.optionMergeStrategies
+</span><span style="color: #008080;">101</span>     strats.el = <span style="color: #0000ff;">function</span><span style="color: #000000;">(parent,child , key , vm){
+</span><span style="color: #008080;">102</span>        
+<span style="color: #008080;">103</span>           <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">vm){
+</span><span style="color: #008080;">104</span>               warn('选项'+key+'只能在vue实例用使用'<span style="color: #000000;">)
+</span><span style="color: #008080;">105</span> <span style="color: #000000;">          }
+</span><span style="color: #008080;">106</span>           <span style="color: #0000ff;">return</span><span style="color: #000000;"> defaultStrat(parent,child , key , vm)
+</span><span style="color: #008080;">107</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">108</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> mergeData(to,form){
+</span><span style="color: #008080;">109</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 终极合并</span>
+<span style="color: #008080;">110</span>         <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">form){
+</span><span style="color: #008080;">111</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> to
+</span><span style="color: #008080;">112</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">113</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">114</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> mergeDataorFn(parentVal,childVal,vm){
+</span><span style="color: #008080;">115</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 合并 parentVal childVal  都是函数</span>
+<span style="color: #008080;">116</span>         <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">vm){
+</span><span style="color: #008080;">117</span>             <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">childVal){
+</span><span style="color: #008080;">118</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> parentVal
+</span><span style="color: #008080;">119</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">120</span>             <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">parentVal){
+</span><span style="color: #008080;">121</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> childVal
+</span><span style="color: #008080;">122</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">123</span>            <span style="color: #0000ff;">return</span>  <span style="color: #0000ff;">function</span> mergeDataFn(parentVal,childVal,vm){<span style="color: #008000;">//</span><span style="color: #008000;">只是一个函数   什么样的情况下调用 加入响应式系统 </span>
+<span style="color: #008080;">124</span>                <span style="color: #008000;">//</span><span style="color: #008000;"> 合并子组件对应的data 和   父组件对应的data</span>
+<span style="color: #008080;">125</span>                <span style="color: #0000ff;">return</span><span style="color: #000000;"> mergeData( 
+</span><span style="color: #008080;">126</span>                    <span style="color: #0000ff;">typeof</span> parentVal === 'function' ? parentVal.call(<span style="color: #0000ff;">this</span>,<span style="color: #0000ff;">this</span>) : parentVal,    <span style="color: #008000;">//</span><span style="color: #008000;"> -----忘记写</span>
+<span style="color: #008080;">127</span>                    <span style="color: #0000ff;">typeof</span> childVal === 'function' ? childVal.call(<span style="color: #0000ff;">this</span>,<span style="color: #0000ff;">this</span>): childVal)      <span style="color: #008000;">//</span><span style="color: #008000;"> -----忘记写</span>
+<span style="color: #008080;">128</span> <span style="color: #000000;">           }
+</span><span style="color: #008080;">129</span>         }<span style="color: #0000ff;">else</span>{ <span style="color: #008000;">//</span><span style="color: #008000;"> vue实例</span>
+<span style="color: #008080;">130</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span> mergeInstanceDataFn(parentVal,childVal,vm){<span style="color: #008000;">//</span><span style="color: #008000;">只是一个函数   什么样的情况下调用 加入响应式系统 </span>
+<span style="color: #008080;">131</span>                 <span style="color: #0000ff;">var</span> InstanceData = <span style="color: #0000ff;">typeof</span> childVal === 'function' ? childVal.call(vm,vm): childVal;   <span style="color: #008000;">//</span><span style="color: #008000;"> -----忘记写</span>
+<span style="color: #008080;">132</span>                 <span style="color: #0000ff;">var</span> defaultData = <span style="color: #0000ff;">typeof</span> parentVal === 'function' ? parent.call(vm,vm): parentVal;   <span style="color: #008000;">//</span><span style="color: #008000;"> -----忘记写</span>
+<span style="color: #008080;">133</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;">(InstanceData){
+</span><span style="color: #008080;">134</span>                     <span style="color: #0000ff;">return</span><span style="color: #000000;"> mergeData(parentVal,childVal)
+</span><span style="color: #008080;">135</span>                 }<span style="color: #0000ff;">else</span>{                <span style="color: #008000;">//</span><span style="color: #008000;"> -----忘记写</span>
+<span style="color: #008080;">136</span> <span style="color: #000000;">                    defaultData
+</span><span style="color: #008080;">137</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">138</span>                 
+<span style="color: #008080;">139</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">140</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">141</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">142</span>     strats.data = <span style="color: #0000ff;">function</span><span style="color: #000000;">(parent,child , key , vm){
+</span><span style="color: #008080;">143</span>         <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">vm){
+</span><span style="color: #008080;">144</span>           <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(typeof child === 'function')</span>
+<span style="color: #008080;">145</span>             <span style="color: #0000ff;">if</span>(child &amp;&amp; !(<span style="color: #0000ff;">typeof</span> child === 'function'<span style="color: #000000;">)){
+</span><span style="color: #008080;">146</span>                 warn('data必须返回是一个function'<span style="color: #000000;">)
+</span><span style="color: #008080;">147</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">148</span>            <span style="color: #0000ff;">return</span><span style="color: #000000;"> mergeDataorFn(parent,child)
+</span><span style="color: #008080;">149</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">150</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> mergeDataorFn(parent,child,vm)
+</span><span style="color: #008080;">151</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">152</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> defaultStrat(parent,child , key , vm){
+</span><span style="color: #008080;">153</span>         <span style="color: #0000ff;">return</span> child === undefined ?<span style="color: #000000;"> parent :child ;
+</span><span style="color: #008080;">154</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">155</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> mergeOptions(parent,child,vm){
+</span><span style="color: #008080;">156</span>         <span style="color: #0000ff;">var</span> options =<span style="color: #000000;"> {}
+</span><span style="color: #008080;">157</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 检测是component 是否是合法的  </span>
+<span style="color: #008080;">158</span>      
+<span style="color: #008080;">159</span> <span style="color: #000000;">        checkComonpents(child)
+</span><span style="color: #008080;">160</span>         
+<span style="color: #008080;">161</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(parent, child)</span>
+<span style="color: #008080;">162</span>         <span style="color: #0000ff;">for</span>(key <span style="color: #0000ff;">in</span><span style="color: #000000;"> parent){
+</span><span style="color: #008080;">163</span> <span style="color: #000000;">            magerField(key)
+</span><span style="color: #008080;">164</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">165</span>         <span style="color: #0000ff;">for</span>(key <span style="color: #0000ff;">in</span><span style="color: #000000;"> child){
+</span><span style="color: #008080;">166</span>             <span style="color: #0000ff;">if</span>(!hasOwn(parent ,key)){  <span style="color: #008000;">//</span><span style="color: #008000;"> parent 中循环过地方不进行循环</span>
+<span style="color: #008080;">167</span>                 magerField(key)  <span style="color: #008000;">//</span><span style="color: #008000;"> ----忘记写</span>
+<span style="color: #008080;">168</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">169</span>               
+<span style="color: #008080;">170</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">171</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 默认合并策略</span>
+<span style="color: #008080;">172</span>         <span style="color: #0000ff;">function</span><span style="color: #000000;"> magerField(key){  
+</span><span style="color: #008080;">173</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 自定义策略  默认策略 </span>
+<span style="color: #008080;">174</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(key)</span>
+<span style="color: #008080;">175</span>             <span style="color: #0000ff;">var</span> result = strats[key] || defaultStrat        <span style="color: #008000;">//</span><span style="color: #008000;"> ---忘记写</span>
+<span style="color: #008080;">176</span>             options[key] =<span style="color: #000000;"> result(parent[key],child[key] , key , vm)
+</span><span style="color: #008080;">177</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">178</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(options)</span>
+<span style="color: #008080;">179</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> options
+</span><span style="color: #008080;">180</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">181</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> initMinxin(options){
+</span><span style="color: #008080;">182</span>         Vue.prototype._init = <span style="color: #0000ff;">function</span><span style="color: #000000;">(options){
+</span><span style="color: #008080;">183</span>             <span style="color: #0000ff;">var</span> vm = <span style="color: #0000ff;">this</span> 
+<span style="color: #008080;">184</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 记录生成的vue实例对象 </span>
+<span style="color: #008080;">185</span>             vm._uip =  uip++ <span style="color: #008000;">//</span><span style="color: #008000;">   //-------忘记写</span>
+<span style="color: #008080;">186</span>           
+<span style="color: #008080;">187</span>              vm.$options =<span style="color: #000000;">mergeOptions(resolveConstructorOptions(vm.constructor),options,vm)
+</span><span style="color: #008080;">188</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">189</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">190</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> Vue(options){
+</span><span style="color: #008080;">191</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 安全机制</span>
+<span style="color: #008080;">192</span>         <span style="color: #0000ff;">if</span>(!(<span style="color: #0000ff;">this</span> <span style="color: #0000ff;">instanceof</span> Vue)){     <span style="color: #008000;">//</span><span style="color: #008000;">-------忘记写</span>
+<span style="color: #008080;">193</span>             warn('Vue是一个构造函数，必须是由new关键字调用'<span style="color: #000000;">)  
+</span><span style="color: #008080;">194</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">195</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">._init(options)
+</span><span style="color: #008080;">196</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">197</span>     initMinxin()  <span style="color: #008000;">//</span><span style="color: #008000;">  初始化选项1: 规范 2: 合并策略。</span>
+<span style="color: #008080;">198</span>     Vue.options =<span style="color: #000000;"> {
+</span><span style="color: #008080;">199</span> <span style="color: #000000;">        components: {},
+</span><span style="color: #008080;">200</span> <span style="color: #000000;">        directives:{},
+</span><span style="color: #008080;">201</span> <span style="color: #000000;">        _bash: Vue
+</span><span style="color: #008080;">202</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">203</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> initExend(Vue){
+</span><span style="color: #008080;">204</span>         Vue.extend = <span style="color: #0000ff;">function</span><span style="color: #000000;">(extendOptions){
+</span><span style="color: #008080;">205</span>             extendOptions = extendOptions || {}   <span style="color: #008000;">//</span><span style="color: #008000;"> -----忘记写</span>
+<span style="color: #008080;">206</span>             <span style="color: #0000ff;">var</span> Super = <span style="color: #0000ff;">this</span> 
+<span style="color: #008080;">207</span>             <span style="color: #0000ff;">var</span> Child = <span style="color: #0000ff;">function</span><span style="color: #000000;"> VueComponent() {
+</span><span style="color: #008080;">208</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">._init(options)
+</span><span style="color: #008080;">209</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">210</span>             Child.prototype =<span style="color: #000000;"> Object.create(Super.prototype)
+</span><span style="color: #008080;">211</span>             Child.prototype.constructor = Child   <span style="color: #008000;">//</span><span style="color: #008000;"> 改变constructor 的指向</span>
+<span style="color: #008080;">212</span>             Child.options =<span style="color: #000000;"> mergeOptions(Super.options,extendOptions)
+</span><span style="color: #008080;">213</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 子类继承父类的静态方法。</span>
+<span style="color: #008080;">214</span>             Child.extend =<span style="color: #000000;"> Vue.extend
+</span><span style="color: #008080;">215</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> Child
+</span><span style="color: #008080;">216</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">217</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">218</span> <span style="color: #000000;">    initExend(Vue)
+</span><span style="color: #008080;">219</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> Vue
+</span><span style="color: #008080;">220</span> })</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;body&gt;
+<span style="color: #008080;"> 2</span>     &lt;div id="app"&gt;
+<span style="color: #008080;"> 3</span>         &lt;huml&gt;&lt;/huml&gt;
+<span style="color: #008080;"> 4</span>     &lt;/div&gt;
+<span style="color: #008080;"> 5</span>     &lt;script src="vue.js"&gt;&lt;/script&gt;
+<span style="color: #008080;"> 6</span>     &lt;!-- &lt;script src="vue2.5.1.js"&gt;&lt;/script&gt; --&gt;
+<span style="color: #008080;"> 7</span>     &lt;script type="text/javascript"&gt;
+<span style="color: #008080;"> 8</span>         <span style="color: #0000ff;">var</span> componentA =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 9</span>             el: "#app"
+<span style="color: #008080;">10</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">var</span> vm = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+</span><span style="color: #008080;">12</span>             el:"#app"<span style="color: #000000;">,
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            data: {
+</span><span style="color: #008080;">14</span>                 message: "hello Vue"<span style="color: #000000;">,
+</span><span style="color: #008080;">15</span>                 key: "wodow"
+<span style="color: #008080;">16</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">            components:{
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">                huml: componentA
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">20</span>             
+<span style="color: #008080;">21</span> <span style="color: #000000;">        })
+</span><span style="color: #008080;">22</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(Vue)</span>
+<span style="color: #008080;">23</span>         <span style="color: #0000ff;">var</span> Parent =<span style="color: #000000;"> Vue.extend({
+</span><span style="color: #008080;">24</span>             data: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {}
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        })
+</span><span style="color: #008080;">26</span>         <span style="color: #0000ff;">var</span> Child =<span style="color: #000000;"> Parent.extend({});
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">        console.log(vm.$options)
+</span><span style="color: #008080;">28</span>     &lt;/script&gt;
+<span style="color: #008080;">29</span> &lt;/body&gt;</pre>
+</div>
+<p>以上仅个人在学习中的总结笔记，如有问题，请评论回复。</p>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,267 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修React Native 开发豆瓣评分（七）首页组件开发' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>React Native 开发豆瓣评分（七）首页组件开发</center></div><div class='banquan'>原文出处:本文由博客园博主啤酒煮鸡蛋提供。<br/>
+原文连接:https://www.cnblogs.com/hl1223/p/11139884.html</div><br>
+    <h2 id="首页内容拆分">首页内容拆分</h2>
+<p>看效果图，首页由热门影院、豆瓣热门、热门影视等列表组成，每个列表又由头加横向滑动的 电影海报列表构成。</p>
+<p>所以可以先把页面的电影海报、评分、列表头做成组件，然后在使用 ScrollView 将内容包裹即可构成首页。</p>
+<div align=center>
+
+<img src="./images/React Native 开发豆瓣评分（七）首页组件开发0.png" />
+
+</div>
+<h2 id="开发头部组件">开发头部组件</h2>
+<p>头部组件结构简单，唯一需要注意的就是点击查看更多的时候需要跳转页面，所有需要一个自定义事件，供页面使用。</p>
+<p>在 src 目录创建 itemsHeader.js，内容如下：</p>
+<pre><code><code>import { Text, View, StyleSheet, TouchableWithoutFeedback } from &#39;react-native&#39;;
+import PropTypes from &#39;prop-types&#39;;
+import { px } from &#39;../utils/device&#39;;
+import Icon from &#39;react-native-vector-icons/AntDesign&#39;;
+
+export default class ItemsHeader extends Component {
+    constructor(props) {
+        super(props);
+    }
+    static propTypes = {
+        title: PropTypes.string,
+        onPress: PropTypes.func
+    }
+    static defaultProps = {}
+    render() {
+        const { title, onPress } = this.props;
+        return (
+            &lt;View style={styles.header}&gt;
+                &lt;Text style={styles.title}&gt;{title}&lt;/Text&gt;
+                &lt;TouchableWithoutFeedback onPress={() =&gt; onPress &amp;&amp; onPress()}&gt;
+                    &lt;View style={styles.getMore}&gt;
+                        &lt;Text style={styles.moreText}&gt;查看更多&lt;/Text&gt;
+                        &lt;Icon name=&#39;right&#39; size={px(30)} color=&#39;#00b600&#39;&gt;&lt;/Icon&gt;
+                    &lt;/View&gt;
+                &lt;/TouchableWithoutFeedback&gt;
+            &lt;/View&gt;
+        )
+    }
+}
+
+const styles = StyleSheet.create({
+    header: {
+        height: px(90),
+        width: px(750),
+        paddingLeft: px(30),
+        paddingRight: px(30),
+        backgroundColor: &#39;#ffffff&#39;,
+        flexDirection: &#39;row&#39;,
+        alignItems: &#39;center&#39;,
+        justifyContent: &#39;space-between&#39;
+    },
+    title: {
+        fontSize: px(32),
+        color: &#39;#333&#39;,
+        fontWeight: &#39;600&#39;
+    },
+    getMore: {
+        flexDirection: &#39;row&#39;,
+        alignItems: &#39;center&#39;,
+    },
+    moreText: {
+        fontSize: px(28),
+        marginLeft: px(30),
+        color: &#39;#00b600&#39;,
+        marginRight: px(6)
+    }
+});</code></pre>
+<h2 id="开发评分组件">开发评分组件</h2>
+<p>评分组件需要考虑到星星大小、间距、颜色、数量，点击星星时改变星星的选中状态，并返回自定义事件 onPress 供调用者使用。</p>
+<p>如果使用组件时调用了onPress，那么组件的值为可以改变，如果没有，那么组件应该为只读状态。</p>
+<pre><code><code>import React, { Component } from &#39;react&#39;;
+import { Text, View, StyleSheet } from &#39;react-native&#39;;
+import PropTypes from &#39;prop-types&#39;;
+import { px } from &#39;../utils/device&#39;;
+import Icon from &#39;react-native-vector-icons/AntDesign&#39;;
+
+export default class Rate extends Component {
+    constructor(props) {
+        super(props);
+        this.state = {
+            value: this.props.value
+        }
+    }
+    componentWillReceiveProps(newProps) {
+        const { value } = newProps;
+        if (value !== this.state.value) {
+            this.setState({
+                value
+            });
+        }
+    }
+    static propTypes = {//如果使用组件时调用了onPress，那么组件默认为可以改变，如果没有，那么组件应该为只读
+        value: PropTypes.number,
+        size: PropTypes.number,
+        margin: PropTypes.number,
+        max: PropTypes.number,
+        color: PropTypes.string,
+        onPress: PropTypes.func
+    }
+    static defaultProps = {
+        value: 0,
+        size: 20,
+        margin: 5,
+        max: 5,
+        color: &#39;#00b600&#39;
+    }
+    bindClick = (index) =&gt; {
+        const { onPress } = this.props;
+        if (!onPress) {
+            return;
+        }
+        onPress(index + 1);
+        this.setState({
+            value: index + 1
+        })
+    }
+    render() {
+        const { size, margin, max, color, onPress } = this.props;
+        const { value } = this.state;
+        const defaultStars = [], activeStars = [];
+        for (let i = 0; i &lt; max; i++) {
+            defaultStars.push(&lt;Icon name=&#39;star&#39; key={i} size={size} color=&#39;#ececec&#39; onPress={() =&gt; this.bindClick(i)} style={{ marginRight: margin }}&gt;&lt;/Icon&gt;)
+        }
+        for (let i = 0; i &lt; value; i++) {
+            activeStars.push(&lt;Icon name=&#39;star&#39; key={i} size={size} color={color} onPress={() =&gt; this.bindClick(i)} style={{ marginRight: margin }}&gt;&lt;/Icon&gt;)
+        }
+        // 选中状态的星星的宽度
+        const activeStarsWidth = (size + margin) * Math.floor(value) + size * (value - Math.floor(value));
+        return (
+            &lt;View style={styles.rate}&gt;
+                &lt;View style={[styles.stars, styles.active, { width: activeStarsWidth }]}&gt;
+                    {activeStars.map(item =&gt; item)}
+                &lt;/View&gt;
+                &lt;View style={styles.stars}&gt;
+                    {defaultStars.map(item =&gt; item)}
+                &lt;/View&gt;
+            &lt;/View&gt;
+        )
+    }
+}
+
+
+const styles = StyleSheet.create({
+    rates: {
+        flexDirection: &#39;row&#39;,
+        position: &#39;relative&#39;
+    },
+    stars: {
+        flexDirection: &#39;row&#39;,
+        alignItems: &#39;center&#39;,
+        overflow: &#39;hidden&#39;,
+        flexGrow: 0
+    },
+    active: {
+        position: &#39;absolute&#39;,
+        zIndex: 200,
+        left: 0,
+        top: 0
+    }
+});</code></pre>
+<h2 id="开发电影海报组件">开发电影海报组件</h2>
+<p>海报组件开发需要注意的是：</p>
+<ol>
+<li><p>点击电影海报，跳转详情页面，跳转逻辑都是一样的，所以可以不用自定义事件的方式跳转，直接在组件里面调用 <em>this.props.navigation.push</em> 进行跳转。页面在 router 里注册后可以直接使用 <em>this.props.navigation.push</em>，但是组件不行。在组件中，想要使用 navigation 进行跳转，要么是使用自定义属性，将 navigation 传入组件，要么使用 react-navigation 提供的 withNavigation翻翻，withNavigation(component) 返回一个 render 函数，默认将 navigation 作出自定义属性传入组件。</p></li>
+<li><p>有些海报图片背景纯白，和页面背景融合了，看不到边界，所以需要给他设置 border，由于 Image 组件不能设置 border，所以这里需要使用 ImageBackground 组件。</p></li>
+<li><p>title 只能为一行，产出部分省略，需要加一个 numberOfLines={1} 的属性。</p></li>
+</ol>
+<pre><code><code>import React, { Component } from &#39;react&#39;;
+import { Text, View, StyleSheet, ImageBackground, TouchableWithoutFeedback } from &#39;react-native&#39;;
+import PropTypes from &#39;prop-types&#39;;
+import { withNavigation } from &#39;react-navigation&#39;;
+import { px } from &#39;../utils/device&#39;;
+import Rate from &#39;./rate&#39;;
+
+class MoviesItem extends Component {
+    constructor(props) {
+        super(props);
+    }
+    static propTypes = {
+        data: PropTypes.object
+    }
+    render() {
+        const { data, navigation } = this.props;
+        const { id, title, cover, rating, null_rating_reason } = data;
+        return (
+            &lt;TouchableWithoutFeedback onPress={() =&gt; navigation.push(&#39;Detail&#39;, { id })}&gt;
+                &lt;View style={styles.page}&gt;
+                    &lt;ImageBackground source={{ uri: cover.url }} style={styles.img}&gt;&lt;/ImageBackground&gt;
+                    &lt;Text style={styles.title} numberOfLines={1}&gt;{title}&lt;/Text&gt;
+                    {rating ? (
+                        &lt;View style={styles.rate}&gt;
+                            &lt;Rate value={rating.value / 2} size={px(20)} margin={px(4)} /&gt;
+                            &lt;Text style={styles.rateText}&gt;{rating.value.toFixed(1)}&lt;/Text&gt;
+                        &lt;/View&gt;
+                    ) : (
+                        &lt;Text style={styles.rate}&gt;{null_rating_reason}&lt;/Text&gt;
+                    )}
+                &lt;/View&gt;
+            &lt;/TouchableWithoutFeedback&gt;
+        )
+    }
+}
+
+export default withNavigation(MoviesItem);
+
+const styles = StyleSheet.create({
+    page: {
+        width: px(160)
+    },
+    img: {
+        width: px(160),
+        height: px(224),
+        overflow: &#39;hidden&#39;,
+        borderRadius: px(8),
+        borderWidth: 1,
+        borderStyle: &#39;solid&#39;,
+        borderColor: &#39;#f8f8f8&#39;
+    },
+    title: {
+        fontSize: px(28),
+        fontWeight: &#39;600&#39;,
+        color: &#39;#333&#39;,
+        marginTop: px(12),
+        lineHeight: px(40)
+    },
+    rate: {
+        flexDirection: &#39;row&#39;,
+        alignItems: &#39;center&#39;
+    },
+    rateText: {
+        fontSize: px(24),
+        color: &#39;#999&#39;,
+        marginLeft: px(6)
+    }
+});</code></pre>
+<h2 id="使用">使用</h2>
+<div align=center>
+<img src="./images/React Native 开发豆瓣评分（七）首页组件开发1.png"/>
+<img src="./images/React Native 开发豆瓣评分（七）首页组件开发2.png">
+</div>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

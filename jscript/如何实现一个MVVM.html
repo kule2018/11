@@ -1,0 +1,376 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何实现一个MVVM' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何实现一个MVVM</center></div><div class='banquan'>原文出处:本文由博客园博主残梦a提供。<br/>
+原文连接:https://www.cnblogs.com/sunhang32/p/11810867.html</div><br>
+    <h2 id="说一说我对于mvvm模型的理解吧">说一说我对于mvvm模型的理解吧</h2>
+<h4 id="我第一次接触mvvm也是在学习vue的时候在我看来vue和react都是数据驱动视图但是vue属于标准的mvvm模型react是从组件化演变而来">我第一次接触mvvm也是在学习vue的时候,在我看来vue和react都是数据驱动视图,但是vue属于标准的mvvm模型,react是从组件化演变而来</h4>
+<p>不多废话,直接粘图<br />
+<img src="./images/如何实现一个MVVM0.png" /></p>
+<h4 id="第一次使用mvvm的时候感觉特别的神奇我只是修改了数据就可以驱动视图的改变">第一次使用mvvm的时候感觉特别的神奇,我只是修改了数据就可以驱动视图的改变</h4>
+<ul>
+<li>学习mvvm模型的作用</li>
+</ul>
+<h4 id="一开始就是在学习vue的使用还有vuex等等很多也能做一些小的网站但就是没有办法提升自己的vue到一个更高的境界后来就不断的往深了学习">一开始就是在学习vue的使用还有vuex等等很多,也能做一些小的网站,但就是没有办法提升自己的vue到一个更高的境界,后来就不断的往深了学习</h4>
+<h4 id="听过网上的这么一句话">听过网上的这么一句话</h4>
+<p><font color=red>编程世界和武侠世界比较像,每一个入门的程序员,都幻想自己有朝一日,神功大成,青衣长剑,救民于水火之中,但是其实大部分的人一开始学习方式就错了,导致一直无法进入高手的行列,就是过于看中招式,武器,而忽略了内功的修炼,所以任你慕容复有百家武学,还有被我乔峰一招制敌,所以这就是内功差距</font></p>
+<h4 id="原理就是内功修炼的捷径">原理就是内功修炼的捷径</h4>
+<h4 id="进入主题">进入主题</h4>
+<ul>
+<li>原理</li>
+</ul>
+<p>Object.defineProperty(obj,name,{get:function(),set:function()})</p>
+<ul>
+<li>手写</li>
+</ul>
+<p>mvvm主要分为两部</p>
+<ul>
+<li>kvue.js</li>
+</ul>
+<ol>
+<li>获取数据,先获取options</li>
+<li>把options.data的数据通过Object.key()解析</li>
+<li>进入主题 Obejct.defineProprety() 进行双向绑定</li>
+<li>接下来是两个类 Dep 和 Watcher (关系可以看上面的图片)</li>
+</ol>
+<ul>
+<li>compile.js</li>
+</ul>
+<ol>
+<li>获取dom宿主节点 options.el</li>
+<li>把宿主节点拿出来遍历,高效 createDocumentFragment()</li>
+<li><strong>编译过程</strong> 判断是否是文本节点,如果是文本节点就通过正则的分组获取到{{}}插值表达式中间的值</li>
+<li><strong>更新函数</strong> 初始化更新函数,调用Watcher</li>
+</ol>
+<h4 id="第一次写怕说不明白直接粘上代码">第一次写,怕说不明白,直接粘上代码</h4>
+<h2 id="先创建目录结构">先创建目录结构</h2>
+<p><img src="./images/如何实现一个MVVM1.png" /></p>
+<h3 id="代码">代码</h3>
+<ul>
+<li>index.html</li>
+</ul>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot; /&gt;
+    &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;ie=edge&quot; /&gt;
+    &lt;title&gt;Document&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id=&quot;app&quot;&gt;
+      &lt;!-- 插值绑定 --&gt;
+      &lt;p&gt;{{name}}&lt;/p&gt;
+      &lt;!-- 指令解析 --&gt;
+      &lt;p k-text=&quot;name&quot;&gt;&lt;/p&gt;
+      &lt;p&gt;{{age}}&lt;/p&gt;
+      &lt;p&gt;
+        {{doubleAge}}
+      &lt;/p&gt;
+      &lt;!-- 双向绑定 --&gt;
+      &lt;input type=&quot;text&quot; k-model=&quot;name&quot; /&gt;
+      &lt;!-- 事件处理 --&gt;
+      &lt;button @click=&quot;changeName&quot;&gt;呵呵&lt;/button&gt;
+      &lt;!-- html内容解析 --&gt;
+      &lt;div k-html=&quot;html&quot;&gt;&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;script src=&quot;./compile.js&quot;&gt;&lt;/script&gt;
+    &lt;script src=&quot;./kvue.js&quot;&gt;&lt;/script&gt;
+
+    &lt;script&gt;
+      const kaikeba = new KVue({
+        el: &quot;#app&quot;,
+        data: {
+          name: &quot;I am test.&quot;,
+          age: 12,
+          html: &quot;&lt;button&gt;这是一个按钮&lt;/button&gt;&quot;
+        },
+        created() {
+          console.log(&quot;开始啦&quot;);
+          setTimeout(() =&gt; {
+            this.name = &quot;我是测试&quot;;
+          }, 1500);
+        },
+        methods: {
+          changeName() {
+            this.name = &quot;残梦a博客园&quot;;
+            this.age = 1;
+          }
+        }
+      });
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<ul>
+<li>kvue.js</li>
+</ul>
+<pre class="js"><code>// new KVue({data:{...}})
+
+class KVue {
+  constructor(options) {
+    this.$options = options;
+
+    // 数据响应化
+    this.$data = options.data;
+    this.observe(this.$data);
+
+    // 模拟一下watcher创建
+    // new Watcher();
+    // // 通过访问test属性触发get函数，添加依赖
+    // this.$data.test;
+    // new Watcher();
+    // this.$data.foo.bar;
+
+    new Compile(options.el, this);
+
+    // created执行
+    if (options.created) {
+        options.created.call(this);
+    }
+  }
+
+  observe(value) {
+    if (!value || typeof value !== &quot;object&quot;) {
+      return;
+    }
+
+    // 遍历该对象
+    Object.keys(value).forEach(key =&gt; {
+      this.defineReactive(value, key, value[key]);
+    //   代理data中的属性到vue实例上
+      this.proxyData(key);
+    });
+  }
+
+  // 数据响应化
+  defineReactive(obj, key, val) {
+    this.observe(val); // 递归解决数据嵌套
+
+    const dep = new Dep();
+
+    Object.defineProperty(obj, key, {
+      get() {
+        Dep.target &amp;&amp; dep.addDep(Dep.target);
+        return val;
+      },
+      set(newVal) {
+        if (newVal === val) {
+          return;
+        }
+        val = newVal;
+        // console.log(`${key}属性更新了：${val}`);
+        dep.notify();
+      }
+    });
+  }
+
+  proxyData(key) {
+      Object.defineProperty(this, key, {
+          get(){
+            return this.$data[key]
+          },
+          set(newVal){
+            this.$data[key] = newVal;
+          }
+      })
+  }
+
+}
+
+// Dep：用来管理Watcher
+class Dep {
+  constructor() {
+    // 这里存放若干依赖（watcher）
+    this.deps = [];
+  }
+
+  addDep(dep) {
+    this.deps.push(dep);
+  }
+
+  notify() {
+    this.deps.forEach(dep =&gt; dep.update());
+  }
+}
+
+// Watcher
+class Watcher {
+  constructor(vm, key, cb) {
+      this.vm = vm;
+      this.key = key;
+      this.cb = cb;
+
+    // 将当前watcher实例指定到Dep静态属性target
+    Dep.target = this;
+    this.vm[this.key]; // 触发getter，添加依赖
+    Dep.target = null;
+  }
+
+  update() {
+    // console.log(&quot;属性更新了&quot;);
+    this.cb.call(this.vm, this.vm[this.key]);
+  }
+}
+</code></pre>
+<ul>
+<li>complie.js</li>
+</ul>
+<pre class="js"><code>// 用法 new Compile(el, vm)
+
+class Compile {
+  constructor(el, vm) {
+    // 要遍历的宿主节点
+    this.$el = document.querySelector(el);
+
+    this.$vm = vm;
+
+    // 编译
+    if (this.$el) {
+      // 转换内部内容为片段Fragment
+      this.$fragment = this.node2Fragment(this.$el);
+      // 执行编译
+      this.compile(this.$fragment);
+      // 将编译完的html结果追加至$el
+      this.$el.appendChild(this.$fragment);
+    }
+  }
+
+  // 将宿主元素中代码片段拿出来遍历，这样做比较高效
+  node2Fragment(el) {
+    const frag = document.createDocumentFragment();
+    // 将el中所有子元素搬家至frag中
+    let child;
+    while ((child = el.firstChild)) {
+      frag.appendChild(child);
+    }
+    return frag;
+  }
+  // 编译过程
+  compile(el) {
+    const childNodes = el.childNodes;
+    Array.from(childNodes).forEach(node =&gt; {
+      // 类型判断
+      if (this.isElement(node)) {
+        // 元素
+        // console.log(&#39;编译元素&#39;+node.nodeName);
+        // 查找k-，@，:
+        const nodeAttrs = node.attributes;
+        Array.from(nodeAttrs).forEach(attr =&gt; {
+          const attrName = attr.name; //属性名
+          const exp = attr.value; // 属性值
+          if (this.isDirective(attrName)) {
+            // k-text
+            const dir = attrName.substring(2);
+            // 执行指令
+            this[dir] &amp;&amp; this[dir](node, this.$vm, exp);
+          }
+          if (this.isEvent(attrName)) {
+            const dir = attrName.substring(1); // @click
+            this.eventHandler(node, this.$vm, exp, dir);
+          }
+        });
+      } else if (this.isInterpolation(node)) {
+        // 文本
+        // console.log(&#39;编译文本&#39;+node.textContent);
+        this.compileText(node);
+      }
+
+      // 递归子节点
+      if (node.childNodes &amp;&amp; node.childNodes.length &gt; 0) {
+        this.compile(node);
+      }
+    });
+  }
+
+  compileText(node) {
+    // console.log(RegExp.$1);
+    this.update(node, this.$vm, RegExp.$1, &quot;text&quot;);
+  }
+
+  // 更新函数
+  update(node, vm, exp, dir) {
+    const updaterFn = this[dir + &quot;Updater&quot;];
+    // 初始化
+    updaterFn &amp;&amp; updaterFn(node, vm[exp]);
+    // 依赖收集
+    new Watcher(vm, exp, function(value) {
+      updaterFn &amp;&amp; updaterFn(node, value);
+    });
+  }
+
+  text(node, vm, exp) {
+    this.update(node, vm, exp, &quot;text&quot;);
+  }
+
+  //   双绑
+  model(node, vm, exp) {
+    // 指定input的value属性
+    this.update(node, vm, exp, &quot;model&quot;);
+
+    // 视图对模型响应
+    node.addEventListener(&quot;input&quot;, e =&gt; {
+      vm[exp] = e.target.value;
+    });
+  }
+
+  modelUpdater(node, value) {
+    node.value = value;
+  }
+
+  html(node, vm, exp) {
+    this.update(node, vm, exp, &quot;html&quot;);
+  }
+
+  htmlUpdater(node, value) {
+    node.innerHTML = value;
+  }
+
+  textUpdater(node, value) {
+    node.textContent = value;
+  }
+
+  //   事件处理器
+  eventHandler(node, vm, exp, dir) {
+    //   @click=&quot;onClick&quot;
+    let fn = vm.$options.methods &amp;&amp; vm.$options.methods[exp];
+    if (dir &amp;&amp; fn) {
+      node.addEventListener(dir, fn.bind(vm));
+    }
+  }
+
+  isDirective(attr) {
+    return attr.indexOf(&quot;k-&quot;) == 0;
+  }
+  isEvent(attr) {
+    return attr.indexOf(&quot;@&quot;) == 0;
+  }
+  isElement(node) {
+    return node.nodeType === 1;
+  }
+  // 插值文本
+  isInterpolation(node) {
+    return node.nodeType === 3 &amp;&amp; /\{\{(.*)\}\}/.test(node.textContent);
+  }
+}
+</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,259 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一篇文章教你如何捕获前端错误' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一篇文章教你如何捕获前端错误</center></div><div class='banquan'>原文出处:本文由博客园博主vivo互联网技术提供。<br/>
+原文连接:https://www.cnblogs.com/vivotech/p/11162672.html</div><br>
+    <blockquote>
+<p>本文首发于 vivo互联网技术 微信公众号 <a href="https://mp.weixin.qq.com/s/E51lKQOojsvhHvACIyXwhw" data-cke-saved-href="https://mp.weixin.qq.com/s/E51lKQOojsvhHvACIyXwhw">https://mp.weixin.qq.com/s/E51lKQOojsvhHvACIyXwhw</a><br />作者：黄文佳</p>
+
+
+</blockquote>
+<h2>常见错误的分类</h2>
+<p>对于用户在访问页面时发生的错误，主要包括以下几个类型：</p>
+<h3><strong>1、js运行时错误</strong></h3>
+<p>JavaScript代码在用户浏览器中执行时，由于一些边界情况、本地环境的不可控等因素，可能会存在js运行时错误。</p>
+<p>而依赖客户端的某些方法，由于兼容性或者网络等问题，也有概率会出现运行时错误。</p>
+<p>e.g: 下图是当使用了未定义的变量"foo"，导致产生js运行时错误时的上报数据：</p>
+<p><img src="./images/一篇文章教你如何捕获前端错误0.png" alt="" data-cke-saved-src="./images/一篇文章教你如何捕获前端错误0.png" /></p>
+<h3><strong>2、资源加载错误</strong></h3>
+<p>这里的静态资源包括js、css以及image等。现在的web项目，往往依赖了大量的静态资源，而且一般也会有cdn存在。</p>
+<p>如果某个节点出现问题导致某个静态资源无法访问，就需要能够捕获这种异常并进行上报，方便第一时间解决问题。</p>
+<p>e.g: 下图是图片资源不存在时的上报数据：</p>
+<p><img src="./images/一篇文章教你如何捕获前端错误1.png" alt="" data-cke-saved-src="./images/一篇文章教你如何捕获前端错误1.png" /></p>
+<h3><strong>3、未处理的promise错误</strong></h3>
+<p>未使用catch捕获的promise错误，往往都会存在比较大的风险。而编码时有可能覆盖的不够全面，因此有必要监控未处理的promise错误并进行上报。</p>
+<p>e.g: 下图是promise请求接口发生错误后，未进行catch时的上报数据：</p>
+<p><img src="./images/一篇文章教你如何捕获前端错误2.png" alt="" data-cke-saved-src="./images/一篇文章教你如何捕获前端错误2.png" /></p>
+<h3><strong>4、异步请求错误（fetch与xhr）</strong></h3>
+<p>异步错误的捕获分为两个部分：一个是传统的XMLHttpRequest，另一个是使用fetch api。</p>
+<p>像axios和jQuery等库就是在xhr上的封装，而有些情况也可能会使用原生的fetch，因此对这两种情况都要进行捕获。</p>
+<p>e.g: 下图是xhr请求接口返回400时捕获后的上报数据：</p>
+<p><img src="./images/一篇文章教你如何捕获前端错误3.png" alt="" data-cke-saved-src="./images/一篇文章教你如何捕获前端错误3.png" /></p>
+<h2>各个类型错误的捕获方式</h2>
+<h3><strong>1、window.onerror与window.addEventListener('error')捕获js运行时错误</strong></h3>
+<p>使用window.onerror和window.addEventListener('error')都能捕获，但是window.onerror含有详细的error堆栈信息，存在error.stack中，所以我们选择使用onerror的方式对js运行时错误进行捕获。</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="10">
+<pre><code><code>window.onerror = function (msg, url, lineNo, columnNo, error) {
+    // 处理错误信息
+}
+// demo
+msg: Uncaught TypeError: Uncaught ReferenceError: a is not defined
+error.statck: TypeError: ReferenceError: a is not defined at http://xxxx.js:1:13
+window.addEventListener('error', event =&gt; (){ 
+  // 处理错误信息
+}, false);
+// true代表在捕获阶段调用，false代表在冒泡阶段捕获。使用true或false都可以，默认为false
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<h3><strong>2、资源加载错误使用addEventListener去监听error事件捕获</strong></h3>
+<p>实现原理：当一项资源（如&lt;img&gt;或&lt;script&gt;）加载失败，加载资源的元素会触发一个Event接口的error事件，并执行该元素上的onerror()处理函数。</p>
+<p>这些error事件不会向上冒泡到window，不过能被window.addEventListener在捕获阶段捕获。</p>
+<p>但这里需要注意，由于上面提到了addEventListener也能够捕获js错误，因此需要过滤避免重复上报，判断为资源错误的时候才进行上报。</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="9">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22window.addEventListener('error'%2C%20event%20%3D%3E%20()%7B%20%5Cn%20%20%2F%2F%20%E8%BF%87%E6%BB%A4js%20error%5Cn%20%20let%20target%20%3D%20event.target%20%7C%7C%20event.srcElement%3B%5Cn%20%20let%20isElementTarget%20%3D%20target%20instanceof%20HTMLScriptElement%20%7C%7C%20target%20instanceof%20HTMLLinkElement%20%7C%7C%20target%20instanceof%20HTMLImageElement%3B%5Cn%20%20if%20(!isElementTarget)%20return%20false%3B%5Cn%20%20%2F%2F%20%E4%B8%8A%E6%8A%A5%E8%B5%84%E6%BA%90%E5%9C%B0%E5%9D%80%5Cn%20%20let%20url%20%3D%20target.src%20%7C%7C%20target.href%3B%5Cn%20%20console.log(url)%3B%5Cn%7D%2C%20true)%3B%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code>window.addEventListener('error', event =&gt; (){ 
+  // 过滤js error
+  let target = event.target || event.srcElement;
+  let isElementTarget = target instanceof HTMLScriptElement || target instanceof HTMLLinkElement || target instanceof HTMLImageElement;
+  if (!isElementTarget) return false;
+  // 上报资源地址
+  let url = target.src || target.href;
+  console.log(url);
+}, true);
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<h3><strong>3、未处理的promise错误处理方式</strong></h3>
+<p>实现原理：当promise被reject并且错误信息没有被处理的时候，会抛出一个unhandledrejection。</p>
+<p>这个错误不会被window.onerror以及window.addEventListener('error')捕获，但是有专门的window.addEventListener('unhandledrejection')方法进行捕获处理。</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="8">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22window.addEventListener('rejectionhandled'%2C%20event%20%3D%3E%20%7B%5Cn%20%20%2F%2F%20%E9%94%99%E8%AF%AF%E7%9A%84%E8%AF%A6%E7%BB%86%E4%BF%A1%E6%81%AF%E5%9C%A8reason%E5%AD%97%E6%AE%B5%5Cn%20%20%2F%2F%20demo%3Asettimeout%20error%5Cn%20%20console.log(event.reason)%3B%5Cn%7D)%3B%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code>window.addEventListener('rejectionhandled', event =&gt; {
+  // 错误的详细信息在reason字段
+  // demo:settimeout error
+  console.log(event.reason);
+});
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<h3><strong>4、fetch与xhr错误的捕获</strong></h3>
+<p>对于fetch和xhr，我们需要通过改写它们的原生方法，在触发错误时进行自动化的捕获和上报。</p>
+<p>改写fetch方法：</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="7">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22%2F%2F%20fetch%E7%9A%84%E5%A4%84%E7%90%86%5Cnfunction%20_errorFetchInit%20()%20%7B%5Cn%20%20%20%20if(!window.fetch)%20return%3B%5Cn%20%20%20%20let%20_oldFetch%20%3D%20window.fetch%3B%5Cn%20%20%20%20window.fetch%20%3D%20function%20()%20%7B%5Cn%20%20%20%20%20%20%20%20return%20_oldFetch.apply(this%2C%20arguments)%5Cn%20%20%20%20%20%20%20%20.then(res%20%3D%3E%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20if%20(!res.ok)%20%7B%20%2F%2F%20%E5%BD%93status%E4%B8%8D%E4%B8%BA2XX%E7%9A%84%E6%97%B6%E5%80%99%EF%BC%8C%E4%B8%8A%E6%8A%A5%E9%94%99%E8%AF%AF%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%20%20%20%20return%20res%3B%5Cn%20%20%20%20%20%20%20%20%7D)%5Cn%20%20%20%20%20%20%20%20%2F%2F%20%E5%BD%93fetch%E6%96%B9%E6%B3%95%E9%94%99%E8%AF%AF%E6%97%B6%E4%B8%8A%E6%8A%A5%5Cn%20%20%20%20%20%20%20%20.catch(error%20%3D%3E%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20error.message%2C%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20error.stack%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20%E6%8A%9B%E5%87%BA%E9%94%99%E8%AF%AF%E5%B9%B6%E4%B8%94%E4%B8%8A%E6%8A%A5%5Cn%20%20%20%20%20%20%20%20%20%20%20%20throw%20error%3B%20%5Cn%20%20%20%20%20%20%20%20%7D)%5Cn%20%20%20%20%7D%5Cn%7D%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code>// fetch的处理
+function _errorFetchInit () {
+    if(!window.fetch) return;
+    let _oldFetch = window.fetch;
+    window.fetch = function () {
+        return _oldFetch.apply(this, arguments)
+        .then(res =&gt; {
+            if (!res.ok) { // 当status不为2XX的时候，上报错误
+            }
+            return res;
+        })
+        // 当fetch方法错误时上报
+        .catch(error =&gt; {
+            // error.message,
+            // error.stack
+            // 抛出错误并且上报
+            throw error; 
+        })
+    }
+}
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<p>对于XMLHttpRequest的重写：</p>
+<p><strong>xhr改写</strong></p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="6">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22%5Cn%2F%2F%20xhr%E7%9A%84%E5%A4%84%E7%90%86%5Cnfunction%20_errorAjaxInit%20()%20%7B%5Cn%20%20%20%20let%20protocol%20%3D%20window.location.protocol%3B%5Cn%20%20%20%20if%20(protocol%20%3D%3D%3D%20'file%3A')%20return%3B%5Cn%20%20%20%20%2F%2F%20%E5%A4%84%E7%90%86XMLHttpRequest%5Cn%20%20%20%20if%20(!window.XMLHttpRequest)%20%7B%5Cn%20%20%20%20%20%20%20%20return%3B%20%20%5Cn%20%20%20%20%7D%5Cn%20%20%20%20let%20xmlhttp%20%3D%20window.XMLHttpRequest%3B%20%20%20%20%5Cn%20%20%20%20%2F%2F%20%E4%BF%9D%E5%AD%98%E5%8E%9F%E7%94%9Fsend%E6%96%B9%E6%B3%95%5Cn%20%20%20%20let%20_oldSend%20%3D%20xmlhttp.prototype.send%3B%5Cn%20%20%20%20let%20_handleEvent%20%3D%20function%20(event)%20%7B%5Cn%20%20%20%20%20%20%20%20try%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20if%20(event%20%26%26%20event.currentTarget%20%26%26%20event.currentTarget.status%20!%3D%3D%20200)%20%7B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20event.currentTarget%20%E5%8D%B3%E4%B8%BA%E6%9E%84%E5%BB%BA%E7%9A%84xhr%E5%AE%9E%E4%BE%8B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20event.currentTarget.response%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20event.currentTarget.responseURL%20%7C%7C%20event.currentTarget.ajaxUrl%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20event.currentTarget.status%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20event.currentTarget.statusText%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%20%7D)%3B%5Cn%20%20%20%20%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%20%20%20%20%7D%20catch%20(e)%20%7Bva%5Cn%20%20%20%20%20%20%20%20%20%20%20%20console.log('Tool%5C%5C's%20error%3A%20'%20%2B%20e)%3B%5Cn%20%20%20%20%20%20%20%20%7D%5Cn%20%20%20%20%7D%5Cn%20%20%20%20xmlhttp.prototype.send%20%3D%20function%20()%20%7B%5Cn%20%20%20%20%20%20%20%20this.addEventListener('error'%2C%20_handleEvent)%3B%20%2F%2F%20%E5%A4%B1%E8%B4%A5%5Cn%20%20%20%20%20%20%20%20this.addEventListener('load'%2C%20_handleEvent)%3B%20%20%2F%2F%20%E5%AE%8C%E6%88%90%5Cn%20%20%20%20%20%20%20%20this.addEventListener('abort'%2C%20_handleEvent)%3B%20%2F%2F%20%E5%8F%96%E6%B6%88%5Cn%20%20%20%20%20%20%20%20return%20_oldSend.apply(this%2C%20arguments)%3B%5Cn%20%20%20%20%7D%5Cn%7D%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code>
+// xhr的处理
+function _errorAjaxInit () {
+    let protocol = window.location.protocol;
+    if (protocol === 'file:') return;
+    // 处理XMLHttpRequest
+    if (!window.XMLHttpRequest) {
+        return;  
+    }
+    let xmlhttp = window.XMLHttpRequest;    
+    // 保存原生send方法
+    let _oldSend = xmlhttp.prototype.send;
+    let _handleEvent = function (event) {
+        try {
+            if (event &amp;&amp; event.currentTarget &amp;&amp; event.currentTarget.status !== 200) {
+                    // event.currentTarget 即为构建的xhr实例
+                    // event.currentTarget.response
+                    // event.currentTarget.responseURL || event.currentTarget.ajaxUrl
+                    // event.currentTarget.status
+                    // event.currentTarget.statusText
+                });
+            }
+        } catch (e) {va
+            console.log('Tool\'s error: ' + e);
+        }
+    }
+    xmlhttp.prototype.send = function () {
+        this.addEventListener('error', _handleEvent); // 失败
+        this.addEventListener('load', _handleEvent);  // 完成
+        this.addEventListener('abort', _handleEvent); // 取消
+        return _oldSend.apply(this, arguments);
+    }
+}
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<p>关于responseURL 的说明</p>
+<p>需要特别注意的是，当请求完全无法执行的时候，XMLHttpRequest会收到status=0 和 statusText=null的返回，此时responseURL也为空string。</p>
+<p>另外在安卓4.4及以下版本的webview中，xhr对象也不存在responseURL属性。</p>
+<p>因此我们需要额外的改写xhr的open方法，将传入的url记录下来，方便上报时带上。</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="5">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22var%20_oldOpen%20%3D%20xmlhttp.prototype.open%3B%5Cn%2F%2F%20%E9%87%8D%E5%86%99open%E6%96%B9%E6%B3%95%2C%E8%AE%B0%E5%BD%95%E8%AF%B7%E6%B1%82%E7%9A%84url%5Cnxmlhttp.prototype.open%20%3D%20function%20(method%2C%20url)%20%7B%5Cn%20%20%20%20_oldOpen.apply(this%2C%20arguments)%3B%5Cn%20%20%20%20this.ajaxUrl%20%3D%20url%3B%5Cn%7D%3B%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code>var _oldOpen = xmlhttp.prototype.open;
+// 重写open方法,记录请求的url
+xmlhttp.prototype.open = function (method, url) {
+    _oldOpen.apply(this, arguments);
+    this.ajaxUrl = url;
+};
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<h2>其他问题</h2>
+<h3><strong>1、其他框架，例如vue项目的错误捕获</strong></h3>
+<p>vue内部发生的错误会被Vue拦截，因此vue提供方法给我们处理vue组件内部发生的错误。</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="4">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22Vue.config.errorHandler%C2%A0%3D%C2%A0function%C2%A0(err%2C%C2%A0vm%2C%C2%A0info)%C2%A0%7B%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code>Vue.config.errorHandler&nbsp;=&nbsp;function&nbsp;(err,&nbsp;vm,&nbsp;info)&nbsp;{
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<h3><strong>2、script error的解决方式</strong></h3>
+<p>"script error.&rdquo;有时也被称为跨域错误。当网站请求并执行一个托管在第三方域名下的脚本时，就可能遇到该错误。最常见的情形是使用 CDN 托管 JS 资源。</p>
+<p>其实这并不是一个 JavaScript Bug。出于安全考虑，浏览器会刻意隐藏其他域的 JS 文件抛出的具体错误信息，这样做可以有效避免敏感信息无意中被不受控制的第三方脚本捕获。</p>
+<p>因此，浏览器只允许同域下的脚本捕获具体错误信息，而其他脚本只知道发生了一个错误，但无法获知错误的具体内容。</p>
+<h4><strong>解决方案1：（推荐）</strong></h4>
+<p>添加 crossorigin="anonymous" 属性。</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="3">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22%3Cscript%20src%3D%5C%22http%3A%2F%2Fanother-domain.com%2Fapp.js%5C%22%20crossorigin%3D%5C%22anonymous%5C%22%3E%3C%2Fscript%3E%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code>&lt;script src="http://another-domain.com/app.js" crossorigin="anonymous"&gt;&lt;/script&gt;
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<p>此步骤的作用是告知浏览器以匿名方式获取目标脚本。这意味着请求脚本时不会向服务端发送潜在的用户身份信息（例如 Cookies、HTTP 证书等）。</p>
+<p>添加跨域 HTTP 响应头：</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="2">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22Access-Control-Allow-Origin%3A%20*%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code>Access-Control-Allow-Origin: *
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<p>或者</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="1">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22%20Access-Control-Allow-Origin%3A%20http%3A%2F%2Ftest.com%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code> Access-Control-Allow-Origin: http://test.com
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<p>**注意：**大部分主流 CDN 默认添加了 Access-Control-Allow-Origin 属性。</p>
+<p>完成上述两步之后，即可通过 window.onerror 捕获跨域脚本的报错信息。</p>
+<h4><strong>解决方案2</strong></h4>
+<p>难以在 HTTP 请求响应头中添加跨域属性时，还可以考虑 try catch 这个备选方案。</p>
+<p>在如下示例 HTML 页面中加入 try catch：</p>
+<div class="cke_widget_wrapper cke_widget_block cke_widget_codeSnippet cke_widget_selected" data-cke-widget-wrapper="1" data-cke-filter="off" data-cke-display-name="代码段" data-cke-widget-id="0">
+<pre class="cke_widget_element" data-cke-widget-data="%7B%22code%22%3A%22%3C!doctype%20html%3E%5Cn%3Chtml%3E%5Cn%3Chead%3E%5Cn%20%20%20%20%3Ctitle%3ETest%20page%20in%20http%3A%2F%2Ftest.com%3C%2Ftitle%3E%5Cn%3C%2Fhead%3E%5Cn%3Cbody%3E%5Cn%20%20%20%20%3Cscript%20src%3D%5C%22http%3A%2F%2Fanother-domain.com%2Fapp.js%5C%22%3E%3C%2Fscript%3E%5Cn%20%20%20%20%2F%2F%20app.js%E9%87%8C%E9%9D%A2%E6%9C%89%E4%B8%80%E4%B8%AAfoo%E6%96%B9%E6%B3%95%EF%BC%8C%E8%B0%83%E7%94%A8%E4%BA%86%E4%B8%8D%E5%AD%98%E5%9C%A8%E7%9A%84bar%E6%96%B9%E6%B3%95%5Cn%20%20%20%20%3Cscript%3E%5Cn%20%20%20%20window.onerror%20%3D%20function%20(message%2C%20url%2C%20line%2C%20column%2C%20error)%20%7B%5Cn%20%20%20%20%20%20%20%20console.log(message%2C%20url%2C%20line%2C%20column%2C%20error)%3B%5Cn%20%20%20%20%7D%5Cn%20%20%20%20try%20%7B%5Cn%20%20%20%20%20%20%20%20foo()%3B%5Cn%20%20%20%20%7D%20catch%20(e)%20%7B%5Cn%20%20%20%20%20%20%20%20console.log(e)%3B%5Cn%5Cn%20%20%20%20%20%20%20%20throw%20e%3B%5Cn%20%20%20%20%7D%5Cn%3C%2Fscript%3E%5Cn%3C%2Fbody%3E%5Cn%3C%2Fhtml%3E%5Cn%5Cn%2F%2F%20%E8%BF%90%E8%A1%8C%E8%BE%93%E5%87%BA%E7%BB%93%E6%9E%9C%E5%A6%82%E4%B8%8B%EF%BC%9A%5Cn%5Cn%3D%3E%20ReferenceError%3A%20bar%20is%20not%20defined%5Cnat%20foo%20(http%3A%2F%2Fanother-domain.com%2Fapp.js%3A2%3A3)%5Cnat%20http%3A%2F%2Ftest.com%2F%3A15%3A3%5Cn%3D%3E%20%5C%22Script%20error.%5C%22%2C%20%5C%22%5C%22%2C%200%2C%200%2C%20undefined%5Cn%22%2C%22classes%22%3Anull%7D" data-cke-widget-upcasted="1" data-cke-widget-keep-attr="0" data-widget="codeSnippet"><code>&lt;!doctype html&gt;
+&lt;html&gt;
+&lt;head&gt;
+    &lt;title&gt;Test page in http://test.com&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;script src="http://another-domain.com/app.js"&gt;&lt;/script&gt;
+    // app.js里面有一个foo方法，调用了不存在的bar方法
+    &lt;script&gt;
+    window.onerror = function (message, url, line, column, error) {
+        console.log(message, url, line, column, error);
+    }
+    try {
+        foo();
+    } catch (e) {
+        console.log(e);
+
+        throw e;
+    }
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+// 运行输出结果如下：
+
+=&gt; ReferenceError: bar is not defined
+at foo (http://another-domain.com/app.js:2:3)
+at http://test.com/:15:3
+=&gt; "Script error.", "", 0, 0, undefined
+</code></pre>
+<img class="cke_reset cke_widget_mask" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" /><span class="cke_reset cke_widget_drag_handler_container"><img class="cke_reset cke_widget_drag_handler" title="点击并拖拽以移动" src="data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="15" height="15" data-cke-widget-drag-handler="1" /></span></div>
+<p>可见 try catch 中的 Console 语句输出了完整的信息，但 window.onerror 中只能捕获&ldquo;Script error&rdquo;。根据这个特点，可以在 catch 语句中手动上报捕获的异常。</p>
+<h2>总结</h2>
+<p>上述的错误捕获基本覆盖了前端监控所需的错误场景，但是第三部分指出的两个其他问题，目前解决的方式都不太完美。</p>
+<p>对于有使用框架的项目：一是需要有额外的处理流程，比如示例中就需要单独为vue项目进行初始化；二是对于其他框架，都需要单独处理，例如react项目的话，则需要使用官方提供的componentDidCatch方法来做错误捕获。</p>
+<p>而对于跨域js捕获的问题：我们并不能保证所有的跨域静态资源都添加跨域 HTTP 响应头；而通过第二种包裹try-catch的方式进行上报，则需要考虑的场景繁多并且无法保证没有遗漏。</p>
+<p>虽然存在这两点不足，但前端错误捕获这部分还是和项目的使用场景密切相关的。我们可以在了解这些方式以后，选择最适合自己项目的方案，为自己的监控工具服务。</p>
+<p>&mdash;&mdash; &mdash;&mdash; 参考文档 &mdash;&mdash; &mdash;&mdash;</p>
+<p>1.Using XMLHttpRequest：</p>
+<p><a href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest" data-cke-saved-href="https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest"><em>https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest/Using_XMLHttpRequest</em></a></p>
+<p>2.script error 产生的原因和解决办法：</p>
+<p><a href="https://www.alibabacloud.com/help/zh/faq-detail/88579.htm" data-cke-saved-href="https://www.alibabacloud.com/help/zh/faq-detail/88579.htm"><em>https://www.alibabacloud.com/help/zh/faq-detail/88579.htm</em></a></p>
+<p>3.JavaScript执行错误：</p>
+<p><a href="https://docs.fundebug.com/notifier/javascript/type/javascript.html" data-cke-saved-href="https://docs.fundebug.com/notifier/javascript/type/javascript.html"><em>https://docs.fundebug.com/notifier/javascript/type/javascript.html</em></a></p>
+<p>4.betterjs的script error：</p>
+<p><a href="https://github.com/BetterJS/badjs-report/issues/3" data-cke-saved-href="https://github.com/BetterJS/badjs-report/issues/3"><em>https://github.com/BetterJS/badjs-report/issues/3</em></a></p>
+<p>5.Vuejs的errorHandler：</p>
+<p><a href="https://cn.vuejs.org/v2/api/index.html#errorHandler" data-cke-saved-href="https://cn.vuejs.org/v2/api/index.html#errorHandler"><em>https://cn.vuejs.org/v2/api/index.html#errorHandler</em></a></p>
+<p>6.React的componentDidCatch：</p>
+<p><em><a href="https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html" data-cke-saved-href="https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html">https://reactjs.org/blog/2017/07/26/error-handling-in-react-16.html</a></em></p>
+<p>&nbsp;</p>
+<p>更多内容敬请关注&nbsp;<strong>vivo 互联网技术</strong>&nbsp;微信公众号</p>
+<p><img src="./images/一篇文章教你如何捕获前端错误26.png" alt="" data-cke-saved-src="./images/一篇文章教你如何捕获前端错误26.png" /></p>
+<p>注：转载文章请先与微信号：<strong>labs2020</strong>&nbsp;联系。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

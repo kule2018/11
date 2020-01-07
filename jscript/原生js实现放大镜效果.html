@@ -1,0 +1,225 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修原生js实现放大镜效果' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>原生js实现放大镜效果</center></div><div class='banquan'>原文出处:本文由博客园博主黑夜丶vn提供。<br/>
+原文连接:https://www.cnblogs.com/zsp-1064239893/p/11220932.html</div><br>
+    <p>&nbsp; 　我们平时在电商网站购物时，需要对选取的某一个商品进行详情查看，此时当鼠标在商品图片上某一部分移动查看时旁边就会出现一个该部分图片的放大效果，这样就能够更好的对商品进行分析，下面就使用原生js来实现一下类似放大镜的效果。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>思路分析：</strong></span></p>
+<div>
+<div>　　1.鼠标切换图片列表时，.pic盒子中的图片相对应切换</div>
+<div>　　2.在.pic中生成一个.zoom的盒子，移动该盒子时类似对.pic盒子中的图片进行剪切</div>
+<div>　　　　2.1 动态获取.zoom盒子相对.pic盒子的background-positin属性值</div>
+<div>　　　　2.2 对.zoom盒子的移动范围进行限制（只在.pic盒子中移动）</div>
+<div>　　3.将剪切的图片按比例放大显示到.details的盒子中</div>
+</div>
+<p>注：放大比例 = 左边盒子的大小 / 里面进行剪切的盒子大小，该比例值作为右边盒子显示内容的大小</p>
+<hr />
+<p>&nbsp;</p>
+<p><strong>代码如下</strong>：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('cc6e2211-c159-452a-91aa-88741cd8d214')"><img id="code_img_closed_cc6e2211-c159-452a-91aa-88741cd8d214" class="code_img_closed" src="./images/原生js实现放大镜效果0.png" alt="" /><img id="code_img_opened_cc6e2211-c159-452a-91aa-88741cd8d214" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('cc6e2211-c159-452a-91aa-88741cd8d214',event)" src="./images/原生js实现放大镜效果1.png" alt="" />
+<div id="cnblogs_code_open_cc6e2211-c159-452a-91aa-88741cd8d214" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="viewport"</span><span style="color: #ff0000;"> content</span><span style="color: #0000ff;">="width=device-width, initial-scale=1.0"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">http-equiv</span><span style="color: #0000ff;">="X-UA-Compatible"</span><span style="color: #ff0000;"> content</span><span style="color: #0000ff;">="ie=edge"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>原生js实现图片放大镜<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="stylesheet"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="./css/style.css"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 9</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">12</span> 
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="wrap"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">14</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="pic"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">15</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="./images/1.jpg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">16</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="zoom"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">17</span>         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">18</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="list"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">19</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="current"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">20</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img  </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="./images/1.jpg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">21</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">22</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">23</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="./images/2.jpg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">24</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">25</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">26</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="./images/3.jpg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">27</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">28</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">29</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="./images/4.jpg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">30</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">31</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">32</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="./images/5.jpg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">33</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">34</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">35</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="./images/6.jpg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">36</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">37</span>         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">38</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="details"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">39</span> 
+<span style="color: #008080;">40</span> 
+<span style="color: #008080;">41</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="./js/index.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">42</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">43</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<span class="cnblogs_code_collapse">HTML部分</span></div>
+<div class="cnblogs_code" onclick="cnblogs_code_show('854225c3-fff2-4ba9-9047-c0e7e647851f')"><img id="code_img_closed_854225c3-fff2-4ba9-9047-c0e7e647851f" class="code_img_closed" src="./images/原生js实现放大镜效果0.png" alt="" /><img id="code_img_opened_854225c3-fff2-4ba9-9047-c0e7e647851f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('854225c3-fff2-4ba9-9047-c0e7e647851f',event)" src="./images/原生js实现放大镜效果1.png" alt="" />
+<div id="cnblogs_code_open_854225c3-fff2-4ba9-9047-c0e7e647851f" class="cnblogs_code_hide">
+<pre><code><span style="color: #800000;">@charset "utf-8";
+
+* </span>{<span style="color: #ff0000;">
+    margin</span>:<span style="color: #0000ff;"> 0</span>;<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;"> 0</span>;
+}<span style="color: #800000;">
+li</span>{<span style="color: #ff0000;">
+    list-style</span>:<span style="color: #0000ff;"> none</span>;
+}<span style="color: #800000;">
+
+body </span>{<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #eee</span>;
+}<span style="color: #800000;">
+
+#wrap </span>{<span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> relative</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 400px</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 480px</span>;<span style="color: #ff0000;">
+    margin</span>:<span style="color: #0000ff;"> 50px auto</span>;<span style="color: #ff0000;">
+    border</span>:<span style="color: #0000ff;"> 1px solid #888</span>;
+}<span style="color: #800000;">
+
+#wrap .pic img </span>{<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 400px</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 400px</span>;
+}<span style="color: #800000;">
+
+#wrap .pic .zoom </span>{<span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> absolute</span>;<span style="color: #ff0000;">
+    top</span>:<span style="color: #0000ff;"> 0</span>;<span style="color: #ff0000;">
+    left</span>:<span style="color: #0000ff;"> 0</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 150px</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 150px</span>;<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> lightblue</span>;<span style="color: #ff0000;">
+    opacity</span>:<span style="color: #0000ff;"> .4</span>;<span style="color: #ff0000;">
+    cursor</span>:<span style="color: #0000ff;"> move</span>;
+}<span style="color: #800000;">
+
+#wrap .list </span>{<span style="color: #ff0000;">
+    display</span>:<span style="color: #0000ff;"> flex</span>;<span style="color: #ff0000;">
+    margin-top</span>:<span style="color: #0000ff;"> 10px</span>;<span style="color: #ff0000;">
+    justify-content</span>:<span style="color: #0000ff;"> space-around</span>;
+}<span style="color: #800000;">
+
+#wrap .list li</span>{<span style="color: #ff0000;">
+    cursor</span>:<span style="color: #0000ff;"> pointer</span>;    
+}<span style="color: #800000;">
+
+#wrap .list .current</span>{<span style="color: #ff0000;">
+    border</span>:<span style="color: #0000ff;"> 2px solid red</span>;
+}<span style="color: #800000;">
+
+#wrap .list img </span>{<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 50px</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 50px</span>;<span style="color: #ff0000;">
+    vertical-align</span>:<span style="color: #0000ff;"> bottom</span>;       <span style="color: #008000;">/*</span><span style="color: #008000;"> 解决图片底部留白，改变对齐方式，默认基线对齐 </span><span style="color: #008000;">*/</span>
+}<span style="color: #800000;">
+
+#wrap .details </span>{<span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> absolute</span>;
+    <span style="color: #008000;">/*</span><span style="color: #008000;"> display: none; </span><span style="color: #008000;">*/</span><span style="color: #ff0000;">
+    top</span>:<span style="color: #0000ff;"> 0</span>;<span style="color: #ff0000;">
+    left</span>:<span style="color: #0000ff;"> 400px</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 400px</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 400px</span>;<span style="color: #ff0000;">
+    margin-left</span>:<span style="color: #0000ff;"> 20px</span>;<span style="color: #ff0000;">
+    border</span>:<span style="color: #0000ff;"> 1px solid #888</span>;<span style="color: #ff0000;">
+    background-image</span>:<span style="color: #0000ff;"> url('/images/1.jpg')</span>;<span style="color: #ff0000;">
+    background-size</span>:<span style="color: #0000ff;"> 266%</span>;
+}</pre>
+</div>
+<span class="cnblogs_code_collapse">CSS部分</span></div>
+<div class="cnblogs_code" onclick="cnblogs_code_show('bdbfaf8e-7204-44bf-89ed-a10b0e6c579e')"><img id="code_img_closed_bdbfaf8e-7204-44bf-89ed-a10b0e6c579e" class="code_img_closed" src="./images/原生js实现放大镜效果0.png" alt="" /><img id="code_img_opened_bdbfaf8e-7204-44bf-89ed-a10b0e6c579e" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('bdbfaf8e-7204-44bf-89ed-a10b0e6c579e',event)" src="./images/原生js实现放大镜效果1.png" alt="" />
+<div id="cnblogs_code_open_bdbfaf8e-7204-44bf-89ed-a10b0e6c579e" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> list = document.querySelector(' .list '<span style="color: #000000;">),
+</span><span style="color: #008080;"> 2</span>     img = document.querySelector(' .pic img '<span style="color: #000000;">),
+</span><span style="color: #008080;"> 3</span>     li_list = list.querySelectorAll(' li '<span style="color: #000000;">),
+</span><span style="color: #008080;"> 4</span>     pic = document.querySelector(' #wrap .pic '<span style="color: #000000;">),
+</span><span style="color: #008080;"> 5</span>     zoom = document.querySelector(' .zoom '<span style="color: #000000;">),
+</span><span style="color: #008080;"> 6</span>     details = document.querySelector(' .details '<span style="color: #000000;">)
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> list.addEventListener('click', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+</span><span style="color: #008080;"> 9</span>     e = e ||<span style="color: #000000;"> window.event
+</span><span style="color: #008080;">10</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(e.target)</span>
+<span style="color: #008080;">11</span>     <span style="color: #0000ff;">if</span> (e.target.tagName == 'IMG'<span style="color: #000000;">) {
+</span><span style="color: #008080;">12</span>         img.src =<span style="color: #000000;"> e.target.src;
+</span><span style="color: #008080;">13</span>         details.style.backgroundImage = 'url(' + e.target.src + ')'<span style="color: #000000;">;
+</span><span style="color: #008080;">14</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(e.target.parentNode)</span>
+<span style="color: #008080;">15</span>         li_list.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (item) {
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">            console.log(item)
+</span><span style="color: #008080;">17</span>             item.className = '';            <span style="color: #008000;">//</span><span style="color: #008000;"> 每次遍历六个li元素并清除类名</span>
+<span style="color: #008080;">18</span> <span style="color: #000000;">        })
+</span><span style="color: #008080;">19</span>         e.target.parentNode.className = 'current';   <span style="color: #008000;">//</span><span style="color: #008000;"> 通过e.target找到其父元素并添加上类名</span>
+<span style="color: #008080;">20</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(li_list)</span>
+<span style="color: #008080;">21</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">22</span> }, <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+</span><span style="color: #008080;">23</span> 
+<span style="color: #008080;">24</span> pic.addEventListener('mousemove', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+</span><span style="color: #008080;">25</span>     e = e ||<span style="color: #000000;"> window.event
+</span><span style="color: #008080;">26</span>     <span style="color: #0000ff;">var</span> x =<span style="color: #000000;"> e.clientX,
+</span><span style="color: #008080;">27</span>         y =<span style="color: #000000;"> e.clientY;
+</span><span style="color: #008080;">28</span>         cx = pic.getBoundingClientRect().left;      <span style="color: #008000;">//</span><span style="color: #008000;">  getBoundingClientRect()获取某个元素相对于视窗的位置集合</span>
+<span style="color: #008080;">29</span>         cy =<span style="color: #000000;"> pic.getBoundingClientRect().top;
+</span><span style="color: #008080;">30</span>         tx = x - cx - 75<span style="color: #000000;">;
+</span><span style="color: #008080;">31</span>         ty =  y - cy - 75 
+<span style="color: #008080;">32</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(e)</span>
+<span style="color: #008080;">33</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(x,y)</span>
+<span style="color: #008080;">34</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(cx,cy)</span>
+<span style="color: #008080;">35</span> 
+<span style="color: #008080;">36</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 对.zoom盒子移动范围进行限制</span>
+<span style="color: #008080;">37</span>         <span style="color: #0000ff;">if</span>(tx &lt; 0<span style="color: #000000;">){             
+</span><span style="color: #008080;">38</span>             tx = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">40</span>         <span style="color: #0000ff;">if</span>(tx &gt; 250<span style="color: #000000;">){
+</span><span style="color: #008080;">41</span>             tx = 250
+<span style="color: #008080;">42</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">43</span>         <span style="color: #0000ff;">if</span>(ty &lt; 0<span style="color: #000000;">){
+</span><span style="color: #008080;">44</span>             ty = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">46</span>         <span style="color: #0000ff;">if</span>(ty &gt; 250<span style="color: #000000;">){
+</span><span style="color: #008080;">47</span>              ty = 250
+<span style="color: #008080;">48</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">49</span>         
+<span style="color: #008080;">50</span>         details.style.backgroundPosition = (tx / 250 * 100  + '%') + (ty / 250 * 100 + '%'<span style="color: #000000;">)
+</span><span style="color: #008080;">51</span>         
+<span style="color: #008080;">52</span>         zoom.style.left = tx + 'px'
+<span style="color: #008080;">53</span>         zoom.style.top = ty + 'px'<span style="color: #000000;">;
+</span><span style="color: #008080;">54</span> })</pre>
+</div>
+<span class="cnblogs_code_collapse">js部分</span></div>
+<p>&nbsp;</p>
+<p><strong>最终效果</strong>：</p>
+<p><img src="./images/原生js实现放大镜效果6.png" alt="" width="357" height="209" /></p>
+<p>&nbsp;</p>
+<p><strong>总结：</strong></p>
+<p><strong>　　</strong>整体先实现静态效果，然后根据需求进行一步步逻辑代码的编写，从而实现整个效果</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,244 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修CocosCreator中worldMatrix到底是什么(上)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>CocosCreator中worldMatrix到底是什么(上)</center></div><div class='banquan'>原文出处:本文由博客园博主_herbert提供。<br/>
+原文连接:https://www.cnblogs.com/yfrs/p/ccmatrix1.html</div><br>
+    <h4 id="cocos-creator-中-_worldmatrix-到底是什么上">Cocos Creator 中 _worldMatrix 到底是什么(上)</h4>
+<h4 id="矩阵matrix是什么有什么用">1. (矩阵)Matrix是什么，有什么用</h4>
+<p>(矩阵)Matrix一个神奇的存在？在开发过程中对里边各项值的含义是不是抓耳挠腮，百思不得其解？今天我们就来庖丁解牛，拨开它的神秘面纱。由于内容较多，关于Cocos Creator 中的_worldMatrix会分为三篇文章完成。最终形成一个完整的demo</p>
+<p>首先我们先看看在Cocos Creator编辑器中，对应图形的变化都有那些属性，如下图</p>
+<p><img src="./images/CocosCreator中worldMatrix到底是什么(上)0.png" alt="IDE中变换属性-小院不小" /></p>
+<p>红框的地方分别是<code>位移、旋转、缩放、倾斜</code>它们都一一对应一个变换矩阵。</p>
+<p>Cocos Creator 中的（矩阵）Matrix 是一个长度<code>16</code>的一维数组，按照<strong>先列后行</strong>的顺序存储一个 <code>4 x 4</code> 的放方阵。数组索引 <code>0 1 2 3</code> 分别表示矩阵<strong>第一列</strong>第<code>1 2 3 4</code> <strong>行</strong>的数据。在2d的游戏坐标系中，一个三维矩阵就可以满足基本的变换，但cocos creator 采用了四维矩阵，应该是为了和3d保持一致。矩阵表示如下(左边体现Mat4对应属性排列位置。右边表示代码中经常用到的变量a b c d tx ty与矩阵对应的位置信息)</p>
+<p>$$<br />
+\left[<br />
+\begin{matrix}<br />
+m00&amp;m04&amp;m08&amp;m12\<br />
+m01&amp;m05&amp;m09&amp;m13\<br />
+m02&amp;m06&amp;m10&amp;m14\<br />
+m03&amp;m07&amp;m11&amp;m15\<br />
+\end{matrix}<br />
+\right]<br />
+=&gt;<br />
+\left[<br />
+\begin{matrix}<br />
+a&amp;c&amp;0&amp;0\<br />
+b&amp;d&amp;0&amp;0\<br />
+0&amp;0&amp;1&amp;0\<br />
+tx&amp;ty&amp;tz&amp;1<br />
+\end{matrix}<br />
+\right]<br />
+$$</p>
+<p>这样的信息有什么用呢？用来存储节点 <code>旋转</code> <code>缩放</code> <code>倾斜</code> <code>平移</code>的图形变换信息。要想知道其中缘由，复习一下线性代数及高数是很有必要的</p>
+<ol>
+<li>矩阵乘法，以及相关性质</li>
+<li>单位矩阵、逆矩阵、矩阵转置</li>
+<li>向量</li>
+<li>齐次坐标</li>
+<li>三角函数</li>
+</ol>
+<p>有了以上知识，我们就可以简单的推导下2d情况下，图形变换对应的4中情况</p>
+<h4 id="旋转矩阵推导">2. 旋转矩阵推导</h4>
+<p>在2d坐标系中，假设存在点（x,y）,我们将该点同原点（0，0）相连形成一个线段。此时线段与坐标系中x轴的弧度为a 。 我们将在以原点为圆心,线段的长度半径r。逆时针旋转弧度 b，该条线段另外一端坐标变为（x1,y1)，如下图(左1)</p>
+<p><img src="./images/CocosCreator中worldMatrix到底是什么(上)1.png" alt="旋转推导" /></p>
+<p>三个函数相关知识</p>
+<ul>
+<li>正弦函数和余弦函数<br />
+sin(a)=y/r =&gt; y = r<em>sin(a)<br />
+cos(a)=x/r =&gt; x = r</em>cos(a)</li>
+<li>和角公式<br />
+cos(a+b) = cos(a)cos(b) - sin(a)sin(b)<br />
+sin(a+b) = sin(a)cos(b) + cos(a)sin(b)</li>
+</ul>
+<p>由三角函数可以推导出<br />
+x1 = r<em>cos(a+b) = r</em>cos(a)<em>cos(b) - r</em>sin(a)<em>sin(b) = x</em>cos(b) - y<em>sin(b)<br />
+y1 = r</em>sin(a+b) =r<em>sin(a)</em>cos(b) + r<em>cos(a)</em>sin(b) = y<em>cos(b) + x</em>sin(b) = x<em>sin(b)+y</em>sin(b)<br />
+转换矩阵形式 B=AX</p>
+<p>$$<br />
+\left[<br />
+\begin{matrix}<br />
+x1\y1\1<br />
+\end{matrix}<br />
+\right]<br />
+=<br />
+\left[<br />
+\begin{matrix}<br />
+cos(b)&amp;-sin(b)&amp;0\<br />
+sin(b)&amp;cos(b)&amp;0\<br />
+0&amp;0&amp;1<br />
+\end{matrix}<br />
+\right]<br />
+\times<br />
+\left[<br />
+\begin{matrix}<br />
+x\y\1<br />
+\end{matrix}<br />
+\right]<br />
+$$</p>
+<p>在cocos creator中 ，采用行矩阵的写法。以上在cocos creator实际运行形式如下,转换公式如下 $B^T=X^T*A^T$。cocos creator 中剩下的缩放，倾斜，平移，请按照转置矩阵，自行推导。</p>
+<p>$$<br />
+\left[<br />
+\begin{matrix}<br />
+x1&amp;y1&amp;1<br />
+\end{matrix}<br />
+\right]<br />
+=<br />
+\left[<br />
+\begin{matrix}<br />
+x&amp;y&amp;1<br />
+\end{matrix}<br />
+\right]<br />
+\times<br />
+\left[<br />
+\begin{matrix}<br />
+cos(b)&amp;sin(b)&amp;1\<br />
+-sin(b)&amp;cos(b)&amp;1\<br />
+0&amp;0&amp;1<br />
+\end{matrix}<br />
+\right]<br />
+$$</p>
+<h4 id="缩放矩阵推导">3. 缩放矩阵推导</h4>
+<p>在2d坐标系中，假设存在点（x,y）缩放就是将坐标的x或y分别乘以一个缩放因子sx或sy。得到一个新的坐标（x1,y1），如下图左2。</p>
+<p><img src="./images/CocosCreator中worldMatrix到底是什么(上)1.png" alt="旋转推导" /></p>
+<p>由此可得到缩放公式<br />
+x1=x<em>sx = x</em>sx + y<em>0<br />
+y1=x</em>sy = x<em>0 + y</em>sy<br />
+转换矩阵形式 B=AX</p>
+<p>$$<br />
+\left[<br />
+\begin{matrix}<br />
+x1\y1\1<br />
+\end{matrix}<br />
+\right]<br />
+=<br />
+\left[<br />
+\begin{matrix}<br />
+sx&amp;0&amp;0\<br />
+0&amp;sy&amp;0\<br />
+0&amp;0&amp;1<br />
+\end{matrix}<br />
+\right]<br />
+\times<br />
+\left[<br />
+\begin{matrix}<br />
+x\y\1<br />
+\end{matrix}<br />
+\right]<br />
+$$</p>
+<h4 id="倾斜矩阵推导">4. 倾斜矩阵推导</h4>
+<p>在2d坐标系中，假设存在点（x,y）倾斜分为x轴倾斜以及y轴倾斜。沿x轴倾斜，就是将该点与点（x,0）连接而成的线段，以（x,0）为圆心，旋转弧度a。如下图（左3，左4） 得到一个新的坐标（x1,y1）。</p>
+<p><img src="./images/CocosCreator中worldMatrix到底是什么(上)1.png" alt="旋转推导" /></p>
+<p>由此可得到倾斜公式</p>
+<ul>
+<li>沿x轴倾斜弧度a （图左3）<br />
+x1=x+ytan(a)<br />
+y1=y<br />
+转换矩阵形式 B=AX</li>
+</ul>
+<p>$$<br />
+\left[<br />
+\begin{matrix}<br />
+x1\y1\1<br />
+\end{matrix}<br />
+\right]<br />
+=<br />
+\left[<br />
+\begin{matrix}<br />
+1&amp;tan(a)&amp;0\<br />
+0&amp;1&amp;0\<br />
+0&amp;0&amp;1<br />
+\end{matrix}<br />
+\right]<br />
+\times<br />
+\left[<br />
+\begin{matrix}<br />
+x\y\1<br />
+\end{matrix}<br />
+\right]<br />
+$$</p>
+<ul>
+<li>沿y轴倾斜弧度a （图左4）<br />
+x1=x<br />
+y1=y+xtan(a)=xtan(a)+y<br />
+转换矩阵形式 B=AX</li>
+</ul>
+<p>$$<br />
+\left[<br />
+\begin{matrix}<br />
+x1\y1\1<br />
+\end{matrix}<br />
+\right]<br />
+=<br />
+\left[<br />
+\begin{matrix}<br />
+1&amp;0&amp;0\<br />
+tan(a)&amp;1&amp;0\<br />
+0&amp;0&amp;1<br />
+\end{matrix}<br />
+\right]<br />
+\times<br />
+\left[<br />
+\begin{matrix}<br />
+x\y\1<br />
+\end{matrix}<br />
+\right]<br />
+$$</p>
+<h4 id="平移矩阵推导">5. 平移矩阵推导</h4>
+<p>在2d坐标中，假设存在点（x,y）平移分别是将 x 或 y 加上 x方向位移 tx 或 y方向位移 ty。从而得到新的点坐标（x1,y1）(图左5)</p>
+<p><img src="./images/CocosCreator中worldMatrix到底是什么(上)1.png" alt="旋转推导" /></p>
+<p>此可得到公式</p>
+<p>x1=x+tx<br />
+y1=y+ty</p>
+<p>转换矩阵形式 B=AX</p>
+<p>$$<br />
+\left[<br />
+\begin{matrix}<br />
+x1\y1\1<br />
+\end{matrix}<br />
+\right]<br />
+=<br />
+\left[<br />
+\begin{matrix}<br />
+1&amp;0&amp;tx\<br />
+0&amp;1&amp;ty\<br />
+0&amp;0&amp;1<br />
+\end{matrix}<br />
+\right]<br />
+\times<br />
+\left[<br />
+\begin{matrix}<br />
+x\y\1<br />
+\end{matrix}<br />
+\right]<br />
+$$</p>
+<h4 id="复合变换">6. 复合变换</h4>
+<p>将变换矩阵，依次相乘得到一个新的矩阵记为$T_c$，使得$B=X*T_c$。所以**Cocos Creator中的，_worldMatrix，就是当前节点在世界坐标系中对应的复合变换矩阵**$T_c$。矩阵的乘法不满足交换律。所以不同的顺序，变换的效果会不相同。</p>
+<h4 id="小结">7.小结</h4>
+<p>未完待续，中篇，我将分析CCNode.js 中 _updateLocalMatrix 方法为切入点，来加强对Cocos Creator 中 _worldMatrix理解。下篇，利用理解的知识完成图形变换demo。再次加强对_worldMatrix认知。</p>
+<p>欢迎感兴趣的朋友关注我的微信订阅号&quot;小院不小&quot;，或者点击下方的二维码关注。我将多年开发中遇到的难点，以及一些有意思的功能，体会都会一一发布到我的订阅号中。需要<strong>本文demo</strong>可以在公众号中回复<strong>matrix</strong></p>
+<p><img src="./images/CocosCreator中worldMatrix到底是什么(上)5.png" alt="微信关注【小院不小】" /></p>
+<p>维护了一个Coscos Creator 的游戏开发群，欢迎喜欢聊技术的朋友加入</p>
+<p><img src="./images/CocosCreator中worldMatrix到底是什么(上)6.png" alt="微信群" /></p>
+<p>闲来无事，采用cocos creator开发了一个小游戏【坦克侠】，感兴趣的朋友一个可以来玩玩</p>
+<p><img src="./images/CocosCreator中worldMatrix到底是什么(上)7.png" alt="小游戏坦克侠" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

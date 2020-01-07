@@ -1,0 +1,229 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修可能是全网最详细的express--middleware' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>可能是全网最详细的express--middleware</center></div><div class='banquan'>原文出处:本文由博客园博主pubdreamcc提供。<br/>
+原文连接:https://www.cnblogs.com/dreamcc/p/10923724.html</div><br>
+    <h1 id="写在前面">写在前面</h1>
+<p>hello，小伙伴们，我是你们的<code>pubdreamcc</code>，本篇博文出至于我的GitHub仓库<code>node学习教程资料</code>，欢迎小伙伴们点赞和<code>star</code>，你们的点赞是我持续更新的动力。</p>
+<blockquote>
+<p>GitHub仓库地址：<a href="https://github.com/pubdreamcc/Node.js">node学习教程</a></p>
+</blockquote>
+<p>好了，废话不多说了，今天继续我们<code>express</code>的学习~</p>
+<h2 id="开篇">开篇</h2>
+<p>今天我们来聊一聊express中非常重要的一个概念——<code>express middleware</code> （express中间件）。中间件实质就是一个函数，我们从发送一个请求到最后服务端给回响应，在这个过程中请求会经过多个中间件处理。下面给出一张图来理解express中间件的概念：</p>
+<p><img src="./images/可能是全网最详细的express--middleware0.png" /></p>
+<p>这个是我们平常自来水的处理过程图，可以看到我们自来水从水库取出来到最后进入每个家庭，中间经过了多次的处理，我们可以理解为中间的每一个处理过程（方法）称之为中间件。<code>express</code>中<code>middleware</code>类似于上图中的每一个处理过程，我们请求到响应之间也是经过了一个或多个中间件处理，最后才是我们看到的响应结果。</p>
+<h2 id="中间件的分类和使用">中间件的分类和使用</h2>
+<p>这里我们可以看下<code>express</code>官网对中间件的分类介绍。</p>
+<blockquote>
+<p><a href="http://www.expressjs.com.cn/guide/using-middleware.html">express-middleware</a></p>
+</blockquote>
+<ol>
+<li><code>Application-level middleware</code>（应用程序级别中间件）</li>
+</ol>
+<p>应用程序级别中间件又分为以下三种情况。</p>
+<ul>
+<li>不管请求地址和请求方法，任何请求都能进入。</li>
+</ul>
+<pre><code><code>const app = express()
+
+app.use((req, res, next) =&gt; {
+  console.log(&#39;请求来了1~&#39;)
+  next()  // 调用next()，请求会去下一个紧挨着的匹配的中间件
+})
+
+app.use((req, res, next) =&gt; {
+  console.log(&#39;请求来了2~&#39;)
+   // 没有调用next()，请求会留在该中间件中
+})
+
+app.use((req, res, next) =&gt; {
+  console.log(&#39;请求来了3~&#39;)
+})</code></pre>
+<p>这里配置了三个应用程序级别的中间件，当客户端发一个请求，就会从上至下首先进入第一个中间件处理，接着看是否内部调用<code>next()</code>来决定请求是否往下执行。</p>
+<p><strong>我们在服务端请求处理函数中还可以传入第三个参数：<code>next</code>，如果在函数体中调用<code>next()</code>，则请求会在经过该中间件处理后继续向下找最近的那个匹配成功的中间件，并且进入该中间件处理。如果没有调用<code>next()</code>，则请求会留在该中间件中，不会继续往下执行。</strong></p>
+<p>结果：</p>
+<pre><code><code>// 请求来了1
+
+// 请求来了2</code></pre>
+<ul>
+<li>特定请求路径的任何类型请求都能进入</li>
+</ul>
+<pre><code><code>const app = express()
+
+app.use(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了1~&#39;)
+  next()  // 调用next()，请求会去下一个紧挨着的匹配的中间件
+})
+
+app.use(&#39;/b&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了2~&#39;)
+})
+
+app.use(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了3~&#39;)
+})</code></pre>
+<p>同样的，这里也配置了三个中间件，因为在中间件中规定了请求路径，所以只能是以 <code>/a</code> <strong>开头</strong> 的请求才能进入第一个中间件处理。因为在第一个中间件内部调用了<code>next()</code>方法，所以请求会继续往下找匹配的中间件，第二个中间请求地址不匹配，所以进入第三个中间件处理。</p>
+<p>结果：</p>
+<pre><code><code>// 请求来了1
+
+// 请求来了3</code></pre>
+<ul>
+<li>特定请求方法和特定请求地址的请求能够进入</li>
+</ul>
+<p>对于这种情况我们最为熟悉，之前已经练习过多次。</p>
+<pre><code><code>const app = express()
+
+app.get(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了1~&#39;)
+  next()  // 调用next()，请求会去下一个紧挨着的匹配的中间件
+})
+
+app.post(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了2~&#39;)
+})
+
+app.get(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了3~&#39;)
+})</code></pre>
+<p>同样以上面的例子，写三个中间件。这里规定了必须以 <code>GET</code> 请求而且请求路径为：<code>/a</code>的请求会被第一个中间件处理，因为内部调用了 <code>next()</code>，所以请求会继续往下找临近的匹配的中间件，第二个中间件规定的请求方法为：<code>POST</code>，所以进入第三个中间件处理。</p>
+<p>结果：</p>
+<pre><code><code>// 请求来了1
+
+// 请求来了3</code></pre>
+<ol>
+<li><code>Router-level middleware</code>（路由级别中间件）</li>
+</ol>
+<p>路由级别的中间件与上面应用程序级别中间件的工作方式类似，只不过把路由模块单独提取出来，最后通过把路由容器挂载到 <code>app</code> 服务器实例上即可。</p>
+<ul>
+<li>不管请求地址和请求方法，任何请求都能进入。</li>
+</ul>
+<pre><code><code>const router = express.Router()
+
+router.use((req, res, next) =&gt; {
+  console.log(&#39;请求来了1~&#39;)
+  next() // 调用next()，请求会去下一个紧挨着的匹配的中间件
+})
+
+router.use((req, res, next) =&gt; {
+  console.log(&#39;请求来了2~&#39;)
+  // 没有调用next()，请求停留在此，不会继续往下找了
+})
+
+router.use((req, res, next) =&gt; {
+  console.log(&#39;请求来了3~&#39;)
+})</code></pre>
+<p>结果：</p>
+<pre><code><code>// 请求来了1~
+
+// 请求来了2~</code></pre>
+<ul>
+<li>特定请求路径的任何类型请求都能进入</li>
+</ul>
+<pre><code><code>const router = express.Router()
+
+router.use(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了1~&#39;)
+  next()  // 调用next()，请求会去下一个紧挨着的匹配的中间件
+})
+
+router.use(&#39;/b&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了2~&#39;)
+})
+
+router.use(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了3~&#39;)
+})</code></pre>
+<p>结果：</p>
+<pre><code><code>// 请求来了1~
+
+// 请求来了3~</code></pre>
+<ul>
+<li>特定请求方法和特定请求地址的请求能够进入</li>
+</ul>
+<pre><code><code>const router = express.Router()
+
+router.get(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了1~&#39;)
+  next()  // 调用next()，请求会去下一个紧挨着的匹配的中间件
+})
+
+router.post(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了2~&#39;)
+})
+
+router.get(&#39;/a&#39;, (req, res, next) =&gt; {
+  console.log(&#39;请求来了3~&#39;)
+})</code></pre>
+<p>结果：</p>
+<pre><code><code>// 请求来了1~
+
+// 请求来了3~</code></pre>
+<ol>
+<li><code>Error-handling middleware</code>（全局错误处理中间件）</li>
+</ol>
+<p>在实际开发中，往往我们需要统一来处理异步操作发生的错误，这个时候我们需要在项目中配置一个全局错误处理中间件即可。</p>
+<pre><code><code>const express = require(&#39;express&#39;)
+
+const fs = require(&#39;fs&#39;)
+
+const app = express()
+
+app.get(&#39;/&#39;, (req, res, next) =&gt; {
+  fs.readFile(&#39;./index.html&#39;, (err, date) =&gt; {
+    if (err) {
+      // 如果异步读取文件错误，把错误对象传给next()
+      return next(err)
+    }
+    // 成功，发送读取后的数据，浏览器渲染页面
+    res.send(data)
+  })
+})
+
+// 配置一个全局错误处理中间件，注意这里接收四个参数，一个都不能少，否则会出错
+
+app.use((err, req, res, next) =&gt; {
+  // err参数为前面next()方法接收到的错误对象
+  res.status(500).send(err.message)
+})</code></pre>
+<p>通过配置一个全局错误处理中间件，我们可以统一处理请求发送错误时服务端的响应。这里一定要给错误处理中间件的处理函数 <strong>四个参数</strong>， 切记。在应用程序级别的中间件 <code>app.get()</code> 中，当异步读取文件失败时，记得要把错误对象传递给<code>next()</code>方法 。通过这样，一旦 <code>index.html</code> 文件丢失，请求则会进入错误处理中间件，发送错误对象的具体消息给到浏览器响应。</p>
+<ol>
+<li><code>Built-in middleware</code>（内置中间件）</li>
+</ol>
+<p>express为我们也提供了一些内置中间件，比如常见的开放静态资源： <code>express.static()</code>等。</p>
+<pre><code><code>const express = require(&#39;express&#39;)
+
+const app = express()
+
+// 开放公共资源
+app.use(&#39;/public/&#39;, express.static(&#39;./public&#39;))</code></pre>
+<ol>
+<li><code>Third-party middleware</code>（第三方中间件）</li>
+</ol>
+<p>同样，我们也可以使用别人封装好的第三方中间件，第三方中间件都是一个个第三方包，所以使用前需要我们单独下载到项目中。之前的 <code>body-parser</code> 中间件，就是用来解析 <code>post</code> 请求体的数据，还有常见的像 <code>express-session</code> 中间件， <code>cookie-parser</code>用来获取请求的<code>cookie</code> 数据等。第三方中间件具体可以查看 express 官方 API，这里就不再一一罗列 。</p>
+<blockquote>
+<p>官方推荐的第三方中间件：<a href="http://www.expressjs.com.cn/resources/middleware.html">第三方中间件</a></p>
+</blockquote>
+<h2 id="写在后面">写在后面</h2>
+<p>因为文章内容是自己空闲时间编写，如果您发现有哪些错误可以在GitHub上提交 <code>issue</code> ，也可以在留言区发表评论，这样可以方便于后来的同学学习，谢谢啦~</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

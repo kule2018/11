@@ -1,0 +1,95 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修监控微信小程序wx.request请求失败' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>监控微信小程序wx.request请求失败</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/monitor-wx-request-fail.html</div><br>
+    <p>在微信小程序里，与后台服务器交互的主要接口函数是<code>wx.request()</code>，用于发起 HTTPS 网络请求。其重要性不言而喻。然而，却经常遇到请求失败的问题，笔者特意谷歌&quot;wx.request 请求失败&quot;，可以搜索到很多相关的文章，下面列出一些:</p>
+<ul>
+<li><a href="https://developers.weixin.qq.com/community/develop/doc/aa19c6f8674bd9640eaddd8d45d739e5">wx.request 失败| 微信开放社区</a></li>
+<li><a href="https://segmentfault.com/q/1010000016785650">微信小程序 wx.request 请求失败- SegmentFault 思否</a></li>
+<li><a href="https://blog.csdn.net/b376924098/article/details/80579393">小程序部分机型小程序用户无法发起 wx.request 请求，网络错误问题 ...</a></li>
+<li><a href="https://developers.weixin.qq.com/community/develop/doc/000208789f41a052c15800bd05b400?_at=1559226213254">wx.request()失败，request:fail。_微信小程序开发</a></li>
+<li><a href="https://developers.weixin.qq.com/community/develop/doc/000c862f768440415a96c3d9056c00?_at=1559226213254">request:fail 合集（各种 request:fail 问题)</a></li>
+<li><a href="https://www.jianshu.com/p/ff72522dc51c">微信小程序之 wx.request:fail 错误排查- 简书</a></li>
+</ul>
+<p>有些事开发时候遇到，有些是产品上线后遇到。线上的情况比开发和测试的时候复杂的多，失败的原因可能各种各样。既然测试无法 100%保证上线不会出问题，我们唯一要做的就是及时发现和快速响应。</p>
+<p>微信小程序运维中心提供了错误日志记录，但功能还是比较有限。只有简单的统计和错误展示功能，而往往仅仅靠报错信息是无法清晰理解错误成因的。这个时候使用强大的第三方监控服务就很有必要了。</p>
+<p><img src="./images/监控微信小程序wx.request请求失败0.png" /></p>
+<h3 id="小程序-demo">小程序 Demo</h3>
+<p>我们使用一款由<a href="https://github.com/jectychen">jectychen</a>开发的<a href="https://github.com/jectychen/wechat-v2ex">wechat-v2ex</a>来做演示，v2ex 数据 api 基本上使用了 samuel1112 的仓库<a href="https://github.com/samuel1112/v2er">v2er</a>里封装的方法。</p>
+<p>其运行效果如下：</p>
+<p><img src="./images/监控微信小程序wx.request请求失败1.png" /></p>
+<p>最左侧本来应该有头像的，可能由于防盗链的原因没有显示出来。</p>
+<p>有时候一个微信小程序可能会用到多个第三方服务，从多个域名获取数据。以下两种情况都值得注意：</p>
+<ul>
+<li>某些接口做了更新没有及时推送通知，该接口的调用就会失败；</li>
+<li>服务不够稳定，接口的返回某一时段特别慢；</li>
+<li>某些终端用户的数据不符合导致接口失败。</li>
+</ul>
+<p>因此产品上线以后，对接口的调用进行监控是很有必要的。</p>
+<h3 id="接入监控">接入监控</h3>
+<p>Fundebug 的微信小程序错误监控插件支持监控 HTTP 请求错误：</p>
+<ul>
+<li>当请求返回的 statusCode 不是 2xx 或者 fail 回调函数被触发的时候，Fundebug 的小程序监控插件会捕获该错误并发送到服务器。</li>
+<li>如果接口请求耗时过长，我们也可以配置<code>httpTimeout</code>来监控。</li>
+</ul>
+<p>要使用 Fundebug 监控，你需要去<a href="https://www.fundebug.com">Fundebug</a>网站注册账号并创建一个微信小程序监控项目，然后按照提示接入插件。你需要下载微信小程序监控的 JS 脚本放入到自己的项目中，然后引入并通过<code>fundebug.init()</code>函数作必要的配置。</p>
+<pre><code><code>var fundebug = require(&quot;./utils/fundebug.1.3.1.min.js&quot;);
+fundebug.init({
+    apikey: &quot;YOUR-API-KEY&quot;,
+    monitorHttpData: true,
+    httpTimeout: 2000,
+    monitorMethodCall: true,
+    monitorMethodArguments: true,
+    setSystemInfo: true,
+    setUserInfo: true,
+    setLocation: true
+});</code></pre>
+<p>插件默认会监控 HTTP 请求错误，并上报 Header 部分的信息，我们无需做配置。为了方便 Debug，我们配置<code>monitorHttpData</code>来记录 body 部分的信息；我们将<code>httpTimeout</code>设置为 2000 毫秒，超过该时长的请求会被上报到服务器。</p>
+<h3 id="requestfail-错误">Request:fail 错误</h3>
+<p>为了演示<code>wx.request</code>返回 request:fail 错误，我特意将<code>utils/api.js</code>中的<code>HOST_URI</code>改错。</p>
+<p><code>var HOST_URI = 'https://www.w2ex.com/api/';</code></p>
+<p>然后保存运行。Fundebug 收到上报的错误，该请求花了 7072 毫秒，然后返回请求失败。</p>
+<p><img src="./images/监控微信小程序wx.request请求失败2.png" /></p>
+<p>通过用户行为可以更加清楚地了解整个小程序的运行过程：</p>
+<p><img src="./images/监控微信小程序wx.request请求失败3.png" /></p>
+<h3 id="错误">404 错误</h3>
+<p>这次，我将获取最新话题的接口做点更改，故意将<code>latest</code>写出<code>lastest</code>：</p>
+<p><code>var LATEST_TOPIC = 'topics/lastest.json';</code></p>
+<p>保存运行，Fundebug 捕获该错误并上报到服务器：</p>
+<p><img src="./images/监控微信小程序wx.request请求失败4.png" /></p>
+<h3 id="参数错误">参数错误</h3>
+<p>获取某一个话题详情的时候，应该传入对应的 id。如果 id 是 null、undefined、或则本来是数字我们传入字符串，看看结果怎么样。</p>
+<p>下图可知当我们将参数 id 设为<code>undefined</code>的情况下，接口返回 404。并返回消息:</p>
+<pre class="json"><code>{
+    &quot;message&quot;: &quot;Object Not Found&quot;,
+    &quot;status&quot;: &quot;error&quot;
+}</code></pre>
+<p><img src="./images/监控微信小程序wx.request请求失败5.png" /></p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家免费试用！</p>
+<p><a href="./images/监控微信小程序wx.request请求失败6.png"><img src="./images/监控微信小程序wx.request请求失败6.png" alt="img" /></a></p>
+<h3 id="版权声明">版权声明</h3>
+<p>转载时请注明作者 <strong>Fundebug</strong>以及本文地址：<br />
+<a href="https://blog.fundebug.com/2019/07/01/monitor-wx-request-fail/" class="uri">https://blog.fundebug.com/2019/07/01/monitor-wx-request-fail/</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,194 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修手写instanceof (详解原型链)  和    实现绑定解绑和派发的事件类' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>手写instanceof (详解原型链)  和    实现绑定解绑和派发的事件类</center></div><div class='banquan'>原文出处:本文由博客园博主初心，你好吗提供。<br/>
+原文连接:https://www.cnblogs.com/LHLVS/p/11052486.html</div><br>
+    <p>A&nbsp; instanceof&nbsp; B&nbsp; &nbsp; 是判断&nbsp; A&nbsp; 是否继承自B，是返回true,&nbsp; 否返回false</p>
+<p>再精确点就是判断B&nbsp; &nbsp;是否&nbsp; 再&nbsp; A&nbsp; 的 原型链上，</p>
+<p>什么是原型链，举个例子：</p>
+<p>我们定义三个对象：</p>
+<div class="cnblogs_code">
+<pre><code>const grandFather =<span style="color: #000000;"> {
+    name: </span>'liu'<span style="color: #000000;">,
+    age: </span>80<span style="color: #000000;">
+},father </span>=<span style="color: #000000;"> {
+    age: </span>50<span style="color: #000000;">
+},son </span>=<span style="color: #000000;"> {
+    age: </span>18<span style="color: #000000;">
+};</span></pre>
+</div>
+<p>怎么让这三个对象形成一种继承关系呢 ?&nbsp; 让father 和 son 继承 grandFather&nbsp; 的&nbsp; &nbsp;name&nbsp; 属性</p>
+<p>我们知道对象上有一个内部属性__proto__&nbsp; &nbsp;,&nbsp; &nbsp;该属性的属性值指向改对象的原型，</p>
+<p>我们是否可以这样写：</p>
+<div class="cnblogs_code">
+<pre><code>const grandFather =<span style="color: #000000;"> {
+    name: </span>'liu'<span style="color: #000000;">,
+    age: </span>80<span style="color: #000000;">
+},father </span>=<span style="color: #000000;"> {
+    age: </span>50<span style="color: #000000;">,
+    __proto__: grandFather
+},son </span>=<span style="color: #000000;"> {
+    age: </span>18<span style="color: #000000;">,
+    __proto__: father
+};
+console.log(father.name);
+console.log(son.name);</span></pre>
+</div>
+<p>ok&nbsp; ，打印出：</p>
+<p><img src="./images/手写instanceof (详解原型链)  和    实现绑定解绑和派发的事件类0.png" alt="" /></p>
+<p>原理就是如果对象本身没有查找的属性， 就会沿着原型链也就是__proto__属性往上找直到为null为止。</p>
+<p>这就是原型链的概念。</p>
+<p>但是__proto__前后加双下划线说明它本质是一个内部属性， 而不是一个正式的对外的API，只是由于浏览器广泛支持，才被加入了ES6，&nbsp;</p>
+<p>所以只有浏览器必须部署这个属性，其他运行环境不一定要部署，因此，无论从语义的角度，还是从兼容性的角度，都最好不要使用这个属性，</p>
+<p>而是使用Object.setPrototyleOf(写操作)，&nbsp;Object.getPrototyleOf(读操作)，&nbsp;Object.create(生成操作)，&nbsp;</p>
+<p>所以我们改成这样：</p>
+<div class="cnblogs_code">
+<pre><code>const grandFather =<span style="color: #000000;"> {
+    name: </span>'liu'<span style="color: #000000;">,
+    age: </span>80<span style="color: #000000;">
+},father </span>=<span style="color: #000000;"> {
+    age: </span>50<span style="color: #000000;">,
+},son </span>=<span style="color: #000000;"> {
+    age: </span>18<span style="color: #000000;">,
+};
+Object.setPrototypeOf(father, grandFather);
+Object.setPrototypeOf(son, father);
+console.log(father.name);
+console.log(son.name);</span></pre>
+</div>
+<p>打印结果是一样的。</p>
+<p>&nbsp;又或者这样：</p>
+<div class="cnblogs_code">
+<pre><code>const grandFather =<span style="color: #000000;"> {
+        name: </span>'liu'<span style="color: #000000;">,
+        age: </span>80<span style="color: #000000;">
+    },
+    father </span>=<span style="color: #000000;"> Object.create(grandFather),
+    son </span>=<span style="color: #000000;"> Object.create(father);
+father.age </span>= 50<span style="color: #000000;">;
+son.age </span>= 18<span style="color: #000000;">;
+console.log(father.name);
+console.log(son.name);</span></pre>
+</div>
+<p>打印结果也是一样的。</p>
+<p>原型链大家弄清楚了 我们就可以写一个instanceof 的 方法了：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> instanceofMy (A, B) {
+    const proto </span>= Object.getPrototypeOf(A), prototype =<span style="color: #000000;"> B.prototype;
+    </span><span style="color: #0000ff;">if</span> (proto === <span style="color: #0000ff;">null</span> || proto ===<span style="color: #000000;"> undefined) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (proto ===<span style="color: #000000;"> prototype) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> instanceofMy(Object.getPrototypeOf(proto), B);
+    }
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 测试</span>
+<span style="color: #000000;">console.log(instanceofMy({}, Object));
+console.log(instanceofMy([], Array));
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> Test() {}
+let test </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Test();
+console.log(instanceofMy(test, Test));
+console.log(instanceofMy(</span>'', Array));</pre>
+</div>
+<p>测试结果：</p>
+<p><img src="./images/手写instanceof (详解原型链)  和    实现绑定解绑和派发的事件类1.png" alt="" /></p>
+<p>利用递归来沿着原型链往上查找， 有同学不想用递归，太耗费内存了，我们可以改成while循环：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> instanceofMy (A, B) {
+    let proto </span>= Object.getPrototypeOf(A), prototype =<span style="color: #000000;"> B.prototype;
+    </span><span style="color: #0000ff;">while</span> (proto !== <span style="color: #0000ff;">null</span> &amp;&amp; proto !==<span style="color: #000000;"> undefined) {
+        </span><span style="color: #0000ff;">if</span> (proto ===<span style="color: #000000;"> prototype) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            proto </span>=<span style="color: #000000;"> Object.getPrototypeOf(proto);
+        }
+    }
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>proto = null 作为while循环的出口， 出来了就return false。</p>
+<p>&nbsp;</p>
+<p>---------------------------------------------------------------------------分割线</p>
+<p>&nbsp;</p>
+<p>实现绑定/派发自定义事件的事件类</p>
+<p>有时候我们需要自定义一个事件并在特定的条件下手动触发该事件绑定的函数，</p>
+<p>这个时候我们就需要这样一个事件类：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Event {
+    constructor() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存事件和回调函数的对象</span>
+        <span style="color: #0000ff;">this</span>.cache  =<span style="color: #000000;"> {};
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 绑定事件</span>
+<span style="color: #000000;">    on (type, callback) {
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.cache[type] &amp;&amp; !<span style="color: #0000ff;">this</span><span style="color: #000000;">.cache[type].includes(callback)) {
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.cache[type].push(callback);
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.cache[type] &amp;&amp; <span style="color: #0000ff;">this</span><span style="color: #000000;">.cache[type].includes(callback)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">this</span>.cache[type] =<span style="color: #000000;"> [callback];
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 触发事件</span>
+<span style="color: #000000;">    trigger(type, ...params) {
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.cache[type]) {
+            </span><span style="color: #0000ff;">this</span>.cache[type].forEach(fn =&gt;<span style="color: #000000;"> {
+                fn(...params);
+            })
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 解绑事件</span>
+<span style="color: #000000;">    off(type, callback) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 传了callback清除指定callback， 没传清空数组</span>
+        <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.cache[type] &amp;&amp; <span style="color: #0000ff;">this</span><span style="color: #000000;">.cache[type].includes(callback)) {
+            </span><span style="color: #0000ff;">this</span>.cache[type].split(<span style="color: #0000ff;">this</span>.cache[type].findIndex(callback), 1<span style="color: #000000;">);
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.cache[type] &amp;&amp; !<span style="color: #000000;">callback) {
+            </span><span style="color: #0000ff;">this</span>.cache[type] =<span style="color: #000000;"> [];
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    }
+}
+const event </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Event();
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 测试</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> start(str) {
+    console.log(str + ' start');
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> end(str) {
+    console.log(str + ' end');
+}
+event.on(</span>'start'<span style="color: #000000;">, start)
+    .on(</span>'start'<span style="color: #000000;">, end)
+    .trigger(</span>'start', 'Hello world'<span style="color: #000000;">)
+    .off(</span>'start'<span style="color: #000000;">)
+    ;</span></pre>
+</div>
+<p>我们先给一个自定start事件绑定两个函数，然后传参触发， 最后解绑</p>
+<p>打印结果：</p>
+<p><img src="./images/手写instanceof (详解原型链)  和    实现绑定解绑和派发的事件类2.png" alt="" /></p>
+<p>这样这个事件类就写完了</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

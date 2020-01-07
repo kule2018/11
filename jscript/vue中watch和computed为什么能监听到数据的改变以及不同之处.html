@@ -1,0 +1,465 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue中watch和computed为什么能监听到数据的改变以及不同之处' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue中watch和computed为什么能监听到数据的改变以及不同之处</center></div><div class='banquan'>原文出处:本文由博客园博主Jade_g提供。<br/>
+原文连接:https://www.cnblogs.com/gxp69/p/12095545.html</div><br>
+    <p>先来个流程图，水平有限，凑活看吧-_-||</p>
+<p class="p"><img src="./images/vue中watch和computed为什么能监听到数据的改变以及不同之处0.png" alt="" width="980" height="593" /></p>
+<p>首先在创建一个Vue应用时：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> app = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+  el: </span><span style="color: #800000;">'</span><span style="color: #800000;">#app</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+  data: {
+    message: </span><span style="color: #800000;">'</span><span style="color: #800000;">Hello Vue!</span><span style="color: #800000;">'</span><span style="color: #000000;">
+  }
+})</span></pre>
+</div>
+<p>Vue构造函数源码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">创建Vue构造函数</span>
+<span style="color: #000000;">function Vue (options) {
+  </span><span style="color: #0000ff;">if</span> (!(<span style="color: #0000ff;">this</span><span style="color: #000000;"> instanceof Vue)
+  ) {
+    warn(</span><span style="color: #800000;">'</span><span style="color: #800000;">Vue is a constructor and should be called with the `new` keyword</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+  }
+  </span><span style="color: #0000ff;">this</span><span style="color: #000000;">._init(options);
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">_init方法，会初始化data,watch,computed等</span>
+Vue.prototype._init =<span style="color: #000000;"> function (options) {
+  </span><span style="color: #0000ff;">var</span> vm = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> a uid</span>
+  vm._uid = uid$<span style="color: #800080;">3</span>++<span style="color: #000000;">;
+  ......
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> expose real self</span>
+  vm._self =<span style="color: #000000;"> vm;
+  initLifecycle(vm);
+  initEvents(vm);
+  initRender(vm);
+  callHook(vm, </span><span style="color: #800000;">'</span><span style="color: #800000;">beforeCreate</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+  initInjections(vm); </span><span style="color: #008000;">//</span><span style="color: #008000;"> resolve injections before data/props</span>
+<span style="color: #000000;"><strong>  initState(vm);</strong>
+  ......
+};</span></pre>
+</div>
+<p>在initState方法中会初始化data、watch和computed，并调用observe函数监听data(Object.defineProperty)：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> initState (vm) {
+  vm._watchers </span>=<span style="color: #000000;"> [];
+  </span><span style="color: #0000ff;">var</span> opts =<span style="color: #000000;"> vm.$options;
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (opts.props) { initProps(vm, opts.props); }
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (opts.methods) { initMethods(vm, opts.methods); }
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (opts.data) {
+    <strong>initData(vm);//initData中也会调用observe方法</strong>
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    <strong>observe(vm._data </strong></span><strong>= {}, <span style="color: #0000ff;">true</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> asRootData </span><span style="color: #008000;">*/</span></strong><span style="color: #000000;"><strong>)</strong>;
+  }
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (opts.computed) { <strong>initComputed(vm, opts.computed)</strong>; }
+  </span><span style="color: #0000ff;">if</span> (opts.watch &amp;&amp; opts.watch !==<span style="color: #000000;"> nativeWatch) {
+    <strong>initWatch(vm, opts.watch)</strong>;
+  }
+}</span></pre>
+</div>
+<h3>1、observe</h3>
+<p>observe在initState 时被调用，为vue实例的data属性值创建getter、setter函数，在setter中dep.depend会把watcher实例添加到Dep实例的subs属性中，在getter中会调用dep.notify，调用watcher的update方法。</p>
+<div class="cnblogs_code">
+<pre><code>/**
+ * Attempt to create an observer instance for a value,
+ * returns the new observer if successfully observed,
+ * or the existing observer if the value already has one.
+ * 该函数在initState中有调用
+ */<span>
+function observe (value, asRootData) {
+  if (!isObject(value) ||<span> value instanceof VNode) {
+    return<span>
+  }
+  var<span> ob;
+  if (hasOwn(value, '__ob__') &amp;&amp;<span> value.__ob__ instanceof Observer) {
+    ob =<span> value.__ob__;
+  } else if<span> (
+    shouldObserve &amp;&amp;
+    !isServerRendering() &amp;&amp;<span>
+    (Array.isArray(value) || isPlainObject(value)) &amp;&amp;<span>
+    Object.isExtensible(value) &amp;&amp;
+    !<span>value._isVue
+  ) {
+    <strong>ob </strong><strong>= new</strong><span><strong> Observer(value);</strong>
+  }
+  if (asRootData &amp;&amp;<span> ob) {
+    ob.vmCount++<span>;
+  }
+  re</span></span></span></span></span></span></span></span></span></span></span></span></span> * Observer class that is attached to each observed</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><em id="__mceDel"> * object. Once attached, the observer converts the target
+ * object's property keys into getter/setters that
+ * collect dependencies and dispatch updates.
+ */
+var Observer = function<span> Observer (value) {
+  this.value =<span> value;
+  this.dep = new<span> Dep();
+  this.vmCount = 0<span>;
+  def(value, '__ob__', this<span>);
+  if<span> (Array.isArray(value)) {
+    if<span> (hasProto) {
+      protoAugment(value, arrayMethods);
+    } else<span> {
+      copyAugment(value, arrayMethods, arrayKeys);
+    }
+    this<span>.observeArray(value);
+  } else<span> {
+    <strong>this</strong><span><strong>.walk(value);</strong>
+  }
+};
+/**
+ * Walk through all properties and convert them into
+ * getter/setters. This method should only be called when
+ * value type is Object.
+ */<span>
+Observer.prototype.walk = function<span> walk (obj) {
+  var keys =<span> Object.keys(obj);
+  for (var i = 0; i &lt; keys.length; i++<span>) {
+    <strong>defineReactive$$</strong><strong>1</strong><span><strong>(obj, keys[i]);</strong>
+  }
+};
+/**
+ * Define a reactive property on an Object.
+ */
+function defineReactive$$1<span> (
+  obj,
+  key,
+  val,
+  customSetter,
+  shallow
+) {
+  var dep = new<span> Dep();
+
+  var property =<span> Object.getOwnPropertyDescriptor(obj, key);
+  if (property &amp;&amp; property.configurable === false<span>) {
+    return<span>
+  }
+
+  // cater for pre-defined getter/setters
+  var getter = property &amp;&amp;<span> property.get;
+  var setter = property &amp;&amp;<span> property.set;
+  if ((!getter || setter) &amp;&amp; arguments.length === 2<span>) {
+    val =<span> obj[key];
+  }
+
+  var childOb = !shallow &amp;&amp;<span> observe(val);
+  Object.defineProperty(obj, key, {
+    enumerable: true<span>,
+    configurable: true<span>,
+    get: function<span> reactiveGetter () {
+      var value = getter ?<span> getter.call(obj) : val;<br />　　　　//Dep.target 全局变量指向的就是指向当前正在解析生成的 Watcher<br />　　　　//会执行到dep.addSub，将Watcher添加到Dep对象的Watcher数组中
+      if<span> (Dep.target) {
+        <strong>dep.depend();
+        </strong>if<span> (childOb) {
+          childOb.dep.depend();
+          if<span> (Array.isArray(value)) {
+            dependArray(value);
+          }
+        }
+      }
+      return<span> value
+    },
+    set: function<span> reactiveSetter (newVal) {
+      var value = getter ?<span> getter.call(obj) : val;
+      /* eslint-disable no-self-compare */
+      if (newVal === value || (newVal !== newVal &amp;&amp; value !==<span> value)) {
+        return<span>
+      }
+      /* eslint-enable no-self-compare */
+      if<span> (customSetter) {
+        customSetter();
+      }
+      // #7981: for accessor properties without setter
+      if (getter &amp;&amp; !setter) { return<span> }
+      if<span> (setter) {
+        setter.call(obj, newVal);
+      } else<span> {
+        val =<span> newVal;
+      }
+      childOb = !shallow &amp;&amp;<span> observe(newVal);
+      <strong>dep.notify();</strong></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span><code><span class="hljs-comment">//如果数据被重新赋值了, 调用 Dep 的 notify 方法, 通知所有的 Watcher</span></code></em></pre>
+<pre><code><em id="__mceDel"><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span><span> } }); }</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></em></pre>
+</div>
+<h3>2、Dep</h3>
+<p>Watcher的update方法是在new Dep的notify的方法中被调用的</p>
+<div class="cnblogs_code">
+<pre><code>/**
+ * A dep is an observable that can have multiple
+ * directives subscribing to it.
+ */
+var Dep =<span> function Dep () {
+  this.id = uid++<span>;
+  this.subs =<span> [];
+};<br />//设置某个Watcher的依赖<br />//这里添加Dep.target，用来判断是不是Watcher的构造函数调用<br />//也就是其this.get调用
+Dep.prototype.depend =<span> function depend () {
+  if<span> (Dep.target) {
+    Dep.target.addDep(this<span>);
+  }
+};
+//在该方法中会触发subs的update方法
+Dep.prototype.notify =<span> function notify () {
+  // stabilize the subscriber list first
+  var subs = this<span>.subs.slice();
+  if (!config.async<span>) {
+    // subs aren't sorted in scheduler if not running async
+    // we need to sort them now to make sure they fire in correct
+    // order
+    subs.sort(function (a, b) { return a.id -<span> b.id; });
+  }
+  for (var i = 0, l = subs.length; i &lt; l; i++<span>) {
+    <strong>subs[i].update();</strong>
+  }
+};</span></span></span></span></span></span></span></span></span></span></span></pre>
+</div>
+<h3>3、watch</h3>
+<p>初始化watch，函数中会调用createWatcher，createWatcher会调用$watch，$watch调用new Watcher实例。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> initWatch (vm, watch) {
+  </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> key <span style="color: #0000ff;">in</span><span style="color: #000000;"> watch) {
+    </span><span style="color: #0000ff;">var</span> handler =<span style="color: #000000;"> watch[key];
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Array.isArray(handler)) {
+      </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; handler.length; i++<span style="color: #000000;">) {
+        <strong>createWatcher(vm, key, handler[i])</strong>;
+      }
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      <strong>createWatcher(vm, key, handler)</strong>;
+    }
+  }
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> createWatcher (
+  vm,
+  expOrFn,
+  handler,
+  options
+) {
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isPlainObject(handler)) {
+    options </span>=<span style="color: #000000;"> handler;
+    handler </span>=<span style="color: #000000;"> handler.handler;
+  }
+  </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> handler === 'string'<span style="color: #000000;">) {
+    handler </span>=<span style="color: #000000;"> vm[handler];
+  }
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"><strong> vm.$watch(expOrFn, handler, options)</strong>
+}
+Vue.prototype.$watch </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (
+  expOrFn,
+  cb,
+  options
+) {
+  </span><span style="color: #0000ff;">var</span> vm = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isPlainObject(cb)) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> createWatcher(vm, expOrFn, cb, options)
+  }
+  options </span>= options ||<span style="color: #000000;"> {};
+  options.user </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+  </span><span style="color: #0000ff;">var</span> watcher = <strong><span style="color: #0000ff;">new</span></strong><span style="color: #000000;"><strong> Watcher(vm, expOrFn, cb, options)</strong>;
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (options.immediate) {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+      cb.call(vm, watcher.value);
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (error) {
+      handleError(error, vm, (</span>"callback for immediate watcher \"" + (watcher.expression) + "\""<span style="color: #000000;">));
+    }
+  }
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> unwatchFn () {
+    watcher.teardown();
+  }
+};
+}</span></pre>
+</div>
+<h3>2、computed</h3>
+<p>初始化computed，调用new Watcher()，并通过defineComputed函数将计算属性挂载到vue实例上，使计算属性可以在模板中使用</p>
+<div class="cnblogs_code">
+<pre><code></pre>
+<pre><code>var computedWatcherOptions = { lazy: true }</pre>
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> initComputed (vm, computed) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> $flow-disable-line</span>
+  <span style="color: #0000ff;">var</span> watchers = vm._computedWatchers = Object.create(<span style="color: #0000ff;">null</span><span style="color: #000000;">);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> computed properties are just getters during SSR</span>
+  <span style="color: #0000ff;">var</span> isSSR =<span style="color: #000000;"> isServerRendering();
+
+  </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> key <span style="color: #0000ff;">in</span><span style="color: #000000;"> computed) {
+    </span><strong><span style="color: #0000ff;">var</span> userDef =<span style="color: #000000;"> computed[key];
+    </span><span style="color: #0000ff;">var</span> getter = <span style="color: #0000ff;">typeof</span> userDef === 'function' ?<span style="color: #000000;"> userDef : userDef.get;<br />　　//getter也就是computed的函数
+    </span></strong><span style="color: #0000ff;">if</span> (getter == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+      warn(
+        (</span>"Getter is missing for computed property \"" + key + "\"."<span style="color: #000000;">),
+        vm
+      );
+    }
+
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isSSR) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> create internal watcher for the computed property.</span>
+      <strong>watchers[key] = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Watcher(
+        vm,
+        getter </span>||</strong><span style="color: #000000;"><strong> noop,
+        noop,
+        computedWatcherOptions
+      );</strong>
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">组件定义的计算属性已在</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;">组件原型。我们只需要定义定义的计算属性</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;">在这里实例化。</span>
+    <span style="color: #0000ff;">if</span> (!(key <span style="color: #0000ff;">in</span><span style="color: #000000;"> vm)) {
+      <strong>defineComputed(vm, key, userDef)</strong>;
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">if</span> (key <span style="color: #0000ff;">in</span><span style="color: #000000;"> vm.$data) {
+        warn((</span>"The computed property \"" + key + "\" is already defined in data."<span style="color: #000000;">), vm);
+      } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (vm.$options.props &amp;&amp; key <span style="color: #0000ff;">in</span><span style="color: #000000;"> vm.$options.props) {
+        warn((</span>"The computed property \"" + key + "\" is already defined as a prop."<span style="color: #000000;">), vm);
+      }
+    }
+  }
+}<br /></span></pre>
+<pre><code>function defineComputed (<br />  target,<br />  key,<br />  userDef<br />) {<br />  var shouldCache = !isServerRendering();//true<br />  if (typeof userDef === 'function') {<br />    sharedPropertyDefinition.get = shouldCache<br />      ? <strong>createComputedGetter(key)</strong><br />      : createGetterInvoker(userDef);<br />    sharedPropertyDefinition.set = noop;<br />  } else {<br />    sharedPropertyDefinition.get = userDef.get<br />      ? shouldCache &amp;&amp; userDef.cache !== false<br />        ? createComputedGetter(key)<br />        : createGetterInvoker(userDef.get)<br />      : noop;<br />    sharedPropertyDefinition.set = userDef.set || noop;<br />  }<br />  if (sharedPropertyDefinition.set === noop) {<br />    sharedPropertyDefinition.set = function () {<br />      warn(<br />        ("Computed property \"" + key + "\" was assigned to but it has no setter."),<br />        this<br />      );<br />    };<br />  }<br />  Object.defineProperty(target, key, sharedPropertyDefinition);<br />}<br />//computed的getter函数，在模板获取对应computed数据时会调用<br />function createComputedGetter (key) {<br />  return function computedGetter () {<br />    var watcher = this._computedWatchers &amp;&amp; this._computedWatchers[key];<br />    if (watcher) {<br />      <strong>if (watcher.dirty) {//true</strong><br /><strong>        watcher.evaluate();//该方法会调用watcher.get方法，也就是computed对应的函数</strong><br /><strong>      }</strong><br />      if (Dep.target) {<br />        watcher.depend();<br />      }<br />      return watcher.value<br />    }<br />  }<br />}</pre>
+<pre><code><span style="color: #000000;">&nbsp;</span></pre>
+</div>
+<p>通过以上代码可以看到watch和computed都是通过new Watcher实例实现数据的监听的，但是<strong>computed的options中lazy为true</strong>，这个参数导致它们走的是两条不同路线。</p>
+<p>computed：模板获取数据时，触发其getter函数，最终调用watcher.get，也就是调用对应回调函数。</p>
+<p>watch：模板获取数据时，触发其getter函数，将watcher添加到对应的Dep.subs中，在之后setter被调用时，Dep.notify通知所有watcher进行update，最终调用watcher.cb,也就是调用对应回调函数。</p>
+<h3>3、Watcher</h3>
+<p>构造函数在是watch时，会最后调用this.get，会触发属性的getter函数，将该Watcher添加到Dep的subs中，用于通知数据变动时调用。</p>
+<p>调用Watcher实例的update方法会触发其run方法，run方法中会调用触发函数。其depend方法会调用new Dep的depend方法，dep的depend会调用Watcher的addDep方法，最终会把该watcher实例添加到Dep的subs属性中</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   *观察者解析表达式，收集依赖项，
+   *并在表达式值更改时激发回调。
+   *这用于$watch（）api和指令。
+   </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">var</span> Watcher = <span style="color: #0000ff;">function</span><span style="color: #000000;"> Watcher (
+    vm,
+    expOrFn,
+    cb,
+    options,
+    isRenderWatcher
+  ) {
+    </span><span style="color: #0000ff;">this</span>.vm =<span style="color: #000000;"> vm;
+  ......
+    </span><span style="color: #0000ff;">this</span>.cb = cb;<span style="color: #008000;">//</span><span style="color: #008000;">触发函数</span>
+    <span style="color: #0000ff;">this</span>.id = ++uid$2; <span style="color: #008000;">//</span><span style="color: #008000;"> uid for batching</span>
+    <span style="color: #0000ff;">this</span>.active = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    </span><strong><span style="color: #0000ff;">this</span>.dirty = <span style="color: #0000ff;">this</span>.lazy; </strong><span style="color: #008000;"><strong>/</strong>/</span><span style="color: #008000;"> for lazy watchers</span>
+<span style="color: #000000;">  ......
+    </span><strong><span style="color: #0000ff;">this</span>.value = <span style="color: #0000ff;">this</span>.lazy ? undefined ? <span style="color: #0000ff;">this</span>.get()</strong>;<span style="color: #008000;">//</span><span style="color: #008000;">computed会返回undefined，而watch会执行Watcher.get</span>
+<span style="color: #000000;">  };
+
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * Scheduler job interface.
+   * Will be called by the scheduler.
+   * 该方法会执行触发函数
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Watcher.prototype.run </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> run () {
+    </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.active) {
+      </span><span style="color: #0000ff;">var</span> value = <span style="color: #0000ff;">this</span><span style="color: #000000;">.get();
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (
+        value </span>!== <span style="color: #0000ff;">this</span>.value ||
+        <span style="color: #008000;">//</span><span style="color: #008000;"> Deep watchers and watchers on Object/Arrays should fire even</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> when the value is the same, because the value may</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> have mutated.</span>
+        isObject(value) ||
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.deep
+      ) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> set new value</span>
+        <span style="color: #0000ff;">var</span> oldValue = <span style="color: #0000ff;">this</span><span style="color: #000000;">.value;
+        </span><span style="color: #0000ff;">this</span>.value =<span style="color: #000000;"> value;
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.user) {
+          </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+            </span><strong><span style="color: #0000ff;">this</span>.cb.call(<span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>.vm, value, oldValue);</strong>
+          } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+            handleError(e, </span><span style="color: #0000ff;">this</span>.vm, ("callback for watcher \"" + (<span style="color: #0000ff;">this</span>.expression) + "\""<span style="color: #000000;">));
+          }
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+          </span><strong><span style="color: #0000ff;">this</span>.cb.call(<span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>.vm, value, oldValue);</strong>
+        }
+      }
+    }
+  };
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * Evaluate the getter, and re-collect dependencies.
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Watcher.prototype.get </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> get () {
+    <strong>pushTarget(</strong></span><strong><span style="color: #0000ff;">this</span><span style="color: #000000;">);
+    </span></strong><span style="color: #0000ff;">var</span><span style="color: #000000;"> value;
+    </span><span style="color: #0000ff;">var</span> vm = <span style="color: #0000ff;">this</span><span style="color: #000000;">.vm;
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+      value </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.getter.call(vm, vm);
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+      </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.user) {
+        handleError(e, vm, (</span>"getter for watcher \"" + (<span style="color: #0000ff;">this</span>.expression) + "\""<span style="color: #000000;">));
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> e
+      }
+    } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> "touch" every property so they are all tracked as</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> dependencies for deep watching</span>
+      <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.deep) {
+        traverse(value);
+      }
+      popTarget();
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.cleanupDeps();
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value
+  };
+
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * Subscriber interface.
+   * Will be called when a dependency changes.
+   * 在方法中调用Watcher的run方法
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Watcher.prototype.update </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> update () {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore else </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.lazy) {
+      </span><span style="color: #0000ff;">this</span>.dirty = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.sync) {
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.run();
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      queueWatcher(</span><span style="color: #0000ff;">this</span>);<span style="color: #008000;">//</span><span style="color: #008000;">该方法最终也会调用run方法</span>
+<span style="color: #000000;">    }
+  };
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * Depend on all deps collected by this watcher.会调用new Dep的depend方法，dep的depend会调用Watcher的addDep方法
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Watcher.prototype.depend </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> depend () {
+    </span><span style="color: #0000ff;">var</span> i = <span style="color: #0000ff;">this</span><span style="color: #000000;">.deps.length;
+    </span><span style="color: #0000ff;">while</span> (i--<span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.deps[i].depend();
+    }
+  };
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * Add a dependency to this directive.
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Watcher.prototype.addDep </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> addDep (dep) {
+    </span><span style="color: #0000ff;">var</span> id =<span style="color: #000000;"> dep.id;
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.newDepIds.has(id)) {
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.newDepIds.add(id);
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.newDeps.push(dep);
+      </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.depIds.has(id)) {
+        <strong>dep.addSub(</strong></span><strong><span style="color: #0000ff;">this</span></strong><span style="color: #000000;"><strong>);</strong>
+      }
+    }
+  };</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

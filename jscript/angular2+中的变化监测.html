@@ -1,0 +1,101 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修angular2+中的变化监测' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>angular2+中的变化监测</center></div><div class='banquan'>原文出处:本文由博客园博主siegaii提供。<br/>
+原文连接:https://www.cnblogs.com/siegaii/p/10701384.html</div><br>
+    <p>　　&nbsp;<span style="font-size: 18px;">&nbsp;最近做公司新项目用的angular7，中碰到了一个很头疼的问题在绑定对象中的数据改变时，页面视图没有跟新，需点击页面中的时间元素后才会更新。以前使用angularJs也经常碰到类似情况，这种时候一般的方式使使用脏检查（Dirty checking）让angularJs检查绑定到视图上的数据来实现对页面数据的刷新。</span></p>
+<p><span style="font-size: 18px;">　　接触angular7时间还不久，angular高版本中提供了一系列组件的生命周期钩子，能在组件生命周期的各个阶段，对组件进行操作，监测组件中输入数据的变化，基本少很少碰到需要用到类似于angularJs中脏检查的情况。一直以为在高版本中的angular中已经不会出现需要脏检查的情况了，可是该来的迟早会来。</span></p>
+<p><span style="font-size: 18px;">　　在项目中由于使用了公司的自己的播放插件，angular自身的事件注册机制无效，只能使用原生的js位视频播放插件注册点击事件。实现点击插件后通过插件绑定的回调函数将该分屏信息发送给父组件，在父组件中通过对父组件绑定对象中的属性值的改变来改变父组件的样式。　</span></p>
+<p><span style="font-size: 18px;">　　</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008000;">//</span><span style="color: #008000;"> 插件中的代码片段</span><span style="color: #000000;">
+ngAfterViewInit() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 页面视图初始化完成之后为视频播放插件添加点击事件</span>
+        <span style="color: #0000ff;">this</span>.videoObj = document.getElementById('obj' + <span style="color: #0000ff;">this</span><span style="color: #000000;">.screen.id);
+        </span><span style="color: #0000ff;">this</span>.videoObj.addEventListener('click', () =&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">this</span>.selectThisScreen(<span style="color: #0000ff;">this</span><span style="color: #000000;">.screen);
+        }, </span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+ }
+
+private selectThisScreen(screen) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 输出该分屏对象，输出给父组件</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.screenSelected.emit(screen);
+}
+
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 父组件中的代码片段</span>
+<span style="color: #000000;">private selectedScreen(screen) {
+   </span><span style="color: #0000ff;">this</span>.videoLayoutService.selectedScreen(screen, <span style="color: #0000ff;">this</span><span style="color: #000000;">.videoLayoutOutput);
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> videoLayoutService 片段</span>
+<span style="color: #0000ff;">this</span>.screensConfig.screens.map(item =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">if</span> (item.id ===<span style="color: #000000;"> screen.id) {
+        item.selected </span>= !item.selected; <span style="color: #008000;">//</span><span style="color: #008000;"> 这是想要更新的值！！</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> (item.selected) {
+            videoLayoutOutput.emit({
+                device: {
+                    id: screen.device.Id,
+                    code: screen.device.SerialNo,
+                    selectedCamera: screen.device.SelectedCamera
+                }
+            });
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            videoLayoutOutput.emit({ device: { id: </span><span style="color: #0000ff;">null</span>, code: <span style="color: #0000ff;">null</span>, selectedCamera: <span style="color: #0000ff;">null</span><span style="color: #000000;"> } });
+        }
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (item.id !==<span style="color: #000000;"> screen.id) {
+        item.selected </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+});</span></span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">　　可是由于插件事件绑定只支持原生js的方式，没有有使用angular自身的事件绑定机制（已测试，在不适用该插件的条件下，使用angular自身的事件绑定机制view层能够监测到数据的跟新），view层没能监测到绑定数据的变化。在尝试了各种方式，和各种生命周期钩子后（甚至测试了ngDoCheck）都没有效果后都没能达到想要的效果，这时我想会不会现在angular7中也存在和angularJs中数据更新视图没更新的一样问题，如果是那也应该有类似与$scope.$applay()这样类似的方式来解决这个问题。</span></p>
+<p><span style="font-size: 18px;">　　然后去查了一下官网文档，在文档中没有直接找到类似方法。后去网上找，后来在篇文章中发现了NgZone这个服务（具体哪一篇忘记记录了,找的博客太多了后来忘记了），然后去官网查了查用法。</span></p>
+<p><span style="font-size: 18px;">　　官网文档中使这样描述的：An injectable service for executing work inside or outside of the Angular zone.（用于在Angular区域内外执行工作的可注入服务。）看的云里雾里。。然后又看下面的说明。</span></p>
+<p><span style="font-size: 18px;">　　The most common use of this service is to optimize performance when starting a work consisting of one or more asynchronous tasks that don't require UI updates or error handling to be handled by Angular. Such tasks can be kicked off via&nbsp;<a href="https://angular.cn/api/core/NgZone#runOutsideAngular">runOutsideAngular</a>&nbsp;and if needed, these tasks can reenter the Angular zone via&nbsp;<a href="https://angular.cn/api/core/NgZone#run">run</a>.</span></p>
+<p><span style="font-size: 18px;">　　大概是说这个服务最常见的用途是在<span style="text-decoration: underline; color: #fd2401;">启动一个或多个异步组成工作是优化性能时使用，这些任务不由angular处理UI更新或错误处理</span>（感动终于找到问题所在了！因为插件使用原生js进行事件绑定，没有走angular自身的事件绑定机制导致了angular框架不处理UI更新。。所以需要在这里使用NgZone这个服务），这些任务可以通过runOutsideAngular启动，如果需要，这些任务可以通过run重新进入Angular区域。</span></p>
+<p><span style="font-size: 18px;">　　也就是说我现在可以使用NgZone服务的提供的run()方法将这个事件加入到angular的UI更新管理区域中，一切引刃而解。</span></p>
+<p><span style="font-size: 18px;">　　在父组件中注册NgZone服务使用run（）方法</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008000;">//</span><span style="color: #008000;"> 父组件中的代码片段<br /><br /></span></span></pre>
+<pre><code><span style="font-size: 18px;">constructor(private videoLayoutService: VideoLayoutService, private zone: NgZone) {</span><br /><span style="font-size: 18px;">}</span></pre>
+<pre><code></pre>
+<pre><code><span style="font-size: 18px;"><span style="color: #000000;">private selectedScreen(screen) {
+　　</span><span style="color: #0000ff;">this</span>.zone.run(() =&gt;<span style="color: #000000;"> {
+   　　 </span><span style="color: #0000ff;">this</span>.videoLayoutService.selectedScreen(screen, <span style="color: #0000ff;">this</span><span style="color: #000000;">.videoLayoutOutput);
+　　});
+}</span></span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">　　最后来简单说明下NgZone中的几个方法的使用</span></p>
+<p><span style="font-size: 18px;">　　run（）：在Angular区域内同步执行fn函数，并返回函数返回的值。<span class="transSent" data-group="0-0">通过run运行函数允许您从在Angular区域之外执行的任务(通常通过runOutsideAngular启动)重新进入Angular区域。</span><span class="transSent" data-group="2-0">在这个函数中调度的任何未来任务或微任务都将在Angular区域中继续执行。</span><span class="transSent" data-group="4-0">如果发生同步错误，它将被重新抛出，而不是通过onError报告。</span></span></p>
+<p><span style="font-size: 18px;"><span class="transSent" data-group="4-0">　　runTask（）：以任务的形式在Angular区域内同步执行fn函数，并返回函数返回的值。</span><span class="transSent" data-group="0-0">通过run运行函数允许您从在Angular区域之外执行的任务(通常通过runOutsideAngular启动)重新进入Angular区域。</span><span class="transSent" data-group="2-0">在这个函数中调度的任何未来任务或微任务都将在Angular区域中继续执行。</span><span class="transSent" data-group="4-0">如果发生同步错误，它将被重新抛出，而不是通过onError报告。</span></span></p>
+<p><span class="transSent" style="font-size: 18px;" data-group="4-0">　　runGuarded() :与 run() 相同，除了同步错误是通过onError捕获和转发的，而不是重新抛出。</span></p>
+<p><span style="font-size: 18px;"><span class="transSent" data-group="4-0">　　runOutsideAngular() :&nbsp;在Angular的父区同步执行fn函数，并返回函数返回的值。</span><span class="transSent highlight" data-group="0-0">通过runOutsideAngular运行函数可以让您逃离Angular的区域，并做一些不会触发Angular变化检测或受制于Angular错误处理的工作。</span><span class="transSent" data-group="2-0">在这个函数中调度的任何未来任务或微任务都将在Angular区域之外继续执行。</span><span class="transSent" data-group="4-0">使用run重新进入Angular区域并执行更新应用程序模型的工作。</span></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">　　</span></p>
+<pre class="md-fences md-end-block ty-contain-cm modeLoaded"><span><span class="cm-variable">&nbsp;</span></span></pre>
+<p class="md-end-block">&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

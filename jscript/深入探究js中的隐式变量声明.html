@@ -1,0 +1,159 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入探究js中的隐式变量声明' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入探究js中的隐式变量声明</center></div><div class='banquan'>原文出处:本文由博客园博主帅气的丶坏小子提供。<br/>
+原文连接:https://www.cnblogs.com/yukixing/p/11617354.html</div><br>
+    <p style="margin-left: 30px;">前两天遇到的<a href="https://www.cnblogs.com/yukixing/p/11604888.html" target="_blank">问题</a>，经过很多网友的深刻讨论，终于有一个相对可以解释的通的逻辑了，然后我仔细研究了一下相关的点，顺带研究了一下js中的隐式变量。</p>
+<ul>
+<li><strong>以下文章中提到的隐式变量都是指没有用var，let，const等关键字定义的变量。</strong></li>
+<li><strong>以下文章中提到的var变量都是指用var声明定义的变量。</strong></li>
+</ul>
+<p style="margin-left: 30px;">一遇到隐式变量，我们去百度一下，都会看见这样一句话，隐式变量是全局变量，在函数中用隐式变量也是全局变量，但是在函数中用var变量是局部变量，那我们来具体看下隐式变量到底与var变量有什么区别，下面我们来通过一些代码来探究隐式变量与var变量的区别。</p>
+<h3>1.隐式变量与var变量的区别</h3>
+<p>代码1：</p>
+<p>var变量：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>console.log(a);//undefined
+var a = 100;</pre>
+</div>
+<p>代码2：</p>
+<p>隐式变量：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>console.log(a);//Uncaught ReferenceError: a is not defined
+a = 100;</pre>
+</div>
+<p>&nbsp;看上面的代码我们发现var变量a是存在变量声明提升的，也就是代码1相当于下面的代码：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>var a;
+console.log(a);
+a = 100;</pre>
+</div>
+<p>这与我们以前了解的那个var变量是一样的，变量声明提升还是那个变量声明提升，并不会改变，这里如果想详细了解变量提升的，推荐这篇<a href="https://dmitripavlutin.com/javascript-hoisting-in-details/">文章</a>大家可以看一下。然后我们继续看代码2，隐式变量在前面打印变量a时会报错，那这里我们是不是可以猜测，隐式变量是不是不存在变量提升，当然以前好像也没有人说过隐式变量存在声明提升，可能我一厢情愿的认为隐式变量是全局变量就存在声明提升。然后我们继续看在函数中，代码块中声明的隐式变量是不是跟上面全局定义的隐式变量一样，不存在声明提升。</p>
+<p>代码3：</p>
+<p>函数中的var变量：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>console.log(a);//Uncaught ReferenceError: a is not defined
+function b() {
+    console.log(a);//undefined
+    var a = 100;
+}
+b();&nbsp;</pre>
+</div>
+<p>代码4：</p>
+<p>函数中的隐式变量：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>console.log(a);//Uncaught ReferenceError: a is not defined
+function b() {
+	console.log(a);//Uncaught ReferenceError: a is not defined
+	a = 100;
+}
+b();</pre>
+</div>
+<p>我们来看上面的代码3和代码4，我们发现代码3，在第一行就报错，因为var在函数内部定义的变量属于局部变量，全局是访问不到的，然后把第一行注释掉再运行，发现第三行打印出的a是undefined，证明var变量在函数中进行了变量声明提升。我们来看代码4，在函数内定义了一个隐式变量，然后第一行就会报错，a是未定义，然后把第一行注释掉再运行，发现第三行也还是报错a未定义，这里是不是就说明隐式变量并不会有变量声明提升这种操作，换一句话说，就是隐式变量类似于函数一样，声明和定义是一起的，只有执行了这行代码，才能引用访问这个变量，这里推荐一篇关于变量生命周期的<a href="https://dmitripavlutin.com/variables-lifecycle-and-why-let-is-not-hoisted/">文章</a>，可以细读一下，然后我们再看一下代码块中定义的var变量和隐式变量：</p>
+<p>代码5：</p>
+<p>代码块中的var变量：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>console.log(a);//undefined
+{
+	console.log(a);//undefined
+	var a = 100;
+}</pre>
+</div>
+<p>代码6：</p>
+<p>代码块中的隐式变量：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>console.log(a);//Uncaught ReferenceError: a is not defined
+{
+	console.log(a);//Uncaught ReferenceError: a is not defined
+	a = 100;
+}</pre>
+</div>
+<p>然后我们看代码块中的var变量，是存在声明提升的，然后隐式变量是不存在声明提升的，所以上面访问都会报错。</p>
+<ul>
+<li><strong>结论：根据上面的一系列的探究我们基本可以确定一个结论，那就是隐式变量是不存在变量声明提升的。</strong></li>
+</ul>
+<h3>2.代码块中的函数声明提升</h3>
+<p>&nbsp; &nbsp; 上面探究完隐式变量我们再稍微看下代码块中的函数声明提升：</p>
+<p>代码7：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>console.log(a);//undefined
+{
+	function a(){};
+	console.log(a);//&fnof; a(){}
+}
+console.log(a);//&fnof; a(){}</pre>
+</div>
+<p>我们看上面的代码，我们都知道函数是js中的"一等公民"，优先级是最高的,那在上面这个代码中，函数是否提升到了块作用域的外面呢，如果我说提升了，那你从块作用域最外面调用你会发现报错，a不是一个方法：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>a();//Uncaught TypeError: a is not a function
+{
+	function a(){};
+}</pre>
+</div>
+<p>然后这样之前的我就得出一个结论，函数声明提升并没有将函数提升到最外层，那就要问那上面我们打印的a为undefined，为什么不是报错a未定义呢，根据阮一峰老师的<a href="http://es6.ruanyifeng.com/#docs/let" target="_blank">这篇文章</a>的描述，我们可以得出一个结论：</p>
+<p>&nbsp;<img src="./images/深入探究js中的隐式变量声明0.png" alt="" /></p>
+<ul>
+<li><strong>块作用域内定义的函数在块作用域内会进行函数提升，提升到最上面，然后在最外层类似于var声明一个同名变量，默认值为undefined。</strong></li>
+</ul>
+<h3>3.代码块中存在同名的隐式变量与函数的情况</h3>
+<p>&nbsp; &nbsp; 然后我们再回过头来看代码块中同时存在同名的隐式变量和函数时会怎样：</p>
+<p><img src="./images/深入探究js中的隐式变量声明1.png" alt="" /></p>
+<p>首先我们来看上面这个代码，此时如果我们再最外层的上面打印a和b你会发现会打印出来是undefined：</p>
+<p>代码8：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>console.log(a,b);//undefined undefined
+{
+	console.log(a);//&fnof; a() {}
+	function a() {};
+	a = 50;
+	console.log(a);//50
+}
+console.log(a);//&fnof; a() {}
+{
+	console.log(b);//&fnof; b() {}
+	b = 50;
+	function b() {};
+	console.log(b);//50
+}
+console.log(b);//50</pre>
+</div>
+<p>我们看上面的代码，你会发现最前面打印a和b都是undefined，通过前面对隐式变量和函数声明的探究我们可以知道此时外面的a和b都是函数声明定义的，另外我们从侧面也可以看出这一点，vscode有一个功能，是可以查看变量是谁定义的，那我们来看一下：</p>
+<p><img src="./images/深入探究js中的隐式变量声明2.png" alt="" /></p>
+<p><img src="./images/深入探究js中的隐式变量声明3.png" alt="" /></p>
+<p><img src="./images/深入探究js中的隐式变量声明4.png" alt="" /></p>
+<p>此时我们发现vscode分析出来最上面的a和b都是a和b函数定义的，根据我们上面的探究，既然隐式变量不存在变量声明提升，那只能函数定义的，然后通过对函数的探究可以证实这一点，同时配上vscode分析出来的结果，也证实了这一点，首先可以确定，最外层的全局的a和b都是函数定义的。然后我们再继续往下看，最开始的a和b打印undefined没问题，</p>
+<p><img src="./images/深入探究js中的隐式变量声明5.png" alt="" /></p>
+<p>然后我们来看下上面图片上第16行打印的结果为什么是a方法，通过我<a href="https://www.cnblogs.com/yukixing/p/11604888.html" target="_blank">上篇文章</a>一行一行的调试你会发现，此时代码块中的a其实是被限制在块作用域里面的，并不是全局的变量，此时其实a = 50这行代码不是隐式变量，因为a已经被函数定义过了，那a = 50也就是对之前定义过的变量赋值了，所以此时</p>
+<p>a = 50不是隐式变量，然后对之前定义的a赋值，在代码块中打印出来为50，然后出了块作用域打印出来的结果为方法a，通过代码一步步的调试你会发现全局的a，只有在执行a方法的代码时才会把块作用域赋的值同步到全局。</p>
+<p>第一步：此时全局的a为undefined，此时a是代码块中函数定义的：</p>
+<p><img src="./images/深入探究js中的隐式变量声明6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;第二步：此时我们发现出来了一个块作用域，因为代码块中的函数提前了，此时代码块中的a的值为a方法，而全局的a还是undefined，没什么问题</p>
+<p><img src="./images/深入探究js中的隐式变量声明7.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;第三步：此时我们会发现当函数a这一行代码走完之后，块作用域里面的a跟全局的a都变成了a方法，也就是说想要让块作用域中的a的值同步到全局，必须让代码执行到定义a方法的下一行才可以，要不然代码块中的a的值是不会同步到代码块外面的</p>
+<p><img src="./images/深入探究js中的隐式变量声明8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;第四步：到这一步我们会发现块作用域中的a变成了50，而全局的a还是a方法，根据上一步得到的结论，此时只要在a = 50这行代码后面再执行一次方法a，a = 50就会被同步到全局，此时验证一下也确实是这样</p>
+<p><img src="./images/深入探究js中的隐式变量声明9.png" alt="" /></p>
+<p>&nbsp;然后出块作用域你会发现打印a为a方法，此时你就不会好奇为什么打印结果是a方法了，因为块作用域中的a并没有同步到全局，而b打印50，是因为b = 50后面执行了一行b方法，将b同步到了全局。到这里我们也就了解为什么两个代码只是换了一下函数的位置打印结果过就完全不同了，然后看文章的时候如果发现有什么错误或写的不好的地方，还请指正，我会立即做出修改。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

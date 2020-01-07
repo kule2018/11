@@ -1,0 +1,222 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue+Electron下Vuex的Dispatch没有效果的解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue+Electron下Vuex的Dispatch没有效果的解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主jxtxzzw提供。<br/>
+原文连接:https://www.cnblogs.com/jxtxzzw/p/10887180.html</div><br>
+    <div class="markdown-here-wrapper" data-md-url="https://i.cnblogs.com/EditPosts.aspx?opt=1">
+<p style="margin: 0px 0px 1.2em !important;"><strong>这个问题是解决基于 vue 和 electron 的开发中使用 vuex 的 dispatch 无效的问题，即解决了 <code>Please, don't use direct commit's, use dispatch instead of this.</code> 问题。</strong><br />先允许我梳理一下目录结构，以便阅读的时候不会一头雾水，你到底说的这个文件是哪个&hellip;&hellip;<br /><img src="./images/Vue+Electron下Vuex的Dispatch没有效果的解决方案0.png" alt="1558185192156" /><br />其中 <code>/src/main</code> 是存放主配置文件的，<code>/src/render</code> 下面有 <code>store</code>、<code>router</code>、<code>components</code> 等。<br /><code>components</code> 下面就是很多 <code>.vue</code> 文件，<code>router</code> 下面就是一些路由配置的 <code>js</code> 文件和一些拦截器的 <code>js</code>。<br />关键是 <code>store</code>，<code>store</code> 下面有一个 <code>index.js</code> 的主配置文件 <code>index.js</code>，和一个 <code>modules</code> 文件夹。<br /><code>index.js</code> 里面写的是（记住这句话，后面会用到）：</p>
+<pre><code><code class="hljs language-js" style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0.5em; white-space: pre; border: 1px solid #cccccc; background-color: #f8f8f8; border-radius: 3px; display: block; overflow: auto; overflow-x: auto; color: #333333; background: #f8f8f8; text-size-adjust: none;">import Vue from <span class="hljs-string" style="color: #dd1144;">'vue'</span>
+import Vuex from <span class="hljs-string" style="color: #dd1144;">'vuex'</span>
+import { createPersistedState, createSharedMutations } from <span class="hljs-string" style="color: #dd1144;">'vuex-electron'</span>
+import modules from <span class="hljs-string" style="color: #dd1144;">'./modules'</span>
+Vue.use(Vuex)
+export <span class="hljs-keyword" style="color: #333333; font-weight: bold;">default</span> <span class="hljs-keyword" style="color: #333333; font-weight: bold;">new</span> Vuex.Store({
+  modules,
+  plugins: [
+    createPersistedState(),
+    createSharedMutations()
+  ],
+  strict: process.env.NODE_ENV !== <span class="hljs-string" style="color: #dd1144;">'production'</span>
+})
+</code></pre>
+<p style="margin: 0px 0px 1.2em !important;">而 <code>modules/</code> 下面存放各个实体，例如上图中的 <code>Auth.js</code> 和 <code>Counter.js</code>，并通过 <code>index.js</code> 全部引入。</p>
+<pre><code><code class="hljs language-js" style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0.5em; white-space: pre; border: 1px solid #cccccc; background-color: #f8f8f8; border-radius: 3px; display: block; overflow: auto; overflow-x: auto; color: #333333; background: #f8f8f8; text-size-adjust: none;"><span class="hljs-comment" style="color: #999988; font-style: italic;">/**
+ * The file enables `@/store/index.js` to import all vuex modules
+ * in a one-shot manner. There should not be any reason to edit this file.
+ */</span>
+<span class="hljs-keyword" style="color: #333333; font-weight: bold;">const</span> files = <span class="hljs-built_in" style="color: #0086b3;">require</span>.context(<span class="hljs-string" style="color: #dd1144;">'.'</span>, <span class="hljs-literal">false</span>, <span class="hljs-regexp" style="color: #009926;">/\.js$/</span>)
+<span class="hljs-keyword" style="color: #333333; font-weight: bold;">const</span> modules = {}
+files.keys().forEach(key =&gt; {
+  <span class="hljs-keyword" style="color: #333333; font-weight: bold;">if</span> (key === <span class="hljs-string" style="color: #dd1144;">'./index.js'</span>) <span class="hljs-keyword" style="color: #333333; font-weight: bold;">return</span>
+  modules[key.replace(<span class="hljs-regexp" style="color: #009926;">/(\.\/|\.js)/g</span>, <span class="hljs-string" style="color: #dd1144;">''</span>)] = files(key).default
+})
+export <span class="hljs-keyword" style="color: #333333; font-weight: bold;">default</span> modules
+</code></pre>
+<p style="margin: 0px 0px 1.2em !important;">然后来看一个 vuex 的官方样例：</p>
+<pre><code><code class="hljs language-js" style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0.5em; white-space: pre; border: 1px solid #cccccc; background-color: #f8f8f8; border-radius: 3px; display: block; overflow: auto; overflow-x: auto; color: #333333; background: #f8f8f8; text-size-adjust: none;"><span class="hljs-keyword" style="color: #333333; font-weight: bold;">const</span> state = {
+  main: <span class="hljs-number" style="color: #008080;">0</span>
+}
+<span class="hljs-keyword" style="color: #333333; font-weight: bold;">const</span> mutations = {
+  DECREMENT_MAIN_COUNTER (state) {
+    state.main--
+  },
+  INCREMENT_MAIN_COUNTER (state) {
+    state.main++
+  }
+}
+<span class="hljs-keyword" style="color: #333333; font-weight: bold;">const</span> actions = {
+  someAsyncTask ({ commit }) {
+    <span class="hljs-comment" style="color: #999988; font-style: italic;">// do something async</span>
+    commit(<span class="hljs-string" style="color: #dd1144;">'INCREMENT_MAIN_COUNTER'</span>)
+  }
+}
+export <span class="hljs-keyword" style="color: #333333; font-weight: bold;">default</span> {
+  state,
+  mutations,
+  actions
+}
+</code></pre>
+<p style="margin: 0px 0px 1.2em !important;">之后很显然的，我想要在 Vue 的组件调用 <code>INCREMENT_MAIN_COUNTER</code> 对计数器加 1。</p>
+<pre><code><code class="hljs language-js" style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0.5em; white-space: pre; border: 1px solid #cccccc; background-color: #f8f8f8; border-radius: 3px; display: block; overflow: auto; overflow-x: auto; color: #333333; background: #f8f8f8; text-size-adjust: none;"><span class="hljs-keyword" style="color: #333333; font-weight: bold;">this</span>.$store.commit(<span class="hljs-string" style="color: #dd1144;">'INCREMENT_MAIN_COUNTER'</span>);
+<span class="hljs-comment" style="color: #999988; font-style: italic;">// this.$store.commit('INCREMENT_MAIN_COUNTER', payload);</span>
+</code></pre>
+<p style="margin: 0px 0px 1.2em !important;">如果是一般的 vue，就 OK 了，但是，我遇到了报错，说，<code>Please, don't use direct commit's, use dispatch instead of this.</code><br /><img src="./images/Vue+Electron下Vuex的Dispatch没有效果的解决方案1.png" alt="1558184959796" /><br />那好吧，没事，不就是不然用 Commit，非要用 Dispatch 嘛，那我就写一个 Action，里面直接调用 Mutation，就像这个样子：</p>
+<pre><code><code class="hljs language-js" style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0.5em; white-space: pre; border: 1px solid #cccccc; background-color: #f8f8f8; border-radius: 3px; display: block; overflow: auto; overflow-x: auto; color: #333333; background: #f8f8f8; text-size-adjust: none;"><span class="hljs-keyword" style="color: #333333; font-weight: bold;">const</span> actions = {
+  JUST_INCREASE ({ commit }) {
+    commit(<span class="hljs-string" style="color: #dd1144;">'INCREMENT_MAIN_COUNTER'</span>)
+  }
+}
+</code></pre>
+<p style="margin: 0px 0px 1.2em !important;">然而奇怪的事情是，<code>this.$store.dispatch('JUST_INCREASE')</code> 并不能运行，没反应，计数器还是 0，不能赋值，就像是这个函数没有被执行一样。没有报错，没有任何异常，查也查不出什么问题。<br /><img src="./images/Vue+Electron下Vuex的Dispatch没有效果的解决方案2.png" alt="1558184998501" /><br /><img src="./images/Vue+Electron下Vuex的Dispatch没有效果的解决方案3.png" alt="1558184982642" /><br />网上的资料似乎也挺少。<br />折腾了很久，后来发现是 vuex-electron 里面一个插件的锅。<br />解决方法有两个。<br />方法一：<br />在 <code>store/index.js</code> 里面，就是上文特别强调了的那个文件，去掉 <code>createSharedMutations</code> 插件。</p>
+<pre><code><code class="hljs language-js" style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0.5em; white-space: pre; border: 1px solid #cccccc; background-color: #f8f8f8; border-radius: 3px; display: block; overflow: auto; overflow-x: auto; color: #333333; background: #f8f8f8; text-size-adjust: none;">import Vue from <span class="hljs-string" style="color: #dd1144;">'vue'</span>
+import Vuex from <span class="hljs-string" style="color: #dd1144;">'vuex'</span>
+import { createPersistedState, createSharedMutations } from <span class="hljs-string" style="color: #dd1144;">'vuex-electron'</span>
+import modules from <span class="hljs-string" style="color: #dd1144;">'./modules'</span>
+Vue.use(Vuex)
+export <span class="hljs-keyword" style="color: #333333; font-weight: bold;">default</span> <span class="hljs-keyword" style="color: #333333; font-weight: bold;">new</span> Vuex.Store({
+  modules,
+  plugins: [
+    createPersistedState(),
+    createSharedMutations() <span class="hljs-comment" style="color: #999988; font-style: italic;">// 注释掉这一行</span>
+  ],
+  strict: process.env.NODE_ENV !== <span class="hljs-string" style="color: #dd1144;">'production'</span>
+})
+</code></pre>
+<p style="margin: 0px 0px 1.2em !important;">这是因为 <code>vuex-electron</code> 引入了一个用于多进程间共享 Vuex Store 的状态的插件。如果没有多进程交互的需求，完全可以<strong>不引入</strong>这个插件。<br />注释掉以后重启项目，用 <code>this.$store.commit('XXX')</code> 就可以使用了。<br />然而，如果需要多进程来处理怎么办？<br />方法二：<br /><a href="https://github.com/vue-electron/vuex-electron#installation">https://github.com/vue-electron/vuex-electron#installation</a><br />看第 3 条：</p>
+<blockquote style="margin: 1.2em 0px; border-left: 4px solid #dddddd; padding: 0px 1em; color: #777777; quotes: none;">
+<p style="margin: 0px 0px 1.2em !important;">  In case if you enabled <code>createSharedMutations()</code> plugin you need to create an instance of store in the main process. To do it just add this line into your main process (for example <code>src/main.js</code>):</p>
+<pre><code><code class="hljs language-js" style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0.5em; white-space: pre; border: 1px solid #cccccc; background-color: #f8f8f8; border-radius: 3px; display: block; overflow: auto; overflow-x: auto; color: #333333; background: #f8f8f8; text-size-adjust: none;">  import <span class="hljs-string" style="color: #dd1144;">'./path/to/your/store'</span>
+</code></pre>
+<p style="margin: 0px 0px 1.2em !important;">这种时候就不能用第一种方法来解决问题了。<br />好在文档也说了，加上一行导入。<br />找到 <code>/src/main/index.js</code>，在前面加上一句：</p>
+<pre><code><code class="hljs language-js" style="font-size: 0.85em; font-family: Consolas, Inconsolata, Courier, monospace; margin: 0px 0.15em; padding: 0.5em; white-space: pre; border: 1px solid #cccccc; background-color: #f8f8f8; border-radius: 3px; display: block; overflow: auto; overflow-x: auto; color: #333333; background: #f8f8f8; text-size-adjust: none;">import <span class="hljs-string" style="color: #dd1144;">'../renderer/store'</span>
+</code></pre>
+<p style="margin: 0px 0px 1.2em !important;"><img src="./images/Vue+Electron下Vuex的Dispatch没有效果的解决方案4.png" alt="1558185071126" /><br />之后一切正常，可以使用 Dispatch 来进行操作了。<br /><img src="./images/Vue+Electron下Vuex的Dispatch没有效果的解决方案5.png" alt="1558185678300" /><br />最后还有一个比较奇怪的问题：<br /><img src="./images/Vue+Electron下Vuex的Dispatch没有效果的解决方案6.png" alt="1558185917570" /><br />在直接调用 <code>state</code> 的时候，这样写 <code>this.$store.state.loginStatus</code> 是不行的，会 undefined，必须写成 <code>this.$store.state.Auth.loginStatus</code>，就像是 <code>this.$store.state.Counter.main</code> 一样，似乎可以解释为，不同的模块不指定名字的话就找不到。<br />但是，在写 Dispatch 的时候又不需要指定名字了，直接 <code>dispatch('changeLoginStatus')</code> 就行了，不然难道不应该是也按照 <code>dispatch('Auth/changeLoginStatus')</code> 这样子来写嘛&hellip;&hellip;</p>
+
+</blockquote>
+<div style="height: 0; width: 0; max-height: 0; max-width: 0; overflow: hidden; font-size: 0em; padding: 0; margin: 0;" title="MDH:PHA+Kirov5nkuKrpl67popjmmK/op6PlhrPln7rkuo4gdnVlIOWSjCBlbGVjdHJvbiDnmoTlvIDl
+j5HkuK3kvb/nlKggdnVleCDnmoQgZGlzcGF0Y2gg5peg5pWI55qE6Zeu6aKY77yM5Y2z6Kej5Yaz
+5LqGIGBQbGVhc2UsIGRvbid0IHVzZSBkaXJlY3QgY29tbWl0J3MsIHVzZSBkaXNwYXRjaCBpbnN0
+ZWFkIG9mIHRoaXMuYCDpl67popjjgIIqKjwvcD48cD7lhYjlhYHorrjmiJHmorPnkIbkuIDkuIvn
+m67lvZXnu5PmnoTvvIzku6Xkvr/pmIXor7vnmoTml7blgJnkuI3kvJrkuIDlpLTpm77msLTvvIzk
+vaDliLDlupXor7TnmoTov5nkuKrmlofku7bmmK/lk6rkuKrigKbigKY8L3A+PHA+IVsxNTU4MTg1
+MTkyMTU2XShodHRwczovL2RsLmp4dHh6encuY29tL2RsL2F0dGFjaC8xNTU4MTg1MTkyMTU2LnBu
+Zyk8L3A+PHA+5YW25LitIGAvc3JjL21haW5gIOaYr+WtmOaUvuS4u+mFjee9ruaWh+S7tueahO+8
+jGAvc3JjL3JlbmRlcmAg5LiL6Z2i5pyJIGBzdG9yZWDjgIFgcm91dGVyYOOAgWBjb21wb25lbnRz
+YCDnrYnjgII8L3A+PHA+YGNvbXBvbmVudHNgIOS4i+mdouWwseaYr+W+iOWkmiBgLnZ1ZWAg5paH
+5Lu277yMYHJvdXRlcmAg5LiL6Z2i5bCx5piv5LiA5Lqb6Lev55Sx6YWN572u55qEIGBqc2Ag5paH
+5Lu25ZKM5LiA5Lqb5oum5oiq5Zmo55qEIGBqc2DjgII8L3A+PHA+5YWz6ZSu5pivIGBzdG9yZWDv
+vIxgc3RvcmVgIOS4i+mdouacieS4gOS4qiBgaW5kZXguanNgIOeahOS4u+mFjee9ruaWh+S7tiBg
+aW5kZXguanNg77yM5ZKM5LiA5LiqIGBtb2R1bGVzYCDmlofku7blpLnjgII8L3A+PHA+YGluZGV4
+LmpzYCDph4zpnaLlhpnnmoTmmK/vvIjorrDkvY/ov5nlj6Xor53vvIzlkI7pnaLkvJrnlKjliLDv
+vInvvJo8L3A+PHA+YGBganM8YnI+aW1wb3J0IFZ1ZSBmcm9tICd2dWUnPGJyPmltcG9ydCBWdWV4
+IGZyb20gJ3Z1ZXgnPC9wPjxwPmltcG9ydCB7IGNyZWF0ZVBlcnNpc3RlZFN0YXRlLCBjcmVhdGVT
+aGFyZWRNdXRhdGlvbnMgfSBmcm9tICd2dWV4LWVsZWN0cm9uJzwvcD48cD5pbXBvcnQgbW9kdWxl
+cyBmcm9tICcuL21vZHVsZXMnPC9wPjxwPlZ1ZS51c2UoVnVleCk8L3A+PHA+ZXhwb3J0IGRlZmF1
+bHQgbmV3IFZ1ZXguU3RvcmUoezxicj4gIG1vZHVsZXMsPGJyPiAgcGx1Z2luczogWzxicj4gICAg
+Y3JlYXRlUGVyc2lzdGVkU3RhdGUoKSw8YnI+ICAgIGNyZWF0ZVNoYXJlZE11dGF0aW9ucygpPGJy
+PiAgXSw8YnI+ICBzdHJpY3Q6IHByb2Nlc3MuZW52Lk5PREVfRU5WICE9PSAncHJvZHVjdGlvbic8
+YnI+fSk8YnI+YGBgPC9wPjxwPuiAjCBgbW9kdWxlcy9gIOS4i+mdouWtmOaUvuWQhOS4quWunuS9
+k++8jOS+i+WmguS4iuWbvuS4reeahCBgQXV0aC5qc2Ag5ZKMIGBDb3VudGVyLmpzYO+8jOW5tumA
+mui/hyBgaW5kZXguanNgIOWFqOmDqOW8leWFpeOAgjwvcD48cD5gYGBqczxicj4vKio8YnI+ICog
+VGhlIGZpbGUgZW5hYmxlcyBgQC9zdG9yZS9pbmRleC5qc2AgdG8gaW1wb3J0IGFsbCB2dWV4IG1v
+ZHVsZXM8YnI+ICogaW4gYSBvbmUtc2hvdCBtYW5uZXIuIFRoZXJlIHNob3VsZCBub3QgYmUgYW55
+IHJlYXNvbiB0byBlZGl0IHRoaXMgZmlsZS48YnI+ICovPC9wPjxwPmNvbnN0IGZpbGVzID0gcmVx
+dWlyZS5jb250ZXh0KCcuJywgZmFsc2UsIC9cLmpzJC8pPGJyPmNvbnN0IG1vZHVsZXMgPSB7fTwv
+cD48cD5maWxlcy5rZXlzKCkuZm9yRWFjaChrZXkgPSZndDsgezxicj4gIGlmIChrZXkgPT09ICcu
+L2luZGV4LmpzJykgcmV0dXJuPGJyPiAgbW9kdWxlc1trZXkucmVwbGFjZSgvKFwuXC98XC5qcykv
+ZywgJycpXSA9IGZpbGVzKGtleSkuZGVmYXVsdDxicj59KTwvcD48cD5leHBvcnQgZGVmYXVsdCBt
+b2R1bGVzPC9wPjxwPmBgYDwvcD48cD7nhLblkI7mnaXnnIvkuIDkuKogdnVleCDnmoTlrpjmlrnm
+oLfkvovvvJo8L3A+PHA+YGBganM8YnI+Y29uc3Qgc3RhdGUgPSB7PGJyPiAgbWFpbjogMDxicj59
+PC9wPjxwPmNvbnN0IG11dGF0aW9ucyA9IHs8YnI+ICBERUNSRU1FTlRfTUFJTl9DT1VOVEVSIChz
+dGF0ZSkgezxicj4gICAgc3RhdGUubWFpbi0tPGJyPiAgfSw8YnI+ICBJTkNSRU1FTlRfTUFJTl9D
+T1VOVEVSIChzdGF0ZSkgezxicj4gICAgc3RhdGUubWFpbisrPGJyPiAgfTxicj59PC9wPjxwPmNv
+bnN0IGFjdGlvbnMgPSB7PGJyPiAgc29tZUFzeW5jVGFzayAoeyBjb21taXQgfSkgezxicj4gICAg
+Ly8gZG8gc29tZXRoaW5nIGFzeW5jPGJyPiAgICBjb21taXQoJ0lOQ1JFTUVOVF9NQUlOX0NPVU5U
+RVInKTxicj4gIH08YnI+fTwvcD48cD5leHBvcnQgZGVmYXVsdCB7PGJyPiAgc3RhdGUsPGJyPiAg
+bXV0YXRpb25zLDxicj4gIGFjdGlvbnM8YnI+fTwvcD48cD5gYGA8L3A+PHA+5LmL5ZCO5b6I5pi+
+54S255qE77yM5oiR5oOz6KaB5ZyoIFZ1ZSDnmoTnu4Tku7bosIPnlKggYElOQ1JFTUVOVF9NQUlO
+X0NPVU5URVJgIOWvueiuoeaVsOWZqOWKoCAx44CCPC9wPjxwPmBgYCBqczxicj50aGlzLiRzdG9y
+ZS5jb21taXQoJ0lOQ1JFTUVOVF9NQUlOX0NPVU5URVInKTs8YnI+Ly8gdGhpcy4kc3RvcmUuY29t
+bWl0KCdJTkNSRU1FTlRfTUFJTl9DT1VOVEVSJywgcGF5bG9hZCk7PGJyPmBgYDwvcD48cD7lpoLm
+npzmmK/kuIDoiKznmoQgdnVl77yM5bCxIE9LIOS6hu+8jOS9huaYr++8jOaIkemBh+WIsOS6huaK
+pemUme+8jOivtO+8jGBQbGVhc2UsIGRvbid0IHVzZSBkaXJlY3QgY29tbWl0J3MsIHVzZSBkaXNw
+YXRjaCBpbnN0ZWFkIG9mIHRoaXMuYDwvcD48cD4hWzE1NTgxODQ5NTk3OTZdKGh0dHBzOi8vZGwu
+anh0eHp6dy5jb20vZGwvYXR0YWNoLzE1NTgxODQ5NTk3OTYucG5nKTwvcD48cD7pgqPlpb3lkKfv
+vIzmsqHkuovvvIzkuI3lsLHmmK/kuI3nhLbnlKggQ29tbWl077yM6Z2e6KaB55SoIERpc3BhdGNo
+IOWYm++8jOmCo+aIkeWwseWGmeS4gOS4qiBBY3Rpb27vvIzph4zpnaLnm7TmjqXosIPnlKggTXV0
+YXRpb27vvIzlsLHlg4/ov5nkuKrmoLflrZDvvJo8L3A+PHA+YGBganM8YnI+Y29uc3QgYWN0aW9u
+cyA9IHs8YnI+ICBKVVNUX0lOQ1JFQVNFICh7IGNvbW1pdCB9KSB7PGJyPiAgICBjb21taXQoJ0lO
+Q1JFTUVOVF9NQUlOX0NPVU5URVInKTxicj4gIH08YnI+fTxicj5gYGA8L3A+PHA+54S26ICM5aWH
+5oCq55qE5LqL5oOF5piv77yMYHRoaXMuJHN0b3JlLmRpc3BhdGNoKCdKVVNUX0lOQ1JFQVNFJylg
+IOW5tuS4jeiDvei/kOihjO+8jOayoeWPjeW6lO+8jOiuoeaVsOWZqOi/mOaYryAw77yM5LiN6IO9
+6LWL5YC877yM5bCx5YOP5piv6L+Z5Liq5Ye95pWw5rKh5pyJ6KKr5omn6KGM5LiA5qC344CC5rKh
+5pyJ5oql6ZSZ77yM5rKh5pyJ5Lu75L2V5byC5bi477yM5p+l5Lmf5p+l5LiN5Ye65LuA5LmI6Zeu
+6aKY44CCPC9wPjxwPiFbMTU1ODE4NDk5ODUwMV0oaHR0cHM6Ly9kbC5qeHR4enp3LmNvbS9kbC9h
+dHRhY2gvMTU1ODE4NDk5ODUwMS5wbmcpPC9wPjxwPiFbMTU1ODE4NDk4MjY0Ml0oaHR0cHM6Ly9k
+bC5qeHR4enp3LmNvbS9kbC9hdHRhY2gvMTU1ODE4NDk4MjY0Mi5wbmcpPC9wPjxwPue9keS4iuea
+hOi1hOaWmeS8vOS5juS5n+aMuuWwkeOAgjwvcD48cD7mipjohb7kuoblvojkuYXvvIzlkI7mnaXl
+j5HnjrDmmK8gdnVleC1lbGVjdHJvbiDph4zpnaLkuIDkuKrmj5Lku7bnmoTplIXjgII8L3A+PHA+
+6Kej5Yaz5pa55rOV5pyJ5Lik5Liq44CCPC9wPjxwPuaWueazleS4gO+8mjwvcD48cD7lnKggYHN0
+b3JlL2luZGV4LmpzYCDph4zpnaLvvIzlsLHmmK/kuIrmlofnibnliKvlvLrosIPkuobnmoTpgqPk
+uKrmlofku7bvvIzljrvmjokgYGNyZWF0ZVNoYXJlZE11dGF0aW9uc2Ag5o+S5Lu244CCPC9wPjxw
+PmBgYGpzPGJyPmltcG9ydCBWdWUgZnJvbSAndnVlJzxicj5pbXBvcnQgVnVleCBmcm9tICd2dWV4
+JzwvcD48cD5pbXBvcnQgeyBjcmVhdGVQZXJzaXN0ZWRTdGF0ZSwgY3JlYXRlU2hhcmVkTXV0YXRp
+b25zIH0gZnJvbSAndnVleC1lbGVjdHJvbic8L3A+PHA+aW1wb3J0IG1vZHVsZXMgZnJvbSAnLi9t
+b2R1bGVzJzwvcD48cD5WdWUudXNlKFZ1ZXgpPC9wPjxwPmV4cG9ydCBkZWZhdWx0IG5ldyBWdWV4
+LlN0b3JlKHs8YnI+ICBtb2R1bGVzLDxicj4gIHBsdWdpbnM6IFs8YnI+ICAgIGNyZWF0ZVBlcnNp
+c3RlZFN0YXRlKCksPGJyPiAgICBjcmVhdGVTaGFyZWRNdXRhdGlvbnMoKSAvLyDms6jph4rmjono
+v5nkuIDooYw8YnI+ICBdLDxicj4gIHN0cmljdDogcHJvY2Vzcy5lbnYuTk9ERV9FTlYgIT09ICdw
+cm9kdWN0aW9uJzxicj59KTwvcD48cD5gYGA8L3A+PHA+6L+Z5piv5Zug5Li6IGB2dWV4LWVsZWN0
+cm9uYCDlvJXlhaXkuobkuIDkuKrnlKjkuo7lpJrov5vnqIvpl7TlhbHkuqsgVnVleCBTdG9yZSDn
+moTnirbmgIHnmoTmj5Lku7bjgILlpoLmnpzmsqHmnInlpJrov5vnqIvkuqTkupLnmoTpnIDmsYLv
+vIzlrozlhajlj6/ku6UqKuS4jeW8leWFpSoq6L+Z5Liq5o+S5Lu244CCPC9wPjxwPuazqOmHiuaO
+ieS7peWQjumHjeWQr+mhueebru+8jOeUqCBgdGhpcy4kc3RvcmUuY29tbWl0KCdYWFgnKWAg5bCx
+5Y+v5Lul5L2/55So5LqG44CCPC9wPjxwPueEtuiAjO+8jOWmguaenOmcgOimgeWkmui/m+eoi+ad
+peWkhOeQhuaAjuS5iOWKnu+8nzwvcD48cD7mlrnms5XkuozvvJo8L3A+PHA+Jmx0O2h0dHBzOi8v
+Z2l0aHViLmNvbS92dWUtZWxlY3Ryb24vdnVleC1lbGVjdHJvbiNpbnN0YWxsYXRpb24mZ3Q7PC9w
+PjxwPueci+esrCAzIOadoe+8mjwvcD48cD4mZ3Q7ICAgSW4gY2FzZSBpZiB5b3UgZW5hYmxlZCBg
+Y3JlYXRlU2hhcmVkTXV0YXRpb25zKClgIHBsdWdpbiB5b3UgbmVlZCB0byBjcmVhdGUgYW4gaW5z
+dGFuY2Ugb2Ygc3RvcmUgaW4gdGhlIG1haW4gcHJvY2Vzcy4gVG8gZG8gaXQganVzdCBhZGQgdGhp
+cyBsaW5lIGludG8geW91ciBtYWluIHByb2Nlc3MgKGZvciBleGFtcGxlIGBzcmMvbWFpbi5qc2Ap
+Ojxicj4mZ3Q7PGJyPiZndDsgICBgYGBqczxicj4mZ3Q7ICAgaW1wb3J0ICcuL3BhdGgvdG8veW91
+ci9zdG9yZSc8YnI+Jmd0OyAgIGBgYDwvcD48cD7ov5nnp43ml7blgJnlsLHkuI3og73nlKjnrKzk
+uIDnp43mlrnms5XmnaXop6PlhrPpl67popjkuobjgII8L3A+PHA+5aW95Zyo5paH5qGj5Lmf6K+0
+5LqG77yM5Yqg5LiK5LiA6KGM5a+85YWl44CCPC9wPjxwPuaJvuWIsCBgL3NyYy9tYWluL2luZGV4
+LmpzYO+8jOWcqOWJjemdouWKoOS4iuS4gOWPpe+8mjwvcD48cD5gYGBqczxicj5pbXBvcnQgJy4u
+L3JlbmRlcmVyL3N0b3JlJzxicj5gYGA8L3A+PHA+IVsxNTU4MTg1MDcxMTI2XShodHRwczovL2Rs
+Lmp4dHh6encuY29tL2RsL2F0dGFjaC8xNTU4MTg1MDcxMTI2LnBuZyk8L3A+PHA+5LmL5ZCO5LiA
+5YiH5q2j5bi477yM5Y+v5Lul5L2/55SoIERpc3BhdGNoIOadpei/m+ihjOaTjeS9nOS6huOAgjwv
+cD48cD4hWzE1NTgxODU2NzgzMDBdKGh0dHBzOi8vZGwuanh0eHp6dy5jb20vZGwvYXR0YWNoLzE1
+NTgxODU2NzgzMDAucG5nKTwvcD48cD7mnIDlkI7ov5jmnInkuIDkuKrmr5TovoPlpYfmgKrnmoTp
+l67popjvvJo8L3A+PHA+IVsxNTU4MTg1OTE3NTcwXShodHRwczovL2RsLmp4dHh6encuY29tL2Rs
+L2F0dGFjaC8xNTU4MTg1OTE3NTcwLnBuZyk8L3A+PHA+5Zyo55u05o6l6LCD55SoIGBzdGF0ZWAg
+55qE5pe25YCZ77yM6L+Z5qC35YaZIGB0aGlzLiRzdG9yZS5zdGF0ZS5sb2dpblN0YXR1c2Ag5piv
+5LiN6KGM55qE77yM5LyaIHVuZGVmaW5lZO+8jOW/hemhu+WGmeaIkCBgdGhpcy4kc3RvcmUuc3Rh
+dGUuQXV0aC5sb2dpblN0YXR1c2DvvIzlsLHlg4/mmK8gYHRoaXMuJHN0b3JlLnN0YXRlLkNvdW50
+ZXIubWFpbmAg5LiA5qC377yM5Ly85LmO5Y+v5Lul6Kej6YeK5Li677yM5LiN5ZCM55qE5qih5Z2X
+5LiN5oyH5a6a5ZCN5a2X55qE6K+d5bCx5om+5LiN5Yiw44CCPC9wPjxwPuS9huaYr++8jOWcqOWG
+mSBEaXNwYXRjaCDnmoTml7blgJnlj4jkuI3pnIDopoHmjIflrprlkI3lrZfkuobvvIznm7TmjqUg
+YGRpc3BhdGNoKCdjaGFuZ2VMb2dpblN0YXR1cycpYCDlsLHooYzkuobvvIzkuI3nhLbpmr7pgZPk
+uI3lupTor6XmmK/kuZ/mjInnhacgYGRpc3BhdGNoKCdBdXRoL2NoYW5nZUxvZ2luU3RhdHVzJylg
+IOi/meagt+WtkOadpeWGmeWYm+KApuKApjwvcD48cD4mbmJzcDs8L3A+">​</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

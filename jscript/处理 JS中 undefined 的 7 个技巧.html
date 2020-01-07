@@ -1,0 +1,534 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修处理 JS中 undefined 的 7 个技巧' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>处理 JS中 undefined 的 7 个技巧</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/7-tips-to-handle-undefined-in-javascript.html</div><br>
+    <p><strong>摘要：</strong> JS的大部分报错都是undefined...</p>
+<ul>
+<li>作者：前端小智</li>
+<li>原文：<a href="https://segmentfault.com/a/1190000019904603">处理 JS中 undefined 的 7 个技巧</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<p>大约8年前，当原作者开始学习JS时，遇到了一个奇怪的情况，既存在<code>undefined</code> 的值，也存在表示空值的<code>null</code>。它们之间的明显区别是什么?它们似乎都定义了空值，而且，比较<code>null == undefined</code>的计算结果为<code>true</code>。</p>
+<p>大多数现代语言，如Ruby、Python或Java都有一个空值(<code>nil</code>或<code>null</code>)，这似乎是一种合理的方式。</p>
+<p>对于JavaScript，解释器在访问尚未初始化的变量或对象属性时返回<code>undefined</code>。例如：</p>
+<pre><code><code>let company;
+company;    // =&gt; undefined
+let person = { name: &#39;John Smith&#39; };
+person.age; // =&gt; undefined</code></pre>
+<p>另一方面，<code>null</code>表示缺少的对象引用，JS本身不会将变量或对象属性设置为<code>null</code>。</p>
+<p>一些原生方法，比如<code>String.prototype.match()</code>，可以返回<code>null</code>来表示丢失的对象。看看下面的示例：</p>
+<pre><code><code>let array = null;
+array; // =&gt; null
+let movie = { name: &quot;Starship Troopers&quot;, musicBy: null };
+movie.musicBy; // =&gt; null
+&quot;abc&quot;.match(/[0-9]/); // =&gt; null</code></pre>
+<p>由于 JS 的宽容特性，开发人员很容易访问未初始化的值，我也犯了这样的错误。</p>
+<p>通常，这种危险的操作会生成<code>undefined</code> 的相关错误，从而快速地结束脚本。相关的常见错误消息有:</p>
+<ul>
+<li><code>TypeError: 'undefined' is not a function</code></li>
+<li><code>TypeError: Cannot read property '&lt;prop-name&gt;' of undefined</code></li>
+<li><code>type errors</code></li>
+</ul>
+<p>JS 开发人员可以理解这个笑话的讽刺：</p>
+<pre><code><code>function undefined() {
+    // problem solved
+}</code></pre>
+<p>为了降低此类错误的风险，必须理解生成<code>undefined</code>的情况。更重要的是抑制它的出现并阻止在应用程序中传播，从而提高代码的持久性。</p>
+<p>让咱们详细讨论<code>undefined</code> 及其对代码安全性的影响。</p>
+<h3 id="undefined-是什么鬼">1. undefined 是什么鬼</h3>
+<p>JS 有6种基本类型</p>
+<ul>
+<li>Boolean: <code>true</code> 或 <code>false</code></li>
+<li>Number: <code>1, 6.7, 0xFF</code></li>
+<li>String: <code>&quot;Gorilla and banana&quot;</code></li>
+<li>Symbol: <code>Symbol(&quot;name&quot;)</code> (starting ES2015)</li>
+<li>Null: <code>null</code></li>
+<li>Undefined: <code>undefined</code>.</li>
+</ul>
+<p>和一个单独的<code>Object</code> 类型:<code>{name: &quot;Dmitri&quot;}， [&quot;apple&quot;， &quot;orange&quot;]</code>。</p>
+<p>根据<a href="https://www.ecma-international.org/ecma-262/7.0/#sec-undefined-value">ECMAScript规范</a>，从6种原始类型中，<code>undefined</code>是一个特殊的值，它有自己的<code>Undefined</code>类型。</p>
+<blockquote>
+<p>未为变量赋值时默认值为<code>undefined</code>。</p>
+</blockquote>
+<p>该标准明确定义，当访问未初始化的变量、不存在的对象属性、不存在的数组元素等时，将接收到一个<code>undefined</code> 的值。例如</p>
+<pre><code><code>let number;
+number; // =&gt; undefined
+
+let movie = { name: &quot;Interstellar&quot; };
+movie.year; // =&gt; undefined
+
+let movies = [&quot;Interstellar&quot;, &quot;Alexander&quot;];
+movies[3]; // =&gt; undefined</code></pre>
+<p>上述代码大致流程：</p>
+<ul>
+<li>未初始化的变量<code>number</code></li>
+<li>一个不存在的对象属性<code>movie.year</code></li>
+<li>或者不存在数组元素movies[3]</li>
+</ul>
+<p>都会被定义为<code>undefined</code>。</p>
+<p>ECMAScript规范定义了<code>undefined</code> 值的类型</p>
+<blockquote>
+<p><strong>Undefined type</strong>是其唯一值为<code>undefined</code> 值的类型。</p>
+</blockquote>
+<p>在这个意义上，<code>typeof undefined</code>返回“undefined”字符串</p>
+<pre><code><code>typeof undefined === &quot;undefined&quot;; // =&gt; true</code></pre>
+<p>当然<code>typeof</code>可以很好地验证变量是否包含<code>undefined</code>的值</p>
+<pre><code><code>let nothing;
+typeof nothing === &quot;undefined&quot;; // =&gt; true</code></pre>
+<h3 id="导致undefined的常见场景">2. 导致undefined的常见场景</h3>
+<h4 id="未初始化变量">2.1 未初始化变量</h4>
+<p>尚未赋值（未初始化）的声明变量默认为<code>undefined</code>。</p>
+<pre><code><code>let myVariable;
+myVariable; // =&gt; undefined   </code></pre>
+<p><code>myVariable</code>已声明，但尚未赋值,默认值为<code>undefined</code>。</p>
+<p>解决未初始化变量问题的有效方法是尽可能分配初始值。 变量在未初始化状态中越少越好。 理想情况下，你可以在声明<code>const myVariable ='Initial value'</code>之后立即指定一个值，但这并不总是可行的。</p>
+<p><strong>技巧1：使用 let 和 const 来代替 var</strong></p>
+<p>在我看来，ES6 最好的特性之一是使用<code>const</code>和<code>let</code>声明变量的新方法。<code>const</code>和<code>let</code>具有块作用域(与旧的函数作用域<code>var</code>相反)，在声明行之前都存在于<a href="https://mathiasbynens.be/notes/es6-const">暂时性死区</a>。</p>
+<p>当变量一次性且永久地接收到一个值时，建议使用<code>const</code>声明，它创建一个不可变的绑定。</p>
+<p><code>const</code>的一个很好的特性是必须为变量<code>const myVariable ='initial'</code>分配一个初始值。 变量未暴露给未初始化状态，并且访问<code>undefined</code>是不可能的。</p>
+<p>以下示例检查验证一个单词是否是回文的函数：</p>
+<pre><code><code>function isPalindrome(word) {
+    const length = word.length;
+    const half = Math.floor(length / 2);
+    for (let index = 0; index &lt; half; index++) {
+        if (word[index] !== word[length - index - 1]) {
+            return false;
+        }
+    }
+    return true;
+}
+isPalindrome(&quot;madam&quot;); // =&gt; true
+isPalindrome(&quot;hello&quot;); // =&gt; false </code></pre>
+<p><code>length</code> 和 <code>half</code> 变量被赋值一次。将它们声明为<code>const</code>似乎是合理的，因为这些变量不会改变。</p>
+<p>如果需要重新绑定变量(即多次赋值)，请应用<code>let</code>声明。只要可能，立即为它赋一个初值，例如，<code>let index = 0</code>。</p>
+<p>那么使用 <code>var</code> 声明呢，相对于ES6，建议是完全停止使用它。</p>
+<p><img src="./images/处理 JS中 undefined 的 7 个技巧0.png" /></p>
+<p><code>var</code> 声明的变量提会被提升到整个函数作用域顶部。可以在函数作用域末尾的某个地方声明<code>var</code>变量，但是仍然可以在声明之前访问它:对应变量的值是 <code>undefined</code>。</p>
+<p>相反，用<code>let</code> 或者 <code>const</code> 声明的变量之前不能访问该变量。之所以会发生这种情况，是因为变量在声明之前处于<a href="https://dmitripavlutin.com/variables-lifecycle-and-why-let-is-not-hoisted/#5-let-variables-lifecycle">暂时死区</a>。这很好，因为这样就很少有机会访问到 <code>undefined</code> 值。</p>
+<p>使用<code>let</code>（而不是var）更新的上述示例会引发<code>ReferenceError</code> 错误，因为无法访问暂时死区中的变量。</p>
+<pre><code><code>function bigFunction() {
+  // code...
+  myVariable; // =&gt; Throws &#39;ReferenceError: myVariable is not defined&#39;
+  // code...
+  let myVariable = &#39;Initial value&#39;;
+  // code...
+  myVariable; // =&gt; &#39;Initial value&#39;
+}
+bigFunction();</code></pre>
+<p><strong>技巧2:增加内聚性</strong></p>
+<p>内聚描述模块的元素(命名空间、类、方法、代码块)内聚在一起的程度。凝聚力的测量通常被称为高凝聚力或低内聚。</p>
+<p>高内聚是优选的，因为它建议设计模块的元素以仅关注单个任务，它构成了一个模块。</p>
+<ul>
+<li>专注且易懂：更容易理解模块的功能</li>
+<li>可维护且更容易重构：模块中的更改会影响更少的模块</li>
+<li>可重用：专注于单个任务，使模块更易于重用</li>
+<li>可测试：可以更轻松地测试专注于单个任务的模块</li>
+</ul>
+<p><img src="./images/处理 JS中 undefined 的 7 个技巧1.png" /></p>
+<p>高内聚和低耦合是一个设计良好的系统的特征。</p>
+<p>代码块本身可能被视为一个小模块，为了尽可能实现高内聚，需要使变量尽可能接近使用它们代码块位置。</p>
+<p>例如，如果一个变量仅存在以形成块作用域内，不要将此变量公开给外部块作用域，因为外部块不应该关心此变量。</p>
+<p>不必要地延长变量生命周期的一个典型例子是函数中<code>for</code>循环的使用：</p>
+<pre><code><code>function someFunc(array) {
+  var index, item, length = array.length;
+  // some code...
+  // some code...
+  for (index = 0; index &lt; length; index++) {
+    item = array[index];
+    // some code...
+  }
+  return &#39;some result&#39;;
+}</code></pre>
+<p><code>index</code>，<code>item</code>和<code>length</code>变量在函数体的开头声明，但是，它们仅在最后使用，那么这种方式有什么问题呢？</p>
+<p>从顶部的声明到<code>for</code>语句中变量 index 和 item 都是未初始化的，值为 <code>undefined</code>。它们在整个函数作用域内具有不合理较长的生命周期。</p>
+<p>一种更好的方法是将这些变量尽可能地移动到使用它们的位置：</p>
+<pre><code><code>function someFunc(array) {
+  // some code...
+  // some code...
+  const length = array.length;
+  for (let index = 0; index &lt; length; index++) {
+    const item = array[index];
+    // some 
+  }
+  return &#39;some result&#39;;
+}</code></pre>
+<p><code>index</code>和<code>item</code>变量仅存在于<code>for</code>语句的作用域内，<code>for</code> 之外没有任何意义。<code>length</code>变量也被声明为接近其使用它的位置。</p>
+<p>为什么修改后的版本优于初始版本？ 主要有几点：</p>
+<ul>
+<li>变量未暴露<code>undefined</code>状态，因此没有访问<code>undefined</code>的风险</li>
+<li>将变量尽可能地移动到它们的使用位置会增加代码的可读性</li>
+<li>高内聚的代码块在必要时更容易重构并提取到单独的函数中</li>
+</ul>
+<h4 id="访问不存在的属性">2.2 访问不存在的属性</h4>
+<blockquote>
+<p>访问不存在的对象属性时，JS 返回<code>undefined</code>。</p>
+</blockquote>
+<p>咱们用一个例子来说明这一点：</p>
+<pre><code><code>let favoriteMovie = {
+  title: &#39;Blade Runner&#39;
+};
+favoriteMovie.actors; // =&gt; undefined</code></pre>
+<p><code>favoriteMovie</code>是一个具有单个属性 <code>title</code> 的对象。 使用属性访问器<code>favoriteMovie.actors</code>访问不存在的属性<code>actors</code>将被计算为<code>undefined</code>。</p>
+<p>本身访问不存在的属性不会引发错误， 但尝试从不存在的属性值中获取数据时就会出现问题。 常见的的错误是 <code>TypeError: Cannot read property &lt;prop&gt; of undefined</code>。</p>
+<p>稍微修改前面的代码片段来说明<code>TypeError throw</code>：</p>
+<pre><code><code>let favoriteMovie = {
+  title: &#39;Blade Runner&#39;
+};
+favoriteMovie.actors[0];
+// TypeError: Cannot read property &#39;0&#39; of undefined
+</code></pre>
+<p><code>favoriteMovie</code>没有属性<code>actors</code>，所以<code>favoriteMovie.actors</code>的值 <code>undefined</code>。因此，使用表达式<code>favoriteMovie.actors[0]</code>访问<code>undefined</code>值的第一项会引发<code>TypeError</code>。</p>
+<p>JS 允许访问不存在的属性，这种允许访问的特性容易引起混淆:可能设置了属性，也可能没有设置属性,绕过这个问题的理想方法是限制对象始终定义它所持有的属性。</p>
+<p>不幸的是，咱们常常无法控制对象。在不同的场景中，这些对象可能具有不同的属性集，因此，必须手动处理所有这些场景：</p>
+<p>接着我们实现一个函数<code>append(array, toAppend)</code>，它的主要功能在数组的开头和/或末尾添加新的元素。 <code>toAppend</code>参数接受具有属性的对象：</p>
+<ul>
+<li>first：元素插入数组的开头</li>
+<li>last：元素在数组末尾插入。</li>
+</ul>
+<p>函数返回一个新的数组实例，而不改变原始数组(即它是一个纯函数)。</p>
+<p><code>append()</code>的第一个版本看起来比较简单，如下所示：</p>
+<pre><code><code>function append(array, toAppend) {
+  const arrayCopy = array.slice();
+  if (toAppend.first) {
+    arrayCopy.unshift(toAppend.first);
+  }
+  if (toAppend.last) {
+    arrayCopy.push(toAppend.last);
+  }
+  return arrayCopy;
+}
+append([2, 3, 4], { first: 1, last: 5 }); // =&gt; [1, 2, 3, 4, 5]
+append([&#39;Hello&#39;], { last: &#39;World&#39; });     // =&gt; [&#39;Hello&#39;, &#39;World&#39;]
+append([8, 16], { first: 4 });            // =&gt; [4, 8, 16]</code></pre>
+<p>由于<code>toAppend</code>对象可以省略<code>first</code>或<code>last</code>属性，因此必须验证<code>toAppend</code>中是否存在这些属性。如果属性不存在，则属性访问器值为<code>undefined</code>。</p>
+<p>检查<code>first</code>或<code>last</code>属性是否是<code>undefined</code>,在条件为 <code>if(toappendix .first){}</code>和i<code>f(toappendix .last){}</code>中进行验证：</p>
+<p>这种方法有一个缺点， <code>undefined</code>，<code>false</code>，<code>null</code>，<code>0</code>，<code>NaN</code>和<code>''</code>是虚值。</p>
+<p>在<code>append()</code> 的当前实现中，该函数不允许插入虚值元素：</p>
+<pre><code><code>append([10], { first: 0, last: false }); // =&gt; [10]</code></pre>
+<p><code>0</code>和<code>false</code>是虚值的。 因为 <code>if(toAppend.first){}</code>和<code>if(toAppend.last){}</code>实际上与<code>falsy</code>进行比较，所以这些元素不会插入到数组中，该函数返回初始数组<code>[10]</code>而不会进行任何修改。</p>
+<p>以下技巧解释了如何正确检查属性的存在。</p>
+<p><strong>技巧3: 检查属性是否存在</strong></p>
+<p>JS 提供了许多方法来确定对象是否具有特定属性：</p>
+<ul>
+<li><code>obj.prop！== undefined</code>：直接与<code>undefined</code>进行比较</li>
+<li><code>typeof obj.prop！=='undefined'</code>：验证属性值类型</li>
+<li><code>obj.hasOwnProperty（'prop'）</code>：验证对象是否具有自己的属性</li>
+<li><code>'prop' in obj</code>：验证对象是否具有自己的属性或继承属性</li>
+</ul>
+<p>我的建议是使用 <code>in</code> 操作符，它的语法短小精悍。<code>in</code>操作符的存在表明一个明确的意图，即检查对象是否具有特定的属性，而不访问实际的属性值。</p>
+<p><img src="./images/处理 JS中 undefined 的 7 个技巧2.png" /></p>
+<p><code>obj.hasOwnProperty('prop')</code>也是一个很好的解决方案，它比 <code>in</code> 操作符稍长，仅在对象自己的属性中进行验证。</p>
+<p>涉及与<code>undefined</code>进行比较剩下的两种方式可能有效，但在我看来，<code>obj.prop！== undefined</code>和<code>typeof obj.prop！=='undefined'</code>看起来冗长而怪异，并暴露出直接处理<code>undefined</code>的可疑路径。。</p>
+<p>让咱们使用<code>in</code>操作符改进<code>append(array, toAppend)</code> 函数：</p>
+<pre><code><code>function append(array, toAppend) {
+  const arrayCopy = array.slice();
+  if (&#39;first&#39; in toAppend) {
+    arrayCopy.unshift(toAppend.first);
+  }
+  if (&#39;last&#39; in toAppend) {
+    arrayCopy.push(toAppend.last);
+  }
+  return arrayCopy;
+}
+append([2, 3, 4], { first: 1, last: 5 }); // =&gt; [1, 2, 3, 4, 5]
+append([10], { first: 0, last: false });  // =&gt; [0, 10, false]</code></pre>
+<p><code>'first' in toAppend</code> (和<code>'last' in toAppend</code>)在对应属性存在时为<code>true</code>，否则为<code>false</code>。<code>in</code>操作符的使用解决了插入虚值元素<code>0</code>和<code>false</code>的问题。现在，在<code>[10]</code>的开头和结尾添加这些元素将产生预期的结果<code>[0,10,false]</code>。</p>
+<p><strong>技巧4：解构访问对象属性</strong></p>
+<p>在访问对象属性时，如果属性不存在，有时需要指示默认值。可以使用<code>in</code>和三元运算符来实现这一点。</p>
+<pre><code><code>const object = { };
+const prop = &#39;prop&#39; in object ? object.prop : &#39;default&#39;;
+prop; // =&gt; &#39;default&#39;</code></pre>
+<p>当要检查的属性数量增加时，三元运算符语法的使用变得令人生畏。对于每个属性，都必须创建新的代码行来处理默认值，这就增加了一堵难看的墙，里面都是外观相似的三元运算符。</p>
+<p>为了使用更优雅的方法，可以使用 ES6 对象的解构。</p>
+<p>对象解构允许将对象属性值直接提取到变量中，并在属性不存在时设置默认值，避免直接处理<code>undefined</code>的方便语法。</p>
+<p>实际上，属性提取现在看起来简短而有意义：</p>
+<pre><code><code>const object = {  };
+const { prop = &#39;default&#39; } = object;
+prop; // =&gt; &#39;default&#39;</code></pre>
+<p>要查看实际操作中的内容，让我们定义一个将字符串包装在引号中的有用函数。<code>quote(subject, config)</code>接受第一个参数作为要包装的字符串。 第二个参数<code>config</code>是一个具有以下属性的对象：</p>
+<ul>
+<li>char：包装的字符，例如 <code>'</code>（单引号）或<code>“</code>（双引号），默认为<code>”</code>。</li>
+<li><code>skipIfQuoted</code>：如果字符串已被引用则跳过引用的布尔值，默认为<code>true</code>。</li>
+</ul>
+<p>使用对象析构的优点，让咱们实现<code>quote()</code></p>
+<pre><code><code>function quote(str, config) {
+  const { char = &#39;&quot;&#39;, skipIfQuoted = true } = config;
+  const length = str.length;
+  if (skipIfQuoted
+      &amp;&amp; str[0] === char
+      &amp;&amp; str[length - 1] === char) {
+    return str;
+  }
+  return char + str + char;
+}
+quote(&#39;Hello World&#39;, { char: &#39;*&#39; });        // =&gt; &#39;*Hello World*&#39;
+quote(&#39;&quot;Welcome&quot;&#39;, { skipIfQuoted: true }); // =&gt; &#39;&quot;Welcome&quot;&#39;</code></pre>
+<p><code>const {char = '&quot;， skipifquote = true} = config</code>解构赋值在一行中从<code>config</code>对象中提取<code>char</code>和<code>skipifquote</code>属性。如果<code>config</code>对象中有一些属性不可用，那么解构赋值将设置默认值:<code>char</code>为<code>'&quot;'</code>，<code>skipifquote</code>为<code>false</code>。</p>
+<p>该功能仍有改进的空间。让我们将解构赋值直接移动到参数部分。并为<code>config</code>参数设置一个默认值(空对象<code>{}</code>)，以便在默认设置足够时跳过第二个参数。</p>
+<pre><code><code>function quote(str, { char = &#39;&quot;&#39;, skipIfQuoted = true } = {}) {
+  const length = str.length;
+  if (skipIfQuoted
+      &amp;&amp; str[0] === char
+      &amp;&amp; str[length - 1] === char) {
+    return str;
+  }
+  return char + str + char;
+}
+quote(&#39;Hello World&#39;, { char: &#39;*&#39; }); // =&gt; &#39;*Hello World*&#39;
+quote(&#39;Sunny day&#39;);                  // =&gt; &#39;&quot;Sunny day&quot;&#39;</code></pre>
+<p>注意，解构赋值替换了函数 <code>config</code> 参数。我喜欢这样:<code>quote()</code>缩短了一行。<br />
+<code>={}</code>在解构赋值的右侧，确保在完全没有指定第二个参数的情况下使用空对象。</p>
+<p>对象解构是一个强大的功能，可以有效地处理从对象中提取属性。 我喜欢在被访问属性不存在时指定要返回的默认值的可能性。因为这样可以避免<code>undefined</code>以及与处理它相关的问题。</p>
+<p><strong>技巧5: 用默认属性填充对象</strong></p>
+<p>如果不需要像解构赋值那样为每个属性创建变量，那么丢失某些属性的对象可以用默认值填充。</p>
+<p>ES6 <code>Object.assign（target，source1，source2，...）</code>将所有可枚举的自有属性的值从一个或多个源对象复制到目标对象中,该函数返回目标对象。</p>
+<p>例如，需要访问<code>unsafeOptions</code>对象的属性，该对象并不总是包含其完整的属性集。</p>
+<p>为了避免从<code>unsafeOptions</code>访问不存在的属性，让我们做一些调整:</p>
+<ul>
+<li>定义包含默认属性值的<code>defaults</code>对象</li>
+<li>调用<code>Object.assign（{}，defaults，unsafeOptions）</code>来构建新的对象<code>options</code>。 新对象从<code>unsafeOptions</code>接收所有属性，但缺少的属性从<code>defaults</code>对象获取。</li>
+</ul>
+<pre><code><code>const unsafeOptions = {
+  fontSize: 18
+};
+const defaults = {
+  fontSize: 16,
+  color: &#39;black&#39;
+};
+const options = Object.assign({}, defaults, unsafeOptions);
+options.fontSize; // =&gt; 18
+options.color;    // =&gt; &#39;black&#39;</code></pre>
+<p><code>unsafeOptions</code>仅包含<code>fontSize</code>属性。 <code>defaults</code>对象定义属性<code>fontSize</code>和<code>color</code>的默认值。</p>
+<p><code>Object.assign()</code> 将第一个参数作为目标对象<code>{}</code>。 目标对象从<code>unsafeOptions</code>源对象接收<code>fontSize</code>属性的值。 并且人<code>defaults</code>对象的获取<code>color</code>属性值，因为<code>unsafeOptions</code>不包含<code>color</code>属性。</p>
+<p>枚举源对象的顺序很重要：后面的源对象属性会覆盖前面的源对象属性。</p>
+<p>现在可以安全地访问<code>options</code>对象的任何属性，包括<code>options.color</code>在最初的<code>unsafeOptions</code>中是不可用的。</p>
+<p>还有一种简单的方法就是使用ES6中展开运算符：</p>
+<pre><code><code>const unsafeOptions = {
+  fontSize: 18
+};
+const defaults = {
+  fontSize: 16,
+  color: &#39;black&#39;
+};
+const options = {
+  ...defaults,
+  ...unsafeOptions
+};
+options.fontSize; // =&gt; 18
+options.color;    // =&gt; &#39;black&#39;</code></pre>
+<p>对象初始值设定项从<code>defaults</code>和<code>unsafeOptions</code>源对象扩展属性。 指定源对象的顺序很重要，后面的源对象属性会覆盖前面的源对象。</p>
+<p>使用默认属性值填充不完整的对象是使代码安全且持久的有效策略。无论哪种情况，对象总是包含完整的属性集:并且无法生成<code>undefined</code>的属性。</p>
+<h4 id="函数参数">2.3 函数参数</h4>
+<blockquote>
+<p>函数参数隐式默认为<code>undefined</code>。</p>
+</blockquote>
+<p>通常，用特定数量的参数定义的函数应该用相同数量的参数调用。在这种情况下，参数得到期望的值</p>
+<pre><code><code>function multiply(a, b) {
+  a; // =&gt; 5
+  b; // =&gt; 3
+  return a * b;
+}
+multiply(5, 3); // =&gt; 15</code></pre>
+<p>调用<code>multiply(5,3)</code>使参数<code>a</code>和<code>b</code>接收相应的<code>5</code>和<code>3</code>值，返回结果:<code>5 * 3 = 15</code>。</p>
+<p>在调用时省略参数会发生什么?</p>
+<pre><code><code>function multiply(a, b) {
+  a; // =&gt; 5
+  b; // =&gt; undefined
+  return a * b;
+}
+multiply(5); // =&gt; NaN</code></pre>
+<p>函数<code>multiply(a, b){}</code>由两个参数<code>a</code>和<code>b</code>定义。调用<code>multiply(5)</code>用一个参数执行:结果一个参数是<code>5</code>，但是<code>b</code>参数是<code>undefined</code>。</p>
+<p><strong>技巧6: 使用默认参数值</strong></p>
+<p>有时函数不需要调用的完整参数集，可以简单地为没有值的参数设置默认值。</p>
+<p>回顾前面的例子，让我们做一个改进，如果<code>b</code>参数未定义，则为其分配默认值<code>2</code>：</p>
+<pre><code><code>function multiply(a, b) {
+  if (b === undefined) {
+    b = 2;
+  }
+  a; // =&gt; 5
+  b; // =&gt; 2
+  return a * b;
+}
+multiply(5); // =&gt; 10</code></pre>
+<p>虽然所提供的分配默认值的方法有效，但不建议直接与<code>undefined</code>值进行比较。它很冗长，看起来像一个hack .</p>
+<p>这里可以使用 ES6 的默认值：</p>
+<pre><code><code>function multiply(a, b = 2) {
+  a; // =&gt; 5
+  b; // =&gt; 2
+  return a * b;
+}
+multiply(5);            // =&gt; 10
+multiply(5, undefined); // =&gt; 10  </code></pre>
+<h4 id="函数返回值">2.4 函数返回值</h4>
+<blockquote>
+<p>隐式地，没有<code>return</code>语句，JS 函数返回<code>undefined</code>。</p>
+</blockquote>
+<p>在JS中，没有任何<code>return</code>语句的函数隐式返回<code>undefined</code>：</p>
+<pre><code><code>function square(x) {
+  const res = x * x;
+}
+square(2); // =&gt; undefined  </code></pre>
+<p><code>square()</code> 函数没有返回计算结果，函数调用时的结果<code>undefined</code>。</p>
+<p>当<code>return</code>语句后面没有表达式时，默认返回 <code>undefined</code>。</p>
+<pre><code><code>function square(x) {
+  const res = x * x;
+  return;
+}
+square(2); // =&gt; undefined</code></pre>
+<p><code>return;</code> 语句被执行，但它不返回任何表达式，调用结果也是<code>undefined</code>。</p>
+<pre><code><code>function square(x) {
+  const res = x * x;
+  return res;
+}
+square(2); // =&gt; 4</code></pre>
+<p><strong>技巧7: 不要相信自动插入分号</strong></p>
+<p>JS 中的以下语句列表必须以分号<code>(;)</code>结尾：</p>
+<ul>
+<li>空语句</li>
+<li><code>let,const,var,import,export</code>声明</li>
+<li>表达语句</li>
+<li><code>debugger</code> 语句</li>
+<li><code>continue</code> 语句，<code>break</code> 语句</li>
+<li><code>throw</code> 语句</li>
+<li><code>return</code> 语句</li>
+</ul>
+<p>如果使用上述声明之一，请尽量务必在结尾处指明<strong>分号</strong>：</p>
+<pre><code><code>function getNum() {
+  let num = 1; 
+  return num;
+}
+getNum(); // =&gt; 1</code></pre>
+<p><code>let</code> 声明和<code>return</code> 语句结束时，强制性写<strong>分号</strong>。</p>
+<p>当你不想写这些分号时会发生什么？ 例如，咱们想要减小源文件的大小。</p>
+<p>在这种情况下，ECMAScript 提供<a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-automatic-semicolon-insertion">自动分号插入（ASI）机制</a>，为你插入<strong>缺少的分号</strong>。</p>
+<p>ASI 的帮助下，可以从上一个示例中<strong>删除分号</strong>：</p>
+<pre><code><code>function getNum() {
+  // Notice that semicolons are missing
+  let num = 1
+  return num
+}
+getNum() // =&gt; 1    </code></pre>
+<p>上面的代码是有效的JS代码,缺少的<strong>分号</strong>ASI会自动为我们插入。</p>
+<p>乍一看，它看起来很 nice。 ASI 机制允许你少写不必要的分号，可以使JS代码更小，更易于阅读。</p>
+<p>ASI 创建了一个小而烦人的陷阱。 当换行符位于<code>return</code>和<code>return \n expression</code>之间时，ASI 会在换行符之前自动插入分号(<code>return; \n expression</code>)。</p>
+<p>函数内部<code>return;</code> ？ 即该函数返回<code>undefined</code>。 如果你不详细了解ASI的机制，则意外返回的<code>undefined</code>会产生意想不到的问题。</p>
+<p>来 <code>getPrimeNumbers()</code>调用返回的值：</p>
+<pre><code><code>function getPrimeNumbers() {
+  return 
+    [ 2, 3, 5, 7, 11, 13, 17 ]
+}
+getPrimeNumbers() // =&gt; undefined</code></pre>
+<p>在<code>return</code>语句和数组之间存在一个换行,JS 在<code>return</code>后自动插入分号，解释代码如下：</p>
+<pre><code><code>function getPrimeNumbers() {
+  return; 
+  [ 2, 3, 5, 7, 11, 13, 17 ];
+}
+getPrimeNumbers(); // =&gt; undefined</code></pre>
+<p><code>return;</code> 使函数<code>getPrimeNumbers()</code> 返回<code>undefined</code>而不是期望的数组。</p>
+<p>这个问题通过删除<code>return</code>和数组文字之间的换行来解决:</p>
+<pre><code><code>function getPrimeNumbers() {
+  return [ 
+    2, 3, 5, 7, 11, 13, 17 
+  ];
+}
+getPrimeNumbers(); // =&gt; [2, 3, 5, 7, 11, 13, 17]</code></pre>
+<p>我的建议是研究<a href="http://www.bradoncode.com/blog/2015/08/26/javascript-semi-colon-insertion/">自动分号插入的确切方式</a>，以避免这种情况。</p>
+<p>当然，永远不要在<code>return</code>和返回的表达式之间放置换行符。</p>
+<h4 id="void-操作符">2.5 void 操作符</h4>
+<p><code>void &lt;expression&gt;</code>计算表达式无论计算结果如何都返回<code>undefined</code> 。</p>
+<pre><code><code>void 1;                    // =&gt; undefined
+void (false);              // =&gt; undefined
+void {name: &#39;John Smith&#39;}; // =&gt; undefined
+void Math.min(1, 3);       // =&gt; undefined</code></pre>
+<p><code>void</code>操作符的一个用例是将表达式求值限制为<code>undefined</code>，这依赖于求值的一些副作用。</p>
+<h3 id="未定义的数组">3. 未定义的数组</h3>
+<p>访问越界索引的数组元素时，会得到<code>undefined</code> 。</p>
+<pre><code><code>const colors = [&#39;blue&#39;, &#39;white&#39;, &#39;red&#39;];
+colors[5];  // =&gt; undefined
+colors[-1]; // =&gt; undefined</code></pre>
+<p><code>colors</code>数组有3个元素，因此有效索引为<code>0,1</code>和<code>2</code>。</p>
+<p>因为索引<code>5</code>和<code>-1</code>没有数组元素，所以访问<code>colors[5]</code>和<code>colors[-1]</code>值为<code>undefined</code>。</p>
+<p>JS 中，可能会遇到所谓的稀疏数组。这些数组是有间隙的数组，也就是说，在某些索引中，没有定义元素。</p>
+<p>当在稀疏数组中访问间隙（也称为空槽）时，也会得到一个<code>undefined</code>。</p>
+<p>下面的示例生成稀疏数组并尝试访问它们的空槽</p>
+<pre><code><code>const sparse1 = new Array(3);
+sparse1;       // =&gt; [&lt;empty slot&gt;, &lt;empty slot&gt;, &lt;empty slot&gt;]
+sparse1[0];    // =&gt; undefined
+sparse1[1];    // =&gt; undefined
+const sparse2 = [&#39;white&#39;,  ,&#39;blue&#39;]
+sparse2;       // =&gt; [&#39;white&#39;, &lt;empty slot&gt;, &#39;blue&#39;]
+sparse2[1];    // =&gt; undefined</code></pre>
+<p>使用数组时，为了避免获取<code>undefined</code>，请确保使用有效的数组索引并避免创建稀疏数组。</p>
+<h3 id="undefined和null之间的区别">4. undefined和null之间的区别</h3>
+<p>一个合理的问题出现了:<code>undefined</code>和<code>null</code>之间的主要区别是什么?这两个特殊值都表示为空状态。</p>
+<p>主要区别在于<code>undefined</code>表示尚未初始化的变量的值，<code>null</code>表示故意不存在对象。</p>
+<p>让咱们通过一些例子来探讨它们之间的区别。</p>
+<p>number 定义了但没有赋值。</p>
+<pre><code><code>let number;
+number; // =&gt; undefined</code></pre>
+<p><code>number</code> 变量未定义，这清楚地表明未初始化的变量。</p>
+<p>当访问不存在的对象属性时，也会发生相同的未初始化概念</p>
+<pre><code><code>const obj = { firstName: &#39;Dmitri&#39; };
+obj.lastName; // =&gt; undefined</code></pre>
+<p>因为<code>obj</code>中不存在<code>lastName</code>属性，所以JS正确地将<code>obj.lastName</code>计算为<code>undefined</code>。</p>
+<p>在其他情况下，你知道变量期望保存一个对象或一个函数来返回一个对象。但是由于某些原因，你不能实例化该对象。在这种情况下，<code>null</code>是丢失对象的有意义的指示器。</p>
+<p>例如，<code>clone()</code>是一个克隆普通JS对象的函数，函数将返回一个对象</p>
+<pre><code><code>function clone(obj) {
+  if (typeof obj === &#39;object&#39; &amp;&amp; obj !== null) {
+    return Object.assign({}, obj);
+  }
+  return null;
+}
+clone({name: &#39;John&#39;}); // =&gt; {name: &#39;John&#39;}
+clone(15);             // =&gt; null
+clone(null);           // =&gt; null</code></pre>
+<p>但是，可以使用非对象参数调用<code>clone()</code>: <code>15</code>或<code>null</code>(或者通常是一个原始值，<code>null</code>或<code>undefined</code>)。在这种情况下，函数不能创建克隆，因此返回<code>null</code>—— 一个缺失对象的指示符。</p>
+<p><code>typeof</code>操作符区分了这两个值</p>
+<pre><code><code>typeof undefined; // =&gt; &#39;undefined&#39;
+typeof null;      // =&gt; &#39;object&#39;</code></pre>
+<p>严格相等运算符<code>===</code>可以正确区分<code>undefined</code>和<code>null</code>：</p>
+<pre><code><code>let nothing = undefined;
+let missingObject = null;
+nothing === missingObject; // =&gt; false</code></pre>
+<h3 id="总结">总结</h3>
+<p><code>undefined</code>的存在是JS的允许性质的结果，它允许使用：</p>
+<ul>
+<li>未初始化的变量</li>
+<li>不存在的对象属性或方法</li>
+<li>访问越界索引的数组元素</li>
+<li>不返回任何结果的函数的调用结果</li>
+</ul>
+<p>大多数情况下直接与<code>undefined</code>进行比较是一种不好的做法。一个有效的策略是减少代码中<code>undefined</code>关键字的出现：</p>
+<ul>
+<li>减少未初始化变量的使用</li>
+<li>使变量生命周期变短并接近其使用的位置</li>
+<li>尽可能为变量分配初始值</li>
+<li>多敷衍 const 和 let</li>
+<li>使用默认值来表示无关紧要的函数参数</li>
+<li>验证属性是否存在或使用默认属性填充不安全对象</li>
+<li>避免使用稀疏数组</li>
+</ul>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家免费试用！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

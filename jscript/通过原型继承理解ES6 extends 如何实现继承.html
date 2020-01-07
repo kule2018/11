@@ -1,0 +1,225 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修通过原型继承理解ES6 extends 如何实现继承' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>通过原型继承理解ES6 extends 如何实现继承</center></div><div class='banquan'>原文出处:本文由博客园博主苏进取提供。<br/>
+原文连接:https://www.cnblogs.com/sujinqu/p/11503663.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>第一次接触到 ES6 中的 class 和 extends 时，就听人说这两个关键字不过是语法糖而已。它们的本质还是 ES3 的构造函数，原型链那些东西，没有什么新鲜的，只要理解了原型链等这些概念自然就明白了。这话说的没错，但是这些继承的实现是否是我们想的那样呢，今天让我们来用原型链解释下 ES6 extends 如何实现的继承。</p>
+<h2 id="结论">结论</h2>
+<p>这里先上结论，如果有理解不对的地方，欢迎在留言指出；如果有不理解的地方可以看完结论后继续阅读，如果阅读完后有难以理解指出也欢迎留言讨论。</p>
+<ol>
+<li>extends 的继承通过两种方式完成了三类值的继承</li>
+<li>构造函数设置的属性通过复制完成继承</li>
+<li>实例方法通过实例原型之间的原型链完成继承</li>
+<li>构造函数的静态方法通过构造函数之间的原型链完成继承</li>
+</ol>
+<h2 id="属性通过复制完成继承">属性通过复制完成继承</h2>
+<p>class 实例对象属性的继承是通过复制达到继承效果的，这里的属性指的是通过构造函数的 this 定义的属性。</p>
+<pre><code><code>class Person {
+    constructor(name) {
+        this.maxage = 100;
+        this.name = name
+    }
+}
+class Programmer extends Person {
+    constructor(name) {
+        super(name);
+        this.job = &#39;coding&#39;
+    }
+}
+const personA = new Person(&#39;xiaoming&#39;)
+const programmerB = new Programmer(&#39;xiaozhi&#39;)
+
+console.log(personA.hasOwnProperty(&#39;maxage&#39;));
+console.log(programmerB.hasOwnProperty(&#39;maxage&#39;));</code></pre>
+<p>以上代码的打印结果都是true，这个结果就证明了对象的 extends 继承的属性是通过复制继承的，而不是通过原型链完成的属性继承。</p>
+<p>我们将以上代码中得到的两个实例对象打印出来，可以得到如下图结果</p>
+<p><img src="./images/通过原型继承理解ES6 extends 如何实现继承0.png" /></p>
+<p>根据打印结果可以更直观的看到两个实例对象上均有 maxage 属性。原始类型的值的复制好理解，直接拷贝值就好，那么引用类型的复制是深拷贝，还是浅拷贝，或者说仅仅是对象引用的拷贝呢？</p>
+<p>构造函数对象值的继承，比想象中要复杂一点，根据代码实践（暂未查看标准），得出结论，引用类型的继承主要分为两种情况：</p>
+<ol>
+<li>字面量定义的对象属性是深拷贝</li>
+<li>变量赋值对象属性是引用复制</li>
+</ol>
+<h3 id="字面量定义的对象属性是深拷贝">字面量定义的对象属性是深拷贝</h3>
+<p>这里的字面量定义的对象属性指的是，指的是直接在构造函数中通过 {} 的形式定义的对象直接赋值给 this 的某个属性。代码形如</p>
+<pre><code><code>class A {
+    constructor() {
+        this.obj = {
+            name: &#39;obj&#39;,
+            secondObj: {
+                name: &#39;secondObj&#39;
+            }
+        }
+    }
+}</code></pre>
+<p>示例代码中，obj 属性是直接通过 {} 定义的一个对象。</p>
+<pre><code><code>class Person {
+    constructor(name) {
+        this.maxage = 100;
+        this.name = name;
+        this.obj = {
+            name: &#39;obj&#39;,
+            secondObj: {
+                name: &#39;secondObj&#39;
+            }
+        };
+    }
+    eat() {
+        console.log(&#39;eat food&#39;)
+    }
+}
+class Programmer extends Person {
+    constructor(name) {
+        super(name);
+        this.job = &#39;coding&#39;
+    }
+    coding() {
+        console.log(&#39;coding world&#39;)
+    }
+}
+
+const personA = new Person(&#39;xiaoming&#39;)
+const programmerB = new Programmer(&#39;xiaohei&#39;)
+console.log(personA.obj === programmerB.obj)
+console.log(personA.obj.secondObj === programmerB.obj.secondObj)</code></pre>
+<p>上述代码的运行结果如下</p>
+<p><img src="./images/通过原型继承理解ES6 extends 如何实现继承1.png" /></p>
+<p>Person 的实例对象上定义了一个 obj 属性，该属性被 Programmer 的实例对象继承，通过对比这两个属性的值，我们知道他们并不相等，这首先排除了是引用复制的可能（<em>如果是引用复制，这里两个属性应该指向同一个对象，也就是其存储的内存地址应该是致的，但是这里得到的结果应该是等式不成立</em>）。通过实例对象属性 obj 中的 secondObj 属性的比较，排除了这是浅拷贝，由此我们可以得出在代码示例的场景中引用类型的继承是通过深拷贝完成的。</p>
+<h3 id="变量赋值对象属性是引用复制">变量赋值对象属性是引用复制</h3>
+<p>按理来说我们得出上一小节的结论应该基本就可以确定 extends 继承是如何处理引用类型的值的继承了，但是事实是到这里并没有结束。</p>
+<p>考虑如下代码，这段代码和上一小节的代码区别不大，有变化的地方是，这是在外部定义了一个变量，变量的值是对象，然后将变量赋值给了了 obj 属性。</p>
+<pre><code><code>let obj = {
+    name: &#39;obj&#39;
+}
+class Person {
+    constructor(name) {
+        this.maxage = 100;
+        this.name = name;
+        this.obj = obj;
+    }
+    eat() {
+        console.log(&#39;eat food&#39;)
+    }
+}
+class Programmer extends Person {
+    constructor(name) {
+        super(name);
+        this.job = &#39;coding&#39;
+    }
+    coding() {
+        console.log(&#39;coding world&#39;)
+    }
+}
+
+const personA = new Person(&#39;xiaoming&#39;)
+const programmerB = new Programmer(&#39;xiaohei&#39;)
+console.log(personA.obj === programmerB.obj);</code></pre>
+<p>运行结果如下</p>
+<p><img src="./images/通过原型继承理解ES6 extends 如何实现继承2.png" /></p>
+<p>从代码运行结果中不难看出，这里出现了变化，通过变量赋值定义的对象属性，是通过引用复制完成继承的。下面我们来看看对象变量被定义在构造函数中然后再赋值给对象的属性是否还是这样的结果。</p>
+<pre><code><code>class Person {
+    constructor(name) {
+        const innerObj = {
+            name: &#39;obj&#39;
+        } 
+        this.maxage = 100;
+        this.name = name;
+        this.obj = innerObj;
+    }
+    eat() {
+        console.log(&#39;eat food&#39;)
+    }
+}
+class Programmer extends Person {
+    constructor(name) {
+        super(name);
+        this.job = &#39;coding&#39;
+    }
+    coding() {
+        console.log(&#39;coding world&#39;)
+    }
+}
+
+const personA = new Person(&#39;xiaoming&#39;)
+const programmerB = new Programmer(&#39;xiaohei&#39;)
+console.log(personA.obj === programmerB.obj);</code></pre>
+<p>运行结果如下</p>
+<p><img src="./images/通过原型继承理解ES6 extends 如何实现继承3.png" /></p>
+<p>没错当你把变量定义在构造函数中，然后来赋给 this 的属性的时候，是通过深拷贝来继承的。神奇不，同样是变量，只是变量定义的作用域不一样，连继承方式都变了，具体为什么要这么做，我现在还不太清楚，改日查下标准，有知道的同学还望评论区不吝赐教。</p>
+<h3 id="小结">小结</h3>
+<p>这节有点长，需要个小结总结下我们得到的结论。首先，extends 的构造函数定义的属性值的继承是通过复制继承的。第二点，副职的方式主要分为以下几重情形：</p>
+<ol>
+<li>原始类型直接复制值到子类对象</li>
+<li>引用类型的值如果值是直接在构造函数中定义的（包括字面量直接赋值给属性和在构造函数内定义的变量然后变量赋值给属性），那么其会被深拷贝到子类对象上</li>
+<li>在构造函数外定义的变量，其值是引用类型，构造函数中将该变量赋值给对象的某个属性，该属性会被通过引用复制的方式拷贝到子类对象上</li>
+</ol>
+<h2 id="实例方法的继承">实例方法的继承</h2>
+<p>实例方法的继承比较好理解，通过原型链原型链继承的，只不过这个链的形式是一个比较直接的链。这条链的大概就像下面这个图</p>
+<p><img src="./images/通过原型继承理解ES6 extends 如何实现继承4.png" /></p>
+<p>没错，图上那条红色的线就是 programmerB 这个实例对象继承 eat 方法的方式，是不是和想的不一样。这条链还是比较好理解的，具有继承关系的构造函数的 prototype 之间有一条原型链，而每个实例对象的原型又是其构造函数的 prototype，这样一来就产生了图中红色线条实例方法的原型链。两个 class 的实例对象之间没有什么关系。</p>
+<p>如果对上面的图存在疑问运行下面这段代码，运行结果会证明图是没有问题的。</p>
+<pre><code><code>class Person {
+    constructor(name) {
+        const innerObj = {
+            name: &#39;obj&#39;
+        } 
+        this.maxage = 100;
+        this.name = name;
+        this.obj = innerObj;
+    }
+    eat() {
+        console.log(&#39;eat food&#39;)
+    }
+}
+class Programmer extends Person {
+    constructor(name) {
+        super(name);
+        this.job = &#39;coding&#39;
+    }
+    coding() {
+        console.log(&#39;coding world&#39;)
+    }
+}
+
+const personA = new Person(&#39;xiaoming&#39;)
+const programmerB = new Programmer(&#39;xiaohei&#39;)
+console.log(personA.__proto__ === Person.prototype);
+console.log(programmerB.__proto__ === Programmer.prototype);
+console.log(Programmer.prototype.__proto__ === Person.prototype);
+console.log(programmerB.__proto__.__proto__ === Person.prototype);</code></pre>
+<h2 id="静态方法的继承">静态方法的继承</h2>
+<p>相比实例方法的继承，静态方法的继承要简单的多，就是一条简单的原型链，具有继承关系的两个 class 之间存在一条原型链。如下图这样</p>
+<p><img src="./images/通过原型继承理解ES6 extends 如何实现继承5.png" /></p>
+<p>这个关系图就没什么多说了，有疑问的同学可以随便写段验证下。</p>
+<h2 id="继承关系图">继承关系图</h2>
+<p>这里假定 class B extends A，那么关于原型 class 之间的原型继承可得出如下等式。</p>
+<p>B.__proto__ === A<br />
+b.__proto__ === B.prototype<br />
+a.__proto__ === A.prototype<br />
+B.prototype.__proto__ === A.prototype<br />
+b.__proto__.__proto__ === A.prototype</p>
+<p>用关系图来表达上面的这些等式会更容易理解</p>
+<p><img src="./images/通过原型继承理解ES6 extends 如何实现继承6.png" /></p>
+<h3 id="转载请注明出处">转载请注明出处！</h3>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

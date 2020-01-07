@@ -1,0 +1,122 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Visual Studio Code 远程开发探秘' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Visual Studio Code 远程开发探秘</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/vscode-remote-development.html</div><br>
+    <p><strong>摘要：</strong> IDE新时代！</p>
+<ul>
+<li>作者：<a href="https://shuhari.dev/blog/">SHUHARI 的博客</a></li>
+<li>原文：<a href="https://shuhari.dev/blog/2019/06/vscode-remote-secret">Visual Studio Code 远程开发探秘</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>按照原文要求转载，版权归原作者所有。</strong></p>
+<p>在以前的文章 <a href="https://shuhari.dev/blog/2019/04/coder-run-vscode-in-browser">有趣的项目 - 在浏览器中运行 Visual Studio Code</a>， 我介绍过 Coder 开发团队将 <a href="https://code.visualstudio.com/">Visual Studio Code</a> 搬到浏览器里的尝试。这是一个有趣的项目，不过没有想到的是，这之后不久微软官方就推出了 VSCode 的远程开发扩展，这简直是官方逼死同人的节奏。从 <a href="https://coder.com/">Coder 官网</a> 的信息来看，他们似乎已将精力主要放到企业版本，这应该算一个生不逢时的产品吧。今天我们来介绍一下微软自己基于 VSCode 的远程开发平台。</p>
+<h3 id="工作原理">工作原理</h3>
+<p><img src="./images/Visual Studio Code 远程开发探秘0.png" /></p>
+<p>从原理上讲，VSCode 远程开发扩展相当于把开发者自己机器上的 VSCode 原样拷贝到作为目标机器（Remote Host）上，以服务的形式运行，而本地的 VSCode 作为客户端，两者之间通过远程通讯协议彼此协调合作，实际上的开发工作主要是在服务端完成的。这个架构特别之处在于，我们日常所使用的扩展也被分成两个阵营：和界面定制相关的部分，主要包括样式、主题、图标等等在客户端运行；而与开发相关的大部分扩展则在服务端运行。后面在实际操作的部分，我们会看到界面上相应的变化。</p>
+<p>目前，VSCode 远程开发支持下列三种主要模式：</p>
+<ul>
+<li>Remote SSH：通过 SSH 连接到 Linux 服务器；</li>
+<li>Remote Container：连接到 Docker 容器；</li>
+<li>Remote WSL：连接到已安装的 WSL 环境。</li>
+</ul>
+<p>本文主要介绍第一种，基于 SSH 的方式。容器方式除了初始化配置方面有一些区别以外，具体使用上基本相同。至于 WSL，按照目前的发展方向，可以认为它和从虚拟机运行 Linux 没什么差别，所以我不会特别关注它。想要使用该方式的同学可以参考 <a href="https://code.visualstudio.com/docs/remote/wsl">官方文档</a>。</p>
+<h3 id="先决条件">先决条件</h3>
+<p>为了使用 <code>VSCode Remote SSH</code>，首先请确认你了解它的一些限制与前提条件。</p>
+<ul>
+<li><code>Remote SSH</code> 只支持 Linux 作为服务器，且必须是 64 位版本。这可能是因为 Linux 才有完整的 SSH 服务器支持，而 Windows 或 MacOS 都需要一些额外的工作。鉴于大部分生产服务器都应该是 Linux，相信这个限制对大多数同学不成问题；</li>
+<li>对于 Linux 的具体类型，官方明确支持的包括 Debian、RHEL/CentOS 与 Ubuntu 三大发行版。其他很多 Linux 版本也应该可以工作，但并不保证，也有一些比较少见的版本不受支持（主要是因为 glibc 等基础环境的支持问题）。另外，CentOS 最好是 7.x 以上，6.x 版本通常需要一定的调整才能工作（参考: <a href="https://code.visualstudio.com/docs/remote/linux#_updating-glibc-and-libstdc-on-rhel-centos-6">Updating glibc and libstdc++ on RHEL / CentOS 6</a>）；</li>
+<li>当然，要使用 Container 或 WSL 方式，在机器上必须有 Docker 或者 WSL 的基础环境；</li>
+<li>本地机器上应该有 SSH 命令行客户端。对于 Win10，只要不是补丁太旧的话，应该已经内置了 OpenSSH。<code>Putty</code> 目前是不受支持的。</li>
+</ul>
+<h3 id="安装扩展">安装扩展</h3>
+<p>确认前提条件已满足，接下来应该在自己的 VSCode 中安装远程开发扩展。</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘1.png" /></p>
+<p>远程开发扩展的名称是 <code>Remote Development</code>，它实际上是一个扩展包（Extension Pack），由 <code>Remote-SSH</code>、<code>Remote-Containers</code>、<code>Remote-WSL</code> 以及 <code>Python</code> 四个扩展组合而成，除了 <code>Python</code> 主要用于功能支持外，其他三个扩展功能是很明显的。目前该扩展仍然处于预览状态，不过已经可以安装到 VSCode 正式版了（若不能安装的话，请确认 VSCode 版本高于 <code>1.35</code>）。</p>
+<h3 id="配置-ssh-key">配置 SSH Key</h3>
+<p>要通过 SSH 连接服务器，我们可以使用用户名/密码或者 SSH Key。对于日常使用的环境来说，基于 SSH Key 的方式尽管初始配置要麻烦一些，但是一劳永逸。</p>
+<p>生成 SSH Key 并分发到远程机器是服务器运维的常规操作，具体过程就不再赘述了。官方文档也有一个比较详细的 <a href="https://code.visualstudio.com/docs/remote/troubleshooting#_configuring-key-based-authentication">步骤指导</a>，需要的同学可以参考。</p>
+<p>这里补充说明一点，对于 Windows 客户端，生成的 Key 通常位于 %USERPROFILE%.ssh 目录下。在后续的配置部分我们会用到这个目录。</p>
+<h3 id="连接到服务器">连接到服务器</h3>
+<p>配置好 SSH Key 就可以连接到服务器了。最直接的方法是通过命令面板，选择命令 <code>Remote-SSH: Connect to Host</code>，然后按照提示输入格式为 <code>user@host</code> 的服务器地址。</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘2.png" /></p>
+<p>但是每次打开环境都要手工输入地址显然是很不人道的，于是远程开发扩展为我们提供了保存服务器配置的方式。调用该方式一般也是通过命令面板：<code>Remote-SSH: Open Configuration File</code>。</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘3.png" /></p>
+<p>该命令又会进一步提示我们选择哪个配置文件来编辑。</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘4.png" /></p>
+<p>你可以认为上图中两个文件分别代表机器级别和用户级别的配置，通常应该选择用户级别配置。打开以后会看到，它已经为我们提供了一个默认模板。我们按格式添加服务器记录，并且额外提供一个证书文件的位置参数。对于服务器地址和用户名，请按你的实际情况输入：</p>
+<pre><code><code># Read more about SSH config files: https://linux.die.net/man/5/ssh_config
+# Host alias
+#    HostName hostname
+#    User user
+
+Host test-server
+    HostName &lt;192.168.207.130&gt;
+    User &lt;user&gt;
+    IdentityFile C:/Users/&lt;user&gt;/.ssh/id_rsa</code></pre>
+<p>在安装完远程开发扩展之后，我们会注意到在活动栏下边多了一个远程图标，点击该图标会出现远程视图，其中包含了我们已经定义过的服务器。在服务器上右键点击，选择 <code>Connect to Host in Current/New Window</code>，就会在当前窗口或新窗口打开到服务器的连接，让你开始工作。</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘5.png" /></p>
+<p>第一次连接到远程服务器时的初始化工作需要消耗一段时间，以后再次打开就会快很多。请耐心等待服务器初始化完成，如果一切正常，你就会看到 VSCode 转变为远程开发模式。</p>
+<h3 id="远程开发模式">远程开发模式</h3>
+<p>当工作环境处于远程模式的时候，你会注意到和本地开发的一些不同之处。</p>
+<p>首先，状态栏左边会用绿色的文字明确指示当前处于远程模式（使用其他主题的话颜色可能会有所不同）：</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘6.png" /></p>
+<p>其次，当你使用“打开文件”或“打开目录”命令的时候，也会发现现在显示的已经不是操作系统的本地文件对话框，而是另外一个不同的界面，用于选择远程服务器上的路径：</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘7.png" /></p>
+<p>此外，你还应该注意以下扩展视图的变化。</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘8.png" /></p>
+<p>从图中我们可以看到，远程开发扩展以及一些界面主题是保留在本地 VSCode 的，而用于开发的扩展则在本地被禁用了。可能是出于性能的考虑，这些扩展并没有自动安装到远程服务器上，要在远端开启这些扩展的话，需要在图中对特定的扩展选择 <code>Install on SSH &lt;server&gt;</code> 命令。对于已经安装到远端的扩展，则会显示提示信息 <code>Extension is enabled on SSH &lt;server&gt; and disabled locally</code>。</p>
+<p>接下来的操作和普通的本地开发就没什么差别了。你可以打开目录、编辑文件、执行程序，等等。但需要注意的是，现在几乎所有操作幕后都是在服务器上完成的，如果你还下意识地以为是本地操作的话，有时候就难免有点混乱，所以还是应该坚持一段时间来适应。</p>
+<p>还有一点补充建议：如果服务端是 Linux 而客户端是 Windows，并且你将要打开的是一个 Git 仓库的话，请考虑在 Git 中配置 <code>autocrlf = false</code>，，以避免不同平台对换行的处理差异导致莫名其妙的变更问题。</p>
+<h3 id="设置">设置</h3>
+<p>最近我录制了一个课程 <a href="https://study.163.com/course/courseMain.htm?courseId=1209349810&amp;share=2&amp;shareId=480000001896782">Visual Studio Code 全景学习</a>，其中对设置的结构有专门的介绍。VSCode 的设置是一个非常灵活、但又相当复杂的层次结构，在远程开发的背景下，又多了一个远程设置的来源，所以结构是更加复杂了。</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘9.png" /></p>
+<p>在默认情况下，本地的 VSCode 用户配置会自动应用到远程服务器环境，不需要我们做额外的工作。但客户端和服务器通常是不同的操作系统，它们之间难免有一些差异，所以有时候还是要对远程环境单独作一些配置。为此，VSCode 提供了一个命令 <code>Open Remote Settings</code> 专门用来编辑远程配置。和其他命令一样，你可以从命令面板（Command Palette）调用它。</p>
+<p>另外，远程开发也注册了一些自己特有的配置信息。其中最主要的可能是 <code>remote.extensionKind</code>。我们在本文前面的原理部分讲述过，为了支持远程开发模式，VSCode 会把扩展分为本地和远程两种运行类型。一般来说，VSCode 会自动判断扩展应该放在哪个位置，但也有一些情况可能不太好判断，所以 VSCode 允许我们自行配置它。</p>
+<pre class="javascript"><code>{
+    &quot;remote.extensionKind&quot;: {
+        &quot;ext1&quot;: &quot;ui&quot;,
+        &quot;ext2&quot;: &quot;workspace&quot;
+    }
+}</code></pre>
+<p>对于每个扩展，我们可以把它设置为 <code>ui</code> 或者 <code>workspace</code>，分别代表在本地/服务器上启用。这样，VSCode 在启动远程模式时会对扩展做出合适的处理。如果还觉得有点糊涂的话，建议回头看看文章开头的架构图。</p>
+<h3 id="一些技术内部">一些技术内部</h3>
+<p>在远程模式下工作时，几乎所有开发相关的操作都是在远程服务器上完成的。这也包括了终端（Terminal）。你可以尝试在终端输入一些命令，从提示和结果都能发现，这并不是客户端的 Windows Cmd，而是一个真实的 Linux Terminal。另外，我们还会发现 VSCode 会在远程服务器的用户目录下建立一个 <code>.vscode-server</code> 目录，该目录实际上就是一个完整的 VSCode 程序（那个很长的中缀猜想是用来区分不同的session，但是没有具体验证过）。所有在服务端开启的开发扩展也会自动拷贝到相应的子目录下。</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘10.png" /></p>
+<p>如果你希望了解远程模式的一些工作内幕，那么输出面板有一个 <code>Remote-SSH</code> 视图能为你提供一些信息。这个输出显示的内容还是比较有限，但是也能看到启动服务和调用命令的一些细节。此外，输出视图的 <code>Log (Remote Server)</code> 和 <code>Log (Remote Extension Host)</code> 也会显示服务器相关的一些日志记录。</p>
+<p><img src="./images/Visual Studio Code 远程开发探秘11.png" /></p>
+<p>我个人非常希望从源代码级别了解远程开发工作的一些细节，但很可惜，目前微软官方的代码库中只有一些文档和问题模板，并未开放远程开发扩展的源码。其实仔细研究远程开发的一些细节可以认识到，远程开发在很多方面是需要和 VSCode 的核心架构深度绑定的，因此有很大可能，该扩展会在功能逐渐稳定以后合并到 VSCode 的主体代码，不再作为单独的扩展出现。当然这是我个人的一家之言，不妨姑妄听之。</p>
+<h3 id="需要注意的问题">需要注意的问题</h3>
+<p>VSCode 远程开发目前还在预览状态，并且它对 VSCode 内部的一些架构变动也比较大，可能仍然存在不少 bug，对于第三方扩展也可能会有一些兼容性问题。如果你在使用中发现有问题的话，可以到 <a href="https://github.com/Microsoft/vscode-remote-release/labels/ssh">远程开发 Issue</a> 查找或报告，或者参考官方文档中的 <a href="https://code.visualstudio.com/docs/remote/troubleshooting">Troubleshooting</a> 以解决一些常见问题。</p>
+<p>如果你自己是扩展开发者的话，需要注意的是在远程模式下过去的某些做法可能是会出问题的，特别是一些直接访问本地功能的原生 nodejs 库。微软也列出了容易导致问题的一些常见场景，以及建议的解决方法，请参考阅读：<a href="https://code.visualstudio.com/api/advanced-topics/remote-extensions">Supporting Remote Development</a>。</p>
+<h3 id="个人感想">个人感想</h3>
+<p>按照微软官方的设想，以及一些开发者的使用经验，VSCode 远程开发主要用于跨平台开发、统一开发环境、沙盒模拟等场景。对于一般性个人开发，我的感觉是通过 SSH 管理比本地开发还是反应略慢，失去了流畅的感觉，并且我个人对于上述场景没有特别强烈的要求，因此远程开发对我来说，至少在目前意义并不算大。但需要承认的是，这种方式带来了很大的想象空间，也很有可能在未来会看到其他更加有用的玩法，所以还是一个值得关注的方向。</p>
+<p>然而从架构的角度讲，我对这个扩展是有一些担心的。主要的问题在于复杂性。我看到的主要问题包括：</p>
+<ul>
+<li>目前 VSCode 的设置层次已经相当复杂了，并且从官方 Issue 可以感受到，由于这种架构分支太多、难于管理，某些问题处理起来应该是比较棘手，甚至微软的开发者也无法给出明确的回答。而远程开发模式还会让这个结构更加复杂，可谓雪上加霜；</li>
+<li>对于扩展的本地/远程分类，也给扩展管理带来了额外的复杂性，并且不够直观；</li>
+<li>它也给扩展开发者带来了额外的负担，一些过去习以为常的用法在远程模式下可能彻底无法工作了，且需要这些开发者去了解一些琐碎的技术细节。提高扩展开发者的门槛对于 VSCode 繁荣的生态可能是不利的。</li>
+</ul>
+<p>从长远来说，远程开发功能是不是独立成一个单独的产品更好呢？呃——其实我也不知道。</p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家免费试用！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

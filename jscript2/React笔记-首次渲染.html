@@ -1,0 +1,238 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修React笔记-首次渲染' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>React笔记-首次渲染</center></div><div class='banquan'>原文出处:本文由博客园博主Raion提供。<br/>
+原文连接:https://www.cnblogs.com/raion/p/10704050.html</div><br>
+    <h3 id="渲染机制">渲染机制</h3>
+<p>渲染机制主要分为两部分: 首次渲染和更新渲染。</p>
+<h4 id="首次渲染">首次渲染</h4>
+<p>首先通过一个小例子，来讲解首次渲染过程。</p>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;utf-8&quot;&gt;
+    &lt;title&gt;React App&lt;/title&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id=&quot;root&quot;&gt;&lt;/div&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<pre class="jsx"><code>import React from &#39;react&#39;;
+import ReactDOM from &#39;react-dom&#39;;
+
+class ClickCounter extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { count: 0 };
+  }
+  handleClick = () =&gt; {
+    this.setState((state) =&gt; {
+      return {count: state.count + 1};
+    });
+  }
+  render() {
+    return [
+      &lt;button key=&quot;1&quot; onClick={this.handleClick}&gt;Update counter&lt;/button&gt;,
+      &lt;span key=&quot;2&quot;&gt;{this.state.count}&lt;/span&gt;,
+    ]
+  }
+}
+ReactDOM.hydrate(&lt;ClickCounter /&gt;, document.getElementById(&#39;root&#39;));</code></pre>
+<p>程序运行到<code>ReactDOM.hydrate</code>时，其中的<code>&lt;ClickCounter /&gt;</code>已被<code>babel</code>转换为<code>React.createElement(ClickCounter, null)</code>，生成的<code>element</code>如下:</p>
+<pre><code><code>{
+    $$typeof: Symbol(react.element),
+    key: null,
+    props: {},
+    ref: null,
+    type: ClickCounter
+}</code></pre>
+<p>接下来执行<code>hydrate</code>函数，生成<code>root</code>节点。首先了解下<code>fiber</code>的部分数据结构。</p>
+<ul>
+<li>alternate（对应的<code>workInProgress</code>或<code>fiber</code>）</li>
+<li>stateNode（关联的<code>fiber</code>，组件实例或者<code>DOM</code>节点）</li>
+<li>type（组件或<code>HTML tag</code>，如<code>div</code>，<code>span</code>等）</li>
+<li>tag（类型，详见<a href="https://github.com/facebook/react/blob/master/packages/shared/ReactWorkTags.js">workTags</a>）</li>
+<li>effectTag（操作类型，详见<a href="https://github.com/facebook/react/blob/master/packages/shared/ReactSideEffectTags.js">sideEffectTag</a>）</li>
+<li>updateQueue（更新队列）</li>
+<li>memoizedState（<code>state</code>）</li>
+<li>memoizedProps（<code>props</code>）</li>
+<li>pendingProps（<code>VDOM</code>）</li>
+<li>return（父<code>fiber</code>）</li>
+<li>sibling（兄弟<code>fiber</code>）</li>
+<li>child（孩子<code>fiber</code>）</li>
+<li>firstEffect（第一个待处理的<code>effect fiber</code>）</li>
+<li>lastEffect（最后一个待处理的<code>effect fiber</code>）</li>
+</ul>
+<p>首次渲染会以同步渲染的方式进行渲染，首先创建一个<code>update</code>，将<code>element</code>装载到其<code>payload</code>属性中，然后合并到<code>root.current.updateQueue</code>，如果没有<code>updateQueue</code>会创建一个。我们暂且将<code>root.current</code>看成<code>HostRoot</code>。</p>
+<p>接着根据<code>HostRoot</code>克隆一棵<code>workInProgress</code>更新树。将<code>HostRoot.alternate</code>指向<code>workInProgress</code>，<code>workInProgress.alternate</code>指向<code>HostRoot</code>。然后进入<code>workLoop</code>进行更新树操作部分。<code>workLoop</code>的任务也很简单，就是将所有节点的更新挂载到更新树上。下面详细看看<code>reconciliation</code>阶段。</p>
+<h4 id="reconciliation阶段">reconciliation阶段</h4>
+<p><code>reconciliation</code>的核心在于<code>workLoop</code>。<code>workLoop</code>会以<code>workInProgress</code>为起点，即克隆的<code>HostRoot</code>，不断向下寻找。如果<code>workInProgress.child</code>不为空，会进行<code>diff</code>；如果为空会创建workInProgress.child`。</p>
+<pre class="js"><code>// 第一次循环nextUnitOfWork为workInProgress
+function workLoop(isYieldy) {
+  if (!isYieldy) {
+    // Flush work without yielding
+    while (nextUnitOfWork !== null) {
+      nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+    }
+  } else {
+    // Flush asynchronous work until there&#39;s a higher priority event
+    while (nextUnitOfWork !== null &amp;&amp; !shouldYieldToRenderer()) {
+      nextUnitOfWork = performUnitOfWork(nextUnitOfWork);
+    }
+  }
+}</code></pre>
+<p>因为只涉及首次渲染，所以这里将<code>performUnitOfWork</code>简单化。<code>beginWork</code>根据<code>workInProgress.tag</code>选择不同的处理方式。先暂且看看如何处理<code>HostRoot</code>。进入<code>updateHostRoot</code>方法，先进行<code>workInProgress.updateQueue</code>的更新，计算新的<code>state</code>，将<code>update.baseState</code>和<code>workInProgress.memoizedState</code>指向新的<code>state</code>。这里新的<code>state</code>装载的是<code>element</code>。</p>
+<p>接下来调用<code>createFiberFromElement</code>创建<code>fiber</code>，将<code>workInProgress.child</code>指向该<code>fiber</code>，<code>fiber.return</code>指向<code>workInProgress</code>。</p>
+<pre class="js"><code>function performUnitOfWork(workInProgress) {
+  let next = beginWork(workInProgress); // 创建workInProgress.child并返回
+  if (next === null) { // 没有孩子，收集effect list，返回兄弟或者父fiber
+      next = completeUnitOfWork(workInProgress);
+  }
+  return next;
+}
+
+function beginWork(workInProgress) {
+  switch(workInProgress.tag) {
+    case HostRoot:
+      return updateHostRoot(current, workInProgress, renderExpirationTime);
+    case ClassComponent: 
+      ...
+  }
+}</code></pre>
+<p>用一张图体现更新树创建完成后的样子:</p>
+<p><img src="./images/React笔记-首次渲染0.png" /></p>
+<p>当<code>workInProgress</code>没有孩子时，即创建的孩子为空。说明已经到达底部，开始收集<code>effect</code>。</p>
+<pre class="js"><code>function completeUnitOfWork(workInProgress) {
+  while (true) {
+    let returnFiber = workInProgress.return;
+    let siblingFiber = workInProgress.sibling;
+    nextUnitOfWork = completeWork(workInProgress);
+　　 ...// 省略收集effect list过程
+    if (siblingFiber !== null) {
+      // If there is a sibling, return it
+      // to perform work for this sibling
+      return siblingFiber;
+    } else if (returnFiber !== null) {
+      // If there&#39;s no more work in this returnFiber,
+      // continue the loop to complete the parent.
+      workInProgress = returnFiber;
+      continue;
+    } else {
+      // We&#39;ve reached the root.
+      return null;
+    }
+  }
+}
+function completeWork(workInProgress) {
+  //根据workInProgress.tag创建、更新或删除dom
+  switch(workInProgress.tag) {
+    case HostComponent: 
+      ...
+  }
+  return null;
+}</code></pre>
+<p>协调算法过程结束后，<code>workInProgress</code>更新树更新完毕，收集的<code>effect list</code>如下:</p>
+<p><img src="./images/React笔记-首次渲染1.png" /></p>
+<h4 id="commit阶段">commit阶段</h4>
+<p><code>effect list</code>(链表)是<code>reconciliation</code>阶段的结果，决定了哪些节点需要插入、更新和删除，以及哪些组件需要调用生命周期函数。<code>firstEffect</code>记录第一个更新操作，<code>firstEffect.nextEffect（fiber）</code>记录下一个，然后继续通过其<code>nextEffect</code>不断往下寻找直至为<code>null</code>。下面是commit阶段的主要流程:</p>
+<pre class="js"><code>// finishedWork为更新树
+function commitRoot(root, finishedWork) {
+    commitBeforeMutationLifecycles();
+    commitAllHostEffects();
+    root.current = finishedWork;
+    commitAllLifeCycles();
+}</code></pre>
+<p>变量<code>nextEffect</code>每次执行完上面一个函数会被重置为<code>finishedWork</code>。</p>
+<ul>
+<li><strong><code>commitBeforeMutationLifecycles</code></strong></li>
+</ul>
+<p>检查<code>effect list</code>中每个<code>fiber</code>是否有<code>Snapshot effect</code>，如果有则执行<code>getSnapshotBeforeUpdate</code>。</p>
+<pre class="js"><code>// 触发getSnapshotBeforeUpdate
+function commitBeforeMutationLifecycles() {
+  while (nextEffect !== null) {
+    const effectTag = nextEffect.effectTag;
+    if (effectTag &amp; Snapshot) {
+      const current = nextEffect.alternate;
+      commitBeforeMutationLifeCycles(current, nextEffect);
+    }
+    nextEffect = nextEffect.nextEffect;
+  }
+}</code></pre>
+<ul>
+<li><strong><code>commitAllHostEffects</code></strong></li>
+</ul>
+<p>提交所有<code>effect</code>，实现<code>dom</code>的替换、更新和删除。</p>
+<pre class="js"><code>function commitAllHostEffects() {
+  while(nextEffect !== null) {
+    var effectTag = nextEffect.effectTag;
+    var primaryEffectTag = effectTag &amp; (Placement | Update | Deletion);
+    switch (primaryEffectTag) {
+      case Placement: {
+        commitPlacement(nextEffect);
+        ...
+      }
+      case PlacementAndUpdate: {
+        commitPlacement(nextEffect);
+        var _current = nextEffect.alternate;
+        commitWork(_current, nextEffect);
+        ...
+      }
+      case Update: {
+        var _current2 = nextEffect.alternate;
+        commitWork(_current2, nextEffect); 
+        ...
+      }
+      case Deletion: {// 触发componentWillUnmout
+        commitDeletion(nextEffect);
+        ...
+      }
+    }
+    nextEffect = nextEffect.nextEffect;
+  }
+}</code></pre>
+<ul>
+<li><strong><code>commitAllLifeCycles</code></strong></li>
+</ul>
+<p>触发<code>componentDidMount</code>或<code>componentDidUpdate</code></p>
+<pre class="js"><code>function commitAllLifeCycles(finishedRoot, committedExpirationTime) {
+  while (nextEffect !== null) {
+    var effectTag = nextEffect.effectTag;
+
+    if (effectTag &amp; (Update | Callback)) {
+      var current$$1 = nextEffect.alternate;
+      commitLifeCycles(finishedRoot, current$$1, nextEffect, committedExpirationTime);
+    }
+    if (effectTag &amp; Ref) {
+      commitAttachRef(nextEffect);
+    }
+    if (effectTag &amp; Passive) {
+      rootWithPendingPassiveEffects = finishedRoot;
+    }
+
+    nextEffect = nextEffect.nextEffect;
+  }
+}</code></pre>
+<h3 id="总结">总结</h3>
+<p>这里并未逐一细说，不想读起来直犯困，更多讲述了大概流程。如果觉得有疑惑的地方，也知道该在什么地方找到对应的源码，解答疑惑。</p>
+<p>更好的阅读体验在我的<a href="https://github.com/cy6121/front-notes">github</a>，欢迎👏提issue。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

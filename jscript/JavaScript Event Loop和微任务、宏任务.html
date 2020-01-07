@@ -1,0 +1,96 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript Event Loop和微任务、宏任务' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript Event Loop和微任务、宏任务</center></div><div class='banquan'>原文出处:本文由博客园博主apy提供。<br/>
+原文连接:https://www.cnblogs.com/qiqingfu/p/10664549.html</div><br>
+    <h4 id="为什么javascript是单线程">为什么JavaScript是单线程?</h4>
+<p>JavaScript的一大特点就是单线程, 同一时间只能做一件事情,主要和它的用途有关, JavaScript主要是控制和用户的交互以及操作DOM。注定它是单线程。 假如是多个线程, 一个移除DOM节点,一个新增DOM节点,浏览器以谁的为准呢?</p>
+<h4 id="什么是执执行栈呢">什么是执执行栈呢?</h4>
+<p>函数的调用就会形成一个栈帧。当执行栈都为空的时候,主线程就会处于空闲状态。</p>
+<pre><code><code>   function fn2(x, y) {
+      return x + y  
+   } 
+   
+   function fn1(z) {
+     let a = 10
+     return fn2(a, z)
+   }
+   
+   console.log(fn1(5)) // 15</code></pre>
+<p>以上代码: <code>fn1</code> 函数调用时会创建一个执行栈,栈中包含<code>fn1</code>的参数和局部变量。当 <code>fn1</code> 调用 <code>fn2</code> 时, 第二个执行栈就会被创建, 并且压入到第一个执行栈之前。 栈中包含了 <code>fn2</code>的参数和全局变量。当 <code>fn2</code>执行完返回时,最前面的执行栈就会被弹出。剩下 <code>fn1</code> 函数的调用帧, 当<code>fn1</code> 函数执行完并返回时, 执行栈就空了。</p>
+<h4 id="任务队列">任务队列</h4>
+<p>任务队列主要用户挂起等待中的任务(异步任务)。<br />
+JavaScript是单线程, 意味着所有的任务需要排队, 前一个任务执行完,才能进行下一个任务。 AJAX就是典型的异步任务,需要调用HTTP线程,然后发送request请求,再是等待服务端的响应。在结果没有返回执行,后面的代码是不会执行的,这会给用户一种网站卡的现象。</p>
+<p>因此, JavaScript 分为 <code>同步任务</code>在主线程上排队执行的任务,也就是前面执行完毕,才能执行下一个的任务。 <code>异步任务</code>是指它不会进行主线程,不会影响后续代码的执行,而是进入<code>任务队列</code>,当异步任务执行有了结果,就会在任务队列中放置一个事件,等主线程空闲(<code>执行栈为空,同步任务执行完毕</code>),通知任务队列进入主线程执行。</p>
+<h4 id="微任务和宏任务">微任务和宏任务</h4>
+<p>任务队列中的异步任务分为 <code>微任务</code>和 <code>宏任务</code><br />
+常见的微任务有: <code>process.nextTick</code>、<code>Promise</code>和 <code>MutationObserver</code>监听DOM的变化。</p>
+<p>常见的宏任务: <code>setTimeout</code>、<code>setInterval</code>、<code>setImmediate</code>、 <code>script</code>中整体的代码、 <code>I/O操作</code>、 <code>UI渲染</code>等。</p>
+<p>微任务和宏任务的区别:</p>
+<ul>
+<li>微任务进入主线程执行是一队一队的, 而宏任务进入主线程是一个一个的。</li>
+<li>微任务是在主线程空闲时批量执行, 宏任务是在事件循环下一轮的最开始执行</li>
+</ul>
+<p><strong>例子: 以下代码的打印结果</strong></p>
+<pre><code><code>    console.log(1)
+    setTimeout(function() {
+        console.log(2)
+    })
+    
+    Promise.resolve()
+        .then(function() {
+            console.log(3)
+        })
+    
+    console.log(4)
+    
+   // 打印结果: 1 4 3 2</code></pre>
+<p>整个的执行过程:</p>
+<pre><code><code>    stack(执行栈)、Micro(微任务)、Macro（宏任务）
+
+    1.初始状态： stack:[], Micro: [], Macro: [script]。执行栈为空, 微任务为空, 宏任务队列中有一个整体的 script代码 
+    
+    2. 主线程开始执行, 遇到console.log(1), 首先会打印 1 
+    
+    3. 继续向下执行,遇到 setTimeout异步任务,就将其加入到Macro(宏任务)队列中。等待执行 
+    
+    4. 继续向下执行, 遇到 Promise.resolve也是一个异步任务,单它是微任务,将其加入 Micro(微任务)队列中,等待着行 
+    
+    5. 解析console.log(4), 并且打印4。 当主线程执行完打印的结果依次是 1 和 4。
+    
+    6. 这时候主线程就会问 任务(异步)队列,有没有微任务要执行,将所有的 Micro(微任务)加入执行栈执行, 打印结果 3
+    
+    7. 微任务执行完了, 就开始下一轮事件循环, 将第一个 Macro(宏任务)压入执行栈执行, 再次打印 2。 </code></pre>
+<h4 id="event-loop事件循环">Event Loop事件循环</h4>
+<p><img src="./images/JavaScript Event Loop和微任务、宏任务0.png" alt="Event Loop" /></p>
+<p>只要主线程一空闲就会将 &quot;任务队列中的异步任务&quot;依次压入执行栈, 这个过程是循环不断的,所以整个运行机制称之为 Event Loop(事件循环)。</p>
+<p>执行栈中(stack)的代码(同步任务),总是在读取&quot;任务队列&quot;(异步任务)之前执行。</p>
+<h4 id="图示">图示</h4>
+<p><img src="./images/JavaScript Event Loop和微任务、宏任务1.png" alt="event loop" /></p>
+<h2 id="参考文章">参考文章</h2>
+<ul>
+<li><a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/EventLoop">并发模型与事件循环 MDN</a></li>
+<li><a href="http://www.ruanyifeng.com/blog/2014/10/event-loop.html">JavaScript 运行机制详解：再谈Event Loop</a></li>
+<li><a href="https://github.com/dwqs/blog/issues/61">从一道题浅说 JavaScript 的事件循环</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

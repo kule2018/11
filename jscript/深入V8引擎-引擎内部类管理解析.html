@@ -1,0 +1,65 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-引擎内部类管理解析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-引擎内部类管理解析</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10980510.html</div><br>
+    <p>v8的初始化三部曲，前面花了三篇解决了第一步，由于只是生成了一个对象，第二步就是将其嵌入v8中，先看一下三个步骤。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 生成默认Platform对象</span>
+std::unique_ptr&lt;v8::Platform&gt; platform =<span style="color: #000000;"> v8::platform::NewDefaultPlatform();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 将其嵌入V8引擎内</span>
+v8::V8::InitializePlatform(platform.<span style="color: #0000ff;">get</span><span style="color: #000000;">());
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化V8引擎</span>
+v8::V8::Initialize();</pre>
+</div>
+<p>第一步可以由用户自己手动实现platform，只要按照规范来继承对应基类，一般也不会有人搞吧。</p>
+<p>这里的嵌入，如果用代码来进行解释，实际上是叫做"<strong>命名空间</strong>"。v8引擎的体量非常巨大，所以需要有完善的规范来管理各个类。如果完整的阅读过v8源码，可以发现v8对类的逻辑管理用到了两个方法，其中一个是命名空间，另外一个则是语义化宏。</p>
+<p>先来看看命名空间的定义(对C++熟悉就很简单了)，如果只是跟我一样的前端页面仔，可以理解成<strong>模块</strong>。举一个例子，在前面一篇有一个类叫PageAllocator，在看源码发现有两个同名类，但是其中一个是挂在v8的命名空间下，另外一个则在v8::base的命名空间下，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> v8 {
+  </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> PageAllocator {}
+}
+</span><span style="color: #0000ff;">namespace</span><span style="color: #000000;"> v8 {
+</span><span style="color: #0000ff;">namespace</span> <span style="color: #0000ff;">base</span><span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">class</span> PageAllocator : <span style="color: #0000ff;">public</span><span style="color: #000000;"> ::v8::PageAllocator {}
+}
+}</span></pre>
+</div>
+<p>通过对v8命名空间所有类进行观察，发现其所有的类都是一个基类，提供了声明和一些虚函数，都是需要被继承去实现的类。而对v8::base进行搜索时，发现了其命名空间下的所有方法都是实现类，可以看出，v8通过命名空间来对所有的class进行分类。</p>
+<p>另外，其命名空间的名字也是有意义的，base命名空间下的类提供的功能都是比较底层的功能，比如说CPU、Hash、EnumSet等等。而之前那篇讲的DefaultPlatform、TaskRunner，其命名空间都挂在v8::platform的下面。此外，WorkThread虽然从继承关系上是属于Thread类型，但是作为TaskRunner的内部类，实际上命名空间还是属于platform，也就是只看命名空间就可以理解类的归属和功能。</p>
+<p>比较典型的还有v8::debug包含垃圾回收、内存管理相关，v8::tracing包含调用栈追踪的相关等等，这里就不一一举例了。</p>
+<p>&nbsp;</p>
+<p>除去命名空间，另外一个对类进行分类的就是语义化宏。这个命名是自己想的，主要是联想到了语义化标签，进行过格式化，实际上div和p在表现上并没有什么区别，实际使用上只是为了语义化。同理，v8的很多宏会对类进行修饰，也是无意义的，纯粹的语义化。</p>
+<p>基本上所有的类都会有宏去修饰，还是拿之前的DefaultPlatform举例。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 宏定义</span>
+<span style="color: #0000ff;">#define</span> NON_EXPORTED_BASE(code) code
+<span style="color: #0000ff;">#define</span> V8_PLATFORM_EXPORT
+<span style="color: #008000;">//</span><span style="color: #008000;"> 类声明</span>
+<span style="color: #0000ff;">class</span> V8_PLATFORM_EXPORT DefaultPlatform : <span style="color: #0000ff;">public</span> NON_EXPORTED_BASE(Platform) {};</pre>
+</div>
+<p>这里分别对实现类和基类都进行了修饰，V8_PLATFORM_EXPORT表明这个类是属于platform模块，且是一个实现类，可以输出并使用。而NON_EXPORTED_BASE则表明该类不可直接使用，需要继承实现。</p>
+<p>宏的定义也给出来了，没有任何意义，只是一个纯粹的为了说明，跟注释类似但是又有着不一样的功能。</p>
+<p>v8源码的头文件在类的定义上随处可见这种宏，通过宏的名字就可以看出类的一些特征，从而方便调试和像我这样无聊的人看源码&hellip;&hellip;</p>
+<p>&nbsp;</p>
+<p>其实v8内部还有更多宏起着巨大的作用，比如在类声明时，有时候需要禁掉这个类的拷贝构造函数和赋值功能，v8都把这个封装到一个宏里，声明的时候直接调用就行了，这些后面深入的时候再来细说把。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

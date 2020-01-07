@@ -1,0 +1,415 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack的总结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack的总结</center></div><div class='banquan'>原文出处:本文由博客园博主跌倒的小黄瓜提供。<br/>
+原文连接:https://www.cnblogs.com/ygjzs/p/11854077.html</div><br>
+    <h1 id="vue.js---day5---webpack">Vue.js - Day5 - Webpack</h1>
+<h2 id="在网页中会引用哪些常见的静态资源">在网页中会引用哪些常见的静态资源？</h2>
+<ul>
+<li>JS</li>
+<li>.js .jsx .coffee .ts（TypeScript 类 C# 语言）</li>
+<li>CSS</li>
+<li>.css .less .sass .scss</li>
+<li>Images</li>
+<li>.jpg .png .gif .bmp .svg</li>
+<li>字体文件（Fonts）</li>
+<li>.svg .ttf .eot .woff .woff2</li>
+<li>模板文件</li>
+<li>.ejs .jade .vue【这是在webpack中定义组件的方式，推荐这么用】</li>
+</ul>
+<h2 id="网页中引入的静态资源多了以后有什么问题">网页中引入的静态资源多了以后有什么问题？？？</h2>
+<ol>
+<li>网页加载速度慢， 因为 我们要发起很多的二次请求；</li>
+<li>要处理错综复杂的依赖关系</li>
+</ol>
+<h2 id="如何解决上述两个问题">如何解决上述两个问题</h2>
+<ol>
+<li>合并、压缩、精灵图、图片的Base64编码</li>
+<li>可以使用之前学过的requireJS、也可以使用webpack可以解决各个包之间的复杂依赖关系；</li>
+</ol>
+<h2 id="什么是webpack">什么是webpack?</h2>
+<p>webpack 是前端的一个项目构建工具，它是基于 Node.js 开发出来的一个前端工具；</p>
+<h2 id="如何完美实现上述的2种解决方案">如何完美实现上述的2种解决方案</h2>
+<ol>
+<li>使用Gulp， 是基于 task 任务的；</li>
+<li>使用Webpack， 是基于整个项目进行构建的；</li>
+</ol>
+<ul>
+<li>借助于webpack这个前端自动化构建工具，可以完美实现资源的合并、打包、压缩、混淆等诸多功能。</li>
+<li>根据官网的图片介绍webpack打包的过程</li>
+<li><a href="http://webpack.github.io/">webpack官网</a></li>
+</ul>
+<h2 id="webpack安装的两种方式">webpack安装的两种方式</h2>
+<ol>
+<li>运行<code>npm i webpack -g</code>全局安装webpack，这样就能在全局使用webpack的命令</li>
+<li>在项目根目录中运行<code>npm i webpack --save-dev</code>安装到项目依赖中</li>
+</ol>
+<h2 id="初步使用webpack打包构建列表隔行变色案例">初步使用webpack打包构建列表隔行变色案例</h2>
+<ol>
+<li>运行<code>npm init</code>初始化项目，使用npm管理项目中的依赖包</li>
+<li>创建项目基本的目录结构</li>
+<li>使用<code>cnpm i jquery --save</code>安装jquery类库</li>
+<li>创建<code>main.js</code>并书写各行变色的代码逻辑：</li>
+</ol>
+<pre><code><code>    // 导入jquery类库
+    import $ from &#39;jquery&#39;
+
+    // 设置偶数行背景色，索引从0开始，0是偶数
+    $(&#39;#list li:even&#39;).css(&#39;backgroundColor&#39;,&#39;lightblue&#39;);
+    // 设置奇数行背景色
+    $(&#39;#list li:odd&#39;).css(&#39;backgroundColor&#39;,&#39;pink&#39;);</code></pre>
+<ol>
+<li>直接在页面上引用<code>main.js</code>会报错，因为浏览器不认识<code>import</code>这种高级的JS语法，需要使用webpack进行处理，webpack默认会把这种高级的语法转换为低级的浏览器能识别的语法；</li>
+<li>运行<code>webpack 入口文件路径 输出文件路径</code>对<code>main.js</code>进行处理：</li>
+</ol>
+<pre><code><code>webpack src/js/main.js dist/bundle.js</code></pre>
+<h2 id="使用webpack的配置文件简化打包时候的命令">使用webpack的配置文件简化打包时候的命令</h2>
+<ol>
+<li>在项目根目录中创建<code>webpack.config.js</code></li>
+<li>由于运行webpack命令的时候，webpack需要指定入口文件和输出文件的路径，所以，我们需要在<code>webpack.config.js</code>中配置这两个路径：</li>
+</ol>
+<pre><code><code>    // 导入处理路径的模块
+    var path = require(&#39;path&#39;);
+
+    // 导出一个配置对象，将来webpack在启动的时候，会默认来查找webpack.config.js，并读取这个文件中导出的配置对象，来进行打包处理
+    module.exports = {
+        entry: path.resolve(__dirname, &#39;src/js/main.js&#39;), // 项目入口文件
+        output: { // 配置输出选项
+            path: path.resolve(__dirname, &#39;dist&#39;), // 配置输出的路径
+            filename: &#39;bundle.js&#39; // 配置输出的文件名
+        }
+    }</code></pre>
+<h2 id="实现webpack的实时打包构建">实现webpack的实时打包构建</h2>
+<ol>
+<li>由于每次重新修改代码之后，都需要手动运行webpack打包的命令，比较麻烦，所以使用<code>webpack-dev-server</code>来实现代码实时打包编译，当修改代码之后，会自动进行打包构建。</li>
+<li>运行<code>cnpm i webpack-dev-server --save-dev</code>安装到开发依赖</li>
+<li>安装完成之后，在命令行直接运行<code>webpack-dev-server</code>来进行打包，发现报错，此时需要借助于<code>package.json</code>文件中的指令，来进行运行<code>webpack-dev-server</code>命令，在<code>scripts</code>节点下新增<code>&quot;dev&quot;: &quot;webpack-dev-server&quot;</code>指令，发现可以进行实时打包，但是dist目录下并没有生成<code>bundle.js</code>文件，这是因为<code>webpack-dev-server</code>将打包好的文件放在了内存中</li>
+</ol>
+<ul>
+<li>把<code>bundle.js</code>放在内存中的好处是：由于需要实时打包编译，所以放在内存中速度会非常快</li>
+<li>这个时候访问webpack-dev-server启动的<code>http://localhost:8080/</code>网站，发现是一个文件夹的面板，需要点击到src目录下，才能打开我们的index首页，此时引用不到bundle.js文件，需要修改index.html中script的src属性为:<code>&lt;script src=&quot;../bundle.js&quot;&gt;&lt;/script&gt;</code></li>
+<li>为了能在访问<code>http://localhost:8080/</code>的时候直接访问到index首页，可以使用<code>--contentBase src</code>指令来修改dev指令，指定启动的根目录：</li>
+</ul>
+<pre><code><code>&quot;dev&quot;: &quot;webpack-dev-server --contentBase src&quot;</code></pre>
+<p>同时修改index页面中script的src属性为<code>&lt;script src=&quot;bundle.js&quot;&gt;&lt;/script&gt;</code></p>
+<h2 id="使用html-webpack-plugin插件配置启动页面">使用<code>html-webpack-plugin</code>插件配置启动页面</h2>
+<p>由于使用<code>--contentBase</code>指令的过程比较繁琐，需要指定启动的目录，同时还需要修改index.html中script标签的src属性，所以推荐大家使用<code>html-webpack-plugin</code>插件配置启动页面.</p>
+<ol>
+<li>运行<code>cnpm i html-webpack-plugin --save-dev</code>安装到开发依赖</li>
+<li>修改<code>webpack.config.js</code>配置文件如下：</li>
+</ol>
+<pre><code><code>    // 导入处理路径的模块
+    var path = require(&#39;path&#39;);
+    // 导入自动生成HTMl文件的插件
+    var htmlWebpackPlugin = require(&#39;html-webpack-plugin&#39;);
+
+    module.exports = {
+        entry: path.resolve(__dirname, &#39;src/js/main.js&#39;), // 项目入口文件
+        output: { // 配置输出选项
+            path: path.resolve(__dirname, &#39;dist&#39;), // 配置输出的路径
+            filename: &#39;bundle.js&#39; // 配置输出的文件名
+        },
+        plugins:[ // 添加plugins节点配置插件
+            new htmlWebpackPlugin({
+                template:path.resolve(__dirname, &#39;src/index.html&#39;),//模板路径
+                filename:&#39;index.html&#39;//自动生成的HTML文件的名称
+            })
+        ]
+    }</code></pre>
+<ol>
+<li>修改<code>package.json</code>中<code>script</code>节点中的dev指令如下：</li>
+</ol>
+<pre><code><code>&quot;dev&quot;: &quot;webpack-dev-server&quot;</code></pre>
+<ol>
+<li>将index.html中script标签注释掉，因为<code>html-webpack-plugin</code>插件会自动把bundle.js注入到index.html页面中！</li>
+</ol>
+<h2 id="实现自动打开浏览器热更新和配置浏览器的默认端口号">实现自动打开浏览器、热更新和配置浏览器的默认端口号</h2>
+<p><strong>注意：热更新在JS中表现的不明显，可以从一会儿要讲到的CSS身上进行介绍说明！</strong></p>
+<h3 id="方式1">方式1：</h3>
+<ul>
+<li>修改<code>package.json</code>的script节点如下，其中<code>--open</code>表示自动打开浏览器，<code>--port 4321</code>表示打开的端口号为4321，<code>--hot</code>表示启用浏览器热更新：</li>
+</ul>
+<pre><code><code>&quot;dev&quot;: &quot;webpack-dev-server --hot --port 4321 --open&quot;</code></pre>
+<h3 id="方式2">方式2：</h3>
+<ol>
+<li>修改<code>webpack.config.js</code>文件，新增<code>devServer</code>节点如下：</li>
+</ol>
+<pre><code><code>devServer:{
+        hot:true,
+        open:true,
+        port:4321
+    }</code></pre>
+<ol>
+<li>在头部引入<code>webpack</code>模块：</li>
+</ol>
+<pre><code><code>var webpack = require(&#39;webpack&#39;);</code></pre>
+<ol>
+<li>在<code>plugins</code>节点下新增：</li>
+</ol>
+<pre><code><code>new webpack.HotModuleReplacementPlugin()</code></pre>
+<h2 id="使用webpack打包css文件">使用webpack打包css文件</h2>
+<ol>
+<li>运行<code>cnpm i style-loader css-loader --save-dev</code></li>
+<li>修改<code>webpack.config.js</code>这个配置文件：</li>
+</ol>
+<pre><code><code>module: { // 用来配置第三方loader模块的
+        rules: [ // 文件的匹配规则
+            { test: /\.css$/, use: [&#39;style-loader&#39;, &#39;css-loader&#39;] }//处理css文件的规则
+        ]
+    }</code></pre>
+<ol>
+<li>注意：<code>use</code>表示使用哪些模块来处理<code>test</code>所匹配到的文件；<code>use</code>中相关loader模块的调用顺序是从后向前调用的；</li>
+</ol>
+<h2 id="使用webpack打包less文件">使用webpack打包less文件</h2>
+<ol>
+<li>运行<code>cnpm i less-loader less -D</code></li>
+<li>修改<code>webpack.config.js</code>这个配置文件：</li>
+</ol>
+<pre><code><code>{ test: /\.less$/, use: [&#39;style-loader&#39;, &#39;css-loader&#39;, &#39;less-loader&#39;] },</code></pre>
+<h2 id="使用webpack打包sass文件">使用webpack打包sass文件</h2>
+<ol>
+<li>运行<code>cnpm i sass-loader node-sass --save-dev</code></li>
+<li>在<code>webpack.config.js</code>中添加处理sass文件的loader模块：</li>
+</ol>
+<pre><code><code>{ test: /\.scss$/, use: [&#39;style-loader&#39;, &#39;css-loader&#39;, &#39;sass-loader&#39;] }</code></pre>
+<h2 id="使用webpack处理css中的路径">使用webpack处理css中的路径</h2>
+<ol>
+<li>运行<code>cnpm i url-loader file-loader --save-dev</code></li>
+<li>在<code>webpack.config.js</code>中添加处理url路径的loader模块：</li>
+</ol>
+<pre><code><code>{ test: /\.(png|jpg|gif)$/, use: &#39;url-loader&#39; }</code></pre>
+<ol>
+<li>可以通过<code>limit</code>指定进行base64编码的图片大小；只有小于指定字节（byte）的图片才会进行base64编码：</li>
+</ol>
+<pre><code><code>{ test: /\.(png|jpg|gif)$/, use: &#39;url-loader?limit=43960&#39; },</code></pre>
+<h2 id="使用babel处理高级js语法">使用babel处理高级JS语法</h2>
+<ol>
+<li>运行<code>cnpm i babel-core babel-loader babel-plugin-transform-runtime --save-dev</code>安装babel的相关loader包</li>
+<li>运行<code>cnpm i babel-preset-es2015 babel-preset-stage-0 --save-dev</code>安装babel转换的语法</li>
+<li>在<code>webpack.config.js</code>中添加相关loader模块，其中需要注意的是，一定要把<code>node_modules</code>文件夹添加到排除项：</li>
+</ol>
+<pre><code><code>{ test: /\.js$/, use: &#39;babel-loader&#39;, exclude: /node_modules/ }</code></pre>
+<ol>
+<li>在项目根目录中添加<code>.babelrc</code>文件，并修改这个配置文件如下：</li>
+</ol>
+<pre><code><code>{
+    &quot;presets&quot;:[&quot;es2015&quot;, &quot;stage-0&quot;],
+    &quot;plugins&quot;:[&quot;transform-runtime&quot;]
+}</code></pre>
+<ol>
+<li><strong>注意：语法插件<code>babel-preset-es2015</code>可以更新为<code>babel-preset-env</code>，它包含了所有的ES相关的语法；</strong></li>
+</ol>
+<h2 id="注意">注意：</h2>
+<p>有时候使用<code>npm i node-sass -D</code>装不上，这时候，就必须使用 <code>cnpm i node-sass -D</code></p>
+<h2 id="在普通页面中使用render函数渲染组件">在普通页面中使用render函数渲染组件</h2>
+<h2 id="在webpack中配置.vue组件页面的解析">在webpack中配置.vue组件页面的解析</h2>
+<ol>
+<li><p>运行<code>cnpm i vue -S</code>将vue安装为运行依赖；</p></li>
+<li><p>运行<code>cnpm i vue-loader vue-template-compiler -D</code>将解析转换vue的包安装为开发依赖；</p></li>
+<li><p>运行<code>cnpm i style-loader css-loader -D</code>将解析转换CSS的包安装为开发依赖，因为.vue文件中会写CSS样式；</p></li>
+<li><p>在<code>webpack.config.js</code>中，添加如下<code>module</code>规则：</p></li>
+</ol>
+<pre><code><code>
+module: {
+
+    rules: [
+
+      { test: /\.css$/, use: [&#39;style-loader&#39;, &#39;css-loader&#39;] },
+
+      { test: /\.vue$/, use: &#39;vue-loader&#39; }
+
+    ]
+
+  }
+</code></pre>
+<ol>
+<li>创建<code>App.js</code>组件页面：</li>
+</ol>
+<pre><code><code>
+    &lt;template&gt;
+
+      &lt;!-- 注意：在 .vue 的组件中，template 中必须有且只有唯一的根元素进行包裹，一般都用 div 当作唯一的根元素 --&gt;
+
+      &lt;div&gt;
+
+        &lt;h1&gt;这是APP组件 - {{msg}}&lt;/h1&gt;
+
+        &lt;h3&gt;我是h3&lt;/h3&gt;
+
+      &lt;/div&gt;
+
+    &lt;/template&gt;
+
+
+
+    &lt;script&gt;
+
+    // 注意：在 .vue 的组件中，通过 script 标签来定义组件的行为，需要使用 ES6 中提供的 export default 方式，导出一个vue实例对象
+
+    export default {
+
+      data() {
+
+        return {
+
+          msg: &#39;OK&#39;
+
+        }
+
+      }
+
+    }
+
+    &lt;/script&gt;
+
+
+
+    &lt;style scoped&gt;
+
+    h1 {
+
+      color: red;
+
+    }
+
+    &lt;/style&gt;
+</code></pre>
+<ol>
+<li>创建<code>main.js</code>入口文件：</li>
+</ol>
+<pre><code><code>
+    // 导入 Vue 组件
+
+    import Vue from &#39;vue&#39;
+
+
+
+    // 导入 App组件
+
+    import App from &#39;./components/App.vue&#39;
+
+
+
+    // 创建一个 Vue 实例，使用 render 函数，渲染指定的组件
+
+    var vm = new Vue({
+
+      el: &#39;#app&#39;,
+
+      render: c =&gt; c(App)
+
+    });
+</code></pre>
+<h2 id="在使用webpack构建的vue项目中使用模板对象">在使用webpack构建的Vue项目中使用模板对象？</h2>
+<ol>
+<li>在<code>webpack.config.js</code>中添加<code>resolve</code>属性：</li>
+</ol>
+<pre><code><code>resolve: {
+    alias: {
+      &#39;vue$&#39;: &#39;vue/dist/vue.esm.js&#39;
+    }
+  }</code></pre>
+<h2 id="es6中语法使用总结">ES6中语法使用总结</h2>
+<ol>
+<li><p>使用 <code>export default</code> 和 <code>export</code> 导出模块中的成员; 对应ES5中的 <code>module.exports</code> 和 <code>export</code></p></li>
+<li><p>使用 <code>import ** from **</code> 和 <code>import '路径'</code> 还有 <code>import {a, b} from '模块标识'</code> 导入其他模块</p></li>
+<li><p>使用箭头函数：<code>(a, b)=&gt; { return a-b; }</code></p></li>
+</ol>
+<h2 id="在vue组件页面中集成vue-router路由模块">在vue组件页面中，集成vue-router路由模块</h2>
+<p><a href="https://router.vuejs.org/">vue-router官网</a></p>
+<ol>
+<li>导入路由模块：</li>
+</ol>
+<pre><code><code>
+import VueRouter from &#39;vue-router&#39;
+</code></pre>
+<ol>
+<li>安装路由模块：</li>
+</ol>
+<pre><code><code>
+Vue.use(VueRouter);
+</code></pre>
+<ol>
+<li>导入需要展示的组件:</li>
+</ol>
+<pre><code><code>
+import login from &#39;./components/account/login.vue&#39;
+
+import register from &#39;./components/account/register.vue&#39;
+</code></pre>
+<ol>
+<li>创建路由对象:</li>
+</ol>
+<pre><code><code>
+var router = new VueRouter({
+
+  routes: [
+
+    { path: &#39;/&#39;, redirect: &#39;/login&#39; },
+
+    { path: &#39;/login&#39;, component: login },
+
+    { path: &#39;/register&#39;, component: register }
+
+  ]
+
+});
+</code></pre>
+<ol>
+<li>将路由对象，挂载到 Vue 实例上:</li>
+</ol>
+<pre><code><code>
+var vm = new Vue({
+
+  el: &#39;#app&#39;,
+
+  // render: c =&gt; { return c(App) }
+
+  render(c) {
+
+    return c(App);
+
+  },
+
+  router // 将路由对象，挂载到 Vue 实例上
+
+});
+</code></pre>
+<ol>
+<li>改造App.vue组件，在 template 中，添加<code>router-link</code>和<code>router-view</code>：</li>
+</ol>
+<pre><code><code>
+    &lt;router-link to=&quot;/login&quot;&gt;登录&lt;/router-link&gt;
+
+    &lt;router-link to=&quot;/register&quot;&gt;注册&lt;/router-link&gt;
+
+
+
+    &lt;router-view&gt;&lt;/router-view&gt;
+</code></pre>
+<h2 id="组件中的css作用域问题">组件中的css作用域问题</h2>
+<h2 id="抽离路由为单独的模块">抽离路由为单独的模块</h2>
+<h2 id="相关文章">相关文章</h2>
+<p><a href="https://segmentfault.com/p/1210000008466178">babel-preset-env：你需要的唯一Babel插件</a><br />
+<a href="https://segmentfault.com/a/1190000009065987">Runtime transform 运行时编译es6</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

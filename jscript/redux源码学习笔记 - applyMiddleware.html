@@ -1,0 +1,96 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修redux源码学习笔记 - applyMiddleware' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>redux源码学习笔记 - applyMiddleware</center></div><div class='banquan'>原文出处:本文由博客园博主Shapeying提供。<br/>
+原文连接:https://www.cnblogs.com/shapeY/p/10767613.html</div><br>
+    <p>在创建store时，<code>createStore(reducer, preloadedState, enhancer)</code>，除了reducer函数，初始状态，还可以传入<code>enhancer</code>。这个enhancer在createStore的源码中是这样使用的</p>
+<pre><code><code>    return enhancer(createStore)(reducer, preloadedState)</code></pre>
+<p>它可以接受createStore方法并进行<strong>自定义改装</strong>，然后再使用改装后的方法创建仓库。</p>
+<p>而redux官方提供的enhancer就只有<code>applyMiddleware</code>。</p>
+<h2 id="applymiddleware...middlewares">applyMiddleware(...middlewares)</h2>
+<p>applyMiddleware的主要功能是改写createStore中的<code>dispatch</code>方法，并且<strong>可以将多个middleware组合到一起，形式链式的调用，前后互不影响</strong>。这样要求middleware必须遵循一定的格式。<code>({ getState, dispatch }) =&gt; next =&gt; action =&gt; {}</code></p>
+<h3 id="applymiddleware的实现">applyMiddleware的实现</h3>
+<pre><code><code>export default function applyMiddleware(...middlewares) {
+  // 返回一个enhancer函数，接受createStore作为参数（可以对照enhancer的调用方式来看）
+  return createStore =&gt; (...args) =&gt; { // enhancer函数接受reducer, preloadedState来创建仓库
+    const store = createStore(...args)
+    // 自定义dispatch函数，在构造middleware的时候，不允许调用dispatch
+    let dispatch = () =&gt; {
+      throw new Error(
+        `Dispatching while constructing your middleware is not allowed. ` +
+          `Other middleware would not be applied to this dispatch.`
+      )
+    }
+
+    const middlewareAPI = {
+      getState: store.getState, // store中的getState函数，用于获取状态
+      dispatch: (...args) =&gt; dispatch(...args) // 自定义的dispatch函数
+    }
+    // 传入到getState，和dispatch到middleware中 生成 next =&gt; action =&gt; {} 格式的函数
+    const chain = middlewares.map(middleware =&gt; middleware(middlewareAPI))
+
+    // 自定义的dispatch更新为 多个middleware的组合函数；传入store原本dispatch函数给组合函数（会在最后一个middle中作为next函数）
+    dispatch = compose(...chain)(store.dispatch)
+
+    // 返回store仓库，此时的dispatch函数已被改写，为多个middleware的组合函数
+    return {
+      ...store,
+      dispatch
+    }
+  }
+}</code></pre>
+<h3 id="组合和链式调用">组合和链式调用</h3>
+<p>关键是要理解这里<code>dispatch = compose(...chain)(store.dispatch)</code>,dispatch被改写为多个middleware的组合函数。</p>
+<p>compose函数中关键的一句是<code>return funcs.reduce((a, b) =&gt; (...args) =&gt; a(b(...args)))</code></p>
+<p>a可以理解为<code>next =&gt; action =&gt; {}</code>,而<code>next</code>可以理解为<code>b(...args)</code> 就是下一个middleware的 <code>ation =&gt; {}</code> 函数。所以实现了链式调用。a中做了自定义的操作，会调用b，b调用c···最后一个调用<code>store.dispatch</code>。</p>
+<p>用两个middleware做例子来梳理改写后的<code>dispatch(action)</code>的调用过程。</p>
+<h2 id="自定义middleware">自定义middleware</h2>
+<p>middleware必须遵循一定的格式。<code>({ getState, dispatch }) =&gt; next =&gt; action =&gt; {}</code></p>
+<p>{getState, dispatch}参数是在applyMiddleware的源码中<code>const chain = middlewares.map(middleware =&gt; middleware(middlewareAPI))</code>这一部分被传入的，store的getState和改写后的dispatch。</p>
+<p><strong>next是下一个middleware或者store.dispatch</strong>，action是触发的动作</p>
+<pre><code><code>/*logger*/
+export default ({dispatch,getState}) =&gt; next =&gt; action =&gt; {
+    // 做一些自定义的事情
+    console.log(&#39;will dispatch ation&#39;,action);
+    console.log(&#39;next in loggere&#39;,next);
+
+    // 调用下一个middleware
+    let returnValue = next(action);
+
+    console.log(&#39;state after dispatch&#39;,getState());
+
+    return returnValue;
+}</code></pre>
+<pre><code><code>/*test*/
+export default ({dispatch,getState}) =&gt; next =&gt; action =&gt; {
+        
+    console.log(&#39;next in  test&#39;,next)
+
+    return next(action);
+}</code></pre>
+<h3 id="使用applymiddleware">使用applyMiddleware</h3>
+<p><code>store = createStore(reducer,applyMiddleware(logger,test))</code></p>
+<p>触发action时，有如下打印</p>
+<p><img src="./images/redux源码学习笔记 - applyMiddleware0.png" /></p>
+<p>logger做完自定义操作后，调用下一个middleware（test）函数，test是最后一个middleware，它的next是store.dispatch，就触发了action。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

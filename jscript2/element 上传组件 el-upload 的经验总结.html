@@ -1,0 +1,121 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修element 上传组件 el-upload 的经验总结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>element 上传组件 el-upload 的经验总结</center></div><div class='banquan'>原文出处:本文由博客园博主乐亦栗提供。<br/>
+原文连接:https://www.cnblogs.com/leyili/p/element-el-upload.html</div><br>
+    <h1 id="前言">前言</h1>
+<p>最近在做后台管理项目，采用的 <a href="https://panjiachen.github.io/vue-element-admin-site/zh/">vue-element-admin</a> ，上传图片是一个很常用的功能，也遇到了很多问题，刚好趁此机会做一些总结。</p>
+<p>初步总结下会提到的问题，目录如下：</p>
+<ol>
+<li>el-upload 自定义上传方法</li>
+<li>图片上传到七牛云</li>
+<li>图片压缩后再上传（压缩使用 <a href="https://github.com/think2011/localResizeIMG">lrz</a>）</li>
+<li>el-upload 进度条不显示的问题</li>
+</ol>
+<p>版本信息：</p>
+<ul>
+<li>element-ui 2.3.4</li>
+<li>vue 2.5.10</li>
+</ul>
+<p>提示：<br />
+由于每个人做的业务不尽相同，所以文章里的代码只是起一个引导作用，提供一个思路，具体可以根据自己的需求来调整。</p>
+<h1 id="正文">正文</h1>
+<h2 id="上传图片到七牛云">上传图片到七牛云</h2>
+<p>这个需要前后端的配合才能实现，<a href="https://developer.qiniu.com/kodo/sdk/1283/javascript">这里</a> 是官方的 JavaScript SDK 参考链接。</p>
+<blockquote>
+<ul>
+<li><p>在使用 JS-SDK 之前，您必须先注册一个七牛帐号，并登录控制台获取一对有效的 <code>AccessKey</code> 和 <code>SecretKey</code>，您可以阅读<a href="https://developer.qiniu.com/kodo/manual/console-quickstart"> 快速入门 </a>和<a href="https://developer.qiniu.com/kodo/manual/security#security"> 安全机制 </a>以进一步了解如何正确使用和管理密钥 。</p></li>
+<li>JS-SDK 依赖服务端颁发 <code>token</code>，可以通过以下二种方式实现：
+<ol>
+<li>利用<a href="https://developer.qiniu.com/sdk#sdk">七牛服务端 SDK </a>构建后端服务</li>
+<li>利用七牛底层 API 构建服务，详见七牛<a href="https://developer.qiniu.com/kodo/manual/put-policy">上传策略</a>和<a href="https://developer.qiniu.com/kodo/manual/upload-token">上传凭证</a></li>
+</ol></li>
+</ul>
+<p>前端通过接口请求以获得 <code>token</code> 信息</p>
+</blockquote>
+<p>前端需要去拿到后端生成的 token 才可以上传图片。</p>
+<h2 id="自定义上传上传前可压缩">自定义上传，上传前可压缩</h2>
+<p><code>http-request</code> 属性可以覆盖默认的上传行为，自定义上传的实现。<br />
+主要来看一下这个自定义的函数的代码实现：</p>
+<pre><code><code>// 自定义的上传实现函数
+handleHttpRequest(req) {
+  // uid 作为唯一标识，方便上传完成后精准地替换图片 url
+  const uid = req.file.uid 
+  // 获取文件后缀名的函数
+  const ext = getFileExt(req.file.name) 
+  // 自定义 key ，上传时对图片的重命名会用到
+  let keyname = this.$formatDate(new Date(), &#39;yyyyMMddhhmmss&#39;) + Math.floor(Math.random() * 1000) + &#39;.&#39; + ext
+  // 压缩图片
+  let newFile = null
+  lrz(req.file, {
+    quality: 0.7
+  }).then(rst =&gt; {
+    // 压缩完成
+    newFile = rst.file
+    // 创建form对象，上传七牛云所需要的参数
+    const fileData = new FormData() 
+    fileData.append(&#39;file&#39;, newFile)
+    fileData.append(&#39;token&#39;, this.token)
+    fileData.append(&#39;key&#39;, keyname)
+    const config = {
+      headers: { &#39;Content-Type&#39;: &#39;multipart/form-data&#39; },
+      // 这一段代码解决进度条不显示的问题，属于 axios 的使用知识。具体可以看文末的参考链接。
+      onUploadProgress: progressEvent =&gt; {
+       const percentCompleted = Math.floor((progressEvent.loaded * 100) / progressEvent.total)
+       req.onProgress({ percent: percentCompleted })
+     }
+    }
+    // 请求七牛云的接口，具体看自己怎么配置
+    // 这里的 action 是请求地址，fileData 是请求发送的内容，config 是 http 的相关配置
+    // 官方的请求地址可以查看这个链接：https://developer.qiniu.com/kodo/manual/1671/region-endpoint
+    axios.post($config[this.bucket].action, fileData, config).then(res =&gt; {
+      const url = `${$config[this.bucket].domain}/${res.data.key}`
+      // 修改 url
+      this.fileList.forEach((item) =&gt; {
+        if (item.uid === uid) {
+          item.url = url
+        }
+      })
+      req.onSuccess(res)
+    }).catch(err =&gt; {
+      req.onError(err)
+    })
+  }).catch(err =&gt; {
+    console.log(err)
+  })
+}</code></pre>
+<h2 id="压缩图片">压缩图片</h2>
+<p>这里直接采用前人造的轮子，可以设置压缩比例和图片的尺寸限制。</p>
+<p>想看更多细节的话地址在 <a href="https://github.com/think2011/localResizeIMG">这里</a> ，上面代码里也有用到，但是这个轮子作者已经不再维护了。</p>
+<h2 id="el-upload-进度条不显示">el-upload 进度条不显示</h2>
+<p>使用自定义上传后，我发现 el-upload 自带的进度条显示失效了，这个问题查找了比较久，一开始一直不知道应该在哪里去监听 <code>progress</code> 事件。</p>
+<p>参考链接里的顺序就是我思考的顺序。</p>
+<p>先是去查了下官方的 issue ，意识到是监听 process 的问题，然后就想 axios 是不是有相关的设置呢？毕竟我这里是用 axios 发请求的，所以又谷歌直接搜关键词「axios upload progress」，找到了一些相关的信息，就是在 <code>config</code> 里去配置 <code>onUploadProgress</code> 函数，具体代码见上面的例子。</p>
+<p>参考链接：</p>
+<ol>
+<li><a href="https://github.com/ElemeFE/element/issues/9759">upload组件的 http:request 怎么获取进度值</a></li>
+<li><a href="https://github.com/axios/axios/issues/629">谷歌 axios upload progress 找到的 其一</a></li>
+<li><a href="https://github.com/axios/axios/blob/master/examples/upload/index.html">谷歌 axios upload progress 找到的 其二</a></li>
+</ol>
+<p>（完）</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

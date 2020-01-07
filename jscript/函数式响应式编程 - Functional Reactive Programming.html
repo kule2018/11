@@ -1,0 +1,235 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修函数式响应式编程 - Functional Reactive Programming' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>函数式响应式编程 - Functional Reactive Programming</center></div><div class='banquan'>原文出处:本文由博客园博主apolis提供。<br/>
+原文连接:https://www.cnblogs.com/apolis/p/11437688.html</div><br>
+    <p>我们略过概念，直接看函数式响应式编程解决了什么问题。</p>
+<p>从下面这个例子展开：</p>
+<p>两个密码输入框，一个提交按钮。</p>
+<p><img src="./images/函数式响应式编程 - Functional Reactive Programming0.png" alt="../images/frp-demo.png" /></p>
+<p>密码、确认密码都填写并一致，允许提交；不一致提示错误。</p>
+<p>HTML 如下：</p>
+<pre><code><code>&lt;input
+  id=&quot;pwd&quot;
+  placeholder=&quot;输入密码&quot;
+  type=&quot;password&quot;
+/&gt;&lt;br /&gt;
+&lt;input
+  id=&quot;confirmPwd&quot;
+  placeholder=&quot;再次确认&quot;
+  type=&quot;password&quot;
+/&gt;
+&lt;label id=&quot;errorLabel&quot;&gt;&lt;/label&gt;&lt;br /&gt;
+&lt;button id=&quot;submitBtn&quot; disabled&gt;提交&lt;/button&gt;</code></pre>
+<hr />
+<h2 id="常规做法">常规做法</h2>
+<pre class="javascript"><code>const validate = () =&gt; {
+  const match = pwd.value === confirmPwd.value;
+  const canSubmit = pwd.value &amp;&amp; match;
+  errorLabel.innerText = match
+    ? &quot;&quot;
+    : &quot;密码不一致&quot;;
+  if (canSubmit) {
+    submitBtn.removeAttribute(&quot;disabled&quot;);
+  } else {
+    submitBtn.setAttribute(&quot;disabled&quot;, true);
+  }
+};
+
+pwd.addEventListener(&quot;input&quot;, validate);
+confirmPwd.addEventListener(&quot;input&quot;, validate);</code></pre>
+<hr />
+<blockquote>
+<p><strong>问题：</strong> 输入密码时，确认密码还是空的，出现密码不一致错误提示，干扰用户输入。</p>
+<p><strong>期望：</strong> 确认密码没输入过时，不提示错误。</p>
+</blockquote>
+<p>为解决这个问题，用 <code>isConfirmPwdTouched</code> 标识确认密码输入框是否输入过内容。</p>
+<pre class="javascript"><code>let isConfirmPwdTouched = false;
+pwd.addEventListener(&quot;input&quot;, () =&gt; {
+  if (isConfirmPwdTouched) validate();
+});
+confirmPwd.addEventListener(&quot;input&quot;, () =&gt; {
+  isConfirmPwdTouched = true;
+  validate();
+});</code></pre>
+<p>测试同学又发现了一个 bug：<br />
+不输密码，直接输入确认密码，这时又出现了错误提示。</p>
+<p>为解决这个问题，再加入一个标识位 <code>isPwdTouched</code>。</p>
+<pre class="javascript"><code>let isConfirmPwdTouched = false;
+let isPwdTouched = false;
+pwd.addEventListener(&quot;input&quot;, () =&gt; {
+  isPwdTouched = true;
+  if (isConfirmPwdTouched) validate();
+});
+confirmPwd.addEventListener(&quot;input&quot;, () =&gt; {
+  isConfirmPwdTouched = true;
+  if (isPwdTouched) validate();
+});</code></pre>
+<hr />
+<blockquote>
+<p><strong>问题：</strong> 确认密码输入框输入第一个字符时就会提示密码不一致，干扰用户输入。</p>
+<p><strong>期望：</strong> 连续输入时，不提示错误。</p>
+</blockquote>
+<p>为解决这个问题，高级一点的做法是使用高阶函数 <code>debounce</code>，否则又要多个标识位。</p>
+<pre class="javascript"><code>const debounce = (fn, ms) =&gt; {
+  let timeoutId;
+  return (...args) =&gt; {
+    if (timeoutId !== undefined)
+      clearTimeout(timeoutId);
+    timeoutId = setTimeout(
+      fn.bind(null, ...args),
+      ms
+    );
+  };
+};
+
+const validate = () =&gt; {
+  const match = pwd.value === confirmPwd.value;
+  const canSubmit = pwd.value &amp;&amp; match;
+  errorLabel.innerText = match
+    ? &quot;&quot;
+    : &quot;密码不一致&quot;;
+  if (canSubmit) {
+    submitBtn.removeAttribute(&quot;disabled&quot;);
+  } else {
+    submitBtn.setAttribute(&quot;disabled&quot;, true);
+  }
+};
+
+const debouncedValidate = debounce(validate, 200);
+
+let isConfirmPwdTouched = false;
+let isPwdTouched = false;
+pwd.addEventListener(&quot;input&quot;, () =&gt; {
+  isPwdTouched = true;
+  if (isConfirmPwdTouched) debouncedValidate();
+});
+confirmPwd.addEventListener(&quot;input&quot;, () =&gt; {
+  isConfirmPwdTouched = true;
+  if (isPwdTouched) debouncedValidate();
+});</code></pre>
+<hr />
+<h2 id="常规做法的问题">常规做法的问题</h2>
+<p>可以看出：随着交互越来越复杂，常规做法的标识位越来越多，代码逻辑越来越难理清。</p>
+<p>常规做法实际实现了下图的逻辑：</p>
+<p><img src="./images/函数式响应式编程 - Functional Reactive Programming1.png" alt="../images/frp-a.png" /></p>
+<p>图看起来清晰易懂，但很可惜：代码和这张图长得并不像。</p>
+<p>有没有一种办法，让代码和上面那张图一样清晰易懂呢？<br />
+答案就是：函数式响应式编程。</p>
+<p>用它写代码就像是在画上面那张图。</p>
+<hr />
+<h2 id="函数式响应式做法">函数式响应式做法</h2>
+<p>这里使用的库是 <code>rxjs</code>。</p>
+<pre class="javascript"><code>const { fromEvent, combineLatest } = rxjs;
+const { map, debounceTime } = rxjs.operators;
+
+const pwd$ = fromEvent(pwd, &quot;input&quot;).pipe(
+  map(e =&gt; e.target.value)
+);
+const confirmPwd$ = fromEvent(
+  confirmPwd,
+  &quot;input&quot;
+).pipe(map(e =&gt; e.target.value));
+
+combineLatest(pwd$, confirmPwd$)
+  .pipe(
+    debounceTime(200),
+    map(([pwd, confirmPwd]) =&gt; ({
+      match: pwd === confirmPwd,
+      canSubmit: pwd &amp;&amp; pwd === confirmPwd
+    }))
+  )
+  .subscribe(({ match, canSubmit }) =&gt; {
+    errorLabel.innerText = match
+      ? &quot;&quot;
+      : &quot;密码不一致&quot;;
+    if (canSubmit) {
+      submitBtn.removeAttribute(&quot;disabled&quot;);
+    } else {
+      submitBtn.setAttribute(&quot;disabled&quot;, true);
+    }
+  });</code></pre>
+<p>没看出代码和上面那张图有什么相似？我们来拆解一下。</p>
+<pre class="javascript"><code>const pwd$ = fromEvent(pwd, &quot;input&quot;).pipe(
+  map(e =&gt; e.target.value)
+);
+const confirmPwd$ = fromEvent(
+  confirmPwd,
+  &quot;input&quot;
+).pipe(map(e =&gt; e.target.value));</code></pre>
+<p><img src="./images/函数式响应式编程 - Functional Reactive Programming2.png" alt="../images/frp-b1.png" /></p>
+<p>我们把 <code>pwd$</code>, <code>confirmPwd$</code> 称作流，可以把它们想象成河流，里面流淌着数据。</p>
+<p><code>map</code> 把流中的 <code>input event</code> 转换为输入框的 <code>value</code>。</p>
+<pre class="javascript"><code>combineLatest(pwd$, confirmPwd$);</code></pre>
+<p><img src="./images/函数式响应式编程 - Functional Reactive Programming3.png" alt="../images/frp-b2.png" /></p>
+<p><code>combinLatest</code> 作用有两个：</p>
+<ol>
+<li>combine：把 <code>pwd$</code>, <code>confirmPwd$</code> 合成一个新流。</li>
+<li>latest：新流中流淌的数据，是 <code>pwd$</code>, <code>confirmPwd$</code> 两个流最新数据的组合。
+<ol>
+<li><code>pwd$</code> 产生数据 <code>a</code> 时，<code>confirmPwd$</code> 还没产生过数据，<br />
+新流不产生数据；</li>
+<li><code>pwd$</code> 产生数据 <code>ab</code> 时，<code>confirmPwd$</code> 还没产生过数据，<br />
+新流不产生数据；</li>
+<li><code>confirmPwd$</code> 产生数据 <code>a</code> 时，<br />
+由于 <code>pwd$</code>, <code>confirmPwd$</code> 都产生过数据了，<code>pwd$</code> 流最新产生的数据为 <code>ab</code>，<br />
+新流产生数据 <code>[ab, a]</code>；</li>
+<li><code>confirmPwd$</code> 产生数据 <code>ab</code> 时，<br />
+由于 <code>pwd$</code>, <code>confirmPwd$</code> 都产生过数据了，<code>pwd$</code> 流最新产生的数据为 <code>ab</code>，<br />
+新流产生数据 <code>[ab, ab]</code>。</li>
+</ol></li>
+</ol>
+<pre class="javascript"><code>combineLatest(pwd$, confirmPwd$).pipe(
+  debounceTime(200),
+  map(([pwd, confirmPwd]) =&gt; ({
+    match: pwd === confirmPwd,
+    canSubmit: pwd &amp;&amp; pwd === confirmPwd
+  }))
+);</code></pre>
+<p><img src="./images/函数式响应式编程 - Functional Reactive Programming4.png" alt="../images/frp-b3.png" /></p>
+<p><code>debounceTime(200)</code> 作用和之前普通做法里的 <code>debounce</code> 一样。</p>
+<ol>
+<li>上游流产生 <code>[ab, a]</code> 时，新流不立刻把数据传给下游，而是要延迟 200ms。</li>
+<li>200ms 不到，上游流又传来数据 <code>[ab, ab]</code>，新流丢弃之前的数据。</li>
+<li>200ms 后，上游流没有传来新数据，新流将 <code>[ab, ab]</code> 传给下游。</li>
+</ol>
+<p><code>map</code> 将 <code>[ab, ab]</code> 转化为 <code>{ match: true, canSubmit: true }</code>。</p>
+<hr />
+<p>再比较一下，是不是很像呢？</p>
+<p><img src="./images/函数式响应式编程 - Functional Reactive Programming1.png" alt="../images/frp-a.png" /></p>
+<p><img src="./images/函数式响应式编程 - Functional Reactive Programming4.png" alt="../images/frp-b3.png" /></p>
+<hr />
+<h2 id="总结">总结</h2>
+<p>函数式响应式编程初衷是为了解决 <strong><code>listener</code>、<code>callback</code> 逻辑表达不直观，代码乱成一团麻</strong> 的问题。</p>
+<p>至于它为什么叫函数式响应式编程，是因为它借鉴了函数式、响应式编程思想。<br />
+例如：</p>
+<ul>
+<li><strong>declarative</strong><br />
+关注做什么，而不是怎么做。隐藏了很多细节。</li>
+<li><strong>reactive</strong><br />
+函数式响应式做法，input 输入有变化，button 状态就会跟着变。<br />
+相比较 input 输入变了、再调一遍函数、根据函数输出修改 button 状态，要更自动化。<br />
+<em>这个解释有点牵强，常规做法也很自动化。以后我需要再好好研究下响应式编程。</em></li>
+<li>......</li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,62 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在Electron中最快速预加载脚本' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在Electron中最快速预加载脚本</center></div><div class='banquan'>原文出处:本文由博客园博主海角在眼前提供。<br/>
+原文连接:https://www.cnblogs.com/lovesong/p/11161293.html</div><br>
+    <p><!--?xml version="1.0" encoding="UTF-8"?--></p>
+<p><span style="font-size: 14pt;"><strong><span style="color: #3366ff;">背景</span></strong></span></p>
+<p>在Electron打开新窗口的时候，提前加载一段JavaScript脚本，以此内置一些属性或接口给被打开的页面。之所以要以注入方式，而不是页面自己引用，原因是不想麻烦页面自行引用，不想修改旧有的业务逻辑。</p>
+<p><span style="font-size: 14pt;"><strong><span style="color: #3366ff;">方法一</span></strong></span></p>
+<p>一开始是想在打开BrowserWindow后，执行executeJavaScript方法来给相应的窗口注入脚本。</p>
+<p>不过这个方法虽然可以在相应的窗口注入脚本，但是它的执行的顺序太后，无法在页面加载时加载到，就导致了如果页面的在加载时使用了注入接口，就会有调用不到问题。</p>
+<p>所以这个方法不可行。</p>
+<p>PS：executeJavaScript方法，<a href="https://electronjs.org/docs/api/web-contents#contentsexecutejavascriptcode-usergesture-callback">https://electronjs.org/docs/api/web-contents</a></p>
+<p><span style="font-size: 14pt;"><strong><span style="color: #3366ff;">方法二</span></strong></span></p>
+<p>后来我在new BrowserWindow([options])方法，也就是新建窗口的方法找到了一个preload参数。</p>
+<div class="cnblogs_code">
+<pre><code>const { BrowserWindow } = require('electron'<span style="color: #000000;">)
+const path </span>= require('path'<span style="color: #000000;">)
+const renderProcessApi </span>= path.join(__dirname, './inject.js'<span style="color: #000000;">)
+ 
+let win </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> BrowserWindow({
+   webPreferences: {
+       preload: renderProcessApi
+   }
+})</span></pre>
+</div>
+<p>这个脚本文件，会在页面加载资源前就加载执行，保证了页面无论是在什么地方、什么时候调用注入接口都能调用到。</p>
+<p><strong><span style="color: #ff6600;">特别注意</span></strong></p>
+<p>如果窗口是在主进程创建的，估计有人就会发现注入的脚本文件会在主进程和对应的渲染进程各执行了一遍（我也不清楚为什么会有这样的效果）。</p>
+<p>这时有可能会导致打开窗口失败，因为注入脚本中使用的对象或方法是主进程没有的，例如window对象。</p>
+<p>解决办法是得判断脚本是在渲染进程时，才执行脚本内容。</p>
+<div>inject.js文件：</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">if</span> (require('electron'<span style="color: #000000;">).remote) {
+   window.hello </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+       console.log(&lsquo;world</span>'<span style="color: #000000;">)
+   }
+}</span></pre>
+</div>
+</div>
+<p>可以通过require('electron').remote，来判断是否在渲染进程。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

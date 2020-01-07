@@ -1,0 +1,89 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修记一次在node.js中使用crypto的createCipheriv方法进行加密时所遇到的坑' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>记一次在node.js中使用crypto的createCipheriv方法进行加密时所遇到的坑</center></div><div class='banquan'>原文出处:本文由博客园博主Jaxu提供。<br/>
+原文连接:https://www.cnblogs.com/jaxu/p/11649131.html</div><br>
+    <p>　　Node.js的<a href="https://nodejs.org/api/crypto.html#crypto_crypto" target="_blank">crypto模块</a>提供了一组包括对OpenSSL的哈希、HMAC、加密、解密、签名，以及验证等一整套功能的封装。具体的使用方法可以参考这篇文章中的描述：<a href="https://www.jianshu.com/p/c5c8c19bc80a" target="_blank">node.js_crypto模块</a>。</p>
+<p>　　本文重点介绍在使用<strong>createCipheriv</strong>方法时所遇到的坑。对应的解密算法<strong>createDecipheriv</strong>应该是一样的问题。</p>
+<p>　　按照文档中的描述，<strong>createCipheriv</strong>方法接受三个参数：algorithm用于指定加密算法，如aes-128-ecb、aes-128-cbc等；key是用于加密的密钥；iv参数可选，用于指定加密时所用的向量。注意这里的密钥必须是8/16/32位，如果加密算法是128，则对应的密钥是16位，如果加密算法是256，则对应的密钥是32位。代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>const crypto = require("crypto"<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> encrypt (key, iv, data) {
+    let decipher </span>= crypto.createCipheriv('aes-128-cbc'<span style="color: #000000;">, key, iv);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> decipher.setAutoPadding(true);</span>
+    <span style="color: #0000ff;">return</span> decipher.update(data, 'binary', 'base64') + decipher.final('base64'<span style="color: #000000;">);
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> decrypt (key, iv, crypted) {
+     crypted </span>= <span style="color: #0000ff;">new</span> Buffer(crypted, 'base64').toString('binary'<span style="color: #000000;">);
+     let decipher </span>= crypto.createDecipheriv('aes-128-cbc'<span style="color: #000000;">, key, iv);
+     </span><span style="color: #0000ff;">return</span> decipher.update(crypted, 'binary', 'utf8') + decipher.final('utf8'<span style="color: #000000;">);
+}</span></pre>
+</div>
+<p>　　下面是测试结果：</p>
+<div class="cnblogs_code">
+<pre><code>let key = '123456789abcdefg'<span style="color: #000000;">;
+console.log(</span>'加密的key:'<span style="color: #000000;">, key);
+let iv </span>= 'abcdefg123456789'<span style="color: #000000;">;
+console.log(</span>'加密的iv:'<span style="color: #000000;">, iv);
+let data </span>= "This is an example"<span style="color: #000000;">;
+console.log(</span>"需要加密的数据:"<span style="color: #000000;">, data);
+let crypted </span>=<span style="color: #000000;"> encrypt(key, iv, data);
+console.log(</span>"数据加密后:"<span style="color: #000000;">, crypted);
+let dec </span>=<span style="color: #000000;"> decrypt(key, iv, crypted);
+console.log(</span>"数据解密后:", dec);</pre>
+</div>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/记一次在node.js中使用crypto的createCipheriv方法进行加密时所遇到的坑0.png" alt="" /></p>
+<p>　　以上加密和解密的算法在node.js中运行没有问题。但如果服务端用的不是node.js，而是Java、C#或者C语言编写的服务，则用node.js加密之后的结果在服务端验证无法通过。究其原因可能是因为node.js在实现<strong>createCipheriv</strong>的算法上与其它语言有差异，而这个差异也可能体现在编码格式上。在上述node.js代码中，无论如何修改encrypt函数中update()和final()方法的参数，例如改为"utf8"、"hex"，或者将传入的参数改为buffer等，虽然得出的加密结果会有区别，但是服务端验证都会失败。</p>
+<p>　　在多次尝试失败后，我们只能认定node.js中的crypto模块与其它语言中的实现存在差异。所以我们不得已选择其它的开源包来替换node.js中的crypto模块。经过尝试，<a href="https://www.npmjs.com/package/aes-js" target="_blank">aes-js</a>包是个不错的选择。按照文档中的描述，我们将上面node.js中的encrypt函数修改为：</p>
+<div class="cnblogs_code">
+<pre><code>const aesjs = require('aes-js'<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> encrypt (key, iv, data) {
+    let aesCbc </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> aesjs.ModeOfOperation.cbc(aesjs.utils.utf8.toBytes(key), aesjs.utils.utf8.toBytes(iv));
+    let encryptedBytes </span>=<span style="color: #000000;"> aesCbc.encrypt(aesjs.utils.utf8.toBytes(data));
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> aesjs.utils.hex.fromBytes(encryptedBytes);
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> decrypt (key, iv, crypted) {
+    let aesCbc </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> aesjs.ModeOfOperation.cbc(aesjs.utils.utf8.toBytes(key), aesjs.utils.utf8.toBytes(iv));
+    let encryptedBytes </span>=<span style="color: #000000;"> aesCbc.decrypt(aesjs.utils.hex.toBytes(crypted));
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> aesjs.utils.utf8.fromBytes(encryptedBytes);
+}</span></pre>
+</div>
+<p>　　上面这段代码要求加密的数据是16位，测试结果如下：</p>
+<div class="cnblogs_code">
+<pre><code>let key = '123456789abcdefg'<span style="color: #000000;">;
+console.log(</span>'加密的key:'<span style="color: #000000;">, key);
+let iv </span>= 'abcdefg123456789'<span style="color: #000000;">;
+console.log(</span>'加密的iv:'<span style="color: #000000;">, iv);
+let data </span>= "Thisisanexample."<span style="color: #000000;">;
+console.log(</span>"需要加密的数据:"<span style="color: #000000;">, data);
+let crypted </span>=<span style="color: #000000;"> encrypt(key, iv, data);
+console.log(</span>"数据加密后:"<span style="color: #000000;">, crypted);
+let dec </span>=<span style="color: #000000;"> decrypt(key, iv, crypted);
+console.log(</span>"数据解密后:", dec);</pre>
+</div>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/记一次在node.js中使用crypto的createCipheriv方法进行加密时所遇到的坑1.png" alt="" /></p>
+<p>　　采用aes-js计算得到的加密结果可以通过服务端的验证。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

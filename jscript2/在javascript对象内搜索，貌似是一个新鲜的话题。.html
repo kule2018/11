@@ -1,0 +1,118 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在javascript对象内搜索，貌似是一个新鲜的话题。' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在javascript对象内搜索，貌似是一个新鲜的话题。</center></div><div class='banquan'>原文出处:本文由博客园博主alan0405提供。<br/>
+原文连接:https://www.cnblogs.com/allofalan/p/11338307.html</div><br>
+    <p>&nbsp;为啥</p>
+<p>　　也不为啥，因为没找到。</p>
+<p>用途</p>
+<p>　　也没啥用途，比如，在电影网站找到链接，在小说网站找到链接。二货同事写的复杂对象。等等吧。反正要搜索就对了。</p>
+<p>目标</p>
+<p>　　在对象内，无论多少层，找到关键字。</p>
+<p>关键字可能的位置</p>
+<p>　　1.属性名，2.属性值，3.方法名，4.方法内。</p>
+<p>一个简单的办法</p>
+<p>　　把对象转成json,搜索字符串，对于不需要处理方法的前提下，非常方便，甚至可以用正则表达式去处理，然而，搜索到的结果只是定位，要还原出路径就难了。</p>
+<p>另一个简单的办法</p>
+<p>　　遍历对象，很直接，一个递归搜到底，就一个坑，循环嵌套对象要怎么处理。</p>
+<p>爬坑</p>
+<p>　　给每个见过的对象做一个标记，见到标记就不再看内部了。要是标记的对象里包含目标字符串，可以保存一个对象路径，要是只关心值，就可以不保存了。</p>
+<p>聊着聊着，问题就分析明白了。做一个非常唯一的标记很重要，还要记得删除这个标记，好反复搜索。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> findInObject =<span style="color: #000000;"> {
+    fio_MARKED: </span>1<span style="color: #000000;">,
+    CustomObjects: [],
+    marked: [],
+    searchResult: [],
+    defaultname: [</span>'frames', 'self', 'window', 'parent', 'top', 'location', 'content', 'document', 'history', 'locationbar', 'menubar', 'personalbar', 'scrollbars', 'statusbar', 'toolbar', 'navigator', 'applicationCache', 'customElements', 'screen', 'clientInformation', 'styleMedia', 'performance', 'caches', 'crypto', 'indexedDB', 'webkitStorageInfo', 'sessionStorage', 'localStorage', 'visualViewport', 'speechSynthesis', 'chrome', 'external', 'qb_external', 'qb_minivideo', 'qbmv', 'userObjects', 'defaultStatus', 'll', 'lll', 'gnp', 'vm'<span style="color: #000000;">],
+    fio(obj, str, path, flag) {
+
+        </span><span style="color: #0000ff;">if</span> (!path) path = 'window'
+        <span style="color: #0000ff;">if</span> (!flag) flag = 'fioflg_' + Date.parse(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date())
+        const otype </span>= <span style="color: #0000ff;">typeof</span><span style="color: #000000;"> obj
+        </span><span style="color: #0000ff;">if</span> (otype == 'string'<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">if</span> (obj.indexOf(str) &gt; -1<span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">this</span>.searchResult.push({ path: path, type: "值命中"<span style="color: #000000;">, value: obj })
+            }
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> obj == 'function'<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">var</span> strfunc =<span style="color: #000000;"> obj.toString()
+            </span><span style="color: #0000ff;">if</span> (strfunc.indexOf(str) &gt; -1<span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">this</span>.searchResult.push({ path: path, type: '方法内命中'<span style="color: #000000;">, value: strfunc })
+            }
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> obj == 'number') {} <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> obj == 'bigint') {} <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> obj == 'boolean') {} <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> obj == 'symbol') {} <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (Array.isArray(obj)) {
+            </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.isMarked(obj, flag) == <span style="color: #0000ff;">false</span><span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">for</span> (const key <span style="color: #0000ff;">in</span><span style="color: #000000;"> obj) {
+                    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (obj.hasOwnProperty(key)) {
+                        const element </span>=<span style="color: #000000;"> obj[key];
+                        </span><span style="color: #0000ff;">this</span>.fio(element, str, path + '[' + key + ']'<span style="color: #000000;">, flag)
+                    }
+                }
+            }
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (obj <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Object) {
+            </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.isMarked(obj, flag) == <span style="color: #0000ff;">false</span><span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">if</span> (obj[str] !=<span style="color: #000000;"> undefined) {
+                    </span><span style="color: #0000ff;">this</span>.searchResult.push({ path: path + '/' + str, type: '属性命中'<span style="color: #000000;">, value: obj[str] })
+                }
+                </span><span style="color: #0000ff;">for</span> (const key <span style="color: #0000ff;">in</span><span style="color: #000000;"> obj) {
+                    </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.defaultname.indexOf(key) == -1<span style="color: #000000;">) {
+                        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (obj.hasOwnProperty(key)) {
+                            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                                </span><span style="color: #0000ff;">var</span> element =<span style="color: #000000;"> obj[key]
+                            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (error) {
+                                </span><span style="color: #0000ff;">var</span> element =<span style="color: #000000;"> {}
+                            }
+
+                            </span><span style="color: #0000ff;">if</span> (path == 'window'<span style="color: #000000;">) {
+                                </span><span style="color: #0000ff;">var</span> ty = <span style="color: #0000ff;">typeof</span><span style="color: #000000;"> element
+                                </span><span style="color: #0000ff;">if</span> (['function', 'number', 'bigint', 'boolean', 'symbol', 'string'].indexOf(ty) == -1 &amp;&amp; Array.isArray(element) == <span style="color: #0000ff;">false</span> &amp;&amp; element <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Object) {
+                                    </span><span style="color: #0000ff;">this</span>['CustomObjects'][key] =<span style="color: #000000;"> element
+                                }
+                            }
+                            </span><span style="color: #0000ff;">this</span>.fio(element, str, path + '.' +<span style="color: #000000;"> key, flag)
+                        }
+                    }
+                }
+            }
+        }
+    },
+    isMarked(obj, flag) {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (obj.fio_MARKED) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            obj.fio_MARKED </span>=<span style="color: #000000;"> flag
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.marked.push(obj)
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">
+        }
+    },
+    search(str) {
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.fio(window, str)
+        </span><span style="color: #0000ff;">this</span>.marked.forEach(item =&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">delete</span> item['fio_MARKED'<span style="color: #000000;">]
+        });
+        </span><span style="color: #0000ff;">this</span>.marked =<span style="color: #000000;"> []
+        console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">)
+    },
+}</span></pre>
+</div>
+<p>没处理命中标记，其他的还都ok</p>
+<p>　　</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

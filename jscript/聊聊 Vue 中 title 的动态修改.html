@@ -1,0 +1,153 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修聊聊 Vue 中 title 的动态修改' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>聊聊 Vue 中 title 的动态修改</center></div><div class='banquan'>原文出处:本文由博客园博主格子熊提供。<br/>
+原文连接:https://www.cnblogs.com/karthuslorin/p/11000431.html</div><br>
+    <p>由于之前的 Vue 项目打包成果物一直是嵌入集成平台中，所以一直没有关注过项目的 title。直到最近，突然有个需求，要求点击按钮在集成平台外新开一个页面，此时我才发现，原来我的项目的 title 一直是万年不变的 <em>vue-project</em>。理所应当的，这个问题被测试爸爸提了一个大大的缺陷。</p>
+<p>犯了错的我赶紧解决这个问题，但是经过一段时间的摸索，我却发现，这一个小小的问题，却有着很多不同的解法。</p>
+<p>首先，毫无疑问的是，我们应该使用 <code>document.title</code> 方法通过 DOM 操作来修改 title 的值。此时，距离解决问题还差两步：</p>
+<ol>
+<li>如何传递 title？</li>
+<li>何时修改 title？</li>
+</ol>
+<p>ps：很多人提到过在微信或者一部分 IOS webview （下文一律以微信指代）中无法通过 <code>document.title</code> 方法修改 title 的值，这个问题的解决方案在文末的彩蛋中会提及。</p>
+<h3 id="title-的传递">title 的传递</h3>
+<p>接下来进入第一个重点：title 的传递。根据传递 title 值的方式，分为两种方案：</p>
+<ol>
+<li>全局变量传递</li>
+<li>路由传递</li>
+</ol>
+<p>何为全局变量传递？全局变量传递指的是所有页面维护同一个全局变量，切换页面对其重新赋值，最常见的方法是使用 Vuex，当然，如果你要使用 <code>this.$root</code> 甚至丧心病狂地想要使用 <code>provide/inject</code> 一样可以达到类似的效果。</p>
+<p>路由传递的方法就比较容易理解了，即通过路由跳转传参传递 title 的值。由于业务逻辑中本身就包含大量的路由传参，为了解耦方便后续维护，推荐将 title 的值通过路由配置中的 meta 进行传递。</p>
+<p>之后，通过访问当前路由对象（$route）的 meta 属性即可获取到 title 值。</p>
+<pre><code><code>// router.js
+const routes = [
+  {
+    path: &#39;/&#39;,
+    ...
+    meta: {
+      title: &#39;首页&#39;
+    }
+  }, {
+    path: &#39;/A&#39;,
+    meta: {
+      title: &#39;A模块&#39;
+    }
+  }
+]</code></pre>
+<pre><code><code>// 业务模块，获取 title
+...
+beforeCreate () {
+  console.log(this.$route.meta)
+}
+...</code></pre>
+<p>通过上面的两种方法，可以顺利传递 title 的值。</p>
+<h3 id="title-的修改时机">title 的修改时机</h3>
+<p>完成了 title 值的传递，接下来我们谈谈何时该修改 title。</p>
+<p>想到这个问题，大多数人第一个想到的应该就是在生命周期钩子中修改 title。</p>
+<h4 id="生命周期钩子">生命周期钩子</h4>
+<p>一般情况下，我们在 <code>mounted</code> 生命周期钩子中进行初始化请求，所以惯性思维之下，我在 mounted 中进行了 title 的修改。</p>
+<pre><code><code>// 业务代码
+mounted () {
+  document.title = this.$route.meta.title
+}</code></pre>
+<p>结果，效果不佳，标签页的 title 延迟 1 秒以上才成功修改。通过这个延迟可以发现，显然，我们的代码执行地太晚了！</p>
+<p>回忆了一下 Vue 源码中初始化相关的代码细节，我们可以发现，我们甚至在 <code>beforeCreate</code> 钩子中就可以进行 title 的修改。</p>
+<p>改动后的代码如下：</p>
+<pre><code><code>// 业务代码
+beforeCreate () {
+  document.title = this.$route.meta.title
+}</code></pre>
+<p>可以发现，修改后的代码效果明显好了许多，延迟感虽然还有，但是已经不太明显。</p>
+<h4 id="路由守卫">路由守卫</h4>
+<p>比起在生命周期钩子中修改 title 值，在路由跳转时利用路由守卫完成 title 的修改，岂不美哉？毕竟路由跳转发生在生命周期函数执行之前，使用路由守卫修改 title 值可以明显降低 title 修改的延时。</p>
+<pre><code><code>// router.js
+router.beforeEach((to, from, next) =&gt; {
+  document.title = to.meta.title
+  next()
+})</code></pre>
+<p>此时，我们基本完美完成了功能需求，但是，还是有一点小瑕疵——如果 meta 中没有定义 title 值，此时 title 值就变成了 undefined，扑街~</p>
+<p>所以，我们需要设置默认的 title 值（一般可以是该项目的名称），作为 title 值不存在时的备胎。修改后的代码如下：</p>
+<pre><code><code>// router.js
+const defaultTitle = &#39;默认 title&#39;
+router.beforeEach((to, from, next) =&gt; {
+  document.title = to.meta.title ? to.meta.title : defaultTitle
+  next()
+})</code></pre>
+<p>到这里为止，我们完美实现了需求，并且实现了该功能与业务代码的解耦。</p>
+<h3 id="彩蛋1使用-vue-meta-管理-title">彩蛋1：使用 vue-meta 管理 title</h3>
+<p><strong>vue-meta</strong> 插件在安装时，像 Vuex 类似，注入了全局状态——<code>metaInfo</code>，你可以通过定义 <code>metaInfo</code> 对象中的 title 属性，实现 title 的动态修改。</p>
+<h3 id="彩蛋2vue-wechat-title-源码解析">彩蛋2：vue-wechat-title 源码解析</h3>
+<p>在搜索相关资料的时候，<strong>vue-wechat-title</strong> 这个包的出现频率出乎意料的高，这个包主要解决了前面提到的那个问题：在微信中无法通过 <code>document.title</code> 方法修改 title 的值。当然，这个兼容性问题都能解决了，正常情况下的 title 修改当然不在话下。</p>
+<p>我们先来看看 <strong>vue-wechat-title</strong> 的源码：</p>
+<pre><code><code>// vue-wechat-title 源码
+(function () {
+  // 插件安装钩子
+  function install (Vue) {
+    var setWechatTitle = function (title, img) {
+      if (title === undefined || window.document.title === title) {
+        return
+      }
+      // 修改 title
+      document.title = title
+      var mobile = navigator.userAgent.toLowerCase()
+      // 兼容性判断
+      if (/iphone|ipad|ipod/.test(mobile)) {
+        // 创建空的 iframe，触发 onload 事件
+        var iframe = document.createElement(&#39;iframe&#39;)
+        iframe.style.display = &#39;none&#39;
+        // 替换成站标favicon路径或者任意存在的较小的图片即可
+        iframe.setAttribute(&#39;src&#39;, img || &#39;data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7&#39;)
+        // onload 回调函数
+        var iframeCallback = function () {
+          setTimeout(function () {
+            // 卸磨杀驴
+            iframe.removeEventListener(&#39;load&#39;, iframeCallback)
+            document.body.removeChild(iframe)
+          }, 0)
+        }
+        // 定义事件
+        iframe.addEventListener(&#39;load&#39;, iframeCallback)
+        document.body.appendChild(iframe)
+      }
+    }
+    // 定义全局指令，
+    Vue.directive(&#39;wechat-title&#39;, function (el, binding) {
+      // update 钩子，调用 title 修改函数
+      setWechatTitle(binding.value, el.getAttribute(&#39;img-set&#39;) || null)
+    })
+  }
+
+  if (typeof exports === &#39;object&#39;) {
+    module.exports = install
+  } else if (typeof define === &#39;function&#39; &amp;&amp; define.amd) {
+    define([], function () {
+      return install
+    })
+  } else if (window.Vue) {
+    Vue.use(install)
+  }
+})()</code></pre>
+<p>由于微信浏览器只在<code>onload</code> 事件中通过 title 的值初始化标题，而后续的 title 修改，无法触发标题的修改。既然 onload 事件能够通过 title 修改标题，那么我创建一个空的 iframe 触发 onload 事件修改了标题后就移除它。这种方式根据 title 修改了标题，并且没有对页面造成额外的影响。</p>
+<p>众所周知，<strong>vue-wechat-title</strong> 通过 <code>v-wechat-title</code> 指令来触发 title 的动态修改，每当指令的值修改后，触发 update 钩子中的回调函数——<code>setWechatTitle</code>。该函数通过前面提到的兼容性处理，实现了<code>document.title</code> 对标题的修改。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

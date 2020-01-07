@@ -1,0 +1,147 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何使用 Set 来提高JS代码的性能' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何使用 Set 来提高JS代码的性能</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/speedup-javascript-use-set.html</div><br>
+    <p><strong>摘要：</strong> 高效使用Set！</p>
+<ul>
+<li>作者：前端小智</li>
+<li>原文：<a href="https://github.com/qq449245884/xiaozhi/issues/72">如何使用 Set 来提高代码的性能</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<p><strong>为了保证的可读性，本文采用意译而非直译。</strong></p>
+<p>我确信有很多开发人员坚持使用基本的全局对象：数字，字符串，对象，数组和布尔值。对于许多用例，这些都是需要的。 但是如果想让你的代码尽可能快速和可扩展，那么这些基本类型并不总是足够好。</p>
+<p>在本文中，我们将讨论JS 中<code>Set</code>对象如何让代码更快— 特别扩展性方便。 <code>Array</code> 和<code>Set</code>工作方式存在大量的交叉。但是使用<code>Set</code>会比<code>Array</code>在代码运行速度更有优势。</p>
+<h3 id="set-有何不同">Set 有何不同</h3>
+<p>最根本的区别是数组是一个索引集合，这说明数组中的数据值按索引排序。</p>
+<pre><code><code>const arr = [A, B, C, D];
+console.log(arr.indexOf(A)); // Result: 0
+console.log(arr.indexOf(C)); // Result: 2</code></pre>
+<p>相比之下，<code>set</code>是一个键的集合。<code>set</code>不使用索引，而是使用键对数据排序。<code>set</code> 中的元素按插入顺序是可迭代的，它不能包含任何重复的数据。换句话说，<code>set</code>中的每一项都必须是惟一的。</p>
+<h3 id="主要的好处是什么">主要的好处是什么</h3>
+<p><code>set</code> 相对于数组有几个优势，特别是在运行时间方面：</p>
+<ul>
+<li><strong>查看元素</strong>：使用<code>indexOf()</code>或<code>includes()</code>检查数组中的项是否存在是比较慢的。</li>
+<li><strong>删除元素</strong>:在<code>Set</code>中，可以根据每项的的 <code>value</code> 来删除该项。在数组中，等价的方法是使用基于元素的索引的<code>splice()</code>。与前一点一样，依赖于索引的速度很慢。</li>
+<li><strong>保存 NaN</strong>：不能使用<code>indexOf()</code>或 <code>includes()</code> 来查找值 <code>NaN</code>，而 <code>Set</code> 可以保存此值。</li>
+<li><strong>删除重复项</strong>:<code>Set</code>对象只存储惟一的值,如果不想有重复项存在，相对于数组的一个显著优势，因为数组需要额外的代码来处理重复。</li>
+</ul>
+<h3 id="时间复杂度">时间复杂度？</h3>
+<p>数组用来搜索元素的方法时间复杂度为<code>0(N)</code>。换句话说，运行时间的增长速度与数据大小的增长速度相同。</p>
+<p>相比之下，<code>Set</code>用于搜索、删除和插入元素的方法的时间复杂度都只有<code>O(1)</code>，这意味着数据的大小实际上与这些方法的运行时间无关。</p>
+<h3 id="set-究竟有多快">Set 究竟有多快？</h3>
+<p>虽然运行时间可能会有很大差异，具体取决于所使用的系统，所提供数据的大小以及其他变量，但我希望我的测试结果能够让你真实地了解<code>Set</code>的速度。 我将分享三个简单的测试和我得到的结果。</p>
+<h4 id="准备测试"><strong>准备测试</strong></h4>
+<p>在运行任何测试之前，创建一个数组和一个 Set，每个数组和 Set 都有100万个元素。为了简单起见，我从<code>0</code>开始，一直数到<code>999999</code>。</p>
+<pre><code><code>let arr = [], set = new Set(), n = 1000000;
+for (let i = 0; i &lt; n; i++) {
+  arr.push(i);
+  set.add(i);
+}</code></pre>
+<h4 id="测试1查找元素">测试1：查找元素</h4>
+<p>我们搜索数字<code>123123</code></p>
+<pre><code><code>let result;
+console.time(&#39;Array&#39;); 
+result = arr.indexOf(123123) !== -1; 
+console.timeEnd(&#39;Array&#39;);
+console.time(&#39;Set&#39;); 
+result = set.has(123123); 
+console.timeEnd(&#39;Set&#39;);</code></pre>
+<ul>
+<li>Array: 0.173ms</li>
+<li>Set: 0.023ms</li>
+</ul>
+<p><code>Set</code> 速度快了<code>7.54</code>倍</p>
+<p><strong>代码部署后可能存在的BUG没法实时知道，事后为了解决这些BUG，花了大量的时间进行log 调试，这边顺便给大家推荐一个好用的BUG监控工具 <a href="https://www.fundebug.com/?utm_source=xiaozhi">Fundebug</a>。</strong></p>
+<h4 id="测试2添加元素">测试2：添加元素</h4>
+<pre><code><code>console.time(&#39;Array&#39;); 
+arr.push(n);
+console.timeEnd(&#39;Array&#39;);
+console.time(&#39;Set&#39;); 
+set.add(n);
+console.timeEnd(&#39;Set&#39;);</code></pre>
+<ul>
+<li>Array: 0.018ms</li>
+<li>Set: 0.003ms</li>
+</ul>
+<p><code>Set</code> 速度快了<code>6.73</code>倍</p>
+<h4 id="测试3删除元素">测试3：删除元素</h4>
+<p>最后，删除一个元素，由于数组没有内置方法，首先先创建一个辅助函数：</p>
+<pre><code><code>const deleteFromArr = (arr, item) =&gt; {
+  let index = arr.indexOf(item);
+  return index !== -1 &amp;&amp; arr.splice(index, 1);
+};</code></pre>
+<p>这是测试的代码：</p>
+<pre><code><code>console.time(&#39;Array&#39;); 
+deleteFromArr(arr, n);
+console.timeEnd(&#39;Array&#39;);
+console.time(&#39;Set&#39;); 
+set.delete(n);
+console.timeEnd(&#39;Set&#39;);</code></pre>
+<ul>
+<li>Array: 1.122ms</li>
+<li>Set: 0.015ms</li>
+</ul>
+<p><code>Set</code> 速度快了<code>74.13</code>倍</p>
+<p>总的来说，我们可以看到，使用<code>Set</code> 极大地改善运行时间。再来看看一些<code>Set</code>有用的实际例子。</p>
+<h4 id="案例1从数组中删除重复的值">案例1:从数组中删除重复的值</h4>
+<p>如果想快速地从数组中删除重复的值，可以将其转换为一个 <code>Set</code>。这是迄今为止过滤惟一值最简洁的方法:</p>
+<pre><code><code>const duplicateCollection = [&#39;A&#39;, &#39;B&#39;, &#39;B&#39;, &#39;C&#39;, &#39;D&#39;, &#39;B&#39;, &#39;C&#39;];
+// 将数组转换为 Set
+let uniqueCollection = new Set(duplicateCollection);
+console.log(uniqueCollection) // Result: Set(4) {&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;}
+// 值保存在数组中
+let uniqueCollection = [...new Set(duplicateCollection)];
+console.log(uniqueCollection) // Result: [&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;]</code></pre>
+<h4 id="案例2谷歌面试问题">案例2：谷歌面试问题</h4>
+<p><strong>问题：</strong></p>
+<p>给定一个整数无序数组和变量 <code>sum</code>，如果存在数组中任意两项和使等于 <code>sum</code> 的值，则返回<code>true</code>。否则,返回<code>false</code>。例如，数组<code>[3,5,1,4]</code>和 <code>sum = 9</code>，函数应该返回<code>true</code>，因为<code>4 + 5 = 9</code>。</p>
+<p><strong>解答</strong></p>
+<p>解决这个问题的一个很好的方法是遍历数组，创建 <code>Set</code>保存相对差值。</p>
+<p>当我们遇到<code>3</code>时，我们可以把<code>6</code>加到<code>Set</code>中, 因为我们知道我们需要找到<code>9</code>的和。然后，每当我们接触到数组中的新值时，我们可以检查它是否在 <code>Set</code> 中。当遇到<code>5</code>时，在 Set 加上4。最后，当我们最终遇到<code>4</code>时，可以在<code>Set</code>中找到它，就返回<code>true</code>。</p>
+<pre><code><code>const findSum = (arr, val) =&gt; {
+  let searchValues = new Set();
+  searchValues.add(val - arr[0]);
+  for (let i = 1, length = arr.length; i &lt; length; i++) {
+    let searchVal = val - arr[i];
+    if (searchValues.has(arr[i])) {
+      return true;
+    } else {
+      searchValues.add(searchVal);
+    }
+  };
+  return false;
+};</code></pre>
+<p>简洁的版本：</p>
+<pre><code><code>const findSum = (arr, sum) =&gt;
+  arr.some((set =&gt; n =&gt; set.has(n) || !set.add(sum - n))(new Set));</code></pre>
+<p>因为<code>Set.prototype.has()</code>的时间复杂度仅为<code>O(1)</code>，所以使用 Set 来代替数组，最终使整个解决方案的线性运行时为<code>O(N)</code>。</p>
+<p>如果使用 <code>Array.prototype.indexOf()</code>或<code>Array.prototype.includes()</code>，它们的时间复杂度都为 O(N)，则总运行时间将为<code>O(N²)</code>，慢得多！</p>
+<h3 id="参考">参考</h3>
+<ul>
+<li><a href="https://blog.fundebug.com/2017/07/17/10-javascript-difficulties/">10个JavaScript难点</a></li>
+<li><a href="https://blog.fundebug.com/2017/08/21/10-best-es6-feature/">10个最佳ES6特性</a></li>
+</ul>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家免费试用！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

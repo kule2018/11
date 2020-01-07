@@ -1,0 +1,110 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue项目中常见问题及解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue项目中常见问题及解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主邹琼俊提供。<br/>
+原文连接:https://www.cnblogs.com/jiekzou/p/11011271.html</div><br>
+    <h2>webpack项目中自动引入全局scss变量文件</h2>
+<p>　　假设我们有一个公共的scss变量文件<span style="color: #ce9178;">variables.scss</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">存放所有全局变量</span><span style="color: #008000;">*/</span><span style="color: #800000;">
+$card-title:#C7D200; //首页 卡片标题颜色
+$bc-color:#182037;
+$hoverColor: #7abef9; //链接hover颜色
+$fontColor: #E6EFFF; //字体颜色-白色</span></pre>
+</div>
+<p>　　webpack要识别scss，需要先安装sass的loader</p>
+<div class="cnblogs_code">
+<pre><code>npm <span style="color: #0000ff;">install</span> --save-dev sass-<span style="color: #000000;">loader
+</span><span style="color: #008000;">//</span><span style="color: #008000;">sass-loader依赖于node-sass</span>
+npm <span style="color: #0000ff;">install</span> --save-dev node-sass</pre>
+</div>
+<p>　　在页面中需要用到这些自定义变量的时候，每次都需要显示引入：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #800000;">　　@import '@/assets/scss/variables.scss';</span></pre>
+</div>
+<p>　　这样操作起来非常麻烦，我们可以通过sass-resources-loader来自动引入。</p>
+<p>　　sass-resources-loader可以访问sass资源任何一个需要访问的sass模块。所以，可以使用共享变量和混合所有SASS样式，而不去每个文件都引用。安装：</p>
+<div class="cnblogs_code">
+<pre><code>npm <span style="color: #0000ff;">install</span> --save-dev sass-resources-loader</pre>
+</div>
+<p>　　然后在 build 文件夹下找到 util.js 修改sass编译器loader的配置，直接把下面的代码复制进去即可：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #008000;">//</span><span style="color: #008000;"> 全局文件引入 当然只想编译一个文件的话可以省去这个函数</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> resolveResource(name) {
+        return path.resolve(__dirname, </span><span style="color: #800000;">'</span><span style="color: #800000;">../src/assets/scss/</span><span style="color: #800000;">'</span> +<span style="color: #000000;"> name);
+    }
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> generateSassResourceLoader() {
+        var loaders </span>=<span style="color: #000000;"> [
+            cssLoader,
+            </span><span style="color: #800000;">'</span><span style="color: #800000;">sass-loader</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+            {
+                loader: </span><span style="color: #800000;">'</span><span style="color: #800000;">sass-resources-loader</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+                options: {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 多个文件时用数组的形式传入，单个文件时可以直接使用 path.resolve(__dirname, '../src/assets/scss/variables.scss'</span>
+                    resources: [resolveResource(<span style="color: #800000;">'</span><span style="color: #800000;">variables.scss</span><span style="color: #800000;">'</span>)] <span style="color: #008000;">//</span><span style="color: #008000;">variables</span>
+<span style="color: #000000;">                }
+            }
+        ];
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (options.extract) {
+            return ExtractTextPlugin.extract({
+                use: loaders,
+                fallback: </span><span style="color: #800000;">'</span><span style="color: #800000;">vue-style-loader</span><span style="color: #800000;">'</span><span style="color: #000000;">
+            });
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            return [</span><span style="color: #800000;">'</span><span style="color: #800000;">vue-style-loader</span><span style="color: #800000;">'</span><span style="color: #000000;">].concat(loaders);
+        }
+    }<br /></span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">    return {
+        css: generateLoaders(),
+        postcss: generateLoaders(),
+        </span><span style="color: #0000ff;">less</span>: generateLoaders(<span style="color: #800000;">'</span><span style="color: #800000;">less</span><span style="color: #800000;">'</span><span style="color: #000000;">),
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> vue-cli默认sass配置
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> sass: generateLoaders('sass', { indentedSyntax: true }),
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> scss: generateLoaders('sass'),
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 新引入的sass-resources-loader</span>
+<span style="color: #000000;">        sass: generateSassResourceLoader(),
+        scss: generateSassResourceLoader(),
+        stylus: generateLoaders(</span><span style="color: #800000;">'</span><span style="color: #800000;">stylus</span><span style="color: #800000;">'</span><span style="color: #000000;">),
+        styl: generateLoaders(</span><span style="color: #800000;">'</span><span style="color: #800000;">stylus</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+    };</span></pre>
+</div>
+<p>......</p>
+<h1 class="title">vue-cli3 一直运行 /sockjs-node/info?t= 解决方案</h1>
+<p>D:\WorkSpace\ui-admin\node_modules\sockjs-client\dist\sockjs.js，找到代码1601行，注释掉代码<span style="color: #008000;">self.xhr.send(payload);</span></p>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">self.xhr.send(payload);</span>
+  } <span style="color: #0000ff;">catch</span> (e) {</pre>
+</div>
+<p>这样就可以了</p>
+<h2>解决vue中的NavigationDuplicated {_name: "NavigationDuplicated", name: "NavigationDuplicated"}</h2>
+<p>在引入vue-router的界面中添加如下代码：<span style="color: #ce9178;"><br /></span></p>
+<div class="cnblogs_code">
+<pre><code>const originalPush =<span style="color: #000000;"> Router.prototype.push;
+Router.prototype.push </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> push(location) {
+  </span><span style="color: #0000ff;">return</span> originalPush.call(<span style="color: #0000ff;">this</span>, location).<span style="color: #0000ff;">catch</span>(err =&gt;<span style="color: #000000;"> err);
+};</span></pre>
+</div>
+<p>完！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

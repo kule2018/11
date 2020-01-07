@@ -1,0 +1,115 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修写一个简单的模板引擎' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>写一个简单的模板引擎</center></div><div class='banquan'>原文出处:本文由博客园博主liuyongjia提供。<br/>
+原文连接:https://www.cnblogs.com/liuyongjia/p/10962850.html</div><br>
+    <h1 id="写一个简单的模板引擎">写一个简单的模板引擎</h1>
+<p>ES6 开始支持模板字符串(Template literals)，支持如下的写法：</p>
+<pre><code><code>`string text ${expression} string text`;</code></pre>
+<p>其实在很多模板引擎中，常常会有这样需求，比如常用的 doT，使用类似的语法</p>
+<pre class="html"><code>&lt;div&gt;{{=1+2}}&lt;/div&gt;
+// 或者支持循环或者判断 {{for(var i in it){}}}
+&lt;span&gt;{{=i}}&lt;/span&gt;
+{{}}}</code></pre>
+<h2 id="简单插值的实现">简单插值的实现</h2>
+<p>我们先来看看一个模板引擎基本的实现需要什么，先不考虑循环和判断，只支持变量运算。<br />
+打开<a href="https://www.babeljs.cn/repl">Babel</a>，输入</p>
+<pre><code><code>const a = 1;
+console.log(`Hi\n${2 + 3}!dk${a}`);</code></pre>
+<p>经过<code>Babel</code>转义以后，可以看到</p>
+<pre><code><code>&quot;use strict&quot;;
+
+var a = 1;
+console.log(&quot;Hi\n&quot;.concat(2 + 3, &quot;!dk&quot;).concat(a));</code></pre>
+<p>可以看到，<code>Babel</code>把插值提取到 concat 入参，通过函数入参的自计算实现了 Template literals。在我们的使用中，其实没法直接做到这样的效果。<br />
+但是仿造<code>Babel</code>的做法，我们可以整理一下自己的思路：</p>
+<ol>
+<li>通过正则把插值和实际字符串拆开</li>
+<li>通过<code>eval</code>或者<code>new Function()</code>实现插值的计算</li>
+<li>通过 concat 拼接，也可以使用 String.raw</li>
+</ol>
+<p>代码实现如下：</p>
+<pre><code><code>var str = &quot;string text ${1 + 2} string text ${2 + 3} test&quot;;
+function template(str) {
+  var pattern = /\$\{.*?\}/g;
+  var patternCapture = /\$\{(.*?)\}/g;
+
+  // 将非插值字符串分割出来
+  var strArr = str.split(pattern);
+
+  // 将插值字符串分割出来
+  var rawArr = str
+    .match(patternCapture)
+    .map(item =&gt; item.replace(patternCapture, &quot;$1&quot;));
+
+  // eval转换
+  var valueArr = rawArr.map(r =&gt; eval(r));
+
+  // 使用reduce和concat拼接，
+  return strArr.reduce(
+    (acc, curr, index) =&gt; acc.concat(curr, valueArr[index] || &quot;&quot;),
+    &quot;&quot;
+  );
+  // 或者使用String.raw
+  // return String.raw({ raw: strArr }, ...valueArr);
+}
+
+console.log(template(str));</code></pre>
+<h2 id="new-function">new Function</h2>
+<p>上面使用<code>eval</code>对插值进行了求值，实际上在平时使用中，<code>eval</code>是不推荐的。而且用<code>eval</code>去解析一些循环判断和条件判断也不是很方便。<br />
+所以接下来使用<code>new Function()</code>去构建一个模板函数。在这之前，需要说明一下<code>new Function</code>的用法。</p>
+<pre><code><code>new Function ([arg1[, arg2[, ...argN]],] functionBody)</code></pre>
+<p>前面传入的是函数所需要的参数，最后是函数体，函数体是一个包括函数定义的 JavaScript 语句字符串。<br />
+其次，根据上面的插值实现，我们可以使用字符串拼接把插值计算之后和正常的字符串拼接起来。<br />
+对于简单插值，使用<code>{{}}</code>包裹，而语句使用<code>{{~}}</code>区别。下面是一个简单实现</p>
+<pre><code><code>function render(tem, data) {
+  let template = tem;
+  template = template
+    .replace(/[\r\n\t]/g, &quot;&quot;)
+    .replace(/\{\{~(.+?)\}\}/g, (_, p1) =&gt; {
+      return &#39;&quot;;&#39; + p1 + &#39; out+=&quot;&#39;;
+    })
+    .replace(/\{\{(.+?)\}\}/g, (_, p1) =&gt; {
+      return &#39;&quot;; out+=&quot;&quot;+&#39; + p1 + &#39;+&quot;&quot;; out+=&quot;&#39;;
+    });
+  template = &#39;var out=&quot;&quot;; out += &quot;&#39; + template + &#39;&quot;;return out;&#39;;
+  var _render = new Function(...Object.keys(data), template);
+
+  return _render(...Object.keys(data).map(k =&gt; data[k]));
+}
+
+var template =
+  &quot;test array{{~for (var i in group.jobs) {}}{{group.jobs[i]}}  {{~}}} test obj {{group.jobs[1]}} {{group.name}} leader是{{leader}}&quot;;
+
+var data = {
+  group: {
+    name: &quot;group1&quot;,
+    jobs: [&quot;job1&quot;, &quot;job2&quot;]
+  },
+  leader: &quot;张三&quot;
+};
+
+console.log(render(template, data));</code></pre>
+<p>在给模板注入数据时，可以使用<code>with(data){}</code>的方式，我不喜欢使用<code>with</code>，所以把参数分解后传入了。</p>
+<p>（完）。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

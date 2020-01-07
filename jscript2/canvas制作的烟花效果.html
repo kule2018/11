@@ -1,0 +1,197 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修canvas制作的烟花效果' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>canvas制作的烟花效果</center></div><div class='banquan'>原文出处:本文由博客园博主自寻苏梦提供。<br/>
+原文连接:https://www.cnblogs.com/zxsm/p/10666643.html</div><br>
+    <p>最近感觉canvas挺有意思的，在业余时间没事研究了一下，参考过网上一些思路，话不多说，开始啦。</p>
+<p>github地址：<a href="https://github.com/aWhiteBear/fireworks">https://github.com/aWhiteBear/fireworks</a></p>
+<p>演示地址：<a href="https://awhitebear.github.io/fireworks/">https://awhitebear.github.io/fireworks/</a></p>
+<p>图片效果如下：（右上角能显示FPS，是时候看看你电脑的性能了哈哈~）</p>
+<p><img src="./images/canvas制作的烟花效果0.png" alt="" width="745" height="363" /></p>
+<p>&nbsp;</p>
+<p>先说一下思路吧，其实很简单，烟花分为两个部分：1.窜天猴。2.爆炸效果。&nbsp; 当穿天猴的竖直方向的速度为0的时候，让它爆炸。</p>
+<p>下面是一些常量，后面类中会用到的</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> const canvas = document.getElementById('canvasNode'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> const ctx = canvas.getContext('2d'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span> canvas.width =<span style="color: #000000;"> window.innerWidth;
+</span><span style="color: #008080;"> 4</span> canvas.height =<span style="color: #000000;"> window.innerHeight;
+</span><span style="color: #008080;"> 5</span> const CANVAS_WIDTH =<span style="color: #000000;"> canvas.width;
+</span><span style="color: #008080;"> 6</span> const CANVAS_HEIGHT =<span style="color: #000000;"> canvas.height;
+</span><span style="color: #008080;"> 7</span> const GRAVITATIONAL = 2.5; <span style="color: #008000;">//</span><span style="color: #008000;"> 模拟重力加速度</span>
+<span style="color: #008080;"> 8</span> const AIR_RESISTANCE = 1; <span style="color: #008000;">//</span><span style="color: #008000;"> 模拟空气阻力</span>
+<span style="color: #008080;"> 9</span> const EVERY_FIREWORK_TIME = 3; <span style="color: #008000;">//</span><span style="color: #008000;"> 每个烟花的持续时间，单位：秒</span>
+<span style="color: #008080;">10</span> const FRAME = 60;</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>class FlyingMonkey{ <span style="color: #008000;">//</span><span style="color: #008000;"> 窜天猴，发射升空的，目前只能垂直发射</span>
+<span style="color: #000000;">    constructor(x,y,speedX,speedY){
+        </span><span style="color: #0000ff;">this</span>.x = x; <span style="color: #008000;">//</span><span style="color: #008000;"> x,y 是窜天猴的位置坐标</span>
+        <span style="color: #0000ff;">this</span>.y =<span style="color: #000000;"> y;
+        </span><span style="color: #0000ff;">this</span>.speedX =<span style="color: #000000;"> speedX;
+        </span><span style="color: #0000ff;">this</span>.speedY =<span style="color: #000000;"> speedY;
+        </span><span style="color: #0000ff;">this</span>.opacity = 1<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.count = 50; <span style="color: #008000;">//</span><span style="color: #008000;"> 窜天猴和其尾巴由这50个圆绘制而成</span>
+        <span style="color: #0000ff;">for</span>(let i=0;i&lt;<span style="color: #0000ff;">this</span>.count;i++<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.createCircle(i);
+        }
+    }
+    createCircle(i) { </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建窜天猴的圈圈尾巴</span>
+<span style="color: #000000;">        ctx.beginPath();
+        ctx.save();
+        ctx.globalCompositeOperation </span>= 'lighter'<span style="color: #000000;">;
+        ctx.fillStyle </span>= `rgba(245,123,63,${<span style="color: #0000ff;">this</span><span style="color: #000000;">.opacity})`;
+        ctx.arc(</span><span style="color: #0000ff;">this</span>.x + (Math.random()-0.5) * i/10 + i/<span style="color: #0000ff;">this</span>.count * <span style="color: #0000ff;">this</span>.speedX, <span style="color: #0000ff;">this</span>.y + i/this.count * this.speedY ,8 - (6 * i/<span style="color: #0000ff;">this</span>.count),0,2 *<span style="color: #000000;"> Math.PI);
+        ctx.fill();
+        ctx.restore();
+        ctx.closePath();
+    }
+}</span></pre>
+</div>
+<p>上面是窜天猴类，就是最开始向上发射的烟花，下面烟花类</p>
+<div class="cnblogs_code">
+<pre><code>class Firework { <span style="color: #008000;">//</span><span style="color: #008000;"> 烟花，爆炸的</span>
+<span style="color: #000000;">    constructor(x,y,speedX,speedY){
+        </span><span style="color: #0000ff;">this</span>.x =<span style="color: #000000;"> x;
+        </span><span style="color: #0000ff;">this</span>.y =<span style="color: #000000;"> y;
+        </span><span style="color: #0000ff;">this</span>.speedX =<span style="color: #000000;"> speedX;
+        </span><span style="color: #0000ff;">this</span>.speedY =<span style="color: #000000;"> speedY;
+        </span><span style="color: #0000ff;">this</span>.opacity = 1<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.count = 500<span style="color: #000000;">; // 烟花的爆炸效果由500个点组成
+        </span><span style="color: #0000ff;">this</span>.AllFireworks =<span style="color: #000000;"> [];
+
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.createAllFirework();
+        Launch.arrFirework.push(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">);
+    }
+    createAllFirework(){
+        let r </span>= Math.floor(Math.random()*256), g = Math.floor(Math.random()*256) , b =Math.floor(Math.random()*256<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">for</span>(let i=0;i&lt;<span style="color: #0000ff;">this</span>.count;i++<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.AllFireworks.push({
+                r,g,b,
+                x:</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.x,
+                y:</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.y,
+                opacity:</span>1<span style="color: #000000;">,
+                speedX:</span><span style="color: #0000ff;">this</span>.speedX * i/this.count*10 *(Math.random()-0.5),
+                speedY:<span style="color: #0000ff;">this</span>.speedY * i/this.count*10 *(Math.random()-0.5)
+<span style="color: #000000;">            });
+        }
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.updateAllFirework();
+    }
+    updateAllFirework(){
+        </span><span style="color: #0000ff;">for</span>(let i=0;i&lt;<span style="color: #0000ff;">this</span>.AllFireworks.length;i++<span style="color: #000000;">){
+            let {r,g,b,x,y,speedX,speedY,opacity} </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.AllFireworks[i];
+            </span><span style="color: #0000ff;">this</span>.AllFireworks[i].y = y - speedY/FRAME;
+            <span style="color: #0000ff;">this</span>.AllFireworks[i].x = x - speedX/FRAME;
+            <span style="color: #0000ff;">this</span>.AllFireworks[i].opacity = opacity - 1/ FRAME /<span style="color: #000000;"> EVERY_FIREWORK_TIME;
+            </span><span style="color: #0000ff;">this</span>.AllFireworks[i].speedY = speedY -<span style="color: #000000;"> GRAVITATIONAL;
+            </span><span style="color: #0000ff;">if</span>(Math.abs(speedX)&gt;3/FRAME) { // 速度&lt;= 3/FRAME 认为停止了
+                <span style="color: #0000ff;">this</span>.AllFireworks[i].speedX = speedX - (speedX&gt;0?AIR_RESISTANCE:(AIR_RESISTANCE*(-1<span style="color: #000000;">)));
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">this</span>.AllFireworks[i].speedX = 0<span style="color: #000000;">;
+            }
+            ctx.beginPath();
+            ctx.save();
+            ctx.globalCompositeOperation </span>= 'lighter'<span style="color: #000000;">;
+            ctx.fillStyle </span>= `rgba(${r},${g},${b},${<span style="color: #0000ff;">this</span><span style="color: #000000;">.AllFireworks[i].opacity})`;
+            ctx.arc(</span><span style="color: #0000ff;">this</span>.AllFireworks[i].x , <span style="color: #0000ff;">this</span>.AllFireworks[i].y  ,2,0,2 *<span style="color: #000000;"> Math.PI);
+            ctx.fill();
+            ctx.restore();
+            ctx.closePath();
+        }
+    }
+}</span></pre>
+</div>
+<p>下面是start类，用来发射窜天猴</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Start{
+    constructor(x,y,speedX,speedY){
+        Launch.arrFlyingMonkey.push(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">this</span>.x =<span style="color: #000000;"> x;
+        </span><span style="color: #0000ff;">this</span>.y =<span style="color: #000000;"> y;
+        </span><span style="color: #0000ff;">this</span>.speedX =<span style="color: #000000;"> speedX;
+        </span><span style="color: #0000ff;">this</span>.speedY =<span style="color: #000000;"> speedY;
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.begin();
+    }
+    begin(){
+        </span><span style="color: #0000ff;">this</span>.y = <span style="color: #0000ff;">this</span>.y - <span style="color: #0000ff;">this</span>.speedY/FRAME; // 速度减小
+        <span style="color: #0000ff;">this</span>.x = <span style="color: #0000ff;">this</span>.x - <span style="color: #0000ff;">this</span>.speedX/FRAME;
+        <span style="color: #0000ff;">this</span>.speedY = <span style="color: #0000ff;">this</span>.speedY -<span style="color: #000000;"> GRAVITATIONAL;
+        </span><span style="color: #0000ff;">new</span> FlyingMonkey(<span style="color: #0000ff;">this</span>.x, <span style="color: #0000ff;">this</span>.y, <span style="color: #0000ff;">this</span>.speedX, <span style="color: #0000ff;">this</span><span style="color: #000000;">.speedY);
+    }
+}</span></pre>
+</div>
+<p>下面是发射类，是用【requestAnimationFrame】来渲染的动画</p>
+<div class="cnblogs_code">
+<pre><code>class Launch{ <span style="color: #008000;">//</span><span style="color: #008000;"> 发射</span>
+<span style="color: #000000;">    constructor(){
+        </span><span style="color: #0000ff;">this</span>.fps=0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.sum=0;<span style="color: #008000;">//</span><span style="color: #008000;"> 帧数计数器 60帧一循环</span>
+        <span style="color: #0000ff;">this</span>.draw = <span style="color: #0000ff;">this</span>.draw.bind(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.draw();
+    }
+    draw(){
+        ctx.clearRect(</span>0,0<span style="color: #000000;">,CANVAS_WIDTH,CANVAS_HEIGHT);
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.updateFps();
+        Launch.arrFlyingMonkey.forEach((item,i)</span>=&gt;<span style="color: #000000;">{
+            item.begin();
+            </span><span style="color: #0000ff;">if</span>(item.speedY &lt; 0<span style="color: #000000;">){
+                Launch.arrFlyingMonkey.splice(i,</span>1<span style="color: #000000;">);
+                </span><span style="color: #0000ff;">new</span> Firework(item.x,item.y,7*7,5*7); <span style="color: #008000;">//</span><span style="color: #008000;"> 烟花宽高比：7:5</span>
+<span style="color: #000000;">            }
+        });
+        Launch.arrFirework.forEach((item,i)</span>=&gt;<span style="color: #000000;">{
+            item.updateAllFirework();
+        });
+        </span><span style="color: #0000ff;">if</span>(Launch.arrFirework.length&gt;5){ <span style="color: #008000;">//</span><span style="color: #008000;"> 清理arrFirework，避免占用过多内存，其实还可以通过 EVERY_FIREWORK_TIME 和 Launch.timer 更及时清理。length &gt; EVERY_FIREWORK_TIME/Launch.timer</span>
+<span style="color: #000000;">            Launch.arrFirework.shift();
+        }
+        requestAnimationFrame(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.draw);
+    }
+    updateFps(){
+        </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.sum++&gt;=60<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">this</span>.sum = 0<span style="color: #000000;">;
+            let nowTime </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().getTime();
+            </span><span style="color: #0000ff;">this</span>.fps = 60/(nowTime - Launch.lastTime) *1000;
+            Launch.lastTime =<span style="color: #000000;"> nowTime;
+        }
+        ctx.save();
+        ctx.fillStyle </span>= 'red'<span style="color: #000000;">;
+        ctx.font</span>="20px Arial"<span style="color: #000000;">;
+        ctx.fillText(`FPS: ${</span>~~<span style="color: #0000ff;">this</span>.fps}`,CANVAS_WIDTH - 100,50<span style="color: #000000;">);
+        ctx.restore();
+    }
+}</span></pre>
+</div>
+<p>然后添加Launch静态属性</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">* 添加Launch静态属性</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+Launch.arrFlyingMonkey </span>=<span style="color: #000000;"> [];
+Launch.arrFirework </span>=<span style="color: #000000;"> [];
+Launch.timer </span>= setInterval(()=&gt;<span style="color: #000000;">{
+    </span><span style="color: #0000ff;">new</span> Start(CANVAS_WIDTH * (Math.random() * 0.8 + 0.1),CANVAS_HEIGHT * 0.9,0,300 *(Math.random()*0.5 + 1<span style="color: #000000;">));
+},</span>1500<span style="color: #000000;">);
+Launch.lastTime </span>= <span style="color: #0000ff;">new</span> Date().getTime();</pre>
+</div>
+<p>最后在&nbsp; new Launch(); 就能发射出去啦。</p>
+<p>代码还有好多可以优化的地方，在一些手机浏览器上会出现fps越来越低得到情况，画面会变卡，以后可能的话要在进行优化一下，也可以和大家讨论一下如何优化会更好，可以在评论区指导一下呀，感谢大家提出宝贵的意见~</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

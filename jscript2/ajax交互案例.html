@@ -1,0 +1,551 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ajax交互案例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ajax交互案例</center></div><div class='banquan'>原文出处:本文由博客园博主若水一方提供。<br/>
+原文连接:https://www.cnblogs.com/ruo-shui-yi-fang/p/11512390.html</div><br>
+    <p>数据交互是前端很重要的一部分，静态页是基础，而交互才是网页的精髓。交互又分为人机交互和前后端数据交互，现阶段的互联网下，大部分的网站都要进行前后端数据交互，如何交互呢？交互的流程大概就是前端发送数据给后端，后端接送数据，进行处理，将处理后的结果发送给前端，前端接受数据。前端和后端的收和发通过什么呢？</p>
+<p>前端通过表单和ajax发送数据，接受只能通过ajax；后端(php)通过$_GET[]、$_POST[]、$_REQUEST[]接收，打印语句来发送：echo、print、print_r()、die()</p>
+<p>ajax是前后端交互的重要手段，ajax的全称是asynchronous JavaScript and XML（异步JavaScript和XML）；</p>
+<p>这么说可能也感受不出什么，案例来感受下吧！</p>
+<p>首先我们要准备下页面布局，布局用到了bootstrap的模态框，可以自己百度看下哈！</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="viewport"</span><span style="color: #ff0000;"> content</span><span style="color: #0000ff;">="width=device-width, initial-scale=1.0"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">http-equiv</span><span style="color: #0000ff;">="X-UA-Compatible"</span><span style="color: #ff0000;"> content</span><span style="color: #0000ff;">="ie=edge"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="stylesheet"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="libs/bootstrap.css"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">10</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">14</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row align-items-center"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">15</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-2 h1"</span><span style="color: #0000ff;">&gt;</span>LOGO<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">16</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-2 h4"</span><span style="color: #0000ff;">&gt;</span>学生信息系统<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">17</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-primary col-1"</span><span style="color: #ff0000;"> data-toggle</span><span style="color: #0000ff;">="modal"</span><span style="color: #ff0000;"> data-target</span><span style="color: #0000ff;">="#exampleModal"</span>
+<span style="color: #008080;">18</span> <span style="color: #ff0000;">                data-whatever</span><span style="color: #0000ff;">="@mdo"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="insert"</span><span style="color: #0000ff;">&gt;</span>添加信息<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">19</span>         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">20</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row my-5"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">21</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">table </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="table table-bordered thead-default table-sm"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">22</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">thead</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">23</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">24</span>                         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>ID<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">25</span>                         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>name<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">26</span>                         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>machine<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">27</span>                         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>examination<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">28</span>                         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>delete<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">29</span>                         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>update<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">th</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">30</span>                     <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tr</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">31</span>                 <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">thead</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">32</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">tbody</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">33</span>                     <span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> &lt;tr&gt;
+</span><span style="color: #008080;">34</span> <span style="color: #008000;">                        &lt;td&gt;1&lt;/td&gt;
+</span><span style="color: #008080;">35</span> <span style="color: #008000;">                        &lt;td&gt;admin&lt;/td&gt;
+</span><span style="color: #008080;">36</span> <span style="color: #008000;">                        &lt;td&gt;23&lt;/td&gt;
+</span><span style="color: #008080;">37</span> <span style="color: #008000;">                        &lt;td&gt;87&lt;/td&gt;
+</span><span style="color: #008080;">38</span> <span style="color: #008000;">                        &lt;td&gt;&lt;span class="btn btn-primary btn-info" ly="delete"&gt;删除&lt;/span&gt;&lt;/td&gt;
+</span><span style="color: #008080;">39</span> <span style="color: #008000;">                        &lt;td&gt;&lt;button type="button" class="btn btn-primary btn-info" data-toggle="modal"
+</span><span style="color: #008080;">40</span> <span style="color: #008000;">                            data-target="#exampleModal" data-whatever="@fat" ly="update"&gt;修改&lt;/button&gt;&lt;/td&gt;
+</span><span style="color: #008080;">41</span> <span style="color: #008000;">                    &lt;/tr&gt; </span><span style="color: #008000;">--&gt;</span>
+<span style="color: #008080;">42</span>                 <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">tbody</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">43</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">table</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">44</span>         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">45</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">46</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">nav </span><span style="color: #ff0000;">aria-label</span><span style="color: #0000ff;">="Page navigation example"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="w-100"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">47</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="pagination pagination-sm justify-content-center"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">48</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-item disabled"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-link"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>上一页<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">49</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-item"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-link"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">50</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-item"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-link"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>2<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">51</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-item"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-link"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">52</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-item"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="page-link"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="#"</span><span style="color: #0000ff;">&gt;</span>下一页<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">53</span>                 <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">54</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">nav</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">55</span>         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">56</span>     <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">57</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="modal fade"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="exampleModal"</span><span style="color: #ff0000;"> tabindex</span><span style="color: #0000ff;">="-1"</span><span style="color: #ff0000;"> role</span><span style="color: #0000ff;">="dialog"</span><span style="color: #ff0000;"> aria-labelledby</span><span style="color: #0000ff;">="exampleModalLabel"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">58</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="modal-dialog"</span><span style="color: #ff0000;"> role</span><span style="color: #0000ff;">="document"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">59</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="modal-content"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">60</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="modal-header"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">61</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h4 </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="modal-title"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="exampleModalLabel"</span><span style="color: #0000ff;">&gt;</span>请输入信息：<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h4</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">62</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="close"</span><span style="color: #ff0000;"> data-dismiss</span><span style="color: #0000ff;">="modal"</span><span style="color: #ff0000;"> aria-label</span><span style="color: #0000ff;">="Close"</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">span
+</span><span style="color: #008080;">63</span>                             <span style="color: #ff0000;">aria-hidden</span><span style="color: #0000ff;">="true"</span><span style="color: #0000ff;">&gt;</span><span style="color: #ff0000;">&amp;times;</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">64</span>                 <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">65</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="modal-body"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">66</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">67</span>                         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="form-group"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">68</span>                             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">for</span><span style="color: #0000ff;">="recipient-name"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="control-label"</span><span style="color: #0000ff;">&gt;</span>姓名:<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">69</span>                             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="name"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">70</span>                         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">71</span>                         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="form-group"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">72</span>                             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">for</span><span style="color: #0000ff;">="message-text"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="control-label"</span><span style="color: #0000ff;">&gt;</span>机试:<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">73</span>                             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="form-control"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="cpt"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">74</span>                         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">75</span>                         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="form-group"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">76</span>                             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">for</span><span style="color: #0000ff;">="message-text"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="control-label"</span><span style="color: #0000ff;">&gt;</span>笔试:<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">77</span>                             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="form-control"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="pen"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #008080;">78</span>                         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">79</span>                     <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">80</span>                 <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">81</span>                 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="modal-footer"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">82</span>                     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-primary mx-auto"</span><span style="color: #ff0000;"> data-dismiss</span><span style="color: #0000ff;">="modal"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="send"</span><span style="color: #0000ff;">&gt;</span>提交<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">83</span>                 <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">84</span>             <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">85</span>         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">86</span>     <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">87</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">88</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="libs/jquery-2.2.4.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">89</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="libs/popper.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">90</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="libs/bootstrap.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">91</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="js/ajax.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">92</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="js/index.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">93</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>接下来就是js了，其实交互就是增删改查。先来看下查。</p>
+<div class="cnblogs_code">
+<pre><code>; (<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+ </span>2<span style="color: #000000;">     class Project {
+ </span>3<span style="color: #000000;">         constructor() {
+ </span>4             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取元素</span>
+ 5             <span style="color: #0000ff;">this</span>.tbody=document.querySelector("tbody"<span style="color: #000000;">);
+ </span>6             <span style="color: #0000ff;">this</span>.addBtn=document.querySelector("#insert"<span style="color: #000000;">);
+ </span>7             <span style="color: #0000ff;">this</span>.submit=document.querySelector("#send"<span style="color: #000000;">);
+ </span>8             <span style="color: #0000ff;">this</span>.name = document.getElementById("name"<span style="color: #000000;">);
+ </span>9             <span style="color: #0000ff;">this</span>.cpt = document.getElementById("cpt"<span style="color: #000000;">);
+</span>10             <span style="color: #0000ff;">this</span>.pen = document.getElementById("pen"<span style="color: #000000;">);
+</span>11             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.addBtn);</span>
+12             <span style="color: #0000ff;">this</span>.selectUrl = "http://localhost/test/project/php/select.php"<span style="color: #000000;">;
+</span>16             <span style="color: #0000ff;">this</span><span style="color: #000000;">.select();
+</span>17<span style="color: #000000;">     　　}   
+</span>18<span style="color: #000000;">          select() {
+</span>19             <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span>20<span style="color: #000000;">             ajax({
+</span>21                 url: <span style="color: #0000ff;">this</span><span style="color: #000000;">.selectUrl,
+</span>22                 success: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (res) {
+</span>23                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(res);</span>
+24                     that.res =<span style="color: #000000;"> JSON.parse(res);
+</span>25                     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (that.res.code) {
+</span>26<span style="color: #000000;">                         alert(that.res.msg);
+</span>27                     } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span>28                         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(that.res);</span>
+29<span style="color: #000000;">                         that.display();
+</span>30<span style="color: #000000;">                     }
+</span>31<span style="color: #000000;">                 }
+</span>32<span style="color: #000000;">             });
+</span>33<span style="color: #000000;">         }
+</span>34<span style="color: #000000;">     display() {
+</span>35             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.res.length);</span>
+36             <span style="color: #0000ff;">var</span> str = ""<span style="color: #000000;">;
+</span>37             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.res.length; i++<span style="color: #000000;">) {
+</span>38                 str += `&lt;tr&gt;
+39                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].Id}&lt;/td&gt;
+40                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].name}&lt;/td&gt;
+41                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].machine}&lt;/td&gt;
+42                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].examination}&lt;/td&gt;
+43                 &lt;td&gt;&lt;span class="btn btn-primary btn-info" ly="delete"&gt;删除&lt;/span&gt;&lt;/td&gt;
+44                 &lt;td&gt;&lt;button type="button" class="btn btn-primary btn-info" data-toggle="modal"
+45                     data-target="#exampleModal" data-whatever="@fat" ly="update"&gt;修改&lt;/button&gt;&lt;/td&gt;
+46             &lt;/tr&gt; `
+47<span style="color: #000000;">             }
+</span>48             <span style="color: #0000ff;">this</span>.tbody.innerHTML=<span style="color: #000000;">str;
+</span>49<span style="color: #000000;">         }
+</span>50<span style="color: #000000;">     }
+</span>51     <span style="color: #0000ff;">new</span><span style="color: #000000;"> Project();
+</span>52 })();</pre>
+</div>
+<p>上面的是js部分的代码，封装了ajax所以我直接调用了。再看下php的部分吧！</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?<span style="color: #000000;">php
+</span><span style="color: #008080;"> 2</span>     <span style="color: #800080;">$link</span>=@<span style="color: #0000ff;">new</span> mysqli("localhost:3306","root","root","test"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$link</span>-&gt;<span style="color: #000000;">connect_error){
+</span><span style="color: #008080;"> 4</span>         <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;1,"msg"=&gt;<span style="color: #800080;">$link</span>-&gt;<span style="color: #000000;">connect_error);
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 7</span>     <span style="color: #800080;">$select</span>="SELECT * FROM stu"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span>     <span style="color: #800080;">$res</span>=<span style="color: #800080;">$link</span>-&gt;query(<span style="color: #800080;">$select</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$res</span><span style="color: #000000;">){
+</span><span style="color: #008080;">10</span>         <span style="color: #800080;">$str</span>=""<span style="color: #000000;">;
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">while</span> (<span style="color: #800080;">$arr</span>=<span style="color: #800080;">$res</span>-&gt;<span style="color: #000000;">fetch_assoc()) {
+</span><span style="color: #008080;">12</span>            <span style="color: #800080;">$str</span>=<span style="color: #800080;">$str</span>.json_encode(<span style="color: #800080;">$arr</span>).","<span style="color: #000000;">;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">die</span> ("[".<span style="color: #008080;">substr</span>(<span style="color: #800080;">$str</span>,0,-1)."]"<span style="color: #000000;">);
+</span><span style="color: #008080;">15</span>     }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">16</span>         <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;2,"msg"=&gt;"失败"<span style="color: #000000;">);
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">19</span> ?&gt;</pre>
+</div>
+<p>&nbsp;刷新页面的时候就会自动获取数据库中的数据渲染到页面上。再是添加和修改数据，因为使用了一个模态框，所以同时写，因为模态框中的提交按钮需判断是添加按钮触发的还是修改按钮触发的，就需要一个标识。同上，代码感受！</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> ; (<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">  2</span> <span style="color: #000000;">    class Project {
+</span><span style="color: #008080;">  3</span> <span style="color: #000000;">        constructor() {
+</span><span style="color: #008080;">  4</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取元素</span>
+<span style="color: #008080;">  5</span>             <span style="color: #0000ff;">this</span>.tbody=document.querySelector("tbody"<span style="color: #000000;">);
+</span><span style="color: #008080;">  6</span>             <span style="color: #0000ff;">this</span>.addBtn=document.querySelector("#insert"<span style="color: #000000;">);
+</span><span style="color: #008080;">  7</span>             <span style="color: #0000ff;">this</span>.submit=document.querySelector("#send"<span style="color: #000000;">);
+</span><span style="color: #008080;">  8</span>             <span style="color: #0000ff;">this</span>.name = document.getElementById("name"<span style="color: #000000;">);
+</span><span style="color: #008080;">  9</span>             <span style="color: #0000ff;">this</span>.cpt = document.getElementById("cpt"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 10</span>             <span style="color: #0000ff;">this</span>.pen = document.getElementById("pen"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 11</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.addBtn);</span>
+<span style="color: #008080;"> 12</span>             <span style="color: #0000ff;">this</span>.selectUrl = "http://localhost/test/project/php/select.php"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 13</span>             <span style="color: #0000ff;">this</span>.insertUrl="http://localhost/test/project/php/insert.php"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 14</span>             <span style="color: #0000ff;">this</span>.updateUrl="http://localhost/test/project/php/update.php"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 15</span>             
+<span style="color: #008080;"> 16</span> 
+<span style="color: #008080;"> 17</span>             <span style="color: #0000ff;">this</span>.type=0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 18</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.select();
+</span><span style="color: #008080;"> 19</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addEvent();
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">        select() {
+</span><span style="color: #008080;"> 22</span>             <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">            ajax({
+</span><span style="color: #008080;"> 24</span>                 url: <span style="color: #0000ff;">this</span><span style="color: #000000;">.selectUrl,
+</span><span style="color: #008080;"> 25</span>                 success: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (res) {
+</span><span style="color: #008080;"> 26</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(res);</span>
+<span style="color: #008080;"> 27</span>                     that.res =<span style="color: #000000;"> JSON.parse(res);
+</span><span style="color: #008080;"> 28</span>                     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (that.res.code) {
+</span><span style="color: #008080;"> 29</span> <span style="color: #000000;">                        alert(that.res.msg);
+</span><span style="color: #008080;"> 30</span>                     } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 31</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(that.res);</span>
+<span style="color: #008080;"> 32</span> <span style="color: #000000;">                        that.display();
+</span><span style="color: #008080;"> 33</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 34</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 35</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;"> 36</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 37</span> <span style="color: #000000;">        addEvent(){
+</span><span style="color: #008080;"> 38</span>             <span style="color: #0000ff;">var</span> that=<span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 39</span>             <span style="color: #0000ff;">this</span>.addBtn.addEventListener("click",<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;"> 40</span>                 that.type=0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;"> 42</span>             <span style="color: #0000ff;">this</span>.tbody.addEventListener("click",<span style="color: #0000ff;">function</span><span style="color: #000000;">(eve){
+</span><span style="color: #008080;"> 43</span>                 <span style="color: #0000ff;">var</span> e = eve ||<span style="color: #000000;"> window.event;
+</span><span style="color: #008080;"> 44</span>                 that.target = e.target ||<span style="color: #000000;"> e.srcElement;
+</span><span style="color: #008080;"> 45</span>                 <span style="color: #0000ff;">if</span>(that.target.getAttribute("y") === "update"<span style="color: #000000;">){
+</span><span style="color: #008080;"> 46</span>                     that.type = 1<span style="color: #000000;">;
+</span><span style="color: #008080;"> 47</span>                     that.id=that.target.parentNode.parentNode.children[0<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 48</span>                     that.name.value=that.target.parentNode.parentNode.children[1<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 49</span>                     that.cpt.value=that.target.parentNode.parentNode.children[2<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 50</span>                     that.pen.value=that.target.parentNode.parentNode.children[3<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 51</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 52</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;"> 53</span>             <span style="color: #0000ff;">this</span>.submit.addEventListener("click",<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;"> 54</span>                 that.n=<span style="color: #000000;">that.name.value;
+</span><span style="color: #008080;"> 55</span>                 that.c=<span style="color: #000000;">that.cpt.value;
+</span><span style="color: #008080;"> 56</span>                 that.p=<span style="color: #000000;">that.pen.value;
+</span><span style="color: #008080;"> 57</span>                 <span style="color: #0000ff;">if</span>(that.type==0<span style="color: #000000;">){
+</span><span style="color: #008080;"> 58</span>                     that.name.value=that.cpt.value=that.pen.value=""<span style="color: #000000;">;
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">                    that.insertLoad();
+</span><span style="color: #008080;"> 60</span>                 }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 61</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log();</span>
+<span style="color: #008080;"> 62</span> <span style="color: #000000;">                   that.updateLoad();
+</span><span style="color: #008080;"> 63</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 64</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;"> 65</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 66</span> <span style="color: #000000;">        insertLoad(){
+</span><span style="color: #008080;"> 67</span>             <span style="color: #0000ff;">var</span> that=<span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 68</span> <span style="color: #000000;">            ajax({
+</span><span style="color: #008080;"> 69</span>                 url:<span style="color: #0000ff;">this</span><span style="color: #000000;">.insertUrl,
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">                data:{
+</span><span style="color: #008080;"> 71</span>                     name:<span style="color: #0000ff;">this</span><span style="color: #000000;">.n,
+</span><span style="color: #008080;"> 72</span>                     cpt:<span style="color: #0000ff;">this</span><span style="color: #000000;">.c,
+</span><span style="color: #008080;"> 73</span>                     pen:<span style="color: #0000ff;">this</span><span style="color: #000000;">.p
+</span><span style="color: #008080;"> 74</span> <span style="color: #000000;">                },
+</span><span style="color: #008080;"> 75</span>                 success:<span style="color: #0000ff;">function</span><span style="color: #000000;">(res){
+</span><span style="color: #008080;"> 76</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(res);</span>
+<span style="color: #008080;"> 77</span>                     that.res=<span style="color: #000000;">JSON.parse(res);
+</span><span style="color: #008080;"> 78</span>                     <span style="color: #0000ff;">if</span><span style="color: #000000;">(that.res.code){
+</span><span style="color: #008080;"> 79</span> <span style="color: #000000;">                        alert(that.res.msg);
+</span><span style="color: #008080;"> 80</span>                     }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 81</span> <span style="color: #000000;">                        that.display();
+</span><span style="color: #008080;"> 82</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 86</span> <span style="color: #000000;">        updateLoad(){
+</span><span style="color: #008080;"> 87</span>             <span style="color: #0000ff;">var</span> that=<span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">            ajax({
+</span><span style="color: #008080;"> 89</span>                 url:<span style="color: #0000ff;">this</span><span style="color: #000000;">.updateUrl,
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">                data:{
+</span><span style="color: #008080;"> 91</span>                     id:<span style="color: #0000ff;">this</span><span style="color: #000000;">.id,
+</span><span style="color: #008080;"> 92</span>                     name:<span style="color: #0000ff;">this</span><span style="color: #000000;">.n,
+</span><span style="color: #008080;"> 93</span>                     cpt:<span style="color: #0000ff;">this</span><span style="color: #000000;">.c,
+</span><span style="color: #008080;"> 94</span>                     pen:<span style="color: #0000ff;">this</span><span style="color: #000000;">.p
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">                },
+</span><span style="color: #008080;"> 96</span>                 success:<span style="color: #0000ff;">function</span><span style="color: #000000;"> (res) {
+</span><span style="color: #008080;"> 97</span>                     that.res=<span style="color: #000000;">JSON.parse(res);
+</span><span style="color: #008080;"> 98</span>                     <span style="color: #0000ff;">if</span><span style="color: #000000;">(that.res.code){
+</span><span style="color: #008080;"> 99</span> <span style="color: #000000;">                        alert(that.res.msg);
+</span><span style="color: #008080;">100</span>                     }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">101</span> <span style="color: #000000;">                        that.display();
+</span><span style="color: #008080;">102</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">103</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">105</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">106</span> <span style="color: #000000;">        display() {
+</span><span style="color: #008080;">107</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.res.length);</span>
+<span style="color: #008080;">108</span>             <span style="color: #0000ff;">var</span> str = ""<span style="color: #000000;">;
+</span><span style="color: #008080;">109</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.res.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">110</span>                 str += `&lt;tr&gt;
+<span style="color: #008080;">111</span>                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].Id}&lt;/td&gt;
+<span style="color: #008080;">112</span>                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].name}&lt;/td&gt;
+<span style="color: #008080;">113</span>                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].machine}&lt;/td&gt;
+<span style="color: #008080;">114</span>                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].examination}&lt;/td&gt;
+<span style="color: #008080;">115</span>                 &lt;td&gt;&lt;span class="btn btn-primary btn-info" ly="delete"&gt;删除&lt;/span&gt;&lt;/td&gt;
+<span style="color: #008080;">116</span>                 &lt;td&gt;&lt;button type="button" class="btn btn-primary btn-info" data-toggle="modal"
+<span style="color: #008080;">117</span>                     data-target="#exampleModal" data-whatever="@fat" ly="update"&gt;修改&lt;/button&gt;&lt;/td&gt;
+<span style="color: #008080;">118</span>             &lt;/tr&gt; `
+<span style="color: #008080;">119</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">120</span>             <span style="color: #0000ff;">this</span>.tbody.innerHTML=<span style="color: #000000;">str;
+</span><span style="color: #008080;">121</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">122</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">123</span>     <span style="color: #0000ff;">new</span><span style="color: #000000;"> Project();
+</span><span style="color: #008080;">124</span> })();</pre>
+</div>
+<p>下面是添加按钮所对应的的php代码！</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?<span style="color: #000000;">php
+</span><span style="color: #008080;"> 2</span>     <span style="color: #800080;">$link</span>=@<span style="color: #0000ff;">new</span> mysqli("localhost:3306","root","root","test"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$link</span>-&gt;<span style="color: #000000;">connect_error){
+</span><span style="color: #008080;"> 4</span>         <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;1,"msg"=&gt;<span style="color: #800080;">$link</span>-&gt;<span style="color: #000000;">connect_error);
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 7</span>     <span style="color: #800080;">$n</span>=@<span style="color: #800080;">$_REQUEST</span>["name"<span style="color: #000000;">];
+</span><span style="color: #008080;"> 8</span>     <span style="color: #800080;">$c</span>=@<span style="color: #800080;">$_REQUEST</span>["cpt"<span style="color: #000000;">];
+</span><span style="color: #008080;"> 9</span>     <span style="color: #800080;">$p</span>=@<span style="color: #800080;">$_REQUEST</span>["pen"<span style="color: #000000;">];
+</span><span style="color: #008080;">10</span>     <span style="color: #800080;">$insert</span>="INSERT stu (name,machine,examination) VALUES('".<span style="color: #800080;">$n</span>."',".<span style="color: #800080;">$c</span>.",".<span style="color: #800080;">$p</span>.")"<span style="color: #000000;">;
+</span><span style="color: #008080;">11</span>     <span style="color: #800080;">$q</span>=<span style="color: #800080;">$link</span>-&gt;query(<span style="color: #800080;">$insert</span><span style="color: #000000;">);
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$q</span><span style="color: #000000;">){
+</span><span style="color: #008080;">13</span>        <span style="color: #0000ff;">echo</span><span style="color: #000000;"> select();
+</span><span style="color: #008080;">14</span>     }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">15</span>         <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;3,"msg"=&gt;"添加失败"<span style="color: #000000;">);
+</span><span style="color: #008080;">16</span>         <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> select(){
+</span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">global</span> <span style="color: #800080;">$link</span><span style="color: #000000;">;
+</span><span style="color: #008080;">20</span>         <span style="color: #800080;">$select</span>="SELECT * FROM stu"<span style="color: #000000;">;
+</span><span style="color: #008080;">21</span>         <span style="color: #800080;">$res</span>=<span style="color: #800080;">$link</span>-&gt;query(<span style="color: #800080;">$select</span><span style="color: #000000;">);
+</span><span style="color: #008080;">22</span>         <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$res</span><span style="color: #000000;">){
+</span><span style="color: #008080;">23</span>             <span style="color: #800080;">$str</span>=""<span style="color: #000000;">;
+</span><span style="color: #008080;">24</span>             <span style="color: #0000ff;">while</span> (<span style="color: #800080;">$arr</span>=<span style="color: #800080;">$res</span>-&gt;<span style="color: #000000;">fetch_assoc()) {
+</span><span style="color: #008080;">25</span>                <span style="color: #800080;">$str</span>=<span style="color: #800080;">$str</span>.json_encode(<span style="color: #800080;">$arr</span>).","<span style="color: #000000;">;
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">27</span>             <span style="color: #0000ff;">die</span> ("[".<span style="color: #008080;">substr</span>(<span style="color: #800080;">$str</span>,0,-1)."]"<span style="color: #000000;">);
+</span><span style="color: #008080;">28</span>         }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">29</span>             <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;2,"msg"=&gt;"失败"<span style="color: #000000;">);
+</span><span style="color: #008080;">30</span>             <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">33</span> ?&gt;</pre>
+</div>
+<p>下面是修改按钮所对应的的php代码！</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?<span style="color: #000000;">php
+</span><span style="color: #008080;"> 2</span>     <span style="color: #800080;">$link</span>=@<span style="color: #0000ff;">new</span> mysqli("localhost:3306","root","root","test"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$link</span>-&gt;<span style="color: #000000;">connect_error){
+</span><span style="color: #008080;"> 4</span>         <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;1,"msg"=&gt;<span style="color: #800080;">$link</span>-&gt;<span style="color: #000000;">connect_error);
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 7</span>     <span style="color: #800080;">$id</span>=@<span style="color: #800080;">$_REQUEST</span>["id"<span style="color: #000000;">];
+</span><span style="color: #008080;"> 8</span>     <span style="color: #800080;">$n</span>=@<span style="color: #800080;">$_REQUEST</span>["name"<span style="color: #000000;">];
+</span><span style="color: #008080;"> 9</span>     <span style="color: #800080;">$c</span>=@<span style="color: #800080;">$_REQUEST</span>["cpt"<span style="color: #000000;">];
+</span><span style="color: #008080;">10</span>     <span style="color: #800080;">$p</span>=@<span style="color: #800080;">$_REQUEST</span>["pen"<span style="color: #000000;">];
+</span><span style="color: #008080;">11</span>     <span style="color: #800080;">$update</span>="UPDATE stu SET name='".<span style="color: #800080;">$n</span>."',machine=".<span style="color: #800080;">$c</span>.",examination=".<span style="color: #800080;">$p</span>." WHERE Id=".<span style="color: #800080;">$id</span><span style="color: #000000;">;
+</span><span style="color: #008080;">12</span>     <span style="color: #800080;">$q</span>=<span style="color: #800080;">$link</span>-&gt;query(<span style="color: #800080;">$update</span><span style="color: #000000;">);
+</span><span style="color: #008080;">13</span>     <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$q</span><span style="color: #000000;">){
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">echo</span><span style="color: #000000;"> select();
+</span><span style="color: #008080;">15</span>     }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">16</span>         <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;3,"msg"=&gt;"添加失败"<span style="color: #000000;">);
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">19</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> select(){
+</span><span style="color: #008080;">20</span>         <span style="color: #0000ff;">global</span> <span style="color: #800080;">$link</span><span style="color: #000000;">;
+</span><span style="color: #008080;">21</span>         <span style="color: #800080;">$select</span>="SELECT * FROM stu"<span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>         <span style="color: #800080;">$res</span>=<span style="color: #800080;">$link</span>-&gt;query(<span style="color: #800080;">$select</span><span style="color: #000000;">);
+</span><span style="color: #008080;">23</span>         <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$res</span><span style="color: #000000;">){
+</span><span style="color: #008080;">24</span>             <span style="color: #800080;">$str</span>=""<span style="color: #000000;">;
+</span><span style="color: #008080;">25</span>             <span style="color: #0000ff;">while</span> (<span style="color: #800080;">$arr</span>=<span style="color: #800080;">$res</span>-&gt;<span style="color: #000000;">fetch_assoc()) {
+</span><span style="color: #008080;">26</span>                <span style="color: #800080;">$str</span>=<span style="color: #800080;">$str</span>.json_encode(<span style="color: #800080;">$arr</span>).","<span style="color: #000000;">;
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">28</span>             <span style="color: #0000ff;">die</span> ("[".<span style="color: #008080;">substr</span>(<span style="color: #800080;">$str</span>,0,-1)."]"<span style="color: #000000;">);
+</span><span style="color: #008080;">29</span>         }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">30</span>             <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;2,"msg"=&gt;"失败"<span style="color: #000000;">);
+</span><span style="color: #008080;">31</span>             <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">34</span> ?&gt;</pre>
+</div>
+<p>添加，修改操作完成就是删除，删除是比较简单的，只要获取点击删除的所对应的的数据即可！</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> ; (<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">  2</span> <span style="color: #000000;">    class Project {
+</span><span style="color: #008080;">  3</span> <span style="color: #000000;">        constructor() {
+</span><span style="color: #008080;">  4</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 获取元素</span>
+<span style="color: #008080;">  5</span>             <span style="color: #0000ff;">this</span>.tbody=document.querySelector("tbody"<span style="color: #000000;">);
+</span><span style="color: #008080;">  6</span>             <span style="color: #0000ff;">this</span>.addBtn=document.querySelector("#insert"<span style="color: #000000;">);
+</span><span style="color: #008080;">  7</span>             <span style="color: #0000ff;">this</span>.submit=document.querySelector("#send"<span style="color: #000000;">);
+</span><span style="color: #008080;">  8</span>             <span style="color: #0000ff;">this</span>.name = document.getElementById("name"<span style="color: #000000;">);
+</span><span style="color: #008080;">  9</span>             <span style="color: #0000ff;">this</span>.cpt = document.getElementById("cpt"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 10</span>             <span style="color: #0000ff;">this</span>.pen = document.getElementById("pen"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 11</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.addBtn);</span>
+<span style="color: #008080;"> 12</span>             <span style="color: #0000ff;">this</span>.selectUrl = "http://localhost/test/project/php/select.php"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 13</span>             <span style="color: #0000ff;">this</span>.insertUrl="http://localhost/test/project/php/insert.php"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 14</span>             <span style="color: #0000ff;">this</span>.updateUrl="http://localhost/test/project/php/update.php"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 15</span>             <span style="color: #0000ff;">this</span>.deleteUrl="http://localhost/test/project/php/delect.php"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 16</span> 
+<span style="color: #008080;"> 17</span>             <span style="color: #0000ff;">this</span>.type=0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 18</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.select();
+</span><span style="color: #008080;"> 19</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addEvent();
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 21</span> <span style="color: #000000;">        select() {
+</span><span style="color: #008080;"> 22</span>             <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">            ajax({
+</span><span style="color: #008080;"> 24</span>                 url: <span style="color: #0000ff;">this</span><span style="color: #000000;">.selectUrl,
+</span><span style="color: #008080;"> 25</span>                 success: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (res) {
+</span><span style="color: #008080;"> 26</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(res);</span>
+<span style="color: #008080;"> 27</span>                     that.res =<span style="color: #000000;"> JSON.parse(res);
+</span><span style="color: #008080;"> 28</span>                     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (that.res.code) {
+</span><span style="color: #008080;"> 29</span> <span style="color: #000000;">                        alert(that.res.msg);
+</span><span style="color: #008080;"> 30</span>                     } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 31</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(that.res);</span>
+<span style="color: #008080;"> 32</span> <span style="color: #000000;">                        that.display();
+</span><span style="color: #008080;"> 33</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 34</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 35</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;"> 36</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 37</span> <span style="color: #000000;">        addEvent(){
+</span><span style="color: #008080;"> 38</span>             <span style="color: #0000ff;">var</span> that=<span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 39</span>             <span style="color: #0000ff;">this</span>.addBtn.addEventListener("click",<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;"> 40</span>                 that.type=0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;"> 42</span>             <span style="color: #0000ff;">this</span>.tbody.addEventListener("click",<span style="color: #0000ff;">function</span><span style="color: #000000;">(eve){
+</span><span style="color: #008080;"> 43</span>                 <span style="color: #0000ff;">var</span> e = eve ||<span style="color: #000000;"> window.event;
+</span><span style="color: #008080;"> 44</span>                 that.target = e.target ||<span style="color: #000000;"> e.srcElement;
+</span><span style="color: #008080;"> 45</span>                 <span style="color: #0000ff;">if</span>(that.target.getAttribute("ly") === "update"<span style="color: #000000;">){
+</span><span style="color: #008080;"> 46</span>                     that.type = 1<span style="color: #000000;">;
+</span><span style="color: #008080;"> 47</span>                     that.id=that.target.parentNode.parentNode.children[0<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 48</span>                     that.name.value=that.target.parentNode.parentNode.children[1<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 49</span>                     that.cpt.value=that.target.parentNode.parentNode.children[2<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 50</span>                     that.pen.value=that.target.parentNode.parentNode.children[3<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 51</span>                 }<span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(that.target.getAttribute("ly") === "delete"<span style="color: #000000;">){
+</span><span style="color: #008080;"> 52</span>                     that.i=that.target.parentNode.parentNode.children[0<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 53</span>                     that.na=that.target.parentNode.parentNode.children[1<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 54</span>                     that.ma=that.target.parentNode.parentNode.children[2<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 55</span>                     that.ex=that.target.parentNode.parentNode.children[3<span style="color: #000000;">].innerHTML;
+</span><span style="color: #008080;"> 56</span>                     
+<span style="color: #008080;"> 57</span> <span style="color: #000000;">                    that.deleteLoad();
+</span><span style="color: #008080;"> 58</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;"> 60</span>             <span style="color: #0000ff;">this</span>.submit.addEventListener("click",<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;"> 61</span>                 that.n=<span style="color: #000000;">that.name.value;
+</span><span style="color: #008080;"> 62</span>                 that.c=<span style="color: #000000;">that.cpt.value;
+</span><span style="color: #008080;"> 63</span>                 that.p=<span style="color: #000000;">that.pen.value;
+</span><span style="color: #008080;"> 64</span>                 <span style="color: #0000ff;">if</span>(that.type==0<span style="color: #000000;">){
+</span><span style="color: #008080;"> 65</span>                     that.name.value=that.cpt.value=that.pen.value=""<span style="color: #000000;">;
+</span><span style="color: #008080;"> 66</span> <span style="color: #000000;">                    that.insertLoad();
+</span><span style="color: #008080;"> 67</span>                 }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 68</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log();</span>
+<span style="color: #008080;"> 69</span> <span style="color: #000000;">                   that.updateLoad();
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 71</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;"> 72</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 73</span> <span style="color: #008080;"> 93</span> <span style="color: #008080;">113</span> <span style="color: #000000;">        deleteLoad(){
+</span><span style="color: #008080;">114</span>             <span style="color: #0000ff;">var</span> that=<span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">115</span> <span style="color: #000000;">            ajax({
+</span><span style="color: #008080;">116</span>                 url:<span style="color: #0000ff;">this</span><span style="color: #000000;">.deleteUrl,
+</span><span style="color: #008080;">117</span> <span style="color: #000000;">                data:{
+</span><span style="color: #008080;">118</span>                     id:<span style="color: #0000ff;">this</span><span style="color: #000000;">.i,
+</span><span style="color: #008080;">119</span>                     name:<span style="color: #0000ff;">this</span><span style="color: #000000;">.na,
+</span><span style="color: #008080;">120</span>                     cpt:<span style="color: #0000ff;">this</span><span style="color: #000000;">.ma,
+</span><span style="color: #008080;">121</span>                     pen:<span style="color: #0000ff;">this</span><span style="color: #000000;">.ex,
+</span><span style="color: #008080;">122</span> <span style="color: #000000;">                },
+</span><span style="color: #008080;">123</span>                 success:<span style="color: #0000ff;">function</span><span style="color: #000000;">(res){
+</span><span style="color: #008080;">124</span>                     that.res=<span style="color: #000000;">JSON.parse(res);
+</span><span style="color: #008080;">125</span>                     <span style="color: #0000ff;">if</span><span style="color: #000000;">(that.res.code){
+</span><span style="color: #008080;">126</span> <span style="color: #000000;">                        alert(that.res.msg);
+</span><span style="color: #008080;">127</span>                     }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">128</span> <span style="color: #000000;">                        that.display();
+</span><span style="color: #008080;">129</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">130</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">131</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">132</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">133</span> <span style="color: #000000;">        display() {
+</span><span style="color: #008080;">134</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.res.length);</span>
+<span style="color: #008080;">135</span>             <span style="color: #0000ff;">var</span> str = ""<span style="color: #000000;">;
+</span><span style="color: #008080;">136</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.res.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">137</span>                 str += `&lt;tr&gt;
+<span style="color: #008080;">138</span>                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].Id}&lt;/td&gt;
+<span style="color: #008080;">139</span>                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].name}&lt;/td&gt;
+<span style="color: #008080;">140</span>                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].machine}&lt;/td&gt;
+<span style="color: #008080;">141</span>                 &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].examination}&lt;/td&gt;
+<span style="color: #008080;">142</span>                 &lt;td&gt;&lt;span class="btn btn-primary btn-info" ly="delete"&gt;删除&lt;/span&gt;&lt;/td&gt;
+<span style="color: #008080;">143</span>                 &lt;td&gt;&lt;button type="button" class="btn btn-primary btn-info" data-toggle="modal"
+<span style="color: #008080;">144</span>                     data-target="#exampleModal" data-whatever="@fat" ly="update"&gt;修改&lt;/button&gt;&lt;/td&gt;
+<span style="color: #008080;">145</span>             &lt;/tr&gt; `
+<span style="color: #008080;">146</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">147</span>             <span style="color: #0000ff;">this</span>.tbody.innerHTML=<span style="color: #000000;">str;
+</span><span style="color: #008080;">148</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">149</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">150</span>     <span style="color: #0000ff;">new</span><span style="color: #000000;"> Project();
+</span><span style="color: #008080;">151</span> })();</pre>
+</div>
+<p>删除的php代码！</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;?<span style="color: #000000;">php
+</span><span style="color: #008080;"> 2</span>     <span style="color: #800080;">$link</span>=@<span style="color: #0000ff;">new</span> mysqli("localhost:3306","root","root","test"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$link</span>-&gt;<span style="color: #000000;">connect_error){
+</span><span style="color: #008080;"> 4</span>         <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;1,"msg"=&gt;<span style="color: #800080;">$link</span>-&gt;<span style="color: #000000;">connect_error);
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 7</span>     <span style="color: #800080;">$id</span>=@<span style="color: #800080;">$_REQUEST</span>["id"<span style="color: #000000;">];
+</span><span style="color: #008080;"> 8</span>     <span style="color: #800080;">$n</span>=@<span style="color: #800080;">$_REQUEST</span>["name"<span style="color: #000000;">];
+</span><span style="color: #008080;"> 9</span>     <span style="color: #800080;">$c</span>=@<span style="color: #800080;">$_REQUEST</span>["cpt"<span style="color: #000000;">];
+</span><span style="color: #008080;">10</span>     <span style="color: #800080;">$p</span>=@<span style="color: #800080;">$_REQUEST</span>["pen"<span style="color: #000000;">];
+</span><span style="color: #008080;">11</span>     <span style="color: #800080;">$delete</span>="DELETE FROM stu WHERE Id=".<span style="color: #800080;">$id</span><span style="color: #000000;">;
+</span><span style="color: #008080;">12</span>     <span style="color: #800080;">$q</span>=<span style="color: #800080;">$link</span>-&gt;query(<span style="color: #800080;">$delete</span><span style="color: #000000;">);
+</span><span style="color: #008080;">13</span>     <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$q</span><span style="color: #000000;">){
+</span><span style="color: #008080;">14</span>         <span style="color: #0000ff;">echo</span><span style="color: #000000;"> select();
+</span><span style="color: #008080;">15</span>     }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">16</span>         <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;3,"msg"=&gt;"添加失败"<span style="color: #000000;">);
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">19</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> select(){
+</span><span style="color: #008080;">20</span>         <span style="color: #0000ff;">global</span> <span style="color: #800080;">$link</span><span style="color: #000000;">;
+</span><span style="color: #008080;">21</span>         <span style="color: #800080;">$select</span>="SELECT * FROM stu"<span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>         <span style="color: #800080;">$res</span>=<span style="color: #800080;">$link</span>-&gt;query(<span style="color: #800080;">$select</span><span style="color: #000000;">);
+</span><span style="color: #008080;">23</span>         <span style="color: #0000ff;">if</span>(<span style="color: #800080;">$res</span><span style="color: #000000;">){
+</span><span style="color: #008080;">24</span>             <span style="color: #800080;">$str</span>=""<span style="color: #000000;">;
+</span><span style="color: #008080;">25</span>             <span style="color: #0000ff;">while</span> (<span style="color: #800080;">$arr</span>=<span style="color: #800080;">$res</span>-&gt;<span style="color: #000000;">fetch_assoc()) {
+</span><span style="color: #008080;">26</span>                <span style="color: #800080;">$str</span>=<span style="color: #800080;">$str</span>.json_encode(<span style="color: #800080;">$arr</span>).","<span style="color: #000000;">;
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">28</span>             <span style="color: #0000ff;">die</span> ("[".<span style="color: #008080;">substr</span>(<span style="color: #800080;">$str</span>,0,-1)."]"<span style="color: #000000;">);
+</span><span style="color: #008080;">29</span>         }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">30</span>             <span style="color: #800080;">$err</span> = <span style="color: #0000ff;">array</span>("code"=&gt;2,"msg"=&gt;"失败"<span style="color: #000000;">);
+</span><span style="color: #008080;">31</span>             <span style="color: #0000ff;">die</span>(json_encode(<span style="color: #800080;">$err</span><span style="color: #000000;">));
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">34</span> ?&gt;</pre>
+</div>
+<p>以上就是交互案例的所有代码了，可以看看，感受下是怎么一回事吧！其实只要理清之间的关系即可，我们做的只是将数据发送给后端并接受后端返回的数据即可！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

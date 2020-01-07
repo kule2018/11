@@ -1,0 +1,286 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修cocos creator 小游戏区域截图功能实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>cocos creator 小游戏区域截图功能实现</center></div><div class='banquan'>原文出处:本文由博客园博主沉默术士提供。<br/>
+原文连接:https://www.cnblogs.com/hutuzhu/p/11234136.html</div><br>
+    <p>截图是游戏中非常常见的一个功能，在cocos中可以通过摄像机和 RenderTexture 可以快速实现一个截图功能，具体API可参考：<a href="https://docs.cocos.com/creator/manual/zh/render/camera.html?h=%E6%88%AA%E5%9B%BE">https://docs.cocos.com/creator/manual/zh/render/camera.html?h=%E6%88%AA%E5%9B%BE</a>，其中官方也提供了比较完整的例子。</p>
+<p>实际上不用官网提供的全屏截图的例子，一般在网页中我们也能将页面截图保存，比如通过htmltocanvas，cocos开发的小游戏在网页中打开实际就是一个canvas，前端是可以通过将canvas保存为图片的，这里就不细说了。</p>
+<p>我们还是来看下如何把屏幕中某一区域的内容生成图片并保存到本地。</p>
+<p>1、创建RenderTexture</p>
+<div class="cnblogs_Highlighter">
+<pre><code><code><span class="hljs-comment">//新建一个 RenderTexture，并且设置 camera 的 targetTexture 为新建的 RenderTexture，这样 camera 的内容将会渲染到新建的 RenderTexture 中。</span></code></pre>
+<pre class="brush:javascript;gutter:true;">let texture = new cc.RenderTexture();
+let gl = cc.game._renderContext;<br />//如果截图中不含mask组件可以不加第三个参数，不过建议加上
+texture.initWithSize(this.node.width, this.node.height, gl.STENCIL_INDEX8);//这里的宽高直接决定了截图的宽高，如果是全屏截图就是<code>cc.visibleRect.width, cc.visibleRect.height,该处可以设置为截图目标区域的宽高</code></pre>
+<pre class="brush:javascript;gutter:true;">this.camera = this.node.addComponent(cc.Camera); this.camera.targetTexture = texture; this.texture = texture;</pre>
+</div>
+<p>&nbsp;2、绘制canvas</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">createSprite() {
+        let width </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.texture.width;
+        let height </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.texture.height;<br />　　　　　//截图的本质是创建一个canvas，然后通过canvas生成图片材质
+        </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">._canvas) {
+            </span><span style="color: #0000ff;">this</span>._canvas = document.createElement('canvas'<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">this</span>._canvas.width =<span style="color: #000000;"> width;
+            </span><span style="color: #0000ff;">this</span>._canvas.height =<span style="color: #000000;"> height;
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.clearCanvas();
+        }
+        let ctx </span>= <span style="color: #0000ff;">this</span>._canvas.getContext('2d'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.camera.render();//相机绘制，将屏幕上的内容更新到renderTexture中
+        let data </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.texture.readPixels();//读取renderTexture中的数据
+        </span>
+        let rowBytes = width * 4<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">for</span> (let row = 0; row &lt; height; row++<span style="color: #000000;">) {
+            let srow </span>= height - 1 -<span style="color: #000000;"> row;
+            let imageData </span>= ctx.createImageData(width, 1<span style="color: #000000;">);
+            let start </span>= srow * width * 4<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (let i = 0; i &lt; rowBytes; i++<span style="color: #000000;">) {
+                imageData.data[i] </span>= data[start +<span style="color: #000000;"> i];
+            }
+
+            ctx.putImageData(imageData, </span>0<span style="color: #000000;">, row);
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">._canvas;
+    },</span></pre>
+</div>
+<p>上述代码中用到了canvas 的<a title="HTML canvas createImageData() 方法" href="http://www.w3school.com.cn/tags/canvas_createimagedata.asp">createImageData()</a>&nbsp;和putImageData()方法，createImageData() 方法创建新的空白 ImageData 对象，putImageData() 方法将图像数据（从指定的 ImageData 对象）放回画布上。</p>
+<p>3、获取图片</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">initImage(img) {
+        // return the type and dataUrl
+        var dataURL = this._canvas.toDataURL("image/png");
+        var img = document.createElement("img");
+        img.src = dataURL;
+        return img;
+},</pre>
+</div>
+<p>生成canvas就可以通过canvas.toDataURL()方法将canvas转换为图片</p>
+<p>4、生成截图效果，将上一步生成的图片当做材质挂载到新建的node</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">showSprite(img) {
+        let y = this.getTargetArea().y;
+        let x = this.getTargetArea().x;
+        let rect = new cc.Rect(x, y, 770, 800)
+        let texture = new cc.Texture2D();
+        texture.initWithElement(img);
+
+        let spriteFrame = new cc.SpriteFrame();
+        spriteFrame.setTexture(texture);
+        spriteFrame.setRect(rect)
+
+        let node = new cc.Node();
+        let sprite = node.addComponent(cc.Sprite);
+        sprite.spriteFrame = spriteFrame;
+
+        node.zIndex = cc.macro.MAX_ZINDEX;
+        node.parent = cc.director.getScene();
+        // set position
+        let width = cc.winSize.width;
+        let height = cc.winSize.height;
+        node.x = width / 2;
+        node.y = height / 2;
+        node.on(cc.Node.EventType.TOUCH_START, () =&gt; {
+            node.parent = null;
+            node.destroy();
+        });
+        this.captureAction(node, width, height);
+    },
+</pre>
+</div>
+<p>5、截图动画（类似手机截图，截图后有个缩略图动画）</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">captureAction(capture, width, height) {
+        let scaleAction = cc.scaleTo(1, 0.3);
+        let targetPos = cc.v2(width - width / 6, height / 4);
+        let moveAction = cc.moveTo(1, targetPos);
+        let spawn = cc.spawn(scaleAction, moveAction);
+
+        let finished = cc.callFunc(() =&gt; {
+            capture.destroy();
+        })
+        let action = cc.sequence(spawn, finished);
+        capture.runAction(action);
+    },
+</pre>
+</div>
+<p>6、下载图片到本地，动态生成a标签，模拟点击后移除</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">downloadImg() {
+        this.createSprite();
+        var img = this.initImage();
+        this.showSprite(img)
+        var dataURL = this._canvas.toDataURL("image/png")
+        var a = document.createElement("a")
+        a.href = dataURL;
+        a.download = "image";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    },</pre>
+</div>
+<p>&nbsp;完整代码如下：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">cc.Class({
+    extends: cc.Component,
+
+    properties: {
+        _canvas: null,
+        targetNode: cc.Node
+    },
+    onLoad() {
+        this.init();
+    },
+
+    init() {
+        let texture = new cc.RenderTexture();
+        let gl = cc.game._renderContext;
+        texture.initWithSize(this.node.width, this.node.height, gl.STENCIL_INDEX8);
+        this.camera = this.node.addComponent(cc.Camera);
+        this.camera.targetTexture = texture;
+        this.texture = texture;
+    },
+    // create the img element
+    initImage(img) {
+        // return the type and dataUrl
+        var dataURL = this._canvas.toDataURL("image/png");
+        var img = document.createElement("img");
+        img.src = dataURL;
+        return img;
+    },
+    // create the canvas and context, filpY the image Data
+    createSprite() {
+        let width = this.texture.width;
+        let height = this.texture.height;
+        if (!this._canvas) {
+            this._canvas = document.createElement('canvas');
+            this._canvas.width = width;
+            this._canvas.height = height;
+        } else {
+            this.clearCanvas();
+        }
+        let ctx = this._canvas.getContext('2d');
+        this.camera.render();
+        let data = this.texture.readPixels();
+        // write the render data
+        let rowBytes = width * 4;
+        for (let row = 0; row &lt; height; row++) {
+            let srow = height - 1 - row;
+            let imageData = ctx.createImageData(width, 1);
+            let start = srow * width * 4;
+            for (let i = 0; i &lt; rowBytes; i++) {
+                imageData.data[i] = data[start + i];
+            }
+
+            ctx.putImageData(imageData, 0, row);
+        }
+        return this._canvas;
+    },
+    getTargetArea() {
+        let targetPos = this.targetNode.convertToWorldSpaceAR(cc.v2(0, 0))
+        let y = cc.winSize.height - targetPos.y - this.targetNode.height / 2;
+        let x = cc.winSize.width - targetPos.x - this.targetNode.width / 2;
+        return {
+            x,
+            y
+        }
+    },
+    downloadImg() {
+        this.createSprite();
+        var img = this.initImage();
+        this.showSprite(img)
+        var dataURL = this._canvas.toDataURL("image/png")
+        var a = document.createElement("a")
+        a.href = dataURL;
+        a.download = "image";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    },
+    // show on the canvas
+    showSprite(img) {
+        let y = this.getTargetArea().y;
+        let x = this.getTargetArea().x;
+        let rect = new cc.Rect(x, y, 770, 800)
+        let texture = new cc.Texture2D();
+        texture.initWithElement(img);
+
+        let spriteFrame = new cc.SpriteFrame();
+        spriteFrame.setTexture(texture);
+        spriteFrame.setRect(rect)
+
+        let node = new cc.Node();
+        let sprite = node.addComponent(cc.Sprite);
+        sprite.spriteFrame = spriteFrame;
+
+        node.zIndex = cc.macro.MAX_ZINDEX;
+        node.parent = cc.director.getScene();
+        // set position
+        let width = cc.winSize.width;
+        let height = cc.winSize.height;
+        node.x = width / 2;
+        node.y = height / 2;
+        node.on(cc.Node.EventType.TOUCH_START, () =&gt; {
+            node.parent = null;
+            node.destroy();
+        });
+        this.captureAction(node, width, height);
+    },
+    // sprite action
+    captureAction(capture, width, height) {
+        let scaleAction = cc.scaleTo(1, 0.3);
+        let targetPos = cc.v2(width - width / 6, height / 4);
+        let moveAction = cc.moveTo(1, targetPos);
+        let spawn = cc.spawn(scaleAction, moveAction);
+
+        let finished = cc.callFunc(() =&gt; {
+            capture.destroy();
+        })
+        let action = cc.sequence(spawn, finished);
+        capture.runAction(action);
+    },
+
+    clearCanvas() {
+        let ctx = this._canvas.getContext('2d');
+        ctx.clearRect(0, 0, this._canvas.width, this._canvas.height);
+    }
+});
+</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><audio controls="controls" style="display: none;"></audio></p>
+<div id="yddWrapper" style="left: 267px; top: 194px; position: absolute; z-index: 2147483647; cursor: default;">
+<div id="yddContainer" style="padding: 0px 0px 0px 0px;" align="left">
+<div id="yddTop" class="ydd-sp">
+<div id="yddTopBorderlr"> <a id="yddKeyTitle" title="查看完整释义" href="http://dict.youdao.com/search?q=RenderTexture&amp;keyfrom=chrome.extension" target="_blank">RenderTexture</a>&nbsp;<span style="font-weight: normal; font-size: 10px;">&nbsp;&nbsp;</span><span id="voice" style="padding: 2px; height: 15px; width: 15px;"></span><span style="float: right; font-weight: normal; font-size: 10px;"><a href="http://dict.youdao.com/search?q=RenderTexture&amp;keyfrom=chrome.extension" target="_blank">详细</a></span><a id="test"></a><span class="ydd-sp ydd-close">X</span></div>
+</div>
+<div id="yddMiddle">
+<div class="ydd-trans-wrapper" style="display: block; padding: 0px 0px 0px 0px;">
+<div class="ydd-tabs"><span class="ydd-tab">网络释义</span></div>
+<div class="ydd-trans-container ydd-padding010"><a href="http://dict.youdao.com/search?q=RenderTexture&amp;keyfrom=chrome.extension&amp;le=eng" target="_blank">RenderTexture:</a> 渲染纹理</div>
+      </div>
+   </div>
+  </div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

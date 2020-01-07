@@ -1,0 +1,116 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修初学node.js-nodejs中实现用户登录路由' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>初学node.js-nodejs中实现用户登录路由</center></div><div class='banquan'>原文出处:本文由博客园博主ZXJ~佳提供。<br/>
+原文连接:https://www.cnblogs.com/zhouxuejia/p/10906754.html</div><br>
+    <p>经过前面几次的学习，已经可以做下小功能，今天要实现的事用户登录路由。</p>
+<p>一、users_model.js&nbsp;&nbsp;功能:定义用户对象模型</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> mongoose=require(<span style="color: #800000;">'</span><span style="color: #800000;">mongoose</span><span style="color: #800000;">'</span><span style="color: #000000;">),
+      Schema</span>=<span style="color: #000000;">mongoose.Schema;
+</span><span style="color: #0000ff;">var</span> UserSchema=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Schema({
+      username:{type:String,unique:</span><span style="color: #0000ff;">true</span><span style="color: #000000;">},
+      email:String,
+      color:String,
+      hashed_password:String
+});
+mongoose.model(</span><span style="color: #800000;">'</span><span style="color: #800000;">User</span><span style="color: #800000;">'</span>,UserSchema);</pre>
+</div>
+<p>二、users_controller.js&nbsp; 功能:为Express服务器实现用户登录路由</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> crypto=require('crypto'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> mongoose=require('mongoose'),User=mongoose.model('User'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> hashPW(pwd){
+    </span><span style="color: #0000ff;">return</span> crypto.createHash('sha256'<span style="color: #000000;">).update(pwd).
+    digest(</span>'base64'<span style="color: #000000;">).toString();
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">实现用户登录路由</span>
+exports.login=<span style="color: #0000ff;">function</span><span style="color: #000000;"> (req,res){
+    User.findOne({username:req.body.username})
+    .exec(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(err,user){
+        </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">user){
+            err</span>='User Not Found'<span style="color: #000000;">;
+        }</span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(user.hashed_password===<span style="color: #000000;">hashPW(req.body.password.toString())){
+            req.session.regenerate(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+                req.session.user</span>=<span style="color: #000000;">user.id;
+                req.session.username</span>=<span style="color: #000000;">user.username;
+                req.session.msg</span>='Authenticated as ' +<span style="color: #000000;">user.username;
+                res.redirect(</span>'/'<span style="color: #000000;">);
+            });
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            err</span>='Authentication failed. '<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(err){
+            req.session.regenerate(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+                req.session.msg</span>=<span style="color: #000000;">err;
+                res.redirect(</span>'/login'<span style="color: #000000;">);
+            });
+        }
+    });
+};</span></pre>
+</div>
+<p>三、login.html</p>
+<div class="cnblogs_code">
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;meta charset="UTF-8"&gt;
+&lt;title&gt;用户登录&lt;/title&gt;
+&lt;link rel="stylesheet"type="text/css" href="/static/css/styles.css" /&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class="form-container"&gt;
+ &lt;p class="form-header"&gt;登录&lt;/p&gt;
+ &lt;form method="POST" &gt;
+    &lt;label&gt;用户名:&lt;/label&gt;
+     &lt;input type="text" name="username"&gt;&lt;br&gt;
+     &lt;label&gt;密码:&lt;/label&gt;
+     &lt;input type="password" name="password"&gt;&lt;br&gt;
+     &lt;input type="submit" value="登录"&gt;
+ &lt;/form&gt;
+ &lt;/div&gt;
+ &lt;a href="/signup"&gt;注册&lt;/a&gt;
+ &lt;hr&gt; &lt;%=msg %&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<p>四、routes.js 功能:为Express服务器实现处理Web请求路由</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> crypto=require('crypto'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> express=require('express'<span style="color: #000000;">);
+module.exports</span>=<span style="color: #0000ff;">function</span><span style="color: #000000;">(app){
+    </span><span style="color: #0000ff;">var</span> users=require('./controllers/users_controller'<span style="color: #000000;">);
+    app.use(</span>'/static',express.static('./static'<span style="color: #000000;">)).
+    use(</span>'/lib',express.static('../lib'<span style="color: #000000;">)
+);
+app.get(</span>'/login',<span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(req.session.user){
+        res.redirect(</span>'/'<span style="color: #000000;">);
+    }
+    res.render(</span>'login'<span style="color: #000000;">,{msg:req.session.msg})
+});
+app.post(</span>'/login',users.login);</pre>
+</div>
+<p>页面效果</p>
+<p><img src="./images/初学node.js-nodejs中实现用户登录路由0.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

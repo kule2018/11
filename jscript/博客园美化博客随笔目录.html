@@ -1,0 +1,294 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修博客园美化博客随笔目录' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>博客园美化博客随笔目录</center></div><div class='banquan'>原文出处:本文由博客园博主小小咸鱼YwY提供。<br/>
+原文连接:https://www.cnblogs.com/pythonywy/p/11572044.html</div><br>
+    <h1 id="博客园美化博客随笔目录">博客园美化博客随笔目录</h1>
+<p>基于<code>孤傲苍狼</code>在<code>2014-5-11</code>写的目录代码基础上进行改进</p>
+<h2 id="一.js代码">一.js代码</h2>
+<pre><code><code>&lt;!--目录--&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+var BlogDirectory = {
+    /*
+        获取元素位置，距浏览器左边界的距离（left）和距浏览器上边界的距离（top）
+    */
+    getElementPosition:function (ele) {        
+        var topPosition = 0;
+        var leftPosition = 0;
+        while (ele){              
+            topPosition += ele.offsetTop;
+            leftPosition += ele.offsetLeft;        
+            ele = ele.offsetParent;     
+        }  
+        return {top:topPosition, left:leftPosition}; 
+    },
+
+    /*
+    获取滚动条当前位置
+    */
+    getScrollBarPosition:function () {
+        var scrollBarPosition = document.body.scrollTop || document.documentElement.scrollTop;
+        return  scrollBarPosition;
+    },
+    
+    /*
+    移动滚动条，finalPos 为目的位置，internal 为移动速度
+    */
+    moveScrollBar:function(finalpos, interval) {
+
+        //若不支持此方法，则退出
+        if(!window.scrollTo) {
+            return false;
+        }
+
+        //窗体滚动时，禁用鼠标滚轮
+        window.onmousewheel = function(){
+            return false;
+        };
+          
+        //清除计时
+        if (document.body.movement) { 
+            clearTimeout(document.body.movement); 
+        } 
+
+        var currentpos =BlogDirectory.getScrollBarPosition();//获取滚动条当前位置
+
+        var dist = 0; 
+        if (currentpos == finalpos) {//到达预定位置，则解禁鼠标滚轮，并退出
+            window.onmousewheel = function(){
+                return true;
+            }
+            return true; 
+        } 
+        if (currentpos &lt; finalpos) {//未到达，则计算下一步所要移动的距离
+            dist = Math.ceil((finalpos - currentpos)/10); 
+            currentpos += dist; 
+        } 
+        if (currentpos &gt; finalpos) { 
+            dist = Math.ceil((currentpos - finalpos)/10); 
+            currentpos -= dist; 
+        }
+        
+        var scrTop = BlogDirectory.getScrollBarPosition();//获取滚动条当前位置
+        window.scrollTo(0, currentpos);//移动窗口
+        if(BlogDirectory.getScrollBarPosition() == scrTop)//若已到底部，则解禁鼠标滚轮，并退出
+        {
+            window.onmousewheel = function(){
+                return true;
+            }
+            return true;
+        }
+        
+        //进行下一步移动
+        var repeat = &quot;BlogDirectory.moveScrollBar(&quot; + finalpos + &quot;,&quot; + interval + &quot;)&quot;; 
+        document.body.movement = setTimeout(repeat, interval); 
+    },
+    
+    htmlDecode:function (text){
+        var temp = document.createElement(&quot;div&quot;);
+        temp.innerHTML = text;
+        var output = temp.innerText || temp.textContent;
+        temp = null;
+        return output;
+    },
+
+    /*
+    创建博客目录，
+    id表示包含博文正文的 div 容器的 id，
+    mt 和 st 分别表示主标题和次级标题的标签名称（如 H2、H3，大写或小写都可以！），
+    interval 表示移动的速度
+    */
+    createBlogDirectory:function (id, mt, st, interval){
+         //获取博文正文div容器
+        var elem = document.getElementById(id);
+        if(!elem) return false;
+        //获取div中所有元素结点
+        var nodes = elem.getElementsByTagName(&quot;*&quot;);
+        //创建博客目录的div容器
+        var divSideBar = document.createElement(&#39;DIV&#39;);
+        divSideBar.className = &#39;uprightsideBar&#39;;
+        divSideBar.setAttribute(&#39;id&#39;, &#39;uprightsideBar&#39;);
+        var divSideBarTab = document.createElement(&#39;DIV&#39;);
+        divSideBarTab.setAttribute(&#39;id&#39;, &#39;sideBarTab&#39;);
+        divSideBar.appendChild(divSideBarTab);
+        var h2 = document.createElement(&#39;H2&#39;);
+        divSideBarTab.appendChild(h2);
+        var txt = document.createTextNode(&#39;目录导航 &#39;);
+        h2.appendChild(txt);
+        var divSideBarContents = document.createElement(&#39;DIV&#39;);
+        divSideBarContents.style.display = &#39;none&#39;;
+        divSideBarContents.setAttribute(&#39;id&#39;, &#39;sideBarContents&#39;);
+        divSideBar.appendChild(divSideBarContents);
+        //创建自定义列表
+        var dlist = document.createElement(&quot;dl&quot;);
+        divSideBarContents.appendChild(dlist);
+        var num = 0;//统计找到的mt和st
+        mt = mt.toUpperCase();//转化成大写
+        st = st.toUpperCase();//转化成大写
+        //遍历所有元素结点
+        for(var i=0; i&lt;nodes.length; i++)
+        {
+            if(nodes[i].nodeName == mt|| nodes[i].nodeName == st)    
+            {
+                //获取标题文本
+                var nodetext = nodes[i].innerHTML.replace(/&lt;\/?[^&gt;]+&gt;/g,&quot;&quot;);//innerHTML里面的内容可能有HTML标签，所以用正则表达式去除HTML的标签
+                nodetext = nodetext.replace(/ /ig, &quot;&quot;);//替换掉所有的 
+                nodetext = BlogDirectory.htmlDecode(nodetext);
+                //插入锚        
+                nodes[i].setAttribute(&quot;id&quot;, &quot;blogTitle&quot; + num);
+                var item;
+                switch(nodes[i].nodeName)
+                {
+                    case mt:    //若为主标题 
+                        item = document.createElement(&quot;dt&quot;);
+                        break;
+                    case st:    //若为子标题
+                        item = document.createElement(&quot;dd&quot;);
+                        break;
+                }
+                
+                //创建锚链接
+                var itemtext = document.createTextNode(nodetext);
+                item.appendChild(itemtext);
+                item.setAttribute(&quot;name&quot;, num);
+                item.onclick = function(){        //添加鼠标点击触发函数
+                    var pos = BlogDirectory.getElementPosition(document.getElementById(&quot;blogTitle&quot; + this.getAttribute(&quot;name&quot;)));
+                    if(!BlogDirectory.moveScrollBar(pos.top, interval)) return false;
+                };            
+                
+                //将自定义表项加入自定义列表中
+                dlist.appendChild(item);
+                num++;
+            }
+        }
+        
+        if(num == 0) return false; 
+        /*鼠标进入时的事件处理*/
+        divSideBarTab.onmouseenter = function(){
+            divSideBarContents.style.display = &#39;block&#39;;
+        }
+        /*鼠标离开时的事件处理*/
+        divSideBar.onmouseleave = function() {
+            divSideBarContents.style.display = &#39;none&#39;;
+        }
+
+        document.body.appendChild(divSideBar);
+    }
+    
+};
+    BlogDirectory.createBlogDirectory(&quot;cnblogs_post_body&quot;,&quot;h2&quot;,&quot;h3&quot;,20);
+   console.log(&#39;页面加载完毕生成目录&#39;)
+&lt;/script&gt;</code></pre>
+<h2 id="二.css代码">二.css代码</h2>
+<pre class="python"><code>/*生成博客目录的CSS*/
+/*自定制一个css3动画*/
+@keyframes pulse {
+    25% {
+        transform: scale(1.05);
+    }
+
+    75% {
+        transform: scale(.95);
+    }
+}
+/*调整目录框的位置*/
+#uprightsideBar {
+    font-size: 10px;
+    font-family: Arial, Helvetica, sans-serif;
+    text-align: left;
+    position: fixed;  
+    top: 50px;
+    right: 0px;
+    width: auto;
+    height: auto;
+}
+
+#sideBar {
+    float: left;
+    padding: 0 0 0 65px;
+}
+
+#sideBarTab {
+    float: left;
+    width: 40px;
+    height: 200px;
+    border: 1px solid #e5e5e5;
+    border-right: none;
+    text-align: center;
+    background-image: url(https://www.cnblogs.com/images/cnblogs_com/pythonywy/1455951/o_%e7%82%ab%e5%bd%a9.png);
+    color: #79a3e5;
+}
+
+
+/*展开后内部内容格式*/
+#sideBarContents {
+    float: left;
+    overflow: auto;
+    overflow-x: hidden;
+    min-width: 0px;
+    max-width: 500px;
+    min-height: 200px;
+    max-height: 1200px;
+    border: 1px solid #e5e5e5;
+    border-right: none;
+    background: #fff;
+    background-size: 100% 100%;
+    color: #79a3e5;
+}
+
+#sideBarContents dl {
+    margin: 0;
+    padding: 0;
+}
+
+#sideBarContents dt {
+    margin-top: 5px;
+    margin-left: 5px;
+}
+
+
+/*CSS3hover动画*/
+#sideBarContents dd:hover, dt:hover {
+     animation-name: pulse;
+    animation-duration: 1s;
+    animation-timing-function: linear;
+    animation-iteration-count: infinite;
+    box-shadow: none;
+    color: #A7995A;
+}
+
+#sideBarContents dd {
+    margin-left: 20px;
+}</code></pre>
+<p>三.展示效果</p>
+<p>未打开状态</p>
+<p><img src="./images/博客园美化博客随笔目录0.png" /></p>
+<p>展开效果</p>
+<p><img src="./images/博客园美化博客随笔目录1.png" /></p>
+<p>hover效果</p>
+<p><img src="./images/博客园美化博客随笔目录2.png" /></p>
+<h2 id="三.在原先的基础上解决的bug">三.在原先的基础上解决的bug</h2>
+<p>1.目录由于其他js导致没法加载(最主要修改的内容)</p>
+<p>2.修改了样式</p>
+<p>3.修改了hover样式让他看起来更加好看</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

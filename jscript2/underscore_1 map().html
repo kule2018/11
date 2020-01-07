@@ -1,0 +1,95 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修underscore_1 map()' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>underscore_1 map()</center></div><div class='banquan'>原文出处:本文由博客园博主xy2370提供。<br/>
+原文连接:https://www.cnblogs.com/xya-b/p/11655054.html</div><br>
+    <p>map()是underscore.js中一个处理数组和对象的方法。<br />
+params:<br />
+1. array || obj<br />
+2. callback<br />
+3. content 上下文指向</p>
+<h6 id="使用">使用：</h6>
+<pre><code><code>  var obj = {a:1, b: 2, c: 3}
+  var arr = [1.3,5,6,76]
+  _.map(arr, function(value, index, obj){
+    return value*3
+  });</code></pre>
+<p>这个代码如果我自己写的话当然很简单的想法了，就是判断传入参数类型，进行遍历，然后判断是否有回调，有的话，就执行，并将结果返回出去，没有的话，就将原值返回出去。<br />
+下面看下源码是怎样的吧。</p>
+<h6 id="调用过程">调用过程：</h6>
+<ol>
+<li><p>map():</p>
+<pre><code><code> _.map = function (obj, iteratee, context) {
+   iteratee = cb(iteratee, context);
+   var keys = !isArray(obj) &amp;&amp; Object.keys(obj);
+   var length = (keys || obj).length;
+   var result = Array(length);
+   for(var index = 0; index &lt; length; index++) {
+     var current = keys ? keys[index] : index;
+     result[index] = iteartee(obj[current], index, obj);
+   }
+ }
+
+ map方法在一开始调用了一个cb方法，对iteratee进行重写，下面看下cb</code></pre></li>
+<li><p>cb()</p>
+<pre><code><code> var defaultCb = function(value) {
+   return value;
+ }
+ /**
+  * argcount 在生成迭代的时候，对迭代器有几个参数的要求，默认3
+  * */
+ var cb = function(value, context, argcount) {
+   if (value == null ) return defaultCb;
+   if (isFunc(value)) return optimizeCb(value, context, argCount);
+   ...
+ }
+
+ 这里其实没什么好说的，如果没有回调，就给他一个默认方法。重点应该是在optimizeCb方法上。</code></pre></li>
+<li><p>optimizeCb()</p>
+<pre><code><code> var optimizeCb = function(func, context, argCount) {
+   if (context == void 0 ) return func;
+   switch (argCount == null ? 3 : argCount) {
+     case 1: return function(value) {
+       return func.call(context, value)
+     }
+     ...
+     case 3: return function(value, index, object) {
+       return func.call(context, value, index, object);
+     }
+   }
+ }
+
+ 在optimizeCb中，会注意到underscore使用了void 0 来代替undefined进行判断。
+ void是js的一个函数，但是，似乎很少用到，由于void的返回值是undefined，于是，被代替undefined以用来判断，毕竟，相比undefined，可以改写这一点，void更可靠一点
+ 可以看到，在optimizeCb中使用了call函数，对func重新绑定了上下文，并返回。</code></pre></li>
+</ol>
+<p>其实在map方法中，主要的是iteratee设计(迭代设计)，迭代可以基本大家都知道，但是却不十分了解。<br />
+迭代： 简单的说：就是通过某一种方法对数组，对象以及类数组中的每个元素进行处理。<br />
+而一个迭代器，至少有两个基础部分：</p>
+<ol>
+<li>被迭代集合</li>
+<li>当前迭代过程<br />
+而map中的迭代过程则是一个函数，就是传入的处理函数。至于cb函数，则是根据传参的不同情况创建迭代过程，为每次的迭代服务。<br />
+optimizeCb函数是对迭代函数的一个优化，基本上,map方法是通过迭代，对数据进行操作，从而返回一个新数组</li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

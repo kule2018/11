@@ -1,0 +1,180 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修页面性能优化-原生JS实现图片懒加载' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>页面性能优化-原生JS实现图片懒加载</center></div><div class='banquan'>原文出处:本文由博客园博主Peerless1029提供。<br/>
+原文连接:https://www.cnblogs.com/peerless1029/p/10771695.html</div><br>
+    <p>&nbsp;</p>
+<p>&nbsp; <span style="font-size: 16px;">&nbsp;<span style="font-size: 14px;">在项目开发中，我们往往会遇到一个页面需要加载很多图片的情况。我们可以一次性加载全部的图片，但是考虑到用户有可能只浏览部分图片。所以我们需要对图片加载进行优化，只加载浏览器窗口内的图片，当用户滚动时，再加载更多的图片。这种加载图片的方式叫做图片懒加载，又叫做按需加载或图片的延时加载。这样做的好处是：1.可以加快页面首屏渲染的速度；2.节约用户的流量。</span></span></p>
+<p><strong><span style="font-size: 18px;">一.实现思路</span></strong></p>
+<p><span style="font-size: 14px;">1.图片img标签自定义一个属性data-src来存放真实的地址。</span></p>
+<p><span style="font-size: 14px;">2.当滚动页面时，检查所有的img标签，判断是否出现在事业中，如果出现在视野中，继续进行判断，看齐是否被加载过了，如果没有加载，那就进行加载。</span></p>
+<p><span style="font-size: 14px;">判断图片元素是否处于浏览器视野中的示意图（手绘）：</span></p>
+<p><span style="font-size: 14px;"><img src="./images/页面性能优化-原生JS实现图片懒加载0.png" alt="" width="585" height="806" /></span></p>
+<p><span style="font-size: 18px;"><strong>二.根据思路完成代码如下：</strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>原生js实现图片懒加载<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #800000;">
+    *</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      margin</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 0</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      padding</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 0</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      box-sizing</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> border-box</span><span style="background-color: #f5f5f5; color: #000000;">;</span>
+    <span style="background-color: #f5f5f5; color: #000000;">}</span><span style="background-color: #f5f5f5; color: #800000;">
+    ul</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      overflow</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> hidden</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      list-style</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> none</span><span style="background-color: #f5f5f5; color: #000000;">;</span>
+    <span style="background-color: #f5f5f5; color: #000000;">}</span><span style="background-color: #f5f5f5; color: #800000;">
+    li</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      float</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> left</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      width</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 50%</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      height</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 200px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      padding</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 10px</span><span style="background-color: #f5f5f5; color: #000000;">;</span>
+    <span style="background-color: #f5f5f5; color: #000000;">}</span><span style="background-color: #f5f5f5; color: #800000;">
+    li img</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      display</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> inline-block</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      width</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 100%</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+      height</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 100%</span><span style="background-color: #f5f5f5; color: #000000;">;</span>
+    <span style="background-color: #f5f5f5; color: #000000;">}</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/1.jpg"</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/1.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/2.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/3.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/4.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/5.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/6.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/7.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/8.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/9.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/10.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/11.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/12.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/13.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/14.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/15.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> alt</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> data-src</span><span style="color: #0000ff;">="http://cdn.jirengu.com/book.jirengu.com/img/16.jpg"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+  <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> window绑定滚动事件</span>
+<span style="background-color: #f5f5f5; color: #000000;">  window.addEventListener(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">scroll</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,</span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;">(){
+    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 遍历所有的img标签</span>
+<span style="background-color: #f5f5f5; color: #000000;">    Array.prototype.slice.apply(document.getElementsByTagName(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">li</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)).forEach((li)</span><span style="background-color: #f5f5f5; color: #000000;">=&gt;</span><span style="background-color: #f5f5f5; color: #000000;">{
+      let img</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;">li.getElementsByTagName(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">img</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)[</span><span style="background-color: #f5f5f5; color: #000000;">0</span><span style="background-color: #f5f5f5; color: #000000;">];
+      </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 判断当前img是否出现在了视野中</span>
+      <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 判断当前img是否被加载过了</span>
+      <span style="background-color: #f5f5f5; color: #0000ff;">if</span><span style="background-color: #f5f5f5; color: #000000;">(checkShow(img) </span><span style="background-color: #f5f5f5; color: #000000;">&amp;&amp;</span> <span style="background-color: #f5f5f5; color: #000000;">!</span><span style="background-color: #f5f5f5; color: #000000;">isLoaded(img)){
+        loadImg(img);
+      }
+    })
+  });
+
+  </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 判断img是否出现浏览器视野中</span>
+  <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> checkShow(img) {
+    let scrollTop</span><span style="background-color: #f5f5f5; color: #000000;">=document.documentElement.scrollTop</span><span style="background-color: #f5f5f5; color: #000000;">; </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 页面向上滚动的高度</span>
+<span style="background-color: #f5f5f5; color: #000000;">    let windowHeight</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;">window.innerHeight; </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">浏览器自身高度</span>
+<span style="background-color: #f5f5f5; color: #000000;">    let offsetTop</span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;">img.offsetTop; </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">目标标签相对于document的高度</span>
+    <span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;"> (offsetTop </span><span style="background-color: #f5f5f5; color: #000000;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;"> scrollTop </span><span style="background-color: #f5f5f5; color: #000000;">&amp;&amp;</span><span style="background-color: #f5f5f5; color: #000000;"> offsetTop </span><span style="background-color: #f5f5f5; color: #000000;">&lt;</span><span style="background-color: #f5f5f5; color: #000000;">(windowHeight </span><span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> scrollTop));
+  }
+
+  </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 判断是否已经加载过</span>
+  <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> isLoaded(img) {
+    </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;"> img.getAttribute(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">src</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">)</span><span style="background-color: #f5f5f5; color: #000000;">===</span><span style="background-color: #f5f5f5; color: #000000;">img.getAttribute(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">data-src</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+  }
+
+  </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 加载图片</span>
+  <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> loadImg(img) {
+   img.setAttribute(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">src</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,img.getAttribute(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">data-src</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">));
+  }
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>好了，在浏览器中运行一下，第一次进页面如果不滚动滚轮的话什么也看不到，所以第一次进页面需要调用checkShow(),处于视野中的图片也加载出来。</p>
+<p>在代码最后加上：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">// 第一次进页面加载处于视野中的图片
+ Array.prototype.slice.apply(document.getElementsByTagName('li')).forEach((li)=&gt;{
+    let img=li.getElementsByTagName('img')[0];
+    // 判断当前img是否出现在了视野中
+    // 判断当前img是否被加载过了
+    if(checkShow(img) &amp;&amp; !isLoaded(img)){
+      loadImg(img);
+    }
+  })</pre>
+</div>
+<p><span style="font-size: 14px;">此时我们发现判断加载视野中的图片代码存在重复，直接封装成一个新的方法lazyRenderImg();</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> window绑定滚动事件</span>
+  window.addEventListener('scroll',<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 遍历所有的img标签</span>
+<span style="color: #000000;">    lazyRenderImg();
+  });
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> lazyRenderImg(){
+ Array.prototype.slice.apply(document.getElementsByTagName(</span>'li')).forEach((li)=&gt;<span style="color: #000000;">{
+      let img</span>=li.getElementsByTagName('img')[0<span style="color: #000000;">];
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 判断当前img是否出现在了视野中</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> 判断当前img是否被加载过了</span>
+      <span style="color: #0000ff;">if</span>(checkShow(img) &amp;&amp; !<span style="color: #000000;">isLoaded(img)){
+        loadImg(img);
+      }
+    })
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 第一次进页面加载处于视野中的图片</span>
+  lazyRenderImg();</pre>
+</div>
+<p><strong><span style="font-size: 18px;">&nbsp;三.性能优化</span></strong></p>
+<p>问题：window.scroll 方法页面只要一滚动就会触发里面的方法，对性能影响很大</p>
+<p>解决方法：当页面停止滚动的时候，再去执行页面中的方法，类似与函数节流（throttle）</p>
+<p>Tips:函数节流：等时间间隔执行函数， 让一个函数不要执行得太频繁，减少一些过快的调用来节流。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> window绑定滚动事件</span>
+<span style="color: #000000;">  let timer;
+  window.addEventListener(</span>'scroll',<span style="color: #0000ff;">function</span><span style="color: #000000;">(){<br />    console.log('scroll')
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 遍历所有的img标签</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;">(timer){
+      clearTimeout(timer)
+    }
+    timer</span>=setTimeout(()=&gt;<span style="color: #000000;">{<br />      console.log('lazyRenderImg...');
+      lazyRenderImg();
+    },</span>300<span style="color: #000000;">);</span></pre>
+</div>
+<p>通过打印的日志发现当滚动停止后才执行lazyRenderImg方法的，确实减少了不必要调用lazyRenderImg的次数。</p>
+<p><img src="./images/页面性能优化-原生JS实现图片懒加载1.png" alt="" width="632" height="276" /></p>
+<p>&nbsp; &nbsp; 页面性能优化之图片懒加载就写这么多了，网页优化还有很多方法与技巧，前端路漫漫其修远兮，吾将上下而求索。本文不足之处，请多指正。</p>
+<p>&nbsp;</p>
+<hr />
+<p>&nbsp;</p>
+<p>参考资料：</p>
+<p>https://www.jianshu.com/p/1b32e16ed0e5</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 18px;">&nbsp;</span></strong></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

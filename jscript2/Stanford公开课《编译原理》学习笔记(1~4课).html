@@ -1,0 +1,217 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Stanford公开课《编译原理》学习笔记(1~4课)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Stanford公开课《编译原理》学习笔记(1~4课)</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11552517.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-编译的基本流程">一. 编译的基本流程</a></li>
+        <li><a href="#二.-lexical-analysis词法分析阶段">二. Lexical Analysis(词法分析阶段)</a><ul>
+        <li><a href="#lexical-specification分词原则">2.1 Lexical Specification(分词原则)</a></li>
+        <li><a href="#finite-automata-典型分词算法-有穷自动机">2.2 Finite Automata (典型分词算法-有穷自动机)</a></li>
+        </ul></li>
+        <li><a href="#三.-手动实现分词器">三. 手动实现分词器</a><ul>
+        <li><a href="#基本定义">3.1 基本定义</a></li>
+        <li><a href="#构建dfa">3.2 构建DFA</a></li>
+        <li><a href="#开始分词">3.3 开始分词</a></li>
+        <li><a href="#查看分词结果">3.4 查看分词结果</a></li>
+        </ul></li>
+        <li><a href="#四.-小结">四. 小结</a></li>
+        </ul>
+    </div>
+</div>
+<blockquote>
+<p>示例代码托管在：<a href="https://github.com/dashnowords/blogs/tree/master/Demo/compiler/lexcical_analysis">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<p>B站地址：<a href="https://www.bilibili.com/video/av27845355">【编译原理】</a></p>
+<p>Stanford公开课：<a href="https://lagunita.stanford.edu">【Stanford大学公开课官网】</a></p>
+<blockquote>
+<p>课程里涉及到的内容讲的还是很清楚的，但个别地方有点脱节，任何看不懂卡住的地方，请自行查阅经典著作<strong>《Compilers——priciples, Techniques and Tools》</strong>(也就是大名鼎鼎的龙书）的对应章节。</p>
+</blockquote>
+<h2 id="一.-编译的基本流程">一. 编译的基本流程</h2>
+<p>完整的编译的5个基本步骤包括<code>lexcical anlysis</code>,<code>parse</code>,<code>sematic</code>,<code>optimize</code>,<code>code generate</code>。课程中并没有使用复杂的编程语言，而是一种用于课堂教学的自发明语言COOL，很明显老师为它写好了编译器程序。</p>
+<h2 id="二.-lexical-analysis词法分析阶段">二. Lexical Analysis(词法分析阶段)</h2>
+<p>任务：将字符串分解成为<code>[Type, (Value)]</code>元组的形式的词法单元。</p>
+<blockquote>
+<p>“龙书”里的示例更为直观，例如表达式语句 <code>E = M * C ** 2</code>进行词法分析后会得到如下的类似结果：</p>
+<p>[<code>id</code>,指向符号表中E的条目的指针]</p>
+<p>[<code>assign_op</code>]</p>
+<p>[<code>id</code>,指向符号表中M的条目的指针]</p>
+<p>[<code>mult_op</code>]</p>
+<p>[<code>id</code>,指向符号表中C的条目的指针]</p>
+<p>[<code>exp_op</code>]</p>
+<p>[<code>number</code>,整数值2]</p>
+</blockquote>
+<p>词法分析基本需要经历如下几个阶段：</p>
+<p><code>Lexical Specification</code>——&gt;<code>Regular expressions</code>——&gt;<code>NFA</code>——&gt;<code>DFA</code>——&gt;<code>Table-driven Implementation of DFA</code></p>
+<h3 id="lexical-specification分词原则">2.1 Lexical Specification(分词原则)</h3>
+<p>COOL中的基本<code>Type</code>包括如下几个类别：</p>
+<ul>
+<li><code>Indentifier</code>标识符-指以字母开头后续为若干个字母或数字的字符组</li>
+<li><code>Integer</code>-指一组非空的数字字符</li>
+<li><code>Keyword</code>- 指语言中的关键词，例如<strong>if</strong>，<strong>else</strong>等</li>
+<li><code>Whitespace</code>- 指一组非空的空格字符或换行符或制表符</li>
+</ul>
+<p>很多程序设计语言中的分词原则基本都会覆盖<strong>关键字</strong>，<strong>运算符</strong>，<strong>标识符</strong>，<strong>常量</strong>，<strong>标点符号</strong>，他们也会在后面的实现中被作为终止符集合，课程板书中也提供了COOL分词原则的类正则形式。</p>
+<p><img src="./images/Stanford公开课《编译原理》学习笔记(1~4课)0.png" /></p>
+<p>分词时类型的正则匹配默认为贪婪模式，即匹配更多的字符。词法单元也具备一定的优先级次序（通常也是代码逻辑的实现顺序），例如<code>if</code>从正则上来判断既符合<code>Keywords</code>也符合<code>Identifier</code>，此时该单元的类型就应该标记为<code>Keywords</code>。这个阶段就完成了从<code>Lecical Specification</code>——&gt;<code>Regular expressions</code>的部分。</p>
+<h3 id="finite-automata-典型分词算法-有穷自动机">2.2 Finite Automata (典型分词算法-有穷自动机)</h3>
+<p><strong>FA</strong>是一个可以自动识别词法单元的机器，它是一个状态转换图，“有限”是指它包含的状态是有限的，一个状态读入一个字符后，后继的状态可能为：</p>
+<ul>
+<li>后继状态为自身</li>
+<li>后继状态只有一个</li>
+<li>后继状态有多个</li>
+</ul>
+<p>如果每次转换后的后继状态都是唯一的，则称为<code>DFA</code>（确定有限自动机），如果后继状态可能有多个则称为<code>NFA</code>（不确定有限状态机）。由于<code>DFA</code>的状态转移路径是唯一的，所以作为状态查询图时，无论成功或者失败只需要运行一次，但<code>NFA</code>就可能需要运行多次。</p>
+<p>正则表达式是可以转换为<code>NFA</code>形式的，或许你已经在一些可视化正则表达式的网站上[<a href="https://regexper.com/">https://regexper.com</a> ]见过类似的形式。下图比较清晰地展示了从正则表达式到<code>NFA</code>状态图的转换规则(<code>Regular expressions</code>——&gt;<code>NFA</code>)：</p>
+<p><img src="./images/Stanford公开课《编译原理》学习笔记(1~4课)1.png" /></p>
+<p>如果一个<code>DFA</code>和一个<code>NFA</code>能够识别的字符集是一致的，则称它们为等价的，对于任意<code>NFA</code>，一定存在一个<code>DFA</code>与其等价，由<code>NFA</code>构建<code>DFA</code>的过程被称为<strong>DFA的确定化</strong>，也就是<code>NFA</code>——&gt;<code>DFA</code>的过程。这个过程是围绕<code>ε -closure</code>状态集合的概念展开的，大致的过程就是从起点开始，每次将当前状态和通过若干次<code>ε转换</code>（它是一个特殊的状态转移函数，表示转换后的状态还是当前状态）作为一个新的<code>ε -closure</code>状态集合 ，使用矩阵记录每个<code>ε -closure</code>集合转换前后的集合，最后对整个状态转移矩阵进行标记重命名，就可以得到一个<code>DFA</code>，事实上转化后的<code>DFA</code>中的每一个状态，就是<code>NFA</code>中的一个<code>ε -closure</code>集合，你可以将它理解成一个通过分组来简化表达方式的过程，相关的过程可以参考下面这个文章<a href="https://wenku.baidu.com/view/093b4a15a8114431b90dd842.html">西北农林科技大学编译原理课程PPT【词法分析】</a>，里面图比较多，能够辅助理解，本文不再赘述。</p>
+<h2 id="三.-手动实现分词器">三. 手动实现分词器</h2>
+<p>至此1-4课就结束了，估计看视频课程的人也是一脸懵逼，因为课程并没有讲解如何利用<code>DFA</code>得到最终期望的形式——<code>Token</code>元组，那么最后我们就自己手动来实现一下。</p>
+<h3 id="基本定义">3.1 基本定义</h3>
+<p>假设我们需要对下面这段代码进行分词解析：</p>
+<pre><code><code>let snippet = `
+var b3 = 2;
+a = 1 + ( b3 + 4);
+return a;
+`;</code></pre>
+<p>那么先来进行一些基本类型集合定义：</p>
+<pre><code><code>//解析结束标记
+const EOF = undefined;
+
+//Token Type 可识别的Token类型，
+const TT = {
+    num: &#39;num&#39;,
+    id: &#39;id&#39;,
+    keywords: &#39;keywords&#39;, //var | return 
+    lparen: &#39;lparen&#39;,// (
+    rparen: &#39;rparen&#39;,// )
+    semicolon: &#39;semicolon&#39;, //;
+    whitespace: &#39;whitespace&#39;, // \n | \t | \s  (空格，制表符，换行符) 
+    plus: &#39;plus&#39;, // +
+    assign: &#39;assign&#39;,// =
+}
+
+// 状态集类型，除开始和结束外，其他可以与Token支持的类型相对应，每次分词从start状态开始，接收一个字符后改变状态，直到在done状态结束时，可以得到一个token
+const S = {
+    start: &#39;start&#39;,
+    done: &#39;done&#39;,
+    ...TT
+}</code></pre>
+<p>进行工具函数定义：</p>
+<pre><code><code>//判断是否为关键词(为简化流程，仅检测上面示例中包含的关键词)
+const isKeywords = (token) =&gt; [&#39;function&#39;, &#39;return&#39;, &#39;if&#39;, &#39;var&#39;].includes(token);
+
+//判断是否为数字
+const isDigit = c =&gt; /\d/.test(c);
+
+//判断是否为合法的标识符字符
+const isValidId = c =&gt; /[A-Za-z0-9]/.test(c);
+
+//判断是否为空格
+const isBlank = c =&gt; /(\s|\t|\n)/.test(c);</code></pre>
+<h3 id="构建dfa">3.2 构建DFA</h3>
+<p>以上面定义的状态集合和<code>token</code>类别为依据构建<code>DFA</code>:</p>
+<p><img src="./images/Stanford公开课《编译原理》学习笔记(1~4课)2.png" /></p>
+<h3 id="开始分词">3.3 开始分词</h3>
+<p>分词的逻辑实际上就是，每次先将状态置为<code>start</code>,然后读入一个字符，根据该字符判断下一个状态，只要没有到达完成状态<code>done</code>就继续读入字符，每次到达<code>done</code>状态时，就可以得到一个<code>token</code>，将其记录下来，然后重新将状态置为<code>start</code>，开始寻找下一个<code>token</code>直到分析完整个代码段。<strong>也就是说<code>DFA</code>状态机每运行一轮，就得到一个<code>token</code></strong>。参考代码如下：</p>
+<pre><code><code>/**
+ * 词法分析
+ */
+function tokenize(code) {
+    let state = S.start;
+    let currentToken;//标记当前寻找到的token
+    let index = 0;//起始指针,每次分析指向start状态
+    let lookup = 0;//前探指针,每次分析最终指向done状态，start-&gt;done之间的字符即为token
+
+    while (code[lookup] !== EOF) { //如果还有字符
+
+        while (state !== S.done) { //开始拆分token
+
+            //获取下一个字符
+            let c = code[lookup++];
+            //根据当前状态和下一个字符判断DFA如何跳转
+            switch (state) {
+                case S.start: //开始为空集,实现DFA中各个状态转移分支
+                    if (isDigit(c)) {
+                        state = S.num;
+                    } else if (isValidId(c)) {
+                        state = S.id;
+                    } else if (isBlank(c)) {
+                        state = S.done;
+                    } else if (c === &#39;=&#39;) {
+                        currentToken = [TT.assign, &#39;=&#39;]
+                        state = S.done;
+                    } else if (c === &#39;+&#39;) {
+                        currentToken = [TT.plus, &#39;+&#39;]
+                        state = S.done;
+                    } else if (c === &#39;;&#39;) {
+                        currentToken = [TT.semicolon, &#39;;&#39;]
+                        state = S.done;
+                    };
+                break;
+                case S.num: //如果是整数
+                    if (isDigit(c)) {
+                        state = S.num;
+                    } else {
+                        currentToken = [TT.num, code.slice(index,lookup - 1)];
+                        lookup -= 1; //从数字状态跳出后，最后一位需要参与下一轮分词，故回退一位
+                        state = S.done;
+                    }
+                break;
+                case S.id: //如果是标识符状态
+                    if (isValidId(c)) {
+                        state = S.id;
+                    } else {
+                        let tempToken = code.slice(index,lookup - 1);
+                        lookup -= 1; //从标识符状态跳出后，最后一位需要参与下一轮分词，故回退一位
+                        if (isKeywords(tempToken)) {
+                            currentToken = [TT.keywords, tempToken];
+                        }else{
+                            currentToken = [TT.id, tempToken];
+                        }
+                        state = S.done;
+                    }
+                break;                 
+            }
+        }
+        //state = S.done时跳出
+        currentToken &amp;&amp; console.log(currentToken);
+        currentToken = undefined;
+
+        //起指针跟上末指针
+        index = lookup;
+
+        //开始下一轮分词
+        state = S.start;
+    }
+}</code></pre>
+<h3 id="查看分词结果">3.4 查看分词结果</h3>
+<p>运行上述代码即可看到目标程序片段的分词结果：</p>
+<p><img src="./images/Stanford公开课《编译原理》学习笔记(1~4课)3.png" /></p>
+<h2 id="四.-小结">四. 小结</h2>
+<p>至此，我们就得到了元组形式的分词结果，完成了编译中第一步<code>lexical analysis</code>的部分，笔者同时提供了一份包含<code>token</code>所在行列信息的版本，你可以从附件或<a href="https://github.com/dashnowords/blogs/tree/master/Demo/compiler/lexcical_analysis">【我的github仓库】</a>中拿到示例代码，如果觉得对你有帮助，可以在github上为我加个星星哦~</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

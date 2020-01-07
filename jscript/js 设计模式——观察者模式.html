@@ -1,0 +1,135 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js 设计模式——观察者模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js 设计模式——观察者模式</center></div><div class='banquan'>原文出处:本文由博客园博主妖色调提供。<br/>
+原文连接:https://www.cnblogs.com/loveyt/p/10778986.html</div><br>
+    <h1 id="观察者模式">观察者模式</h1>
+<h4 id="定义">定义</h4>
+<p>观察者模式（又被称为发布-订阅（Publish/Subscribe）模式，属于行为型模式的一种，它定义了一种一对多的依赖关系，让多个观察者对象同时监听某一个主题对象。这个主题对象在状态变化时，会通知所有的观察者对象，使他们能够自动更新自己</p>
+<h4 id="注意观察者模式和发布订阅是有不同的">注意（观察者模式和发布订阅是有不同的）</h4>
+<h3 id="区别">区别</h3>
+<blockquote>
+<p><strong>观察者模式</strong> 在软件设计中是一个对象，维护一个依赖列表，当任何状态发生改变自动通知它们。</p>
+</blockquote>
+<blockquote>
+<p><strong>发布-订阅模式</strong> 消息的发送方，叫做发布者（publishers），消息不会直接发送给特定的接收者，叫做订阅者。</p>
+</blockquote>
+<p><img src="./images/js 设计模式——观察者模式0.png" /></p>
+<p>左边相当于微信里的微商-顾客之间的关系。右边相当于商家-淘宝-顾客之间的关系</p>
+<p>观察者模式：顾客关注了微商的商品，微商会记住顾客关注的商品，一旦上新就直接 私聊 通知所有关注这个商品的顾客。这里的顾客就相当于观察者，这里的微商就相当于主题</p>
+<p>订阅发布模式：顾客通过淘宝（APP或者网站）关注了商家的商品，商家一旦上新就通过淘宝（APP或者网站）向关注了它的顾客 群发 消息。这里的顾客就是订阅者，这里的淘宝就是事件总线，这里的商家就是发布者</p>
+<h3 id="dom事件">DOM事件</h3>
+<p>只要我们曾经在DOM节点上面绑定过事件函数，那我们就使用过观察者模式，应为JS和DOM之间就是实现了一种观察者模式</p>
+<pre><code><code>document.body.addEventListener(&quot;click&quot;, function() {
+    alert(&quot;Hello World&quot;)
+}，false )
+document.body.click() //模拟用户点击</code></pre>
+<h3 id="自定义一个简单的小例子">自定义一个简单的小例子</h3>
+<pre><code><code>// 定义商家
+let merchants = {}
+// 定义预定列表
+merchants.orderList = {}
+// 将增加的预订者添加到预定客户列表中
+merchants.listen = function(id, info) {
+  if(!this.orderList[id]) {
+    this.orderList[id] = []
+  }
+  this.orderList[id].push(info)
+  console.log(&#39;预定成功&#39;)
+}
+//发布消息
+merchants.publish = function(id) {
+  let infos = this.orderList[id]
+  // 判断是否有预订信息
+  if(!infos || infos.length === 0) {
+    console.log(&#39;您还没有预订信息!&#39;)
+    return
+  }
+  // 如果有预订信息，则循环打印
+  infos.forEach((el, index) =&gt; {
+    console.log(&#39;尊敬的客户：&#39;)
+    el.call(this, arguments)
+    console.log(&#39;已经到货了&#39;)
+  })
+}
+merchants.remove = function(id, fn) {
+  // 撤销订单 
+  var infos = this.orderList[id]
+  if(infos instanceof Array){
+    infos.forEach((el, index) =&gt; {
+      el === fn &amp;&amp;  this.orderList[id].splice(index, 1)
+    })
+  }
+  console.log(&#39;撤销成功&#39;)
+}
+// 定义一个预订者customerA，并指定预定信息
+let customerA = function() {
+    console.log(&#39;黑色至尊版一台&#39;)
+}
+let customerB = function() {
+    console.log(&#39;白色至尊版一台&#39;)
+}
+let customerC = function() {
+    console.log(&#39;红色至尊版一台&#39;)
+}
+// customerA 预定手机，并留下预约电话
+merchants.listen(&#39;15888888888&#39;, customerA) // 预定成功
+merchants.listen(&#39;15888888888&#39;, customerB) // 预定成功
+merchants.listen(&#39;15777777777&#39;, customerB) // 预定成功
+merchants.listen(&#39;15777777777&#39;, customerC) // 预定成功
+merchants.remove(&#39;15888888888&#39;, customerB) // 撤销成功
+// 商家发布通知信息
+merchants.publish(&#39;15888888888&#39;)
+merchants.publish(&#39;15777777777&#39;)
+
+预定成功
+预定成功
+预定成功
+预定成功
+撤销成功
+尊敬的客户：
+黑色至尊版一台
+已经到货了
+尊敬的客户：
+白色至尊版一台
+已经到货了
+尊敬的客户：
+红色至尊版一台
+已经到货了</code></pre>
+<h3 id="优缺点">优缺点</h3>
+<h4 id="优点">优点：</h4>
+<ul>
+<li>时间上的解耦</li>
+<li>对象之间的解耦</li>
+</ul>
+<h4 id="缺点">缺点：</h4>
+<ul>
+<li>创建订阅者本身要消耗一定的时间和内存</li>
+<li>当订阅一个消息时，也许此消息并没有发生，但这个订阅者会始终存在内存中。</li>
+<li>观察者模式弱化了对象之间的联系，这本是好事情，但如果过度使用，对象与对象之间的联系也会被隐藏的很深，会导致项目的难以跟踪维护和理解</li>
+</ul>
+<p>对于观察者模式还只是浅薄的认识，如有不对，还请大佬们指出，感谢(✿◕‿◕✿)</p>
+<p>参考链接</p>
+<p><a href="https://srtian96.gitee.io/blog/2018/05/21/JavaScript%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F%E4%B9%8B%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F/">JavaScript设计模式之观察者模式</a></p>
+<p><a href="https://molunerfinn.com/observer-vs-pubsub-pattern/#%E6%A6%82%E8%BF%B0">观察者模式VS订阅发布模式</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

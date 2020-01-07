@@ -1,0 +1,90 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一个有意思的js块作用域问题' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一个有意思的js块作用域问题</center></div><div class='banquan'>原文出处:本文由博客园博主帅气的丶坏小子提供。<br/>
+原文连接:https://www.cnblogs.com/yukixing/p/11604888.html</div><br>
+    <h2>1.问题</h2>
+<p><img src="./images/一个有意思的js块作用域问题0.png" alt="" /></p>
+<p><img src="./images/一个有意思的js块作用域问题1.png" alt="" /></p>
+<p>首先把问题放出来，昨天看了一个掘友发的一个问题，然后跟我同事一起研究了一下，没找出来是为什么，然后我回来一直在想为什么，然后各种找资料研究，从各个方面找为什么，比如js上下文，作用域，js垃圾回收，堆栈调用情况等等。</p>
+<h2>2.js断点调试找答案</h2>
+<p>首先如果不看上面的图，以你现在知道的js知识，你觉得打印出来应该是什么。第二张图其实打印出来的结果在意料之中，原因就是函数声明提升，没问题，但是第一张图为什么呢？这里可以发散一下思维，比如说是不是在块作用域中，变量和函数之间存在某种互相覆盖的问题啊，或者说先在块中声明的会被挂载到全局的window对象下面，后面声明的就挂载不上去了，并且不会覆盖，然后可以把代码稍微改改，验证一下你的思想，很有意思。然后下面我们断点调试看下：</p>
+<p><img src="./images/一个有意思的js块作用域问题2.png" alt="" /></p>
+<div>首先进花括号一步都没走的时候，但是a和b已经挂载到全局变量的window对象下面了，这就说明代码块中隐式声明的变量是全局变量（这句话不对，此时挂载到window对象下面的，其实是函数挂的，并不是隐式变量是全局变量的原因挂上去的参考文章这篇文章，基本是这个问题的答案了，解释了为什么，链接：<a href="https://juejin.im/post/5d90ae9ef265da5b646480a0">https://juejin.im/post/5d90ae9ef265da5b646480a0</a>），代码相当于这样：</div>
+<p><img src="./images/一个有意思的js块作用域问题3.png" alt="" /></p>
+<p>此时我们再看a在<span class="juejin-editor-bold">块作用域中就已经是方法了，注意此时我<code>function a(){}</code>这段代码还没走完呢，这就说明函数声明在js解析<span class="juejin-editor-bold">(注意是解析不是执行)的时候被提升到了代码块顶部，进花括号的那一刻起，函数就已经被声明了，我们再往下面一步走</span></span></p>
+<p><img src="./images/一个有意思的js块作用域问题4.png" alt="" /></p>
+<p>此时a不管在<span class="juejin-editor-bold">块作用域还是<span class="juejin-editor-bold">全局作用域中都变成了a函数，那这里是不是可以理解为运行上面一行代码，然后就给全局变量下的a赋值为函数呢，我们再看下一步</span></span></p>
+<p><img src="./images/一个有意思的js块作用域问题5.png" alt="" /></p>
+<p>当<code>a=50;</code>走完之后，也就出了<span class="juejin-editor-bold">块作用域，此时我们看到没有了<span class="juejin-editor-bold">块作用域，因为已经出了块作用域了，然后<span class="juejin-editor-bold">全局对象window里面a还是函数，并不是50，但是如果你在<span class="juejin-editor-bold">块作用域a后面加一行的断点看的话，此时<span class="juejin-editor-bold">块作用域里面的a的值为50，问题就在这里，为什么此时块作用域里面的a的值跟全局window对象下面的值结果不一样呢？</span></span></span></span></span></p>
+<p><img src="./images/一个有意思的js块作用域问题6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>然后我们再往下走一步：</p>
+<p><img src="./images/一个有意思的js块作用域问题7.png" alt="" /></p>
+<p>然后进第二个块作用域，发现跟前面进第一个块作用域一样，还没执行第一行，块作用域里面的b已经是函数了，原因也跟第一个一样js解析的时候函数声明提升，然后我们再往下走一步：</p>
+<p><img src="./images/一个有意思的js块作用域问题8.png" alt="" /></p>
+<p>这一步走完我们发现块<span class="juejin-editor-bold">作用域里面的b已经变成50了，但是<span class="juejin-editor-bold">全局window对象下面的b还是undefined，这我也不知道为什么，那我也就只能说此时b是定义在块作用域中的内部变量了，再往下走一步</span></span></p>
+<p><img src="./images/一个有意思的js块作用域问题9.png" alt="" /></p>
+<p>但是当我走出块作用域的时候，b竟然在全局对象下变成了50，那就证明我上面说的不对，b不是块作用域中的内部变量，因为此时执行完方法立马就出块作用域了，我们看的不是很清楚，我们在方法下面加一行代码，方便调试看结果：</p>
+<p><img src="./images/一个有意思的js块作用域问题10.png" alt="" /></p>
+<p>确实是当我b函数那一步走完，块作用域和全局对象window下面的b都变成了50，那我这里我就认为是函数b在js解析的时候就被提升到了块作用域的最上面，执行到b函数那一步其实在之前就已经执行过了，相当于js执行的时候代码变成下面这样：</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<pre><code>{
+    function b() {};
+    b = 50;
+}</pre>
+<p>&nbsp;</p>
+<p>我们再看这个代码不正是上面a那一个块作用域的代码吗，所以在块作用域中js执行的时候上下两个块作用域中是一样的，所以在块作用域中打印a，b得到的结果都是50，然后下一步：</p>
+<p><img src="./images/一个有意思的js块作用域问题11.png" alt="" /></p>
+<p>出了块作用域，就只有全局对象window了，然后window对象下面的b还是50，所以最后打印出来也是50。走到这一步就所有的步骤都走完了，那么我们再回头看上面的a为什么块作用域中的值跟window对象下面的a的值不一样，通过走完下面一个代码块我们发现上面代码块跟下面代码块只有函数放的位置不一样，结果就不一样，那我们就看一下这里函数声明提升到底是怎么提升的。</p>
+<h2>3.块作用域中的函数声明提升</h2>
+<p>然后我就找到阮一峰博客里面写的关于es6块级作用域的文章：</p>
+<p><a href="http://es6.ruanyifeng.com/#docs/let#%E5%9D%97%E7%BA%A7%E4%BD%9C%E7%94%A8%E5%9F%9F">http://es6.ruanyifeng.com/#docs/let#%E5%9D%97%E7%BA%A7%E4%BD%9C%E7%94%A8%E5%9F%9F</a></p>
+<p>另一篇关于js变量的生命周期的文章：</p>
+<p><a href="https://dmitripavlutin.com/variables-lifecycle-and-why-let-is-not-hoisted/">https://dmitripavlutin.com/variables-lifecycle-and-why-let-is-not-hoisted/</a></p>
+<p>在第一篇文章中，看见里面有真么一段话：</p>
+<p><img src="./images/一个有意思的js块作用域问题12.png" alt="" /></p>
+<div>然后找到这么一句话，我就点链接进去看：</div>
+<div><a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-block-level-function-declarations-web-legacy-compatibility-semantics">http://www.ecma-international.org/ecma-262/6.0/index.html#sec-block-level-function-declarations-web-legacy-compatibility-semantics</a></div>
+<p><img src="./images/一个有意思的js块作用域问题13.png" alt="" /></p>
+<div>发现es6规范里面真的有对代码块作用域的一些规定，但是我也没太看懂，反正能确定跟这有关系。然后我又点击了另一个行为方式的链接进去看：</div>
+<div><a href="https://stackoverflow.com/questions/31419897/what-are-the-precise-semantics-of-block-level-functions-in-es6#comment50817344_31419897">https://stackoverflow.com/questions/31419897/what-are-the-precise-semantics-of-block-level-functions-in-es6#comment50817344_31419897</a></div>
+<p><img src="./images/一个有意思的js块作用域问题14.png" alt="" /></p>
+<div>然后在这个回答里找到这么一个回答，这个回答说代码块作用域中定义的函数类似于var定义的变量，（前面阮一峰博客里也是这么说的），然而第二个绑定仅在块内部可见，也就是说，第二个绑定在外面是访问不到的，那用这段话来解释我们代码的话就是先不管代码块中的函数声明提升，然后从上面往下运行，看见第一个就绑定到全局的window对象上，第二个就只在函数作用域内可见，那这样的话我如果在代码块内部打印，那结果应该是谁在后面定义我们就打印谁啊，而打印的结果却是证明了函数提升存在的。所以这个好像也解释不通。然后从这个回答里面我又找到一个这个链接：</div>
+<div><a href="https://github.com/estools/escope/issues/73">https://github.com/estools/escope/issues/73</a></div>
+<p><img src="./images/一个有意思的js块作用域问题15.png" alt="" /></p>
+<div>然后的然后我就不知道该怎么去看这个问题了，但是我相信应该接近答案了，或许答案就藏在上面es6规范B3.3里面的某个点。当然也可以从调用栈，js垃圾回收，js上下文，js引擎执行解析过程，函数与变量声明创建原理等等各个方面去分析，这应该是一个值得去分析思考的问题，同时也是很有意思的一个问题，相信你是能学到一些东西的，下面有一些参考链接，如果感兴趣可以研究一下，在平常写代码的时候可能永远也不会遇到，很有意思的问题。</div>
+<div>参考资料：</div>
+<div>1.<a href="http://es6.ruanyifeng.com/#docs/let#%E5%9D%97%E7%BA%A7%E4%BD%9C%E7%94%A8%E5%9F%9F">http://es6.ruanyifeng.com/#docs/let#%E5%9D%97%E7%BA%A7%E4%BD%9C%E7%94%A8%E5%9F%9F</a></div>
+<div>2.<a href="http://www.ecma-international.org/ecma-262/6.0/index.html#sec-block-level-function-declarations-web-legacy-compatibility-semantics">http://www.ecma-international.org/ecma-262/6.0/index.html#sec-block-level-function-declarations-web-legacy-compatibility-semantics</a></div>
+<div>3.<a href="https://stackoverflow.com/questions/31419897/what-are-the-precise-semantics-of-block-level-functions-in-es6#comment50817344_31419897">https://stackoverflow.com/questions/31419897/what-are-the-precise-semantics-of-block-level-functions-in-es6#comment50817344_31419897</a></div>
+<div>4.<a href="https://github.com/estools/escope/issues/73">https://github.com/estools/escope/issues/73</a></div>
+<div>5.<a href="https://dmitripavlutin.com/javascript-hoisting-in-details/">https://dmitripavlutin.com/javascript-hoisting-in-details/</a></div>
+<div>6.<a href="https://dmitripavlutin.com/variables-lifecycle-and-why-let-is-not-hoisted/">https://dmitripavlutin.com/variables-lifecycle-and-why-let-is-not-hoisted/</a></div>
+<div>7.<a href="https://fangyinghang.com/let-in-js/">https://fangyinghang.com/let-in-js/</a></div>
+<div>8.<a href="https://eslint.org/docs/rules/no-inner-declarations">https://eslint.org/docs/rules/no-inner-declarations</a></div>
+<div>9.<a href="https://www.cnblogs.com/liuhe688/p/5891273.html">https://www.cnblogs.com/liuhe688/p/5891273.html</a></div>
+<div>10.<a href="https://github.com/Advanced-Frontend/Daily-Interview-Question/issues/133">https://github.com/Advanced-Frontend/Daily-Interview-Question/issues/133</a></div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

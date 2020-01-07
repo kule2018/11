@@ -1,0 +1,119 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue axios 拦截器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue axios 拦截器</center></div><div class='banquan'>原文出处:本文由博客园博主码农变身程序员提供。<br/>
+原文连接:https://www.cnblogs.com/lihengbin/p/11376738.html</div><br>
+    <h2>前言</h2>
+<p>项目中需要验证登录用户身份是否过期，是否有权限进行操作，所以需要根据后台返回不同的状态码进行判断。</p>
+<p>第一次使用拦截器，文章中如有不对的地方还请各位大佬帮忙指正谢谢。</p>
+<h2>正文</h2>
+<p>axios的拦截器分为请求拦截器和响应拦截器两种。<br />我一般把拦截器写在main.js里。</p>
+<div class="cnblogs_Highlighter">
+<pre><code><span style="font-family: 黑体; font-size: 16px;">mian.js<br /></span>//axios请求
+import Axios from "axios";
+Vue.prototype.$axios = Axios; </pre>
+</div>
+<h3>请求拦截器</h3>
+<div class="cnblogs_Highlighter">
+<pre><code>axios.interceptors.request.use(
+    function (config) {
+        // 在发送请求之前做些什么，例如加入token
+        .......
+        return config;
+    },
+    function (error) {
+        // 对请求错误做些什么
+        return Promise.reject(error);
+    }
+)</pre>
+</div>
+<h3>响应拦截器</h3>
+<div class="cnblogs_Highlighter">
+<pre><code>axios.interceptors.response.use(
+    function (response) {
+        // 在接收响应做些什么，例如跳转到登录页
+        ......
+        return response;
+    }, 
+    function (error) {
+        // 对响应错误做点什么
+        return Promise.reject(error);
+     }
+)</pre>
+</div>
+<p>这两种拦截器中我只用了响应拦截器，现在我就来说说我是如何使用的。</p>
+<p>首先说明一下，这里的状态码不是status，而是后台包在data中的（无论是成功还是失败），返回409表示用户账户过期，退到登录页，返回302表示没有权限，返回-1则是系统错误</p>
+<div class="cnblogs_Highlighter">
+<pre><code>// 拦截器，当返回状态码是409，踢出到登录页面，但所有请求都是异步的，如果在某个地方有多个请求，拦截器就会拦截多遍，弹框也会弹多次，用户体验差，
+// 所以当第一次拦截成功后，后面就不需要拦截，所以在这写了个操作，
+// 操作：如果第一次拦截成功，在sessionStorage中存储个标识，然后下次拦截进来时判断有没有这个标识，如果有，则不进行拦截操作，当没有拦截时将这个标识从sessionStorage中删除
+Axios.interceptors.response.use(
+　　// 成功
+    function(response) {
+        // 返回
+        // return response; 
+        // alert(response.status) //成功的Status
+        if (response.data.code == "409"){
+　　　　　　　var kickOut = sessionStorage.getItem("kickOut");
+　　　　　　　if (kickOut == "1") {
+　　　　　　　　　return;
+　　　　　　　}
+　　　　　　　sessionStorage.setItem("kickOut", "1");
+　　　　　　　router.push("/");
+　　　　　　　ElementUI.MessageBox(
+　　　　　　　　　"账号已经在其他地方登录，请重新登录！",
+　　　　　　　　　"警告", 
+　　　　　　　　　{
+　　　　　　　　　　　confirmButtonText: "确定"
+　　　　　　　　　}
+　　　　　　　)
+　　　　　} else if(response.data.code == "302"){
+　　　　　　　　ElementUI.Message({
+        　　　　　message: '没有权限!',
+　　　　　　　　　 type:'warning' 
+    　　　　　 });
+　　　　  }else {
+　　　　　　　　sessionStorage.removeItem("kickOut");
+　　　　　　　　return response;
+　　　　　}
+　　　},
+　　　// 失败
+　　　function(error) {
+        // alert(error.response.status) //失败的Status
+        if (error.response.data.code == "409") {
+            ......  //和成功中的一样,可以封装成一个函数在这调用
+        }else if(error.response.data.code == "-1"){
+　　　　 　　ElementUI.Message({
+        　　　　　message: '系统错误!',
+　　　　　　　　　 type:'warning' 
+    　　　　})
+        }
+    }
+);
+</pre>
+</div>
+<p>&nbsp;注意：</p>
+<p>　　后台返回的status状态码302拦截不到，是因为浏览器自行根据redirectUrl进行了跳转 ，我这是后台写了个302接口，返回值中给我放的302，如图所示　　　　　　</p>
+<p>　　　　　　　　<img src="./images/vue axios 拦截器0.png" alt="" /></p>
+<p>&nbsp;总结：</p>
+<p>　　以上就是本文的全部内容了，希望对遇到该问题的猿们有所帮助，也希望大家多多支持本码农，如有问题，请留言！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

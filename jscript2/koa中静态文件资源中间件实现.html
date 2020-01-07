@@ -1,0 +1,103 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修koa中静态文件资源中间件实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>koa中静态文件资源中间件实现</center></div><div class='banquan'>原文出处:本文由博客园博主yinping提供。<br/>
+原文连接:https://www.cnblogs.com/yinping/p/10722897.html</div><br>
+    <p>项目实践过程中，会使用非常多的静态资源，怎样可以直接在浏览器中访问到这些静态资源</p>
+<ul>
+<li style="list-style-type: none;">
+<ul>
+<li>
+<div class="cnblogs_code">
+<pre><code>const fs = require('fs'<span style="color: #000000;">);
+const path </span>= require('path'<span style="color: #000000;">);
+
+module.exports </span>= (dirpath = "./public") =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> async (ctx, next) =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (ctx.url.indexOf("/public") === 0<span style="color: #000000;">) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">public 开头 读取文件</span>
+            const url = path.resolve(__dirname, dirpath);
+            <span style="color: #008000;">//</span><span style="color: #008000;"> path.basename(p, [ext])</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> 提取出用&lsquo;/&rsquo;隔开的path的最后一部分，ext是过滤字符</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> path.basename('/foo/bar/baz/asdf/quux.html', '.html') </span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> returns </span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> 'quux'</span>
+            const fileBaseName = path.basename(url); <span style="color: #008000;">// </span><span style="color: #008000;">public</span>
+            const filepath = url + ctx.url.replace("/public", "");   //得到文件目录
+<span style="color: #000000;">            console.log(filepath);
+          </span>
+            <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">判断是否是一个文件夹</span>
+                stats =<span style="color: #000000;"> fs.statSync(filepath);
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (stats.isDirectory()) {
+                    const dir </span>=<span style="color: #000000;"> fs.readdirSync(filepath);
+                    console.log(dir);  </span><span style="color: #008000;">//</span><span style="color: #008000;"> [ 'index.html', 'style.css' ]</span>
+<span style="color: #000000;">                    
+                    const ret </span>= ['&lt;div style="padding-left"&gt;'<span style="color: #000000;">];
+                    dir.forEach(filename </span>=&gt;<span style="color: #000000;"> {
+                        console.log(filename);
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">不带小数点的格式，就是文件夹</span>
+                        <span style="color: #0000ff;">if</span> (filename.indexOf(".") &gt; -1<span style="color: #000000;">) {
+                            ret.push(
+                                `</span>&lt;p&gt;&lt;a style="color:black" href="${ctx.url}/${filename}"&gt;${filename}&lt;/a&gt;&lt;/p&gt;<span style="color: #000000;">`)
+                        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                            </span><span style="color: #008000;">//</span><span style="color: #008000;">文件</span>
+                            ret.push(`&lt;p&gt;&lt;a href="${ctx.url}/${filename}"&gt;${filename}&lt;/a&gt;&lt;/p&gt;<span style="color: #000000;">`)
+                        }
+
+                    });
+                    ret.push(</span>"&lt;/div&gt;"<span style="color: #000000;">)
+                    ctx.body </span>= ret.join(""<span style="color: #000000;">);
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {<br />　　　　             //访问到的是一个文件，则直接读取内容
+                    console.log(</span>'文件'<span style="color: #000000;">);
+                    const content </span>=<span style="color: #000000;"> fs.readFileSync(filepath);
+                    ctx.body </span>=<span style="color: #000000;"> content;
+                }
+
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (error) {
+                ctx.body </span>= "404 ,not found"<span style="color: #000000;">;
+                console.log(error);
+                
+            }
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">否则不是静态资源，直接去下一个中间件</span>
+<span style="color: #000000;">            await next();
+        }
+    }
+}</span></pre>
+</div>
+<p>同时在我们的app文件中添加中间件的引用</p>
+</li>
+<li>
+<div class="cnblogs_code">
+<pre><code>const static = require('./static'<span style="color: #000000;">);
+app.use(static(</span>'./public'));</pre>
+</div>
+<p>便可以在浏览器中使用public目录来访问文件了</p>
+<ul>
+<li>参考文档<a href="https://www.gregjs.com/javascript/2016/checking-whether-a-file-directory-exists-without-using-fs-exists/">https://www.gregjs.com/javascript/2016/checking-whether-a-file-directory-exists-without-using-fs-exists/</a>&nbsp; 用来判断是否是一个文件夹</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

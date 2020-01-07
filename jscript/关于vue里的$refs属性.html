@@ -1,0 +1,87 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于vue里的$refs属性' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于vue里的$refs属性</center></div><div class='banquan'>原文出处:本文由博客园博主可可西里的骄傲提供。<br/>
+原文连接:https://www.cnblogs.com/layaling/p/11354333.html</div><br>
+    <p>vuejs的极大程度的帮助减少了对dom的操作，他主要通过添加ref属性，但是当获取this.$refs属性时，稍有不注意就会输出undefined导致我们对dom节点的操作报错。</p>
+<p>this.$refs.xxx为undefined的几种情况记录：</p>
+<p>1、在created里钩子函数中调用</p>
+<p>原因：<span style="color: #ff9900;">created（）在实例创建完成后被立即调用。在这一步，实例已完成以下的配置：数据观测 (data observer)，属性和方法的运算，watch/event 事件回调。然而，挂载阶段还没开始，<code>$el</code>&nbsp;属性目前不可见。所以this.$refs压根就调不到那个dom,因为页面还没有挂载上去。</span></p>
+<p>解决：在mounted () 钩子函数中调用</p>
+<p>注意：在此种情况中，元素节点一定是直接写在html中的，而不是通过数据或者条件渲染的</p>
+<p>2、数据或条件渲染（v-if,v-show）之后的调用</p>
+<p>原因：</p>
+<div>
+<div><span style="color: #ff9900;">/** ref</span></div>
+<div><span style="color: #ff9900;">本身作为渲染结果被创建，在初始渲染的时候不能访问他们，是不存在的</span></div>
+<div><span style="color: #ff9900;">$refs不是响应式的，只在组件渲染完成后才填充</span></div>
+<div><span style="color: #ff9900;">用于元素或子组件注册引用信息，注册完成，将会注册在父组件$refs对象上</span></div>
+<div><span style="color: #ff9900;">调用对象是否和v-if结合使用</span></div>
+<div><span style="color: #ff9900;">ref不是响应式的，所有的动态加载的模板更新它都无法相应的变化。</span></div>
+<div><span style="color: #ff9900;">*/</span></div>
+<div><span style="color: #000000;">解决：可以通过setTimeOut(()=&gt;{...}, 0)来实现</span></div>
+<div>&nbsp;</div>
+<div><span style="color: #000000;">代码说明：</span></div>
+<div>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div&gt;
+    &lt;p ref="testText"&gt;<span style="color: #0000ff;">this</span> is a test data&lt;/p&gt;
+    &lt;p v-<span style="color: #0000ff;">if</span>="msg" ref="msgText"&gt;{{msg}}&lt;/p&gt;
+    &lt;button @click="handleClick"&gt;点一下&lt;/button&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;<span style="color: #000000;">
+import { setTimeout } from </span>'timers'<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  data () {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      text: </span>'message show'<span style="color: #000000;">,
+      msg: </span>''<span style="color: #000000;">
+    }
+  },
+  created () {
+    console.log(</span><span style="color: #0000ff;">this</span>.$refs.testText)    <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> this.$refs.testText.style.color = '#f00'</span>
+<span style="color: #000000;">  },
+  mounted () {
+    console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.$refs.testText)  <span style="color: #008080;">//  &lt;p data-v-5752faac="" style="color: rgb(255, 0, 0);"&gt;this is a test data&lt;/p&gt;</span>
+    console.log(</span><span style="color: #0000ff;">this</span>.$refs.msgText)     <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+    <span style="color: #0000ff;">this</span>.$refs.testText.style.color = '#f00'<span style="color: #000000;">
+  },
+  methods: {
+    handleClick () {
+      </span><span style="color: #0000ff;">this</span>.msg = 'msg show'<span style="color: #000000;">
+      console.log(</span><span style="color: #0000ff;">this</span>.$refs.msgText)   <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+     <span style="color: #ff0000;"> setTimeout(() =&gt; {
+        this.$refs.msgText.style.color = '#eee'
+        console.log(this.$refs.msgText) // &lt;p data-v-5752faac="" style="color: rgb(238, 238, 238);"&gt;msg show&lt;/p&gt;
+      }, 0</span><span style="color: #000000;"><span style="color: #ff0000;">)</span>
+    }
+  }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,285 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11078891.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.概述">一.概述</a></li>
+        <li><a href="#二.-数据结构">二. 数据结构</a><ul>
+        <li><a href="#链表">2.1 链表</a></li>
+        <li><a href="#二叉堆">2.2 二叉堆</a></li>
+        </ul></li>
+        <li><a href="#三.-从settimeout理解timer模块源码">三. 从setTimeout理解Timer模块源码</a><ul>
+        <li><a href="#timers.js中的定义">3.1 <code>timers.js</code>中的定义</a></li>
+        <li><a href="#timeout类定义">3.2 <code>Timeout</code>类定义</a></li>
+        <li><a href="#activetimeout">3.3 active(timeout)</a></li>
+        <li><a href="#定时器的处理执行逻辑">3.4 定时器的处理执行逻辑</a></li>
+        <li><a href="#实例分析">3.5 实例分析</a></li>
+        </ul></li>
+        <li><a href="#四.-小结">四. 小结</a></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器0.png" /></p>
+<blockquote>
+<p>示例代码托管在：<a href="http://www.github.com/dashnowords/blogs" class="uri">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<h2 id="一.概述">一.概述</h2>
+<p><code>Timer</code>模块相关的逻辑较为复杂，不仅包含JavaScript层的实现，也包括C++编写的与底层<code>libuv</code>协作的代码，想要完整地看明白是比较困难的，本章仅以<code>setTimeout</code>这个API的实现机制为主线，讲述源码中的JavaScript相关的实现部分，这部分只需要一些数据结构的基本知识就可以理解。</p>
+<h2 id="二.-数据结构">二. 数据结构</h2>
+<p><code>setTimeout</code>这个API的实现基于两类基本数据结构，我们先来复习一下相关的特点。对数据结构知识比较陌生的小伙伴可以参考<a href="https://www.cnblogs.com/dashnowords/p/10127926.html#%E9%87%8E%E7%94%9F%E5%89%8D%E7%AB%AF%E7%9A%84%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%E5%92%8C%E7%AE%97%E6%B3%95%E5%9F%BA%E7%A1%80%E7%BB%83%E4%B9%A0%E7%B3%BB%E5%88%97">【野生前端的数据结构基础练习】</a>系列博文自行学习，所有的章节都有示例代码。</p>
+<h3 id="链表">2.1 链表</h3>
+<p>链表是一种物理存储单元上非连续的存储结构，存储元素的逻辑顺序是由链表中的指针链接次序来决定的。每一个节点包含一个存放数据的数据域和存放下一个节点的指针域（双向链表中指针数量为2）。链表在插入元素时的时间复杂度为<code>O(1)</code>（因为只影响插入点前后的节点，无论链表有多大），但是由于空间不连续的特点，访问一个未排序链表的指定节点时就需要逐个对比，时间复杂度为<code>O(n)</code>，比数组结构就要慢一些。链表结构也可以根据指针特点分为<code>单向链表</code>,<code>双向链表</code>和<code>循环链表</code>，<code>Timer</code>模块中使用的链表结构就是<code>双向循环链表</code>,<code>Node.js</code>中源码的底层数据结构实现都是独立的，链表的源码放在<a href="https://github.com/nodejs/node/blob/master/lib/internal/linkedlist.js">lib/internal/linkedlist.js</a>：</p>
+<pre><code><code>&#39;use strict&#39;;
+
+function init(list) {
+  list._idleNext = list;
+  list._idlePrev = list;
+}
+
+// Show the most idle item.
+function peek(list) {
+  if (list._idlePrev === list) return null;
+  return list._idlePrev;
+}
+
+// Remove an item from its list.
+function remove(item) {
+  if (item._idleNext) {
+    item._idleNext._idlePrev = item._idlePrev;
+  }
+
+  if (item._idlePrev) {
+    item._idlePrev._idleNext = item._idleNext;
+  }
+
+  item._idleNext = null;
+  item._idlePrev = null;
+}
+
+// Remove an item from its list and place at the end.
+function append(list, item) {
+  if (item._idleNext || item._idlePrev) {
+    remove(item);
+  }
+
+  // Items are linked  with _idleNext -&gt; (older) and _idlePrev -&gt; (newer).
+  // Note: This linkage (next being older) may seem counter-intuitive at first.
+  item._idleNext = list._idleNext; //1
+  item._idlePrev = list;//2
+
+  // The list _idleNext points to tail (newest) and _idlePrev to head (oldest).
+  list._idleNext._idlePrev = item;//3
+  list._idleNext = item;//4
+}
+
+function isEmpty(list) {
+  return list._idleNext === list;
+}</code></pre>
+<p>链表实例初始化了两个指针，初始时均指向自己，<code>_idlePrev</code>指针将指向链表中最新添加进来的元素，<code>_idleNext</code>指向最新添加进来的元素，实现的两个主要操作为<code>remove</code>和<code>append</code>。链表的<code>remove</code>操作非常简单，只需要将删除项前后的元素指针加以调整，然后将被删除项的指针置空即可，就像从一串锁链中拿掉一节，很形象。</p>
+<blockquote>
+<p>源码中的<code>idlePrev</code>和<code>idleNext</code>很容易混淆，建议不用强行翻译为“前后”或者“新旧”，（反复记忆N次都记不住我也很无奈），直接按对应位置来记忆就可以了，爱翻译成什么就翻译成什么。</p>
+</blockquote>
+<p>源码中的链表实现并没有提供指定位置插入的方法，<code>append( )</code>方法默认只接收<code>list</code>和<code>item</code>两个参数，新元素会被默认插入在链表的固定位置，这与它的使用方式有关，所以没必要实现完整的链表数据结构。<code>append</code>稍微复杂一些，但是源码中也做了非常详细的注释。首先需要确保插入的元素是独立的（也就是<code>prev</code>和<code>next</code>指针都为<code>null</code>），然后再开始调整，源码中的链表是一个双向循环链表，我们调整一下源码的顺序会更容易理解，其实插入一个元素就是要将各个元素的<code>prev</code>和<code>next</code>两个指针调整到位就可以了。先来看<code>_idlePrev</code>指针链的调整， 也就是指针调整代码中标记为2和3的语句：</p>
+<pre><code><code>item._idlePrev = list;//2
+list._idleNext._idlePrev = item;//3</code></pre>
+<p>这里可以把list看作是一个<code>prev</code>指针连接起来的单向链表，相当于将新元素<code>item</code>按照<code>prev</code>指针的指向添加到<code>list</code>和原本的<code>list._idleNext</code>指向的元素中间，而1和4语句是调整了反方向的<code>next</code>指针链：</p>
+<pre><code><code>item._idleNext = list._idleNext; //1
+list._idleNext = item;//4</code></pre>
+<p>调整后的链表以<code>next</code>指针为依据就可以形成反方向的循环链表，然后只需要记住<code>list._idleNext</code>指针指向的是最新添加的项就可以了。</p>
+<p><img src="./images/【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器1.png" /></p>
+<p>如上图所示，<code>next</code>和<code>prev</code>分别可以作为链表的逻辑顺序形成循环链。</p>
+<h3 id="二叉堆">2.2 二叉堆</h3>
+<p>源码放在<a href="https://github.com/nodejs/node/blob/master/lib/internal/priority_queue.js">lib/internal/priority_queue.js</a>中，一些博文也直接翻译为优先队列，它们是抽象结构和具体实现之间的关系，特性是一致的。<code>二叉堆</code>是一棵有序的<code>完全二叉树</code>，又以节点与其后裔节点的关系分为<code>最大堆</code>和<code>最小堆</code>。<code>完全二叉树</code>的特点使其可以很容易地转化为一维数组来存储，且不需要二外记录其父子关系，索引为<code>i</code>的节点的左右子节点对应的索引为<code>2i+1</code>和<code>2i+2</code>(当然左右子节点也可能只有一个或都不存在)。<code>Node.js</code>就使用一维数组来模拟<code>最小堆</code>。源码基本上就是这一数据结构和“插入”，“删除”这些基本操作的实现。</p>
+<p><code>堆</code>结构的使用最主要的是为了获得堆顶的元素，因为它总是所有数据里最大或最小的，同时<code>堆</code>结构是一个动态调整的数据结构，插入操作时会将新节点插入到堆底，然后逐层检测和父节点值的相对大小而“上浮”直到整个结构重新变为<code>堆</code>；进行移除操作（移除堆顶元素也是移除操作的一种）时，需要将堆尾元素置换到移除的位置，以维持整个数据结构依然是一棵<code>完全二叉树</code>，然后通过与父节点和子节点进行比较来决定该位置的元素应该“上浮”或“下沉”，并递归这个过程直到整个数据结构被重建为<code>堆</code>。相关的文章非常，本文不再赘述（可以参考这篇博文<a href="https://blog.csdn.net/qq_19782019/article/details/78301832">【二叉堆的添加和删除元素方法】</a>，有动画好理解）。</p>
+<h2 id="三.-从settimeout理解timer模块源码">三. 从setTimeout理解Timer模块源码</h2>
+<p><code>timer</code>模块并不需要手动引入，它的源码在<a href="https://github.com/nodejs/node/blob/master/lib/timers.js">/lib/timers.js</a>目录中，我们以这样一段代码来看看<code>setTimeout</code>方法的执行机制：</p>
+<pre><code><code>setTimeout(()=&gt;{console.log(1)},1000);
+setTimeout(()=&gt;{console.log(2)},500);
+setTimeout(()=&gt;{console.log(3)},1000);</code></pre>
+<h3 id="timers.js中的定义">3.1 <code>timers.js</code>中的定义</h3>
+<p>最上层方法的定义进行了一些参数格式化，将除了回调函数和延迟时间以外的其他参数组成数组（应该是用<code>apply</code>来执行<code>callback</code>方法时把这些参数传进去），接着做了三件事，生成<code>timeout</code>实例，激活实例，返回实例。</p>
+<p><img src="./images/【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器2.png" /></p>
+<h3 id="timeout类定义">3.2 <code>Timeout</code>类定义</h3>
+<p><code>Timeout</code>类定义在<strong>【lib/internal/timers.js】</strong>中：</p>
+<p><img src="./images/【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器3.png" /></p>
+<p>初始化了一些属性，可以看到传入构造函数的<code>callback</code>,<code>after</code>,<code>args</code>都被记录下来，可以看到<code>after</code>的最小值为<strong>1ms</strong>，<code>Timeout</code>还定义了一些原型方法可以先不用管，然后调用了<code>initAsyncResource( )</code>这个方法，它在实例上添加了<code>[async_id_symbol]</code>和<code>[trigger_async_id_symbol]</code>两个标记后，又调用了<code>emitInit( )</code>方法将这些参数均传了进去，这个<code>emitInit( )</code>方法来自于<strong>/lib/internal/async_hooks.js</strong>，官方文档对<code>async_hook</code>模块的解释是：</p>
+<blockquote>
+<p>The <code>async_hooks</code> module provides an API to register callbacks tracking the lifetime of asynchronous resources created inside a Node.js application.</p>
+</blockquote>
+<p>它是一个实验性质的API，是为了<code>Node.js</code>内部创建的用于追踪异步资源生命周期的模块，所以推测这部分逻辑和执行机制关系不大，可以先搁在一边。</p>
+<h3 id="activetimeout">3.3 active(timeout)</h3>
+<p>获得了<code>timeout</code>实例后再回到上层函数来，接下来执行的是<code>active(timeout)</code>这个方法，它调用的是<code>insert( item, true, getLibuvNow())</code>,不难猜测最后这个方法就是从底层<code>libuv</code>中获取一个准确的当前时间，<code>insert</code>方法的源码如下：</p>
+<p><img src="./images/【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器4.png" /></p>
+<p>首先为<code>timeout</code>实例添加了开始执行时间<code>idleStart</code>属性，接下来的逻辑涉及到两个对象，这里提前说明一下：<code>timerListMap</code>是一个哈希表，延时的毫秒数为<code>key</code>，其<code>value</code>是一个双向链表，链表中存放着<code>timeout</code>实例，所以<code>timerListMap</code>就相当于一个按延时时间来分组存放定时器实例的<code>Hash+linkedList</code>结构，另一个重要对象<code>timerListQueue</code>就是上面讲过的优先队列（后文使用“二叉堆”这一概念）。</p>
+<blockquote>
+<p>这里有一个小细节，就是将新的定时器链表加入二叉堆时，比较函数是自定义传入的，在源码中很容易看到<code>compareTimersLists ( )</code>这个方法使用链表的<code>expiry</code>属性的值进行比较来得到最小堆，由此可以知道，堆顶的链表总是<code>expiry</code>最小的，也就是说堆顶链表的<code>__idlePrev</code>指向的定时器，就是所有定时器里下一个需要触发回调的。</p>
+</blockquote>
+<p>接下来再来看看<code>active( )</code>函数体的具体逻辑，如果有对应键的链表则获取到它（<code>list</code>变量），如果没有则生成一个新的空链表，然后将这个链表添加进二叉堆，跳过中间的步骤，在最后可以看到执行了：</p>
+<pre><code><code>L.append(list, item);</code></pre>
+<p>这个<code>L</code>实际上是来自于前文提过的<code>linkedList.js</code>中的方法，就是将<code>timeout</code>实例添加到<code>list</code>链表中，来个图就很容易理解了：</p>
+<p><img src="./images/【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器5.png" /></p>
+<p>中间我们跳过了一点逻辑，就是在新链表生成时执行的:</p>
+<pre><code><code>if(nextExpiry &gt; expiry){
+    scheduleTimer(msecs);
+    nextExpiry = expiry;
+}</code></pre>
+<p><code>nextExpiry</code>是<code>timer</code>模块中维护的一个模块内的相对全局变量，这里的<code>expiry</code>是新链表的下一个定时器的过期时间（也就是新链表中唯一一个<code>timeout</code>实例的过期时间）,这里针对的情况就是新生成的定时器比已存在的所有定时器都要更早触发，这时就需要重新调度一下，并把当前这个定时器的过期时间点设置为<code>nextExpiry</code>时间。</p>
+<p>这个<code>scheduleTimer( )</code>使用<code>internalBinding('timers')</code>引入的，在<code>lib/timer.cc</code>中找到这个方法：</p>
+<pre class="cpp"><code>void ScheduleTimer(const FunctionCallbackInfo&lt;Value&gt;&amp; args) {
+  auto env = Environment::GetCurrent(args);
+  env-&gt;ScheduleTimer(args[0]-&gt;IntegerValue(env-&gt;context()).FromJust());
+}</code></pre>
+<p>再跳到<code>env.cc</code>:</p>
+<pre class="cpp"><code>void Environment::ScheduleTimer(int64_t duration_ms) {
+  if (started_cleanup_) return;
+  uv_timer_start(timer_handle(), RunTimers, duration_ms, 0);
+}</code></pre>
+<p>可以看到这里就将定时器的信息和<code>libuv</code>的事件循环联系在一起了，<code>libuv</code>还没有研究，所以这条逻辑线暂时到此为止。再回到之前的示例，当三个定时器都添加完成后，内存中的对象关系基本是下面的样子：</p>
+<p><img src="./images/【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器6.png" /></p>
+<h3 id="定时器的处理执行逻辑">3.4 定时器的处理执行逻辑</h3>
+<p>至此我们已经将定时器的信息都存放好了，那么它是如何被触发的呢？我们找到<code>node.js</code>的启动文件<a href="https://github.com/nodejs/node/blob/master/lib/internal/bootstrap/node.js">lib/internal/bootstrap/node.js</a>284-290行，可以看到，在启动函数中，<code>Node.js</code>通过调用<code>setTimers( )</code>方法将定时器处理函数<code>processTimers</code>传递给了底层，它最终会被用来调度执行定时器，<code>processTimers</code>方法由<strong>lib/internal/timers.js</strong>中提供的<code>getTimerCallbacks(runNextTicks)</code> 方法运行得到，所以聚焦到<strong>/lib/internal/timers.js</strong>中：</p>
+<p><img src="./images/【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器7.png" /></p>
+<p>推测<code>libuv</code>每次需要检查是否有定时器到期时都会运行<code>processTimers( )</code>方法，来看一下对应的逻辑，一个无限循环的<code>while</code>语句，直到二叉堆的堆顶没有任何定时器时跳出循环并返回0。在循环体内部，会用堆顶元素的过期时间和当前时间相比，如果<code>list.expiry</code>更大，说明时机未到还不需要执行，把它的过期时间赋值给<code>nextExpiry</code>然后返回（返回逻辑先不细究）。如果逻辑执行到471行，说明堆顶元素的过期时间已经过了，<code>ranAtLeastOneList</code>这个标记位使得这段逻辑按照如下方式运行：</p>
+<pre><code><code>1.获取到一个expiry已经过期的链表,首次向下执行时`ranAtLeastOneList`为false，则将其置为true，然后执行`listOnTimeout()`这个方法;
+2.然后继续取堆顶的链表，如果也过期了，再次执行时，会先执行`runNextTicks()`，再执行`listOnTimeout()`。</code></pre>
+<p>我们按照逻辑顺序，先来看看<code>listOnTimeout( )</code>这个方法，它有近100行（我们以上面3个定时器的实例来看看它的执行逻辑）：</p>
+<pre><code><code>  function listOnTimeout(list, now) {
+    const msecs = list.msecs; //500 , 500ms的链表在堆顶
+
+    debug(&#39;timeout callback %d&#39;, msecs);
+
+    var diff, timer;
+    let ranAtLeastOneTimer = false;
+    while (timer = L.peek(list)) {  //取链表_idlePrev指向的定时器，也就是链表中最先到期的
+      diff = now - timer._idleStart;  //计算当前时间和它开始计时那个时间点的时间差，
+
+      // Check if this loop iteration is too early for the next timer.
+      // This happens if there are more timers scheduled for later in the list.
+      // 原文翻译：检测当前事件循环对于下一个定时器是否过早，这种情况会在链表中还有其他定时器时发生。
+      // 人话翻译：就是当前的时间点只需要触发链表中第一个500ms定时器，下一个500ms定时器还没到触发时间。
+      //         极端的相反情况就是由于阻塞时间已经过去很久了，链表里的N个定时器全都过期了，都得执行。
+      if (diff &lt; msecs) {
+        //更新链表中下一个到期定时器的时间记录，计算逻辑稍微有点绕
+        list.expiry = Math.max(timer._idleStart + msecs, now + 1);
+        list.id = timerListId++;
+        timerListQueue.percolateDown(1);//堆顶元素值发生更新，需要通过“下沉”来重构“堆”
+        debug(&#39;%d list wait because diff is %d&#39;, msecs, diff);
+        return; //直接结束了
+      }
+
+      //是不是貌似见过这段，先放着等会一块说
+      if (ranAtLeastOneTimer)
+        runNextTicks();
+      else
+        ranAtLeastOneTimer = true;
+
+      // The actual logic for when a timeout happens.
+      L.remove(timer);
+
+      const asyncId = timer[async_id_symbol];
+
+      if (!timer._onTimeout) {
+        if (timer[kRefed])
+          refCount--;
+        timer[kRefed] = null;
+
+        if (destroyHooksExist() &amp;&amp; !timer._destroyed) {
+          emitDestroy(asyncId);
+          timer._destroyed = true;
+        }
+        continue;
+      }
+
+      emitBefore(asyncId, timer[trigger_async_id_symbol]);
+
+      let start;
+      if (timer._repeat) //这部分看起来应该是interval的逻辑，interval底层实际上就是一个重复的timeout
+        start = getLibuvNow();
+
+      try {
+        const args = timer._timerArgs;
+        if (args === undefined)
+          timer._onTimeout();  //设置定时器时传入的回调函数被执行了
+        else
+          timer._onTimeout(...args);
+      } finally {
+        if (timer._repeat &amp;&amp; timer._idleTimeout !== -1) {
+          timer._idleTimeout = timer._repeat;
+          if (start === undefined)
+            start = getLibuvNow();
+          insert(timer, timer[kRefed], start);//interval的真实执行逻辑，重新获取时间然后插入到链表中
+        } else if (!timer._idleNext &amp;&amp; !timer._idlePrev) {
+          if (timer[kRefed])
+            refCount--;
+          timer[kRefed] = null;
+
+          if (destroyHooksExist() &amp;&amp; !timer._destroyed) {
+            emitDestroy(timer[async_id_symbol]);
+            timer._destroyed = true;
+          }
+        }
+      }
+
+      emitAfter(asyncId);
+    }
+      
+    //这块需要注意的是，上面整个逻辑都包在while(timer = L.peek(list)){...}里面
+
+    // If `L.peek(list)` returned nothing, the list was either empty or we have
+    // called all of the timer timeouts.
+    // As such, we can remove the list from the object map and
+    // the PriorityQueue.
+    debug(&#39;%d list empty&#39;, msecs);
+
+    // The current list may have been removed and recreated since the reference
+    // to `list` was created. Make sure they&#39;re the same instance of the list
+    // before destroying.
+    // 原文翻译：当前的list标识符所引用的list有可能已经经过了重建，删除前需要确保它指向哈希表中的同一个实例。
+    if (list === timerListMap[msecs]) {
+      delete timerListMap[msecs];
+      timerListQueue.shift();
+    }
+  }</code></pre>
+<h3 id="实例分析">3.5 实例分析</h3>
+<p>代码逻辑因为包含了很多条件分支，所以不容易理解，我们以前文的实例作为线索来看看定时器触发时的执行逻辑：</p>
+<p><img src="./images/【nodejs原理&amp;源码杂记（8）】Timer模块与基于二叉堆的定时器8.png" /></p>
+<p>程序启动后，<code>processTimer( )</code>方法不断执行，第一个过期的定时器会在堆顶的500ms定时器链表（下面称为500链表）中产生，过期时间戳为511。</p>
+<p>假设时间戳到达600时程序再次执行<code>processTimer( )</code>，此时发现当前时间已经超过<code>nextExpiry</code>记录的时间戳511，于是继续向下执行进入<code>listOnTimeout(list, now)</code>，这里的<code>list</code>就是哈希表中键为500的链表，<code>now</code>就是当前时间600，进入<code>listOnTimeout</code>方法后，获取到链表中最早的一个定时器<code>timer</code>,然后计算<code>diff</code>参数为600-11=589, 589 &gt; 500， 于是绕过条件分支语句，<code>ranAtLeastOneTimer</code>为false也跳过（跳过后其值为true），接下来的逻辑从链表中删除了这个<code>timer</code>，然后执行<code>timer._onTimeout</code>指向的回调函数，500链表只有一个定时器，所以下一循环时<code>L.peek(list)</code>返回null，循环语句跳出，继续向后执行。此时<code>list</code>依然指向500链表，于是执行删除逻辑，从哈希表和二叉堆中均移除500链表，两个数据结构在底层会进行自调整。</p>
+<p><code>processTimer( )</code>再次执行时，堆顶的链表变成了1000ms定时器链表（下面称为1000链表），<code>nextExpiry</code>赋值为<code>list.expiry</code>，也就是1001，表示1000ms定时器链表中下一个到期的定时器会在时间戳超过1001时过期，但时间还没有到。下面分两种情况来分析：</p>
+<p><strong>1.时间戳为1010时执行processTimer( )</strong></p>
+<p>时间来到1010点，<code>processTimer( )</code>被执行，当前时间1010大于<code>nextExpiry=1001</code>，于是从堆顶获取到1000链表，进入<code>listOnTimeout( )</code>，第一轮while循环执行时的情形和500链表执行时是一致的，在第二轮循环中，<code>timer</code>指向1000链表中后添加的那个定时器，<code>diff</code>的值为 1010 - 21 = 989,989 &lt; 1000 ,所以进入<strong>if(diff &lt; msecs)</strong>的条件分支，<code>list.expiry</code>调整为下一个<code>timer</code>的过期时间1021，然后通过下沉来重建二叉堆（堆顶元素的<code>expiry</code>发生了变化），上面的实例中只剩了唯一一个链表，所以下沉操作没有引发什么实质影响，接着退出当前函数回到<code>processTimer</code>的循环体中，接着<code>processTimer</code>里的while循环继续执行，再次检查栈顶元素，时间还没到，然后退出，等时间超过下一个过期时间1021后，最后一个定时器被触发，过程基本一致，只是链表耗尽后会触发<code>listOnTimeout</code>后面的清除哈希表和二叉堆中相关记录的逻辑。</p>
+<blockquote>
+<p>总结一下，链表的消耗逻辑是，从链表中不断取出peek位置的定时器，如果过期了就执行，如果取到一个没过期的，说明链表里后续的都没过期，就修改链表上的<code>list.expiry</code>属性然后退回到<code>processTimer</code>的循环体里，如果链表耗尽了，就将它从哈希表和二叉堆中把这个链表删掉。</p>
+</blockquote>
+<p><strong>2.时间戳为1050时执行processTimer( )</strong></p>
+<p>假如程序因为其他原因直到时间为1050时才开始检查1000链表，此时它的两个定时器都过期了需要被触发，<code>listOnTimeout( )</code>中的循环语句执行第一轮时是一样的，第二次循环执行时，跳过<strong>if(diff &lt; msecs)</strong>的分支，然后由于<code>ranAtLeastOneTimer</code>标记位的变化，除了第一个定时器的回调外，其他都会先执行<code>runNextTicks( )</code>然后再执行定时器上绑的回调，等到链表耗尽后，进入后续的清除逻辑。</p>
+<p>我们再来看一种更极端的情况，假如程序一直阻塞到时间戳为2000时才执行到<code>processTimer</code>(此时3个定时器都过期了，2个延迟1000ms，1个延迟500ms，堆顶为500ms链表)，此时<code>processTimer( )</code>先进入第一次循环，处理500链表，然后500链表中唯一的定时器处理完后，逻辑回到<code>processTimer</code>的循环体，再进行第二轮循环，此时获取到堆顶的1000链表，发现仍然需要执行，那么就会先执行<code>runNextTicks( )</code>，然后在处理1000链表，后面的逻辑就和上面时间戳为1050时执行<code>processTimer</code>基本一致了。</p>
+<p>至此定时器的常规逻辑已经解析完了，还有两个细节需要提一下，首先是<code>runNextTicks( )</code>，从名字可以推测它应该是执行通过<code>process.nextTick( )</code>添加的函数，从这里的实现逻辑来看，当有多个定时器需要触发时，每个间隙都会去消耗<code>nextTicks</code>队列中的待执行函数，以保证它可以起到“尽可能早地执行”的职责，对此不了解的读者可以参考上一篇博文<a href="https://www.cnblogs.com/dashnowords/p/11042623.html">【译】Node.js中的事件循环，定时器和process.nextTick</a>。</p>
+<h2 id="四.-小结">四. 小结</h2>
+<p><code>timer</code>模块比较大，在了解基本数据结构的前提下不算特别难理解，<code>setImmediate( )</code>和<code>process.nextTick( )</code>的实现感兴趣的读者可以自行学习，想要对事件循环机制有更深入的理解，需要学习C++和<code>libuv</code>的相关原理，笔者尚未深入涉猎，以后有机会再写。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

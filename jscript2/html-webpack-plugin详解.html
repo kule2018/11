@@ -1,0 +1,282 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修html-webpack-plugin详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>html-webpack-plugin详解</center></div><div class='banquan'>原文出处:本文由博客园博主Angelasp提供。<br/>
+原文连接:https://www.cnblogs.com/angelasp/p/10632826.html</div><br>
+    <h3>引言</h3>
+<p>我们来看看主要作用：</p>
+<p>为html文件中引入的外部资源如<code>script</code>、<code>link</code>动态添加每次compile后的hash，防止引用缓存的外部文件问题</p>
+<p>可以生成创建html入口文件，比如单页面可以生成一个html文件入口，配置<strong>N</strong>个<code>html-webpack-plugin</code>可以生成<strong>N</strong>个页面入口</p>
+<h3>html-webpack-plugin</h3>
+<p>插件的基本作用就是生成html文件。原理很简单：</p>
+<pre><code><code>将 webpack中</code>`entry`<code>配置的相关入口chunk&nbsp; 和&nbsp; </code>`extract-text-webpack-plugin`<code>抽取的css样式&nbsp;&nbsp; 插入到该插件提供的</code>`template`<code>或者</code>`templateContent`<code>配置项指定的内容基础上生成一个html文件，具体插入方式是将样式</code>`link`<code>插入到</code>`head`<code>元素中，</code>`script`<code>插入到</code>`head`<code>或者</code>`body`<code>中。</code></pre>
+<p>实例化该插件时可以不配置任何参数，例如下面这样：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">var HtmlWebpackPlugin = require('html-webpack-plugin')
+webpackconfig = {
+    plugins: [
+        new HtmlWebpackPlugin()
+    ]
+}
+</pre>
+</div>
+<p>　　</p>
+<p>不配置任何选项的<code>html-webpack-plugin</code>插件，他会默认将webpack中的<code>entry</code>配置所有入口thunk和<code>extract-text-webpack-plugin</code>抽取的css样式都插入到文件指定的位置。例如上面生成的html文件内容如下：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;title&gt;Webpack App&lt;/title&gt;
+  &lt;link href="index-af150e90583a89775c77.css" rel="stylesheet"&gt;&lt;/head&gt;
+  &lt;body&gt;
+  &lt;script type="text/javascript" src="common-26a14e7d42a7c7bbc4c2.js"&gt;&lt;/script&gt;
+  &lt;script type="text/javascript" src="index-af150e90583a89775c77.js"&gt;&lt;/script&gt;&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+</div>
+<p>　　</p>
+<p>当然可以使用具体的配置项来定制化一些特殊的需求，那么插件有哪些配置项呢？</p>
+<h3>html-webpack-plugin配置项</h3>
+<p>插件提供的配置项比较多，通过源码可以看出具体的配置项如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">this</span>.options =<span style="color: #000000;"> _.extend({
+</span><span style="color: #008080;"> 2</span>   template: path.join(__dirname, 'default_index.ejs'<span style="color: #000000;">),
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">  templateParameters: templateParametersGenerator,
+</span><span style="color: #008080;"> 4</span>   filename: 'index.html'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 5</span>   hash: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span>   inject: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 7</span>   compile: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 8</span>   favicon: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 9</span>   minify: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;">10</span>   cache: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;">11</span>   showErrors: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;">12</span>   chunks: 'all'<span style="color: #000000;">,
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">  excludeChunks: [],
+</span><span style="color: #008080;">14</span>   chunksSortMode: 'auto'<span style="color: #000000;">,
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">  meta: {},
+</span><span style="color: #008080;">16</span>   title: 'Webpack App'<span style="color: #000000;">,
+</span><span style="color: #008080;">17</span>   xhtml: <span style="color: #0000ff;">false</span>
+<span style="color: #008080;">18</span> }, options);</pre>
+</div>
+<pre><code><code><strong>title</strong></code>: 生成的html文档的标题。配置该项，它并不会替换指定模板文件中的title元素的内容，除非html模板文件中使用了模板引擎语法来获取该配置项值，如下ejs模板语法形式：</pre>
+<pre><code>&lt;title&gt;<code>{%= o.htmlWebpackPlugin.options.title %}</code>&lt;/title&gt;</pre>
+<p><code><strong>filename</strong></code>：输出文件的文件名称，默认为<strong>index.html</strong>，不配置就是该文件名；此外，还可以为输出文件指定目录位置（例如'html/index.html'）</p>
+<pre><code><strong>关于filename补充两点：</strong></pre>
+<p>1、filename配置的html文件目录是相对于webpackConfig.output.path路径而言的，不是相对于当前项目目录结构的。<br />
+2、指定生成的html文件内容中的<code>link</code>和<code>script</code>路径是相对于生成目录下的，写路径的时候请写生成目录下的相对路径。</p>
+<p><code><strong>template</strong></code>: 本地模板文件的位置，支持加载器(如handlebars、ejs、undersore、html等)，如比如&nbsp;<code>handlebars!src/index.hbs</code>；</p>
+<pre><code><strong>关于template补充几点：</strong></pre>
+<p>1、template配置项在html文件使用<code>file-loader</code>时，其所指定的位置找不到，导致生成的html文件内容不是期望的内容。<br />
+2、为template指定的模板文件没有指定<strong>任何</strong><strong>loader</strong><strong>的话</strong>，默认使用<code>ejs-loader</code>。如<code>template:
+'./index.html'</code>，若没有为<code>.html</code>指定任何loader就使用<code>ejs-loader</code></p>
+<p><strong>templateContent</strong>:
+string|function，可以指定模板的内容，<strong>不能与</strong><strong>template</strong><strong>共存</strong>。配置值为function时，可以直接返回html字符串，也可以异步调用返回html字符串。</p>
+<p><code><strong>inject</strong></code>：向<em>template</em>或者<em>templateContent</em>中注入所有静态资源，不同的配置值注入的位置不经相同。</p>
+<p>1、<strong>true</strong><strong>或者</strong><strong>body</strong>：所有<strong>JavaScript</strong>资源插入到body元素的底部<br />
+2、<strong>head</strong>:
+所有<strong>JavaScript</strong>资源插入到head元素中<br />
+3、<strong>false</strong>： 所有静态资源css和JavaScript都不会注入到模板文件中</p>
+<p>&nbsp;</p>
+<p><code><strong>favicon</strong></code>: 添加特定favicon路径到输出的html文档中，这个同<code>title</code>配置项，需要在模板中动态获取其路径值</p>
+<p><code><strong>hash</strong></code>：true|false，是否为所有注入的静态资源添加webpack每次编译产生的唯一hash值，添加hash形式如下所示：<br />
+<code>html &lt;script
+type="text/javascript"
+src="common.js?a3e1396b501cdd9041be"&gt;&lt;/script&gt;</code></p>
+<p><code><strong>chunks</strong></code>：允许插入到模板中的一些chunk，不配置此项默认会将<code>entry</code>中所有的thunk注入到模板中。在配置多个页面时，每个页面注入的thunk应该是不相同的，需要通过该配置为不同页面注入不同的thunk；</p>
+<p><code><strong>excludeChunks</strong></code>: 这个与<code>chunks</code>配置项正好相反，用来配置不允许注入的thunk。</p>
+<p><code><strong>chunksSortMode</strong></code>: none |
+auto| function，默认auto； 允许指定的thunk在插入到html文档前进行排序。<br />
+&gt;<strong>function</strong>值可以指定具体排序规则；<strong>auto</strong>基于thunk的id进行排序；&nbsp;<strong>none</strong>就是不排序</p>
+<p><code><strong>xhtml</strong></code>: true|fasle, 默认false；是否渲染<code>link</code>为自闭合的标签，true则为自闭合标签</p>
+<p><code><strong>cache</strong></code>: true|fasle, 默认true； 如果为true表示在对应的thunk文件修改后就会emit文件</p>
+<p><code><strong>showErrors</strong></code>:
+true|false，默认true；是否将错误信息输出到html页面中。这个很有用，在生成html文件的过程中有错误信息，输出到页面就能看到错误相关信息便于调试。</p>
+<p><code><strong>minify</strong></code>:
+{....}|false；传递
+html-minifier 选项给 minify 输出，false就是不使用html压缩，minify具体配置参数请点击<a href="https://github.com/kangax/html-minifier#options-quick-reference">html-minifier</a></p>
+<p>下面的是一个用于配置这些属性的一个例子：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">    new HtmlWebpackPlugin({
+          title:'rd平台',
+          template: 'src/index.html', // 源模板文件
+          filename: './index.html', // 输出文件【注意：这里的根路径是module.exports.output.path】
+          showErrors: true,
+          inject: 'body',
+          chunks: ["common",'index']
+      })
+</pre>
+</div>
+<p>　　</p>
+<h3>配置多个html页面</h3>
+<p><code>html-webpack-plugin</code>的一个实例生成一个html文件，如果单页应用中需要多个页面入口，或者多页应用时配置多个html时，那么就需要实例化该插件多次；</p>
+<p>即有几个页面就需要在webpack的plugins数组中配置几个该插件实例：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">&hellip;&hellip;
+    plugins: [
+        new HtmlWebpackPlugin({
+             template: 'src/html/index.html',
+              excludeChunks: ['list', 'detail']
+        }),
+        new HtmlWebpackPlugin({
+            filename: 'list.html',
+            template: 'src/html/list.html',
+            thunks: ['common', 'list']
+        }), 
+        new HtmlWebpackPlugin({
+          filename: 'detail.html',
+          template: 'src/html/detail.html',
+           thunks: ['common', 'detail']
+        })
+    ]
+    ...
+</pre>
+</div>
+<p>　　</p>
+<p>如上例应用中配置了三个入口页面：index.html、list.html、detail.html；并且每个页面注入的thunk不尽相同；类似如果多页面应用，就需要为每个页面配置一个；</p>
+<h3>配置自定义的模板</h3>
+<p>不带参数的<code>html-webpack-plugin</code>默认生成的html文件只是将thunk和css样式插入到文档中，可能不能满足我们的需求；</p>
+<p>另外，如上面所述，三个页面指定了三个不同html模板文件；在项目中，可能所有页面的模板文件可以共用一个，因为<code>html-webpack-plugin</code>插件支持不同的模板loader，所以结合模板引擎来共用一个模板文件有了可能。</p>
+<p>所以，配置自定义模板就派上用场了。具体的做法，借助于模板引擎来实现，例如插件没有配置loader时默认支持的ejs模板引擎，下面就以ejs模板引擎为例来说明；</p>
+<p>例如项目中有2个入口html页面，它们可以共用一个模板文件，利用ejs模板的语法来动态插入各自页面的thunk和css样式，代码可以这样：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:html;gutter:true;">&lt;!DOCTYPE html&gt;
+&lt;html style="font-size:20px"&gt;
+&lt;head&gt;
+    &lt;meta charset="utf-8"&gt;
+    &lt;title&gt;&lt;%= htmlWebpackPlugin.options.title %&gt;&lt;/title&gt;
+    &lt;% for (var css in htmlWebpackPlugin.files.css) { %&gt;
+    &lt;link href="&lt;%=htmlWebpackPlugin.files.css[css] %&gt;" rel="stylesheet"&gt;
+    &lt;% } %&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id="app"&gt;&lt;/div&gt;
+&lt;% for (var chunk in htmlWebpackPlugin.files.chunks) { %&gt;
+&lt;script type="text/javascript" src="&lt;%=htmlWebpackPlugin.files.chunks[chunk].entry %&gt;"&gt;&lt;/script&gt;
+&lt;% } %&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+</div>
+<p>　　</p>
+<p>你可能会对代码中的上下文<code>htmlWebpackPlugin</code>数据感到迷惑，这是啥东东？其实这是<code>html-webpack-plugin</code>插件在生成html文件过程中产生的数据，这些数据对html模板文件是可用的，并且我们看&lt;%%&gt;是不是给java里面的jsp差不多了。</p>
+<h3>自定义模板上下文数据</h3>
+<p><code>html-webpack-plugin</code>在生成html文件的过程中，插件会根据配置生成一个对当前模板可用的特定数据，模板语法可以根据这些数据来动态生成html文件的内容。</p>
+<p>那么，插件生成的特殊数据格式是什么，生成的哪些数据呢？从源码或者其官网都给出了答案。从源码中可以看出模板引擎具体可以访问的数据如下:</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">var templateParams = {
+        compilation: compilation,
+        webpack: compilation.getStats().toJson(),
+        webpackConfig: compilation.options,
+        htmlWebpackPlugin: 
+          files: assets,
+          options: self.options
+        }
+      };
+</pre>
+</div>
+<p>　　</p>
+<p>从中可以看出，有四个主要的对像数据。其中<code>compilation</code>为所有webpack插件提供的都可以访问的一个编译对象，此处就不太做介绍，具体可以自己查资料。下面就对剩下的三个对象数据进行说明。</p>
+<h4>webpack</h4>
+<p><code>webpack的stats对象</code>；注意一点：</p>
+<p>这个可以访问的<code>stats</code>对象是htm文件生成时所对应的<code>stats</code>对象，而不是webpack运行完成后所对应的整个<code>stats</code>对象。</p>
+<h4>webpackConfig</h4>
+<p><code>webpack的配置项</code>；通过这个属性可以获取webpack的相关配置项，如通过<code>webpackConfig.output.publicPath</code>来获取<code>publicPath</code>配置。当然还可以获取其他配置内容。</p>
+<h4>htmlWebpackPlugin</h4>
+<p><code>html-webpack-plugin</code>插件对应的数据。它包括两部分：</p>
+<p align="left"><code>htmlWebpackPlugin.files</code>: 此次html-webpack-plugin插件配置的chunk和抽取的css样式该files值其实是webpack的stats对象的<code>assetsByChunkName</code>属性代表的值，该值是插件配置的chunk块对应的按照<code>webpackConfig.output.filename</code>映射的值。例如对应上面配置插件各个属性配置项例子中生成的数据格式如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">"htmlWebpackPlugin": {
+  "files": {
+    "css": [ "inex.css" ],
+    "js": [ "common.js", "index.js"],
+    "chunks": {
+      "common": {
+        "entry": "common.js",
+        "css": [ "index.css" ]
+      },
+      "index": {
+        "entry": "index.js",
+        "css": ["index.css"]
+      }
+    }
+  }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>这样，就可以是用如下模板引擎来动态输出script脚本</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:html;gutter:true;">&lt;% for (var chunk in htmlWebpackPlugin.files.chunks) { %&gt;
+&lt;script type="text/javascript" src="&lt;%=htmlWebpackPlugin.files.chunks[chunk].entry %&gt;"&gt;&lt;/script&gt;
+&lt;% } %&gt;
+</pre>
+</div>
+<p>　　</p>
+<p align="left"><code>htmlWebpackPlugin.options</code>: 传递给插件的配置项，具体的配置项如上面插件配置项小节所描述的。</p>
+<h3>插件事件</h3>
+<p>不知道你发现没有，html-webpack-plugin插件在插入静态资源时存在一些问题：</p>
+<ul>
+<li><strong>在插入</strong><strong>js</strong><strong>资源只能插入</strong><strong>head</strong><strong>或者</strong><strong>body</strong><strong>元素中，不能一些插入</strong><strong>head</strong><strong>中，另一些插入</strong><strong>body</strong><strong>中</strong></li>
+<li><strong>不支持在</strong><strong>html</strong><strong>中文件内联</strong>*，例如在文件的某个地方用<code>&lt;script src="xxx.js?__inline"&gt;&lt;/script&gt;</code>来内联外部脚本</li>
+</ul>
+<p>为此，有人专门给插件作者提问了<a href="https://github.com/ampedandwired/html-webpack-plugin/issues/157">这个问题</a>；对此插件作者提供了插件事件，允许<strong>其他插件</strong>来改变html文件内容。具体的事件如下：</p>
+<p>Async（异步事件）:</p>
+<pre><code><code>&nbsp;&nbsp;&nbsp; * html-webpack-plugin-</code>before<code>-html-generation</code></pre>
+<pre><code><code>&nbsp;&nbsp;&nbsp; * html-webpack-plugin-</code>before<code>-html-processing</code></pre>
+<pre><code><code>&nbsp;&nbsp;&nbsp; * html-webpack-plugin-alter-asset-tags</code></pre>
+<pre><code><code>&nbsp;&nbsp;&nbsp; * html-webpack-plugin-after-html-processing</code></pre>
+<pre><code><code>&nbsp;&nbsp;&nbsp; * html-webpack-plugin-after-emit</code></pre>
+<p>Sync（同步事件）:</p>
+<pre><code><code>&nbsp;&nbsp;&nbsp; * html-webpack-plugin-alter-chunks</code></pre>
+<p>这些事件是提供给其他插件使用的，用于改变html的内容。因此，要用这些事件需要提供一个webpack插件。例如下面定义的<code>MyPlugin</code>插件。</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">function MyPlugin(options) {
+  // Configure your plugin with options...
+}
+ 
+MyPlugin.prototype.apply = function(compiler) {
+  // ...
+  compiler.plugin('compilation', function(compilation) {
+    console.log('The compiler is starting a new compilation...');
+ 
+    compilation.plugin('html-webpack-plugin-before-html-processing', function(htmlPluginData, callback) {
+      htmlPluginData.html += 'The magic footer';
+      callback(null, htmlPluginData);
+    });
+  });
+ 
+};<br /><br /></pre>
+<pre><code>module<code>.exports = MyPlugin;</code></pre>
+</div>
+<p>　　</p>
+<pre><code><code>&nbsp;</code></pre>
+<pre><code></pre>
+<p>然后，在<code>webpack.config.js</code>文件中配置<code>Myplugin</code>信息：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">plugins: [
+  new MyPlugin({options: ''})
+]
+</pre>
+</div>
+<p>　　</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

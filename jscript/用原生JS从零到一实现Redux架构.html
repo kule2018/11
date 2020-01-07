@@ -1,0 +1,374 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用原生JS从零到一实现Redux架构' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用原生JS从零到一实现Redux架构</center></div><div class='banquan'>原文出处:本文由博客园博主Peerless1029提供。<br/>
+原文连接:https://www.cnblogs.com/peerless1029/p/10781391.html</div><br>
+    <p><strong><span style="font-size: 18px;">前言</span></strong></p>
+<p>&nbsp; 最近利用业余时间阅读了胡子大哈写的《React小书》，从基本的原理讲解了React，Redux等等受益颇丰。眼过千遍不如手写一遍，跟着作者的思路以及参考代码可以实现基本的Demo，下面根据自己的理解和参考一些资料，用原生JS从零开始实现一个Redux架构。</p>
+<p><strong><span style="font-size: 18px;">一.Redux基本概念</span></strong></p>
+<p>&nbsp; 经常用React开发的朋友可能很熟悉Redux,React-Redux,这里告诉大家的是，Redux和React-Redux并不是一个东西，Redux是一种架构模式，<span style="color: #000000;">2015年，Redux出现，将 Flux 与函数式编程结合一起，很短时间内就成为了最热门的前端架构。它不关心你使用什么库，可以把它和React,Vue</span><span>或者JQuery结合。</span></p>
+<p><strong><span style="font-size: 18px;">二.由一个简单的例子开始</span></strong></p>
+<p><span style="font-size: 18px;">&nbsp;&nbsp;<span style="font-size: 14px;">我们从一个简单的例子开始推演，新建一个html页面，代码如下：</span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Make-Redux<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="app"</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="title"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="content"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+  <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 应用的状态</span>
+<span style="background-color: #f5f5f5; color: #000000;">  const appState </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+    title: {
+      text: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">这是一段标题</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+      color: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">Red</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    },
+    content: {
+      text: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">这是一段内容</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+      color: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">blue</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+  };
+
+  </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 渲染函数</span>
+  <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> renderApp(appState) {
+    renderTitle(appState.title);
+    renderContent(appState.content);
+  }
+
+  </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> renderTitle(title) {
+    const titleDOM </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">title</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+    titleDOM.innerHTML </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> title.text;
+    titleDOM.style.color </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> title.color;
+  }
+
+  </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> renderContent(content) {
+    const contentDOM </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">content</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+    contentDOM.innerHTML </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> content.text;
+    contentDOM.style.color </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> content.color;
+  }
+
+  </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 渲染数据到页面上</span>
+<span style="background-color: #f5f5f5; color: #000000;">  renderApp(appState);
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;HTML内容很简单，我们定义了一个appState数据对象，包括title和content属性，各自都有text和color，然后定义了renderApp,renderTitle，renderContent渲染方法，最后执行renderApp(appState)，打开页面：</p>
+<p><img src="./images/用原生JS从零到一实现Redux架构0.png" alt="" /></p>
+<p>这些写虽然没有什么问题，但是存在一个比较大的隐患，每个人都可以修改共享状态appState，在平时的业务开发中也很常见的一个问题是，定义了一个全局变量，其他同事在不知情的情况下可能会被覆盖修改删除掉，带来的问题是函数执行的结果往往是不可预料的，出现问题的时候调试起来非常困难。</p>
+<p>那我们如何解决这个问题呢，我们可以提高修改共享数据的门槛，但是不能直接修改，只能修改我允许的某些修改。于是，定义一个dispatch方法，专门负责数据的修改。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> dispatch (action) {
+    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (action.type) {
+      </span><span style="color: #0000ff;">case</span> 'UPDATE_TITLE_TEXT'<span style="color: #000000;">:
+        appState.title.text </span>=<span style="color: #000000;"> action.text;
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+      </span><span style="color: #0000ff;">case</span> 'UPDATE_TITLE_COLOR'<span style="color: #000000;">:
+        appState.title.color </span>=<span style="color: #000000;"> action.color;
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+      </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    }
+  }</span></pre>
+</div>
+<p>这样我们规定，所有岁数据的操作必须通过dispatch方法。它接受一个对象暂且叫它action，规定只能修改title的文字与颜色。这样要想知道哪个函数修改了数据，我们直接在dispatch方法里面断点调试就可以了。大大的提高了解决问题的效率。</p>
+<p><strong><span style="font-size: 18px;">三.抽离store和实现监控数据变化</span></strong></p>
+<p>&nbsp; 上面我们的appStore和dispatch分开的，为了使这种模式更加通用化，我们把他们集中一个地方构建一个函数createStore,用它来生产一个store对象，包含state和dispatch。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> createStore (state, stateChanger) {
+    const getState </span>= () =&gt;<span style="color: #000000;"> state;
+    const dispatch </span>= (action) =&gt;<span style="color: #000000;"> stateChanger(state, action);
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> { getState, dispatch }
+  }</span></pre>
+</div>
+<p>&nbsp;我们修改之前的代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>let appState =<span style="color: #000000;"> {
+    title: {
+      text: </span>'这是一段标题'<span style="color: #000000;">,
+      color: </span>'red'<span style="color: #000000;">,
+    },
+    content: {
+      text: </span>'这是一段内容'<span style="color: #000000;">,
+      color: </span>'blue'<span style="color: #000000;">
+    }
+  }
+
+  </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> stateChanger (state, action) {
+    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (action.type) {
+      </span><span style="color: #0000ff;">case</span> 'UPDATE_TITLE_TEXT'<span style="color: #000000;">:
+        state.title.text </span>=<span style="color: #000000;"> action.text
+        </span><span style="color: #0000ff;">break</span>
+      <span style="color: #0000ff;">case</span> 'UPDATE_TITLE_COLOR'<span style="color: #000000;">:
+        state.title.color </span>=<span style="color: #000000;"> action.color
+        </span><span style="color: #0000ff;">break</span>
+      <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">
+    }
+  }
+
+  const store </span>=<span style="color: #000000;"> createStore(appState, stateChanger)
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 首次渲染页面</span>
+<span style="color: #000000;">  renderApp(store.getState());
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 修改标题文本</span>
+  store.dispatch({ type: 'UPDATE_TITLE_TEXT', text: '换一个标题'<span style="color: #000000;"> });
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 修改标题颜色</span>
+  store.dispatch({ type: 'UPDATE_TITLE_COLOR', color: 'grey'<span style="color: #000000;"> });
+   </span><span style="color: #008000;">//</span><span style="color: #008000;"> 再次把修改后的数据渲染到页面上</span>
+  renderApp(store.getState());</pre>
+</div>
+<p>&nbsp;上面代码不难理解：我们用createStore生成了一个store，可以发现，第一个参数state就是我们之前声明的共享数据，第二个stateChanger方法就是之前声明的dispatch用于修改数据的方法。</p>
+<p>然后我们调用了来两次store.dispatch方法，最后又重新调用了renderApp再重新获取新数据渲染了页面，如下：可以发现title的文字和标题都改变了。</p>
+<p><img src="./images/用原生JS从零到一实现Redux架构1.png" alt="" /></p>
+<p>那么问题来了，我们每次dispatch修改数据的时候，都要手动的调用renderApp方法才能使页面得以改变。我们可以把renderApp放到dispatch方法最后，这样的话，我们的createStore不够通用，因为其他的App不一定要执行renderApp方法，这里我们通过一种监听数据变化，然后再重新渲染页面，术语上讲叫做观察者模式。</p>
+<p>我们修改createStore如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> createStore (state, stateChanger) {
+    const listeners </span>= []; <span style="color: #008000;">//</span><span style="color: #008000;"> 空的方法数组</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> store调用一次subscribe就把传入的listener方法push到方法数组中</span>
+    const subscribe = (listener) =&gt;<span style="color: #000000;"> listeners.push(listener); 
+    const getState </span>= () =&gt;<span style="color: #000000;"> state;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当store调用dispatch的改变数据的时候遍历listeners数组，执行其中每一个方法，到达监听数据重新渲染页面的效果</span>
+    const dispatch = (action) =&gt;<span style="color: #000000;"> {
+      stateChanger(state, action);
+      listeners.forEach((listener) </span>=&gt;<span style="color: #000000;"> listener())
+    };
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> { getState, dispatch, subscribe }
+  }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>再次修改上一部分的代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 首次渲染页面</span>
+<span style="color: #000000;">  renderApp(store.getState());
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 监听数据变化重新渲染页面</span>
+  store.subscribe(()=&gt;<span style="color: #000000;">{
+    renderApp(store.getState());
+  });
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 修改标题文本</span>
+  store.dispatch({ type: 'UPDATE_TITLE_TEXT', text: '换一个标题'<span style="color: #000000;"> });
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 修改标题颜色</span>
+  store.dispatch({ type: 'UPDATE_TITLE_COLOR', color: 'grey' });</pre>
+</div>
+<p>&nbsp;我们在首次渲染页面后只需要subscribe一次，后面dispatch修改数据，renderApp方法会被重新调用，实现了监听数据自动渲染数据的效果。</p>
+<p><span style="font-size: 18px;"><strong>三.生成一个共享结构的对象来提高页面的性能</strong></span></p>
+<p><span style="font-size: 18px;"><span style="font-size: 14px;">上一节我们每次调用renderApp方法的时候实际上是执行了renderTitle和renderContent方法，我们两次都是dispatch修改的是title数据，可是renderContent方法也都被一起执行了，这样执行了不必要的函数，有严重的性能问题，我们可以在几个渲染函数上加上一些Log看看实际上是不是这样的</span><strong><br /></strong></span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> renderApp (appState) {
+  console.log(</span>'render app...'<span style="color: #000000;">)
+  ...
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> renderTitle (title) {
+  console.log(</span>'render title...'<span style="color: #000000;">)
+  ...
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> renderContent (content) {
+  console.log(</span>'render content...'<span style="color: #000000;">)
+ ...
+}</span></pre>
+</div>
+<p>&nbsp;浏览器控制台打印如下：</p>
+<p>&nbsp;&nbsp;<img src="./images/用原生JS从零到一实现Redux架构2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>解决方案是：我们在每个渲染函数执行之前对其传入的数据进行一个判断，判断传入的新数据和旧数据是否相同，相同就return不渲染，否则就渲染。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">  //</span><span style="color: #008000;"> 渲染函数</span>
+  <span style="color: #0000ff;">function</span> renderApp (newAppState, oldAppState = {}) { <span style="color: #008000;">//</span><span style="color: #008000;"> 防止 oldAppState 没有传入，所以加了默认参数 oldAppState = {}</span>
+    <span style="color: #0000ff;">if</span> (newAppState === oldAppState) <span style="color: #0000ff;">return</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> 数据没有变化就不渲染了</span>
+    console.log('render app...'<span style="color: #000000;">);
+    renderTitle(newAppState.title, oldAppState.title);
+    renderContent(newAppState.content, oldAppState.content);
+  }
+  </span><span style="color: #0000ff;">function</span> renderTitle (newTitle, oldTitle =<span style="color: #000000;"> {}) {
+    </span><span style="color: #0000ff;">if</span> (newTitle === oldTitle) <span style="color: #0000ff;">return</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> 数据没有变化就不渲染了</span>
+    console.log('render title...'<span style="color: #000000;">);
+    const titleDOM </span>= document.getElementById('title'<span style="color: #000000;">);
+    titleDOM.innerHTML </span>=<span style="color: #000000;"> newTitle.text;
+    titleDOM.style.color </span>=<span style="color: #000000;"> newTitle.color;
+  }
+  </span><span style="color: #0000ff;">function</span> renderContent (newContent, oldContent =<span style="color: #000000;"> {}) {
+    </span><span style="color: #0000ff;">if</span> (newContent === oldContent) <span style="color: #0000ff;">return</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> 数据没有变化就不渲染了</span>
+    console.log('render content...'<span style="color: #000000;">);
+    const contentDOM </span>= document.getElementById('content'<span style="color: #000000;">)
+    contentDOM.innerHTML </span>=<span style="color: #000000;"> newContent.text;
+    contentDOM.style.color </span>=<span style="color: #000000;"> newContent.color;
+  }
+  ...
+  let oldState </span>= store.getState(); <span style="color: #008000;">//</span><span style="color: #008000;"> 缓存旧的 state</span>
+  store.subscribe(() =&gt;<span style="color: #000000;"> {
+    const newState </span>= store.getState(); <span style="color: #008000;">//</span><span style="color: #008000;"> 数据可能变化，获取新的 state</span>
+    renderApp(newState, oldState); <span style="color: #008000;">//</span><span style="color: #008000;"> 把新旧的 state 传进去渲染</span>
+    oldState = newState <span style="color: #008000;">//</span><span style="color: #008000;"> 渲染完以后，新的 newState 变成了旧的 oldState，等待下一次数据变化重新渲染</span>
+  })<br />  ...</pre>
+</div>
+<p>以上代码我们在subscribe的时候先用oldState缓存旧的state，在dispatch之后执行里面的方法再次获取新的state然后oldState和newState传入到renderApp中，之后再用oldState保存newState。</p>
+<p>好，我们打开浏览器看下效果：</p>
+<p><img src="./images/用原生JS从零到一实现Redux架构3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>控制台只打印了首次渲染的几行日志，后面两次dispatch数据之后渲染函数都没有执行。这说明oldState和newState相等了。</p>
+<p>&nbsp;<img src="./images/用原生JS从零到一实现Redux架构4.png" alt="" /></p>
+<p><img src="./images/用原生JS从零到一实现Redux架构5.png" alt="" /></p>
+<p>通过断点调试，发现newAppState和oldAppState是相等的。</p>
+<p>究其原因，因为对象和数组是引用类型，newState,oldState指向同一个state对象地址，在每个渲染函数判断始终相等，就return了。</p>
+<p>解决方法：appState和newState其实是两个不同的对象，我们利用ES6语法来浅复制appState对象，当执行dispatch方法的时候，用一个新对象覆盖原来title里面内容，其余的属性值保持不变。形成一个共享数据对象，可以参考以下一个demo:</p>
+<p><img src="./images/用原生JS从零到一实现Redux架构6.png" alt="" /></p>
+<p><span style="font-family: 'Microsoft YaHei';">我们修改stateChanger<code>，</code>让它修改数据的时候，并不会直接修改原来的数据 state，而是产生上述的共享结构的对象：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> stateChanger (state, action) {
+    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (action.type) {
+      </span><span style="color: #0000ff;">case</span> 'UPDATE_TITLE_TEXT'<span style="color: #000000;">:
+        </span><span style="color: #0000ff;">return</span> { <span style="color: #008000;">//</span><span style="color: #008000;"> 构建新的对象并且返回</span>
+<span style="color: #000000;">          ...state,
+          title: {
+            ...state.title,
+            text: action.text
+          }
+        }
+      </span><span style="color: #0000ff;">case</span> 'UPDATE_TITLE_COLOR'<span style="color: #000000;">:
+        </span><span style="color: #0000ff;">return</span> { <span style="color: #008000;">//</span><span style="color: #008000;"> 构建新的对象并且返回</span>
+<span style="color: #000000;">          ...state,
+          title: {
+            ...state.title,
+            color: action.color
+          }
+        }
+      </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+        </span><span style="color: #0000ff;">return</span> state <span style="color: #008000;">//</span><span style="color: #008000;"> 没有修改，返回原来的对象</span>
+<span style="color: #000000;">    }
+  }</span></pre>
+</div>
+<p>因为stateChanger不会修改原来的对象了，而是返回一个对象，所以修改createStore里面的dispatch方法，执行stateChanger(state,action)的返回值来覆盖原来的state,这样在subscribe执行传入的方法在dispatch调用时，newState就是stateChanger()返回的结果。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> createStore (state, stateChanger) {
+    ...
+    const dispatch </span>= (action) =&gt;<span style="color: #000000;"> {
+      state</span>=<span style="color: #000000;">stateChanger(state, action);
+      listeners.forEach((listener) </span>=&gt;<span style="color: #000000;"> listener())
+    };
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> { getState, dispatch, subscribe }
+  }</span></pre>
+</div>
+<p>&nbsp;再次运行代码打开浏览器：</p>
+<p><img src="./images/用原生JS从零到一实现Redux架构7.png" alt="" /></p>
+<p>发现后两次store.dispatch导致的content重新渲染不存在了，优化了性能。</p>
+<p><strong><span style="font-size: 18px;">&nbsp;四.通用化Reducer</span></strong></p>
+<p>appState是可以合并到一起的</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> stateChanger (state, action) {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(state){
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+        title: {
+          text: </span>'这是一个标题'<span style="color: #000000;">,
+          color: </span>'Red'<span style="color: #000000;">
+        },
+        content: {
+          text: </span>'这是一段内容'<span style="color: #000000;">,
+          color: </span>'blue'<span style="color: #000000;">
+        }
+      }
+    }
+    </span><span style="color: #0000ff;">switch</span><span style="color: #000000;"> (action.type) {
+      </span><span style="color: #0000ff;">case</span> 'UPDATE_TITLE_TEXT'<span style="color: #000000;">:
+        </span><span style="color: #0000ff;">return</span> { <span style="color: #008000;">//</span><span style="color: #008000;"> 构建新的对象并且返回</span>
+<span style="color: #000000;">          ...state,
+          title: {
+            ...state.title,
+            text: action.text
+          }
+        }
+      </span><span style="color: #0000ff;">case</span> 'UPDATE_TITLE_COLOR'<span style="color: #000000;">:
+        </span><span style="color: #0000ff;">return</span> { <span style="color: #008000;">//</span><span style="color: #008000;"> 构建新的对象并且返回</span>
+<span style="color: #000000;">          ...state,
+          title: {
+            ...state.title,
+            color: action.color
+          }
+        }
+      </span><span style="color: #0000ff;">default</span><span style="color: #000000;">:
+        </span><span style="color: #0000ff;">return</span> state <span style="color: #008000;">//</span><span style="color: #008000;"> 没有修改，返回原来的对象</span>
+<span style="color: #000000;">    }
+  }</span></pre>
+</div>
+<p>&nbsp;再修改createStore方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> createStore (stateChanger) {
+    let state </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    const listeners </span>= []; <span style="color: #008000;">//</span><span style="color: #008000;"> 空的方法数组</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> store调用一次subscribe就把传入的listener方法push到方法数组中</span>
+    const subscribe = (listener) =&gt;<span style="color: #000000;"> listeners.push(listener);
+    const getState </span>= () =&gt;<span style="color: #000000;"> state;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当store调用dispatch的改变数据的时候遍历listeners数组，执行其中每一个方法，到达监听数据重新渲染页面的效果</span>
+    const dispatch = (action) =&gt;<span style="color: #000000;"> {
+      state</span>=<span style="color: #000000;">stateChanger(state, action);
+      listeners.forEach((listener) </span>=&gt;<span style="color: #000000;"> listener())
+    };
+    dispatch({}); </span><span style="color: #008000;">//</span><span style="color: #008000;">初始化state</span>
+    <span style="color: #0000ff;">return</span><span style="color: #000000;"> { getState, dispatch, subscribe }
+  }</span></pre>
+</div>
+<p>初始化一个局部变量state=null,最后手动调用一次dispatch({})来初始化数据。</p>
+<p>stateChanger这个函数也可以叫通用的名字：reducer。为什么叫reducer? 参考<a href="http://www.ruanyifeng.com/blog/2016/09/redux_tutorial_part_one_basic_usages.html" target="_blank">阮一峰的《redux基本用法》</a>里面对reducder的讲解;</p>
+<p><img src="./images/用原生JS从零到一实现Redux架构8.png" alt="" width="599" height="785" /></p>
+<p><strong><span style="font-size: 18px;">五：Redux总结</span></strong></p>
+<p><span style="font-size: 14px;">以上是根据阅读《React.js小书》再次复盘，通过以上我们由一个简单的例子引入用原生JS能大概的从零到一完成了Redux，具体的使用步骤如下：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 定一个 reducer</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> reducer (state, action) {
+</span><span style="color: #008000;">/*</span><span style="color: #008000;"> 初始化 state 和 switch case </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 生成 store</span>
+const store =<span style="color: #000000;"> createStore(reducer)
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 监听数据变化重新渲染页面</span>
+store.subscribe(() =&gt;<span style="color: #000000;"> renderApp(store.getState()))
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 首次渲染页面</span>
+<span style="color: #000000;">renderApp(store.getState())
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 后面可以随意 dispatch 了，页面自动更新</span>
+store.dispatch(...)</pre>
+</div>
+<p>按照定义reducer-&gt;生成store-&gt;监听数据变化-&gt;dispatch页面自动更新。</p>
+<p>下面两幅图也能很好表达出Redux的工作流程</p>
+<p><img src="./images/用原生JS从零到一实现Redux架构9.png" alt="" /></p>
+<p><img src="./images/用原生JS从零到一实现Redux架构10.png" alt="" width="573" height="192" /></p>
+<p><strong>使用Redux遵循的三大原则：</strong></p>
+<p>1.唯一的数据源store</p>
+<p>2.保持状态的store只读，不能直接修改应用状态</p>
+<p>3.应用状态的修改通过纯函数Reducer完成</p>
+<p>当然不是每个项目都要使用Redux，一些小心共享数据较少的没必要使用Redux，视项目大小复杂度而定，具体什么时候使用？引用一句话：当你不确定是否使用Redux的时候，那就不要用Redux。</p>
+<p>项目完整代码<a href="https://github.com/Peer1029/BlogCode/blob/master/01make-redux.html" target="_blank">地址make-redux</a></p>
+<p><span style="font-size: 18px;"><strong>六.写在最后</strong></span></p>
+<p><strong>&nbsp;</strong>&nbsp;每一个工具或框架都是在一定的条件下为了解决某种问题产生的，在阅读几遍《React.js》小书之后，终于对React,Redux等一些基本原理有了一些了解，深感作为一个coder，不能只CV，记忆一些框架API会用就行，知其然不可，更要知其所以然，这样我们在完成项目才能更好的优化又能，是代码写的更加优雅。有什么错误的地方，敬请指正，技术想要有质的飞跃，就要多学习，多思考，多实践，与君共勉。</p>
+<p>&nbsp;</p>
+<hr />
+<p>&nbsp;</p>
+<p>参考资料：</p>
+<p>1.<a href="http://huziketang.mangojuice.top/books/react/" target="_blank">《React.js小书》-胡子大哈</a></p>
+<p>2.React进阶之路-徐超</p>
+<p><a href="http://www.ruanyifeng.com/blog/2016/09/redux_tutorial_part_one_basic_usages.html" target="_blank">3.Redux 入门教程（一）：基本用法-阮一峰</a></p>
+<h1 id="page-title" class="asset-name entry-title">&nbsp;</h1>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

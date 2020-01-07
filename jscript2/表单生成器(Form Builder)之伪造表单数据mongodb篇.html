@@ -1,0 +1,1035 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修表单生成器(Form Builder)之伪造表单数据mongodb篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>表单生成器(Form Builder)之伪造表单数据mongodb篇</center></div><div class='banquan'>原文出处:本文由博客园博主du-blog提供。<br/>
+原文连接:https://www.cnblogs.com/du-blog/p/11815545.html</div><br>
+    <p><span style="font-size: 18px;">　　这篇文章终于回到了正轨：为mongodb伪造数据。之前的随机数、随机车牌照、随机时间还有这篇笔记中的获取指定长度的中文字符串，都是为这篇笔记做准备。看一下我们的准备（基础代码）</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">    1、获取指定范围随机数-包括最大值和最小值</span>
+<span style="color: #0000ff;">var</span> getRangeRandomNumber = <span style="color: #0000ff;">function</span><span style="color: #000000;">(num1,num2){ 
+    num1 </span>= Number.isInteger(num1) ? num1: 0<span style="color: #000000;">;
+    num2 </span>= Number.isInteger(num2) ? num2: 0<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> minNum=Math.min(num1,num2),maxNum=<span style="color: #000000;">Math.max(num1,num2);
+    </span><span style="color: #0000ff;">return</span> Math.round(Math.random() * (maxNum - minNum)) +<span style="color: #000000;"> minNum;
+}; 
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    2、格式化日期时间-参考：https://www.cnblogs.com/zhangpengshou/archive/2012/07/19/2599053.html</span>
+<span style="color: #0000ff;">var</span> dateExtendFormat = <span style="color: #0000ff;">function</span><span style="color: #000000;">(date, format) {
+    </span><span style="color: #0000ff;">var</span> o =<span style="color: #000000;"> {
+        </span>"M+": date.getMonth() + 1<span style="color: #000000;">, 
+        </span>"d+"<span style="color: #000000;">: date.getDate(), 
+        </span>"H+"<span style="color: #000000;">: date.getHours(), 
+        </span>"m+"<span style="color: #000000;">: date.getMinutes(), 
+        </span>"s+"<span style="color: #000000;">: date.getSeconds(), 
+        </span>"q+": Math.floor((date.getMonth() + 3) / 3<span style="color: #000000;">), 
+        </span>"S"<span style="color: #000000;">: date.getMilliseconds() 
+    }
+    </span><span style="color: #0000ff;">if</span> (/(y+)/.test(format)) format = format.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1<span style="color: #000000;">.length));
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> k <span style="color: #0000ff;">in</span><span style="color: #000000;"> o) {
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">new</span> RegExp("(" + k + ")"<span style="color: #000000;">).test(format)) {
+            format </span>= format.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ("00" + o[k]).substr(("" +<span style="color: #000000;"> o[k]).length));
+        }
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> format;
+};
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    3、获取指定范围随机时间，依赖方法 getRangeRandomNumber、dateExtendFormat</span>
+<span style="color: #0000ff;">var</span> getRangeRandomDate=<span style="color: #0000ff;">function</span><span style="color: #000000;">(date1,date2,format){
+    </span><span style="color: #0000ff;">var</span> date1ValueOf=<span style="color: #0000ff;">new</span> Date(date1).valueOf(),date2ValueOf=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date(date2).valueOf();
+    </span><span style="color: #0000ff;">if</span>(isNaN(date1ValueOf)&amp;&amp;<span style="color: #000000;">isNaN(date2ValueOf)){
+        date1ValueOf</span>=0<span style="color: #000000;">;
+        date2ValueOf</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().valueOf();
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">if</span>(isNaN(date1ValueOf))date1ValueOf=0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span>(isNaN(date2ValueOf))date2ValueOf=0<span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">var</span> retDate=<span style="color: #0000ff;">new</span> Date(getRangeRandomNumber(Math.abs(date1ValueOf-date2ValueOf)) +<span style="color: #000000;"> Math.min(date1ValueOf,date2ValueOf));
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(format){
+        retDate</span>=<span style="color: #000000;">dateExtendFormat(retDate,format);
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> retDate;
+};
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    4、获取随机车牌照</span>
+<span style="color: #0000ff;">var</span> getRandomLicensePlate=(<span style="color: #0000ff;">function</span><span style="color: #000000;"> f(excludeArr){
+    </span><span style="color: #0000ff;">if</span>(!Array.isArray(excludeArr))excludeArr=<span style="color: #000000;">[];
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">    生成一个随机车联牌照</span>
+    <span style="color: #0000ff;">var</span> strProvinceShorter="京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川黔滇藏陕甘青宁新港澳台"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> strNumberLetter="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> tempRetLicensePlate=strProvinceShorter[getRangeRandomNumber(strProvinceShorter.length-1<span style="color: #000000;">)];
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;6;i++<span style="color: #000000;">){
+        tempRetLicensePlate</span>+=strNumberLetter[getRangeRandomNumber(strNumberLetter.length-1<span style="color: #000000;">)];
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">    判断这个车联牌照是否存在</span>
+    <span style="color: #0000ff;">if</span>(excludeArr.indexOf(tempRetLicensePlate)&gt;=0<span style="color: #000000;">){
+        tempRetLicensePlate </span>=<span style="color: #000000;"> f(excludeArr);
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        excludeArr.push(tempRetLicensePlate);
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> tempRetLicensePlate;
+});
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    5.0、获取一个随机汉字</span>
+<span style="color: #0000ff;">var</span> getChineseCharacter=<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">return</span> String.fromCharCode(getRangeRandomNumber(parseInt("4E00",16),parseInt("9FA5",16<span style="color: #000000;">)));
+};
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    5.1、获取指定长度的中文字符串</span>
+<span style="color: #0000ff;">var</span> getCustomChineseCharacters=<span style="color: #0000ff;">function</span><span style="color: #000000;">(len){
+    len</span>=isNaN(Number(len))?1<span style="color: #000000;">:Math.abs(Math.ceil(Number(len)));
+    </span><span style="color: #0000ff;">var</span> retStr=""<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;len;i++<span style="color: #000000;">){
+        retStr</span>+=<span style="color: #000000;">getChineseCharacter();
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> retStr;
+};</span></pre>
+</div>
+<p><span style="font-size: 18px;">　　现在一切都准备好了，那我们就说说正事儿。</span><span style="font-size: 18px;">为了让这些数据有点意义，我想了三个表单。分别是车辆信息表、车辆耗损表以及车辆营收表，下面看一下三张表的结构</span></p>
+<table style="height: 307px; width: 1110px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td colspan="5" valign="top" width="553">
+<p align="center"><strong>车辆信息表（FormId:</strong> <strong>507048044944691000,</strong> <strong>FormVersion: 507048044944691001</strong><strong>）</strong></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p align="center"><strong>唯一标识</strong></p>
+</td>
+<td valign="top" width="109">
+<p align="center"><strong>中文描述</strong></p>
+</td>
+<td valign="top" width="112">
+<p align="center"><strong>控件类型</strong></p>
+</td>
+<td valign="top" width="112">
+<p align="center"><strong>是否必填</strong></p>
+</td>
+<td rowspan="7" valign="top" width="109">
+<p align="center">表单项的其他配置（在表单设计时配置，文本框长度、时间格式等）</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551001</p>
+</td>
+<td valign="top" width="109">
+<p>车辆品牌名称</p>
+</td>
+<td valign="top" width="112">
+<p>单行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551002</p>
+</td>
+<td valign="top" width="109">
+<p>车辆品牌型号</p>
+</td>
+<td valign="top" width="112">
+<p>单行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551003</p>
+</td>
+<td valign="top" width="109">
+<p>车辆牌照</p>
+</td>
+<td valign="top" width="112">
+<p>单行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551004</p>
+</td>
+<td valign="top" width="109">
+<p>车辆购买日期</p>
+</td>
+<td valign="top" width="112">
+<p>日期时间</p>
+</td>
+<td valign="top" width="112">
+<p>否</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551005</p>
+</td>
+<td valign="top" width="109">
+<p>车辆购买价格</p>
+</td>
+<td valign="top" width="112">
+<p>数值文本框</p>
+</td>
+<td valign="top" width="112">
+<p>否</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551006</p>
+</td>
+<td valign="top" width="109">
+<p>备注</p>
+</td>
+<td valign="top" width="112">
+<p>多行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>否</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<table style="height: 346px; width: 1114px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td colspan="5" valign="top" width="553">
+<p align="center"><strong>车辆信息表（FormId:</strong> <strong>507048044944691000,</strong> <strong>FormVersion: 507048044944691002</strong><strong>）</strong></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p align="center"><strong>唯一标识</strong></p>
+</td>
+<td valign="top" width="109">
+<p align="center"><strong>中文描述</strong></p>
+</td>
+<td valign="top" width="112">
+<p align="center"><strong>控件类型</strong></p>
+</td>
+<td valign="top" width="112">
+<p align="center"><strong>是否必填</strong></p>
+</td>
+<td rowspan="7" valign="top" width="109">
+<p align="center">表单项的其他配置（在表单设计时配置，文本框长度、时间格式等）</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551001</p>
+</td>
+<td valign="top" width="109">
+<p>车辆品牌名称</p>
+</td>
+<td valign="top" width="112">
+<p>单行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551002</p>
+</td>
+<td valign="top" width="109">
+<p>车辆品牌型号</p>
+</td>
+<td valign="top" width="112">
+<p>单行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551003</p>
+</td>
+<td valign="top" width="109">
+<p>车辆牌照</p>
+</td>
+<td valign="top" width="112">
+<p>单行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551004</p>
+</td>
+<td valign="top" width="109">
+<p>车辆购买日期</p>
+</td>
+<td valign="top" width="112">
+<p>时间控件</p>
+</td>
+<td valign="top" width="112">
+<p>否</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551005</p>
+</td>
+<td valign="top" width="109">
+<p>车辆购买价格</p>
+</td>
+<td valign="top" width="112">
+<p>数值文本框</p>
+</td>
+<td valign="top" width="112">
+<p>否</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493551006</p>
+</td>
+<td valign="top" width="109">
+<p>备注</p>
+</td>
+<td valign="top" width="112">
+<p>多行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>否</p>
+</td>
+</tr>
+<tr>
+<td colspan="5" valign="top" width="553">
+<p>&hellip;&hellip;业务需求，删除或者新增一个或者多个字段，生成一个新的版本号</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<table style="height: 307px; width: 1114px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td colspan="5" valign="top" width="553">
+<p align="center"><strong>车辆耗损表（FormId:</strong> <strong>507048044944692000,</strong> <strong>FormVersion: 507048044944692001</strong><strong>）</strong></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p align="center"><strong>唯一标识</strong></p>
+</td>
+<td valign="top" width="109">
+<p align="center"><strong>中文描述</strong></p>
+</td>
+<td valign="top" width="112">
+<p align="center"><strong>控件类型</strong></p>
+</td>
+<td valign="top" width="112">
+<p align="center"><strong>是否必填</strong></p>
+</td>
+<td rowspan="7" valign="top" width="109">
+<p align="center">表单项的其他配置（在表单设计时配置，文本框长度、时间格式等）</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493552001</p>
+</td>
+<td valign="top" width="109">
+<p>所属车辆</p>
+</td>
+<td valign="top" width="112">
+<p>下拉搜索控件</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493552002</p>
+</td>
+<td valign="top" width="109">
+<p>耗损人员</p>
+</td>
+<td valign="top" width="112">
+<p>选择人员控件</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493552003</p>
+</td>
+<td valign="top" width="109">
+<p>耗损时间</p>
+</td>
+<td valign="top" width="112">
+<p>时间控件</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493552004</p>
+</td>
+<td valign="top" width="109">
+<p>耗损类别</p>
+</td>
+<td valign="top" width="112">
+<p>单行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493552005</p>
+</td>
+<td valign="top" width="109">
+<p>耗损金额</p>
+</td>
+<td valign="top" width="112">
+<p>数值文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493552006</p>
+</td>
+<td valign="top" width="109">
+<p>备注</p>
+</td>
+<td valign="top" width="112">
+<p>多行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>否</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<table style="height: 346px; width: 1111px;" border="1" cellspacing="0" cellpadding="0">
+<tbody>
+<tr>
+<td colspan="5" valign="top" width="553">
+<p align="center"><strong>车辆营收表（FormId:</strong> <strong>507048044944693000,</strong> <strong>FormVersion: 507048044944693001</strong><strong>）</strong></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p align="center"><strong>唯一标识</strong></p>
+</td>
+<td valign="top" width="109">
+<p align="center"><strong>中文描述</strong></p>
+</td>
+<td valign="top" width="112">
+<p align="center"><strong>控件类型</strong></p>
+</td>
+<td valign="top" width="112">
+<p align="center"><strong>是否必填</strong></p>
+</td>
+<td rowspan="8" valign="top" width="109">
+<p align="center">表单项的其他配置（在表单设计时配置，文本框长度、时间格式等）</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493553001</p>
+</td>
+<td valign="top" width="109">
+<p>所属车辆</p>
+</td>
+<td valign="top" width="112">
+<p>下拉搜索控件</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493553002</p>
+</td>
+<td valign="top" width="109">
+<p>营收人员</p>
+</td>
+<td valign="top" width="112">
+<p>选择人员控件</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493553003</p>
+</td>
+<td valign="top" width="109">
+<p>营收时间</p>
+</td>
+<td valign="top" width="112">
+<p>时间控件</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493553004</p>
+</td>
+<td valign="top" width="109">
+<p>营收类别</p>
+</td>
+<td valign="top" width="112">
+<p>单行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493553005</p>
+</td>
+<td valign="top" width="109">
+<p>营收金额</p>
+</td>
+<td valign="top" width="112">
+<p>数值文本框</p>
+</td>
+<td valign="top" width="112">
+<p>是</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493553006</p>
+</td>
+<td valign="top" width="109">
+<p>里程</p>
+</td>
+<td valign="top" width="112">
+<p>数值文本框</p>
+</td>
+<td valign="top" width="112">
+<p>否</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="112">
+<p>1572493553007</p>
+</td>
+<td valign="top" width="109">
+<p>备注</p>
+</td>
+<td valign="top" width="112">
+<p>多行文本框</p>
+</td>
+<td valign="top" width="112">
+<p>否</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;<span style="font-size: 18px;">　　现在我们就按照表结构伪造数据，下面是全部的代码（可以在Mongodb环境下执行）</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4630c316-3d30-4983-bd4d-b03e467e47bd')"><img id="code_img_closed_4630c316-3d30-4983-bd4d-b03e467e47bd" class="code_img_closed" src="./images/表单生成器(Form Builder)之伪造表单数据mongodb篇0.png" alt="" /><img id="code_img_opened_4630c316-3d30-4983-bd4d-b03e467e47bd" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4630c316-3d30-4983-bd4d-b03e467e47bd',event)" src="./images/表单生成器(Form Builder)之伪造表单数据mongodb篇1.png" alt="" />
+<div id="cnblogs_code_open_4630c316-3d30-4983-bd4d-b03e467e47bd" class="cnblogs_code_hide">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">    1、获取指定范围随机数-包括最大值和最小值</span>
+<span style="color: #0000ff;">var</span> getRangeRandomNumber = <span style="color: #0000ff;">function</span><span style="color: #000000;">(num1,num2){ 
+    num1 </span>= Number.isInteger(num1) ? num1: 0<span style="color: #000000;">;
+    num2 </span>= Number.isInteger(num2) ? num2: 0<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> minNum=Math.min(num1,num2),maxNum=<span style="color: #000000;">Math.max(num1,num2);
+    </span><span style="color: #0000ff;">return</span> Math.round(Math.random() * (maxNum - minNum)) +<span style="color: #000000;"> minNum;
+}; 
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    2、格式化日期时间-参考：https://www.cnblogs.com/zhangpengshou/archive/2012/07/19/2599053.html</span>
+<span style="color: #0000ff;">var</span> dateExtendFormat = <span style="color: #0000ff;">function</span><span style="color: #000000;">(date, format) {
+    </span><span style="color: #0000ff;">var</span> o =<span style="color: #000000;"> {
+        </span>"M+": date.getMonth() + 1<span style="color: #000000;">, 
+        </span>"d+"<span style="color: #000000;">: date.getDate(), 
+        </span>"H+"<span style="color: #000000;">: date.getHours(), 
+        </span>"m+"<span style="color: #000000;">: date.getMinutes(), 
+        </span>"s+"<span style="color: #000000;">: date.getSeconds(), 
+        </span>"q+": Math.floor((date.getMonth() + 3) / 3<span style="color: #000000;">), 
+        </span>"S"<span style="color: #000000;">: date.getMilliseconds() 
+    }
+    </span><span style="color: #0000ff;">if</span> (/(y+)/.test(format)) format = format.replace(RegExp.$1, (date.getFullYear() + "").substr(4 - RegExp.$1<span style="color: #000000;">.length));
+    </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> k <span style="color: #0000ff;">in</span><span style="color: #000000;"> o) {
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">new</span> RegExp("(" + k + ")"<span style="color: #000000;">).test(format)) {
+            format </span>= format.replace(RegExp.$1, RegExp.$1.length == 1 ? o[k] : ("00" + o[k]).substr(("" +<span style="color: #000000;"> o[k]).length));
+        }
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> format;
+};
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    3、获取指定范围随机时间，依赖方法 getRangeRandomNumber、dateExtendFormat</span>
+<span style="color: #0000ff;">var</span> getRangeRandomDate=<span style="color: #0000ff;">function</span><span style="color: #000000;">(date1,date2,format){
+    </span><span style="color: #0000ff;">var</span> date1ValueOf=<span style="color: #0000ff;">new</span> Date(date1).valueOf(),date2ValueOf=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date(date2).valueOf();
+    </span><span style="color: #0000ff;">if</span>(isNaN(date1ValueOf)&amp;&amp;<span style="color: #000000;">isNaN(date2ValueOf)){
+        date1ValueOf</span>=0<span style="color: #000000;">;
+        date2ValueOf</span>=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().valueOf();
+    }
+    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">if</span>(isNaN(date1ValueOf))date1ValueOf=0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span>(isNaN(date2ValueOf))date2ValueOf=0<span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">var</span> retDate=<span style="color: #0000ff;">new</span> Date(getRangeRandomNumber(Math.abs(date1ValueOf-date2ValueOf)) +<span style="color: #000000;"> Math.min(date1ValueOf,date2ValueOf));
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(format){
+        retDate</span>=<span style="color: #000000;">dateExtendFormat(retDate,format);
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> retDate;
+};
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    4、获取随机车牌照</span>
+<span style="color: #0000ff;">var</span> getRandomLicensePlate=(<span style="color: #0000ff;">function</span><span style="color: #000000;"> f(excludeArr){
+    </span><span style="color: #0000ff;">if</span>(!Array.isArray(excludeArr))excludeArr=<span style="color: #000000;">[];
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">    生成一个随机车联牌照</span>
+    <span style="color: #0000ff;">var</span> strProvinceShorter="京津冀晋蒙辽吉黑沪苏浙皖闽赣鲁豫鄂湘粤桂琼渝川黔滇藏陕甘青宁新港澳台"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> strNumberLetter="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> tempRetLicensePlate=strProvinceShorter[getRangeRandomNumber(strProvinceShorter.length-1<span style="color: #000000;">)];
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;6;i++<span style="color: #000000;">){
+        tempRetLicensePlate</span>+=strNumberLetter[getRangeRandomNumber(strNumberLetter.length-1<span style="color: #000000;">)];
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">    判断这个车联牌照是否存在</span>
+    <span style="color: #0000ff;">if</span>(excludeArr.indexOf(tempRetLicensePlate)&gt;=0<span style="color: #000000;">){
+        tempRetLicensePlate </span>=<span style="color: #000000;"> f(excludeArr);
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        excludeArr.push(tempRetLicensePlate);
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> tempRetLicensePlate;
+});
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    5.0、获取一个随机汉字</span>
+<span style="color: #0000ff;">var</span> getChineseCharacter=<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">return</span> String.fromCharCode(getRangeRandomNumber(parseInt("4E00",16),parseInt("9FA5",16<span style="color: #000000;">)));
+};
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    5.1、获取指定长度的中文字符串</span>
+<span style="color: #0000ff;">var</span> getCustomChineseCharacters=<span style="color: #0000ff;">function</span><span style="color: #000000;">(len){
+    len</span>=isNaN(Number(len))?1<span style="color: #000000;">:Math.abs(Math.ceil(Number(len)));
+    </span><span style="color: #0000ff;">var</span> retStr=""<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;len;i++<span style="color: #000000;">){
+        retStr</span>+=<span style="color: #000000;">getChineseCharacter();
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> retStr;
+};
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    插入数据方法</span>
+<span style="color: #0000ff;">var</span> handleBatchInsertData=<span style="color: #0000ff;">function</span><span style="color: #000000;">(initConfig){
+    </span><span style="color: #0000ff;">if</span>(initConfig.formId&amp;&amp;initConfig.formVersion&amp;&amp;Array.isArray(initConfig.source)&amp;&amp;<span style="color: #000000;">initConfig.source.length){
+        </span><span style="color: #0000ff;">var</span> tempTrs=<span style="color: #000000;">[],
+        tempCreateDate</span>=<span style="color: #000000;">ISODate(),
+        tempFormInstaceDataCounter</span>=db.getCollection('FormInstace'<span style="color: #000000;">).find({}).count();
+        initConfig.source.forEach((formItemObj)</span>=&gt;<span style="color: #000000;">{
+            </span><span style="color: #0000ff;">var</span> tempCreateUserIdIndex = Math.floor(Math.random() *<span style="color: #000000;"> GV_CreateUserIds.length);
+            </span><span style="color: #0000ff;">var</span> tempTr=<span style="color: #000000;">{
+                _id:(</span>++<span style="color: #000000;">tempFormInstaceDataCounter).toString(),
+                FormItems:[],
+                ExtendData:{},
+                CreateUserId:GV_CreateUserIds[tempCreateUserIdIndex],
+                CreateUserName:GV_CreateUserIds[tempCreateUserIdIndex],
+                CreateDate:tempCreateDate,
+                LastModifyDate:tempCreateDate,
+                FormId:initConfig.formId,
+                FormVersion:initConfig.formVersion
+            };
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i <span style="color: #0000ff;">in</span><span style="color: #000000;"> formItemObj){
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (formItemObj.hasOwnProperty(i)){
+                    tempTr.FormItems.push({key:i,value:formItemObj[i]});
+                }
+            }
+            tempTrs.push(tempTr);
+        });
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;">{
+            db.FormInstace.insertMany(tempTrs);
+        }</span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(e){
+            print(e);
+        }    
+    }
+};
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    创建用户集合</span>
+<span style="color: #0000ff;">var</span> GV_CreateUserIds = ["user10000","user10001","user10002","user10003","user10004","user10005","user10006","user10007","user10008","user10009"<span style="color: #000000;">];
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    车辆信息表插入数据配置</span>
+<span style="color: #0000ff;">var</span> GV_CarInfoInitConfig =<span style="color: #000000;"> {
+    formId:</span>"507048044944691000"<span style="color: #000000;">,
+    formVersion:</span>"507048044944691001"<span style="color: #000000;">,
+    carTypes:[
+        {    
+            brandName:</span>"红旗"<span style="color: #000000;">,
+            models:[
+                {name:</span>"HS7",min:349800,max:459800<span style="color: #000000;">},
+                {name:</span>"HS5",min:183800,max:249800<span style="color: #000000;">},
+                {name:</span>"H7",min:252800,max:317800<span style="color: #000000;">},
+                {name:</span>"H5",min:146800,max:190800<span style="color: #000000;">},
+                {name:</span>"HE-HS3",min:225800,max:317800<span style="color: #000000;">}
+            ]
+        },
+        {    
+            brandName:</span>"比亚迪"<span style="color: #000000;">,
+            models:[
+                {name:</span>"元",min:65900,max:99900<span style="color: #000000;">},
+                {name:</span>"宋",min:79800,max:119800<span style="color: #000000;">},
+                {name:</span>"宋Pro",min:89800,max:119800<span style="color: #000000;">},
+                {name:</span>"唐",min:129900,max:169900<span style="color: #000000;">},
+                {name:</span>"比亚迪F3",min:43900,max:65900<span style="color: #000000;">},
+                {name:</span>"速锐",min:59900,max:69900<span style="color: #000000;">},
+                {name:</span>"秦Pro",min:79800,max:115900<span style="color: #000000;">},
+                {name:</span>"宋MAX",min:79900,max:129900<span style="color: #000000;">},
+                {name:</span>"元EV",min:89900,max:139900<span style="color: #000000;">},
+                {name:</span>"比亚迪S2",min:89800,max:109800<span style="color: #000000;">},
+                {name:</span>"宋DM",min:176900,max:206900<span style="color: #000000;">},
+                {name:</span>"宋Pro DM",min:169800,max:259900<span style="color: #000000;">},
+                {name:</span>"宋EV",min:189900,max:219900<span style="color: #000000;">},
+                {name:</span>"宋Pro EV",min:179800,max:259900<span style="color: #000000;">},
+                {name:</span>"唐DM",min:229900,max:329900<span style="color: #000000;">},
+                {name:</span>"唐EV",min:259900,max:409900<span style="color: #000000;">},
+                {name:</span>"比亚迪e1",min:59900,max:79900<span style="color: #000000;">},
+                {name:</span>"比亚迪e2",min:89800,max:119800<span style="color: #000000;">},
+                {name:</span>"比亚迪e3",min:103800,max:139800<span style="color: #000000;">},
+                {name:</span>"秦DM",min:132900,max:209900<span style="color: #000000;">},
+                {name:</span>"秦Pro DM",min:136900,max:206900<span style="color: #000000;">},
+                {name:</span>"秦EV",min:149900,max:169900<span style="color: #000000;">},
+                {name:</span>"秦Pro EV",min:149900,max:299900<span style="color: #000000;">},
+                {name:</span>"宋MAX DM",min:149900,max:196900<span style="color: #000000;">},
+                {name:</span>"宋MAX EV",min:179800,max:199800<span style="color: #000000;">}
+            ]
+        },
+        {    
+            brandName:</span>"奇瑞"<span style="color: #000000;">,
+            models:[
+                {name:</span>"瑞虎3",min:59900,max:79900<span style="color: #000000;">},
+                {name:</span>"瑞虎3x",min:49900,max:62900<span style="color: #000000;">},
+                {name:</span>"瑞虎5x",min:59900,max:89900<span style="color: #000000;">},
+                {name:</span>"瑞虎7",min:85900,max:150900<span style="color: #000000;">},
+                {name:</span>"瑞虎8",min:88800,max:155900<span style="color: #000000;">},
+                {name:</span>"艾瑞泽5",min:49900,max:84900<span style="color: #000000;">},
+                {name:</span>"艾瑞泽GX",min:74900,max:113900<span style="color: #000000;">},
+                {name:</span>"瑞虎3xe",min:175800,max:189800<span style="color: #000000;">},
+                {name:</span>"瑞虎e",min:109900,max:143900<span style="color: #000000;">},
+                {name:</span>"奇瑞eQ1",min:59800,max:75800<span style="color: #000000;">},
+                {name:</span>"艾瑞泽e",min:126800,max:143800<span style="color: #000000;">},
+                {name:</span>"艾瑞泽5e",min:192300,max:212300<span style="color: #000000;">}
+            ]
+        },
+        {    
+            brandName:</span>"吉利"<span style="color: #000000;">,
+            models:[
+                {name:</span>"远景X1",min:39900,max:57900<span style="color: #000000;">},
+                {name:</span>"远景X3",min:45900,max:68900<span style="color: #000000;">},
+                {name:</span>"缤越",min:78800,max:129800<span style="color: #000000;">},
+                {name:</span>"远景S1",min:59900,max:94900<span style="color: #000000;">},
+                {name:</span>"远景X6",min:68900,max:105900<span style="color: #000000;">},
+                {name:</span>"帝豪GS",min:77800,max:116800<span style="color: #000000;">},
+                {name:</span>"博越",min:88800,max:161800<span style="color: #000000;">},
+                {name:</span>"星越",min:135800,max:195800<span style="color: #000000;">},
+                {name:</span>"金刚",min:47900,max:65900<span style="color: #000000;">},
+                {name:</span>"远景",min:47900,max:73900<span style="color: #000000;">},
+                {name:</span>"帝豪",min:68900,max:98800<span style="color: #000000;">},
+                {name:</span>"帝豪GL",min:78800,max:121800<span style="color: #000000;">},
+                {name:</span>"缤瑞",min:75800,max:110800<span style="color: #000000;">},
+                {name:</span>"博瑞",min:136800,max:179800<span style="color: #000000;">},
+                {name:</span>"嘉际",min:99800,max:148800<span style="color: #000000;">},
+                {name:</span>"缤越PHEV",min:149800,max:169800<span style="color: #000000;">},
+                {name:</span>"帝豪GSe",min:119800,max:159800<span style="color: #000000;">},
+                {name:</span>"星越PHEV",min:188800,max:216800<span style="color: #000000;">},
+                {name:</span>"帝豪EV",min:135800,max:238300<span style="color: #000000;">},
+                {name:</span>"帝豪PHEV",min:165800,max:185800<span style="color: #000000;">},
+                {name:</span>"帝豪GL PHEV",min:152800,max:164800<span style="color: #000000;">},
+                {name:</span>"博瑞PHEV",min:176800,max:209800<span style="color: #000000;">},
+                {name:</span>"嘉际PHEV",min:169800,max:192800<span style="color: #000000;">}
+            ]
+        },
+        {    
+            brandName:</span>"长安"<span style="color: #000000;">,
+            models:[
+                {name:</span>"长安CS15",min:55900,max:80900<span style="color: #000000;">},
+                {name:</span>"长安CS35",min:63900,max:87900<span style="color: #000000;">},
+                {name:</span>"长安CS35 PLUS",min:69900,max:109900<span style="color: #000000;">},
+                {name:</span>"长安CS55",min:82900,max:133900<span style="color: #000000;">},
+                {name:</span>"长安CS75",min:79800,max:174800<span style="color: #000000;">},
+                {name:</span>"长安CS75 PLUS",min:106900,max:154900<span style="color: #000000;">},
+                {name:</span>"长安CS85 COUPE",min:119900,max:169900<span style="color: #000000;">},
+                {name:</span>"长安CS95",min:165900,max:213900<span style="color: #000000;">},
+                {name:</span>"奔奔",min:40900,max:56900<span style="color: #000000;">},
+                {name:</span>"悦翔",min:49900,max:67900<span style="color: #000000;">},
+                {name:</span>"逸动DT",min:52900,max:80900<span style="color: #000000;">},
+                {name:</span>"逸动XT",min:77900,max:111900<span style="color: #000000;">},
+                {name:</span>"逸动",min:69900,max:103900<span style="color: #000000;">},
+                {name:</span>"睿骋CC",min:84900,max:135900<span style="color: #000000;">},
+                {name:</span>"锐程CC",min:94900,max:128900<span style="color: #000000;">},
+                {name:</span>"睿骋",min:120800,max:150800<span style="color: #000000;">},
+                {name:</span>"凌轩",min:67900,max:110900<span style="color: #000000;">},
+                {name:</span>"长安CS15 EV",min:89800,max:98800<span style="color: #000000;">},
+                {name:</span>"长安CS75 PHEV",min:175800,max:206800<span style="color: #000000;">},
+                {name:</span>"奔奔EV",min:49800,max:81800<span style="color: #000000;">},
+                {name:</span>"逸动ET",min:132900,max:142900<span style="color: #000000;">},
+                {name:</span>"逸动PHEV",min:160900,max:169900<span style="color: #000000;">},
+                {name:</span>"逸动EV",min:129900,max:139900<span style="color: #000000;">},
+            ]
+        },
+        {    
+            brandName:</span>"长安欧尚"<span style="color: #000000;">,
+            models:[
+                {name:</span>"长安欧尚科赛3",min:59900,max:76900<span style="color: #000000;">},
+                {name:</span>"长安欧尚科赛5",min:69900,max:82900<span style="color: #000000;">},
+                {name:</span>"长安欧尚X70A",min:49900,max:859500<span style="color: #000000;">},
+                {name:</span>"长安欧尚CX70",min:59900,max:109900<span style="color: #000000;">},
+                {name:</span>"长安欧尚科赛",min:86800,max:152800<span style="color: #000000;">},
+                {name:</span>"欧尚S",min:39900,max:55900<span style="color: #000000;">},
+                {name:</span>"欧尚长行",min:68900,max:82900<span style="color: #000000;">},
+                {name:</span>"长安欧尚A600",min:49900,max:84900<span style="color: #000000;">},
+                {name:</span>"长安欧尚A800",min:62900,max:100900<span style="color: #000000;">},
+                {name:</span>"长安欧尚科尚",min:79800,max:160800<span style="color: #000000;">},
+                {name:</span>"长安之星9",min:47800,max:48800<span style="color: #000000;">},
+                {name:</span>"长安星卡",min:32900,max:47900<span style="color: #000000;">},
+                {name:</span>"尼欧Ⅱ",min:88800,max:100800<span style="color: #000000;">},
+                {name:</span>"欧力威EV",min:105800,max:105800<span style="color: #000000;">},
+                {name:</span>"欧诺S EV",min:175800,max:175800<span style="color: #000000;">},
+                {name:</span>"欧尚长行EV",min:169800,max:169800<span style="color: #000000;">},
+                {name:</span>"欧尚EV",min:169800,max:169800<span style="color: #000000;">},
+                {name:</span>"欧尚A600 EV",min:149800,max:149800<span style="color: #000000;">},
+                {name:</span>"长安之星9 EV",min:152800,max:156000<span style="color: #000000;">},
+                {name:</span>"长安星卡EV",min:123800,max:125800<span style="color: #000000;">},
+            ]
+        },
+        {    
+            brandName:</span>"长安轻型车"<span style="color: #000000;">,
+            models:[
+                {name:</span>"睿行S50",min:48900,max:77900<span style="color: #000000;">},
+                {name:</span>"睿行S50T",min:61900,max:78900<span style="color: #000000;">},
+                {name:</span>"睿行M60",min:51900,max:59900<span style="color: #000000;">},
+                {name:</span>"睿行M70",min:60500,max:74000<span style="color: #000000;">},
+                {name:</span>"睿行M80",min:58500,max:72000<span style="color: #000000;">},
+                {name:</span>"睿行M90",min:68500,max:92500<span style="color: #000000;">},
+                {name:</span>"神骐F30",min:47600,max:63800<span style="color: #000000;">},
+                {name:</span>"神骐T10",min:39900,max:50900<span style="color: #000000;">},
+                {name:</span>"神骐T20",min:33900,max:59700<span style="color: #000000;">},
+                {name:</span>"凯程F70",min:92800,max:139800<span style="color: #000000;">},
+                {name:</span>"长安星卡L系列",min:39900,max:47900<span style="color: #000000;">},
+                {name:</span>"长安星卡C系列",min:30900,max:33600<span style="color: #000000;">},
+                {name:</span>"睿行ES30",min:66800,max:69800<span style="color: #000000;">},
+                {name:</span>"睿行EM60",min:122800,max:122800<span style="color: #000000;">},
+                {name:</span>"睿行EM80",min:96800,max:120000<span style="color: #000000;">}
+            ]
+        },
+        {    
+            brandName:</span>"长安跨越"<span style="color: #000000;">,
+            models:[
+                {name:</span>"长安跨越V3",min:33500,max:34300<span style="color: #000000;">},
+                {name:</span>"跨越王X1",min:39600,max:51800<span style="color: #000000;">},
+                {name:</span>"跨越王X3",min:45700,max:58400<span style="color: #000000;">},
+                {name:</span>"长安跨越王X5",min:47400,max:65600<span style="color: #000000;">},
+                {name:</span>"长安新豹2",min:40700,max:58600<span style="color: #000000;">},
+                {name:</span>"新豹3",min:46200,max:59900<span style="color: #000000;">},
+                {name:</span>"新豹T3",min:41300,max:51800<span style="color: #000000;">},
+                {name:</span>"长安新豹MINI",min:32100,max:50500<span style="color: #000000;">},
+                {name:</span>"跨越者D5",min:59300,max:67700<span style="color: #000000;">},
+                {name:</span>"长安跨越新能源V3 EV",min:79200,max:79200<span style="color: #000000;">},
+                {name:</span>"长安跨越新能源V5 EV",min:93800,max:93800<span style="color: #000000;">}
+            ]
+        },
+        {    
+            brandName:</span>"力帆"<span style="color: #000000;">,
+            models:[
+                {name:</span>"迈威",min:56800,max:73800<span style="color: #000000;">},
+                {name:</span>"力帆X80",min:109900,max:149900<span style="color: #000000;">},
+                {name:</span>"力帆820",min:76800,max:119800<span style="color: #000000;">},
+                {name:</span>"轩朗",min:69800,max:106800<span style="color: #000000;">},
+                {name:</span>"乐途",min:35800,max:59800<span style="color: #000000;">},
+                {name:</span>"力帆650EV",min:168900,max:175800<span style="color: #000000;">},
+                {name:</span>"力帆820EV",min:256800,max:279800<span style="color: #000000;">}
+            ]
+        },
+        {    
+            brandName:</span>"长城"<span style="color: #000000;">,
+            models:[
+                {name:</span>"风骏5",min:68800,max:112800<span style="color: #000000;">},
+                {name:</span>"风骏6",min:86800,max:117800<span style="color: #000000;">},
+                {name:</span>"风骏7",min:86800,max:138800<span style="color: #000000;">},
+                {name:</span>"炮",min:97800,max:159800<span style="color: #000000;">},
+                {name:</span>"长城C30 EV",min:150000,max:154000<span style="color: #000000;">}
+            ]
+        },
+        {    
+            brandName:</span>"哈弗"<span style="color: #000000;">,
+            models:[
+                {name:</span>"哈弗H2",min:74900,max:95900<span style="color: #000000;">},
+                {name:</span>"哈弗H2s",min:70000,max:85000<span style="color: #000000;">},
+                {name:</span>"哈弗H4",min:73900,max:115000<span style="color: #000000;">},
+                {name:</span>"哈弗F5",min:100000,max:130000<span style="color: #000000;">},
+                {name:</span>"哈弗H5",min:107800,max:136800<span style="color: #000000;">},
+                {name:</span>"哈弗M6",min:66000,max:82000<span style="color: #000000;">},
+                {name:</span>"哈弗H6",min:102000,max:136000<span style="color: #000000;">},
+                {name:</span>"哈弗H6 Coupe",min:79900,max:119000<span style="color: #000000;">},
+                {name:</span>"哈弗H7",min:142000,max:180000<span style="color: #000000;">},
+                {name:</span>"哈弗F7",min:109000,max:153700<span style="color: #000000;">},
+                {name:</span>"哈弗F7x",min:119900,max:154900<span style="color: #000000;">},
+                {name:</span>"哈弗H9",min:209800,max:272800<span style="color: #000000;">},
+            ]
+        },
+        {    
+            brandName:</span>"江铃"<span style="color: #000000;">,
+            models:[
+                {name:</span>"宝典",min:78800,max:105300<span style="color: #000000;">},
+                {name:</span>"凯锐800",min:120800,max:129100<span style="color: #000000;">},
+                {name:</span>"凯运强劲版",min:99500,max:117400<span style="color: #000000;">},
+                {name:</span>"凯运升级版",min:94800,max:106800<span style="color: #000000;">},
+                {name:</span>"顺达宽体",min:90800,max:100000<span style="color: #000000;">},
+                {name:</span>"顺达窄体",min:84000,max:89000<span style="color: #000000;">},
+                {name:</span>"特顺",min:101300,max:142700<span style="color: #000000;">},
+                {name:</span>"域虎3",min:89800,max:122200<span style="color: #000000;">},
+                {name:</span>"域虎5",min:96800,max:136300<span style="color: #000000;">},
+                {name:</span>"域虎7",min:119800,max:176300<span style="color: #000000;">},
+                {name:</span>"江铃E100B",min:73800,max:73800<span style="color: #000000;">},
+                {name:</span>"江铃E160",min:95800,max:98800<span style="color: #000000;">},
+                {name:</span>"江铃E200L",min:87800,max:90800<span style="color: #000000;">},
+                {name:</span>"江铃E200N",min:90800,max:93800<span style="color: #000000;">},
+                {name:</span>"易至EV3",min:66800,max:83800<span style="color: #000000;">},
+                {name:</span>"易至EX5",min:89800,max:122800<span style="color: #000000;">},
+                {name:</span>"特顺EV",min:206000,max:206000<span style="color: #000000;">},
+                {name:</span>"骐铃T5",min:65800,max:86800<span style="color: #000000;">},
+                {name:</span>"骐铃T7",min:72800,max:113800<span style="color: #000000;">},
+                {name:</span>"骐铃T100",min:53800,max:71800<span style="color: #000000;">},
+                {name:</span>"D-MAX房车",min:283000,max:396000<span style="color: #000000;">},
+                {name:</span>"考斯特房车",min:318000,max:380000<span style="color: #000000;">},
+                {name:</span>"旅居房车",min:536000,max:596000<span style="color: #000000;">},
+                {name:</span>"罗莎房车租赁款",min:268000,max:288000<span style="color: #000000;">},
+                {name:</span>"骐铃T7皮卡房车",min:258000,max:299800<span style="color: #000000;">},
+                {name:</span>"全顺商旅房车",min:468000,max:518000<span style="color: #000000;">},
+                {name:</span>"全顺T型房车",min:408000,max:448000<span style="color: #000000;">},
+                {name:</span>"商旅房车",min:438000,max:488000<span style="color: #000000;">},
+                {name:</span>"商旅房车经典款",min:388000,max:428000<span style="color: #000000;">},
+                {name:</span>"途睿欧商务车",min:298000,max:398000<span style="color: #000000;">}
+            ]
+        },
+    ],
+    source:[]
+};
+
+</span><span style="color: #0000ff;">var</span> GV_TempCarLicensePlates=<span style="color: #000000;">[];
+GV_CarInfoInitConfig.carTypes.forEach((carType)</span>=&gt;<span style="color: #000000;">{
+    </span><span style="color: #0000ff;">if</span>(Array.isArray(carType.models)&amp;&amp;<span style="color: #000000;">carType.models.length){
+        carType.models.forEach((model)</span>=&gt;<span style="color: #000000;">{
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;getRangeRandomNumber(10,100);i++<span style="color: #000000;">){
+                </span><span style="color: #0000ff;">var</span> tempPlate =<span style="color: #000000;"> getRandomLicensePlate(GV_TempCarLicensePlates);
+                GV_CarInfoInitConfig.source.push({
+                    </span>"1572493551001"<span style="color: #000000;">:carType.brandName,
+                    </span>"1572493551002"<span style="color: #000000;">:model.name,
+                    </span>"1572493551003"<span style="color: #000000;">:tempPlate,
+                    </span>"1572493551004":getRangeRandomDate("2010-01-01","2018-06-06","yyyy-MM-dd HH:mm:ss"<span style="color: #000000;">),
+                    </span>"1572493551005"<span style="color: #000000;">:getRangeRandomNumber(model.min,model.max),
+                    </span>"1572493551006":getCustomChineseCharacters(getRangeRandomNumber(200<span style="color: #000000;">))
+                });
+            }
+        });
+    }
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    车辆花费表插入数据配置</span>
+<span style="color: #0000ff;">var</span> GV_CarWastageInitConfig =<span style="color: #000000;"> {
+    formId:</span>"507048044944692000"<span style="color: #000000;">,
+    formVersion:</span>"507048044944692001"<span style="color: #000000;">,
+    wastageType:[
+        {text:</span>"违章",detailed:["信号灯","压线","单双号","规定方向行驶","避让特殊车辆","避让行人","时间道路禁行"<span style="color: #000000;">]},
+        {text:</span>"洗车",detailed:["全套","外围"<span style="color: #000000;">]},
+        {text:</span>"修车",detailed:["轮胎","前玻璃","后玻璃","坐垫","前大灯","后大灯","车窗","发动机","电瓶","变速箱"<span style="color: #000000;">]},
+        {text:</span>"加油",detailed:["92","93","95","97"<span style="color: #000000;">]},
+        {text:</span>"保险",detailed:["太平洋","平安","人保","泰康"<span style="color: #000000;">]},
+        {text:</span>"肇事",detailed:["伤人","护栏","撞车","间接事故","其他"<span style="color: #000000;">]}
+    ],
+    source:[]
+};
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    车辆营收表插入数据配置</span>
+<span style="color: #0000ff;">var</span> GV_CarRevenueInitConfig =<span style="color: #000000;"> {
+    formId:</span>"507048044944693000"<span style="color: #000000;">,
+    formVersion:</span>"507048044944693001"<span style="color: #000000;">,
+    revenueTypes:[
+        {text:</span>"租赁",detailed:["一天","一周","一月","一年"<span style="color: #000000;">]},
+        {text:</span>"载客",detailed:["线下","滴滴","Uber","快的","其他"<span style="color: #000000;">]},
+        {text:</span>"送货",detailed:["手机","笔记本","照相机","微波炉","电磁率","其他"<span style="color: #000000;">]},
+        {text:</span>"其他",detailed:["婚车","其他"<span style="color: #000000;">]}
+    ],
+    source:[]
+};
+
+</span><span style="color: #0000ff;">if</span><span style="color: #000000;">(GV_CarInfoInitConfig.source.length){
+    GV_CarInfoInitConfig.source.forEach((carInfo,carInfoIndex)</span>=&gt;<span style="color: #000000;">{
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;getRangeRandomNumber(50,100);i++<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">var</span> tempUserIdIndexWastageType = getRangeRandomNumber(GV_CreateUserIds.length-1<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> tempWastageTypeIndex = getRangeRandomNumber(GV_CarWastageInitConfig.wastageType.length-1<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> tempWastageTypeDetailIndex = getRangeRandomNumber(GV_CarWastageInitConfig.wastageType[tempWastageTypeIndex].detailed.length-1<span style="color: #000000;">);
+            GV_CarWastageInitConfig.source.push({
+                </span>"1572493552001"<span style="color: #000000;">: {
+                    id: (carInfoIndex</span>+1<span style="color: #000000;">).toString(),
+                    name: carInfo[</span>"1572493551003"<span style="color: #000000;">],
+                    value: </span>""<span style="color: #000000;">
+                },
+                </span>"1572493552002": [{id:GV_CreateUserIds[tempUserIdIndexWastageType],name:GV_CreateUserIds[tempUserIdIndexWastageType],face:""<span style="color: #000000;">}],
+                </span>"1572493552003": getRangeRandomDate(carInfo["1572493551004"],"2019-11-07","yyyy-MM-dd HH:mm:ss"<span style="color: #000000;">),
+                </span>"1572493552004"<span style="color: #000000;">: GV_CarWastageInitConfig.wastageType[tempWastageTypeIndex].text,
+                </span>"1572493552005": getRangeRandomNumber(20,10000<span style="color: #000000;">),
+                </span>"1572493552006"<span style="color: #000000;">: GV_CarWastageInitConfig.wastageType[tempWastageTypeIndex].detailed[tempWastageTypeDetailIndex]
+            });
+        }
+        
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;getRangeRandomNumber(100,200);i++<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">var</span> tempUserIdIndexRevenue = getRangeRandomNumber(GV_CreateUserIds.length-1<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> tempRevenueIndex = getRangeRandomNumber(GV_CarRevenueInitConfig.revenueTypes.length-1<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> tempRevenueDetailIndex = getRangeRandomNumber(GV_CarRevenueInitConfig.revenueTypes[tempRevenueIndex].detailed.length-1<span style="color: #000000;">);
+            GV_CarRevenueInitConfig.source.push({
+                </span>"1572493553001"<span style="color: #000000;">: {
+                    id: (carInfoIndex</span>+1<span style="color: #000000;">).toString(),
+                    name: carInfo[</span>"1572493551003"<span style="color: #000000;">],
+                    value: </span>""<span style="color: #000000;">
+                },
+                </span>"1572493553002": [{id:GV_CreateUserIds[tempUserIdIndexRevenue],name:GV_CreateUserIds[tempUserIdIndexRevenue],face:""<span style="color: #000000;">}],
+                </span>"1572493553003": getRangeRandomDate(carInfo["1572493551004"],"2019-11-07","yyyy-MM-dd HH:mm:ss"<span style="color: #000000;">),
+                </span>"1572493553004"<span style="color: #000000;">: GV_CarRevenueInitConfig.revenueTypes[tempRevenueIndex].text,
+                </span>"1572493553005": getRangeRandomNumber(20,10000<span style="color: #000000;">),
+                </span>"1572493553006": getRangeRandomNumber(50,3000<span style="color: #000000;">),
+                </span>"1572493553007"<span style="color: #000000;">: GV_CarRevenueInitConfig.revenueTypes[tempRevenueIndex].detailed[tempRevenueDetailIndex]
+            });
+        }
+    });
+}
+
+handleBatchInsertData(GV_CarInfoInitConfig);
+handleBatchInsertData(GV_CarWastageInitConfig);
+handleBatchInsertData(GV_CarRevenueInitConfig);</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p><span style="font-size: 18px;">　　看一下数据库中的截图</span></p>
+<p><span style="font-size: 18px;"><img src="./images/表单生成器(Form Builder)之伪造表单数据mongodb篇2.png" alt="" /></span></p>
+<p><span style="font-size: 18px;"><img src="./images/表单生成器(Form Builder)之伪造表单数据mongodb篇3.png" alt="" /></span></p>
+<p><span style="font-size: 18px;"><img src="./images/表单生成器(Form Builder)之伪造表单数据mongodb篇4.png" alt="" /></span></p>
+<p><span style="font-size: 18px;">　　一共生成了656084条数据，我觉得还是不错了，没白折腾&hellip;&hellip;当然你可以将随机数调的大一些，便可以生成更多的数据，就到这里吧！</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

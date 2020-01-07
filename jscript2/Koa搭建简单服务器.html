@@ -1,0 +1,148 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Koa搭建简单服务器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Koa搭建简单服务器</center></div><div class='banquan'>原文出处:本文由博客园博主chris_kong提供。<br/>
+原文连接:https://www.cnblogs.com/clmf/p/10946910.html</div><br>
+    <p><span style="font-size: 16px; font-family: 'Microsoft YaHei';"><span style="color: #0000ff;">1.&nbsp;</span></span><span style="color: #0000ff;">dependencies</span></p>
+<div class="cnblogs_code">
+<pre><code>"co-mysql": "^1.0.0",
+"koa": "^2.7.0",
+"koa-better-body": "^3.0.4",
+"koa-ejs": "^4.2.0",
+"koa-router": "^7.4.0",
+"koa-session": "^5.12.0",
+"koa-static": "^5.0.0",
+"mysql": "^2.17.1"</pre>
+</div>
+<p><span style="color: #0000ff; font-size: 16px;">2. 主服务</span></p>
+<p><span style="color: #000000; font-size: 14px;">引包</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> const fs = require('fs'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> const path = require('path'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span> const Koa = require('koa'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 4</span> const Router = require('koa-router'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> const session = require('koa-session'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 6</span> const ejs = require('koa-ejs'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span> const body = require('koa-better-body'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> const _static = require('./routers/static'<span style="color: #000000;">);
+</span><span style="color: #008080;">10</span> const config = require('./config'<span style="color: #000000;">);
+</span><span style="color: #008080;">11</span> 
+<span style="color: #008080;">12</span> const app = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Koa();
+</span><span style="color: #008080;">13</span> const router = <span style="color: #0000ff;">new</span> Router();</pre>
+</div>
+<p>错误处理</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> router.all('*', async (ctx, next) =&gt;<span style="color: #000000;"> { // * 表示所有的请求，都会经过这里的处理
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">        await next();
+</span><span style="color: #008080;">4</span>     } <span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+</span><span style="color: #008080;">5</span>         ctx.<span style="color: #0000ff;">throw</span>(500<span style="color: #000000;">, e);
+</span><span style="color: #008080;">6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">7</span> });</pre>
+</div>
+<p>服务端渲染 koa-ejs</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">ejs(app, {
+</span><span style="color: #008080;">2</span>     root: path.resolve(__dirname, 'template'<span style="color: #000000;">), // 模版路劲
+</span><span style="color: #008080;">3</span>     layout: <span style="color: #0000ff;">false</span><span style="color: #000000;">, // 使用 render 方法渲染模版时有所区别，如果省略，会去找 template/layout.ejs<br />　　　　　　　　　　　　 // false: ctx.render('admin/index.ejs') 'abc': ctx.render('abc/admin/index.ejs')<br /></span><span style="color: #008080;">4</span>     viewExt: 'ejs'<span style="color: #000000;">,// 模版后缀名
+</span><span style="color: #008080;">5</span>     cache: <span style="color: #0000ff;">false</span><span style="color: #000000;">,  // 缓存
+</span><span style="color: #008080;">6</span>     debug: <span style="color: #0000ff;">false   // 如果是 true，会把编译之后的内容全部输出</span>
+<span style="color: #008080;">7</span> });</pre>
+</div>
+<p>路由 koa-router</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> router.use('/admin', require('./routers/admin')); <span style="color: #008000;">//</span><span style="color: #008000;"> localhost:8080/admin/xxx</span>
+<span style="color: #008080;">2</span> router.use('/api', require('./routers/api')); <span style="color: #008000;">//</span><span style="color: #008000;"> localhost:8080/api/xxx</span>
+<span style="color: #008080;">3</span> router.use('', require('./routers/www')); <span style="color: #008000;">//</span><span style="color: #008000;"> '' 表示根，localhost:8080/xxx</span></pre>
+</div>
+<p>开放静态资源 koa-static</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">_static(router, {
+    imageMaxAge: config.imageMaxAge,
+    scriptMaxAge: config.scriptMaxAge,
+    styleMaxAge: config.styleMaxAge,
+    htmlMaxAge: config.htmlMaxAge,
+    otherMaxAge: config.otherMaxAge
+});<br />/*<br />　　// 上面只是封装了, 比如<br />　　// ...<br />　　const static = require('koa-static');<br />　　// ...<br />　　router.all(/\.jsx?/i, static(path, options));<br />*/</span></pre>
+</div>
+<p>session koa-session</p>
+<p>1.&nbsp;.keys 文件是通过脚本生成的用来 session 签名的密钥，数组，每个元素都是无规律的不同字符组合</p>
+<p>2.&nbsp;这里可以使用同步读取文件的方式，因为是在启动服务的时候，只读取一次，所以，不会影响服务器性能</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> app.keys = fs.readFileSync('.keys').toString().split('\r\n'<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">app.use(session({
+</span><span style="color: #008080;">3</span>     maxAge: 20 * 60 * 1000, <span style="color: #008000;">//</span><span style="color: #008000;"> 缓存时间 20 分钟</span>
+<span style="color: #008080;">4</span>     renew: <span style="color: #0000ff;">true</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 自动续期</span>
+<span style="color: #008080;">5</span> }, app));</pre>
+</div>
+<p>处理 POST 数据 koa-better-body</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">app.use(body({
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">    uploadDir: config.UPLOAD_DIR
+</span><span style="color: #008080;">3</span> }));</pre>
+</div>
+<p>数据库 mysql co-mysql</p>
+<div class="cnblogs_code">
+<pre><code>1 app.context.db = require('./libs/database'); // app.context 相当于 ctx 的原型，所以，可以使用 ctx.db.query(sql语句) 来操作数据库</pre>
+</div>
+<p>配置</p>
+<p>1.&nbsp;很多地方都需要 config，直接加到 app.context 上，通过 ctx.config 使用</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> app.context.config = config;</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> app.listen(config.HTTP_PORT, () =&gt;<span style="color: #000000;"> console.log(`Server running on ${config.HTTP_PORT}...`));
+</span><span style="color: #008080;">2</span> app.use(router.routes());</pre>
+</div>
+<p><span style="color: #0000ff; font-size: 16px;">3. 数据库</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> const mysql = require('mysql'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> const co = require('co-mysql'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> const config = require('../config'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> const conn =<span style="color: #000000;"> mysql.createPool({
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    host: config.DB_HOST,
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">    user: config.DB_USER,
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    password: config.DB_PASS,
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    port: config.DB_PORT,
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    database: config.DB_NAME
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">});
+</span><span style="color: #008080;">13</span> 
+<span style="color: #008080;">14</span> module.exports = co(conn);</pre>
+</div>
+<p><span style="color: #0000ff; font-size: 16px;">4. md5</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> const crypto = require('crypto'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> const config = require('../config'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> module.exports =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 5</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 生成 md5 值</span>
+<span style="color: #008080;"> 6</span> <span style="color: #000000;">    md5 (buffer) {
+</span><span style="color: #008080;"> 7</span>         const obj = crypto.createHash('md5'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 8</span>         obj.update(buffer +<span style="color: #000000;"> config.MD5_KEYS);
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">return</span> obj.digest('hex'<span style="color: #000000;">);
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span> };</pre>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

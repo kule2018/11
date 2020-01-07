@@ -1,0 +1,177 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修nodeJS微信JSDK 配置' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>nodeJS微信JSDK 配置</center></div><div class='banquan'>原文出处:本文由博客园博主smile_or提供。<br/>
+原文连接:https://www.cnblogs.com/sgs123/p/11724687.html</div><br>
+    <h2 id="nodejs微信jsdk-配置">nodeJS微信JSDK 配置</h2>
+<h3 id="一微信公众平台申请一个测试公众号">一、微信公众平台申请一个测试公众号</h3>
+<h3 id="二配置nodejs-使用express框架搭建服务器">二、配置nodeJS 使用express框架搭建服务器</h3>
+<h4 id="微信生成签名步骤">微信生成签名步骤：</h4>
+<p>1.获取token</p>
+<p>2.通过token，获取jsapi_ticket</p>
+<p>3.生成随机字符串,获取当前时间戳</p>
+<p>4.排序拼接生成签名</p>
+<ul>
+<li>在routes----&gt;index.js</li>
+</ul>
+<pre><code><code>var express = require(&#39;express&#39;);
+var router = express.Router();
+var axios = require(&#39;axios&#39;);
+var sha1 = require(&#39;sha1&#39;);
+var fs = require(&#39;fs&#39;);
+
+let accessTokenJson = require(&#39;../user_token&#39;);
+
+const APP_ID = &#39;wx47159511d53720fb&#39;
+const APP_SECRET = &#39;e8be2675730af8b743769e34fc8a7267&#39;
+let config_nonceStr = &#39;&#39; //随机字符串
+let config_timestamp = &#39;&#39; //时间戳
+
+/* GET home page. */
+router.get(&#39;/&#39;, function(req, res, next) {
+    res.send(&#39;这是首页&#39;)
+});
+
+router.get(&#39;/getWxConfig&#39;, function (req, res, next) {
+  let url = req.query.url;  // 获取url
+  getToken().then(getTicket).then(ret=&gt;{
+    res.json({ // 返回前端需要的配置config
+      success:true,
+      code:200,
+      config_appid: APP_ID,
+      config_sign: signature(ret, url),
+      config_timestamp,
+      config_nonceStr
+    })
+  })
+});
+
+/*获取token*/
+function getToken(){
+  return new Promise((resolve,reject)=&gt;{
+    //获取当前时间 
+    var currentTime = new Date().getTime();
+    if (accessTokenJson.access_token === &#39;&#39; || accessTokenJson.expires_time &lt; currentTime){
+      axios.get(&#39;https://api.weixin.qq.com/cgi-bin/token&#39;,{
+        params:{
+          appid: APP_ID,
+          secret: APP_SECRET,
+          grant_type: &#39;client_credential&#39;
+        }
+      }).then(res=&gt;{
+        accessTokenJson.access_token = res.data.access_token;
+        accessTokenJson.expires_time = new Date().getTime() + (parseInt(res.data.expires_in) - 200) * 1000;
+        //更新本地存储
+        fs.writeFile(&#39;../user_token.json&#39;, JSON.stringify(accessTokenJson));
+        resolve(accessTokenJson.access_token)
+      }).catch(err =&gt; {
+        return Promise.reject(err);
+      })
+    }else{
+      resolve(accessTokenJson.access_token)
+    }
+  })
+}
+
+/* 通过token，获取jsapi_ticket */
+function getTicket(accessToken){
+  return new Promise((resolve,reject)=&gt;{
+    axios.get(&#39;https://api.weixin.qq.com/cgi-bin/ticket/getticket&#39;, {
+      params: {
+        type: &#39;jsapi&#39;,
+        access_token: accessToken
+      }
+    }).then(res =&gt; {
+      resolve(res.data.ticket);
+    }).catch(err=&gt;{
+      return Promise.reject(err);
+    })
+  })
+}
+
+/**
+ * 签名算法
+ * @param ticket 用于签名的 jsapi_ticket
+ * @param url 用于签名的 url ，注意必须动态获取
+ * @return sha1算法加密的字符串
+ */
+function signature(ticket, url){
+  config_nonceStr = createNonceStr() // 生成随机字符串
+  config_timestamp = createTimestamp() // 获取当前时间戳
+  let ret ={
+    jsapi_ticket: ticket,
+    nonceStr:config_nonceStr,
+    timestamp:config_timestamp,
+    url: url,
+  }
+  var string = raw(ret) // 排序拼接为字符串
+  console.log(string)
+  return sha1(string) // 返回sha1加密的字符串
+}
+
+/* 生成随机字符串 */
+function createNonceStr(){
+  return Math.random().toString(36).substr(2,15);
+}
+
+/* 获取当前时间戳 */
+function createTimestamp() {
+  return parseInt(new Date().getTime() / 1000) + &#39;&#39;;
+}
+
+/* 排序拼接 */
+function raw(args){
+  let keys = Object.keys(args).sort(); //获取args对象的键值数组,并对所有待签名参数按照字段名的ASCII 码从小到大排序（字典序）
+  let newArgs ={}
+  keys.forEach(key=&gt;{
+    newArgs[key.toLowerCase()] = args[key];
+  })
+  let string = &#39;&#39;;
+  for (let k in newArgs) {// 循环新对象，拼接为字符串
+    string +=`&amp;${k}=${newArgs[k]}`
+  }
+  string = string.substr(1)// 截取第一个字符以后的字符串（去掉第一个&#39;&amp;&#39;）
+  return string;
+}
+
+module.exports = router;</code></pre>
+<h3 id="三使用内网穿透工具例如natapp把本地服务器映射到公网上去">三、使用内网穿透工具（例如：natapp）把本地服务器映射到公网上去</h3>
+<p>如果有服务器的可以跳过这一步</p>
+<h3 id="四前端使用微信jsdk">四、前端使用微信JSDK</h3>
+<h4 id="使用步骤">使用步骤：</h4>
+<p>1、绑定域名</p>
+<p>2、引入JS文件 http://res2.wx.qq.com/open/js/jweixin-1.4.0.js</p>
+<p>vue 项目可以下载模块 npm i weixin-js-sdk -S</p>
+<p>3、配置config</p>
+<pre><code><code>wx.config({
+  debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+  appId: &#39;&#39;, // 必填，公众号的唯一标识
+  timestamp: , // 必填，生成签名的时间戳
+  nonceStr: &#39;&#39;, // 必填，生成签名的随机串
+  signature: &#39;&#39;,// 必填，签名
+  jsApiList: [] // 必填，需要使用的JS接口列表
+});</code></pre>
+<p>4、通过ready接口处理成功验证，通过error接口处理失败验证</p>
+<p>5、调用微信接口APi</p>
+<p>详情见开发文档地址：https://developers.weixin.qq.com/doc/offiaccount/OA_Web_Apps/JS-SDK.html</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

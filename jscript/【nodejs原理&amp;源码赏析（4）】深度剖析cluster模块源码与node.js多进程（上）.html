@@ -1,0 +1,155 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【nodejs原理&amp;源码赏析（4）】深度剖析cluster模块源码与node.js多进程（上）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【nodejs原理&amp;源码赏析（4）】深度剖析cluster模块源码与node.js多进程（上）</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/10958457.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-概述">一. 概述</a></li>
+        <li><a href="#二.-线程与进程">二. 线程与进程</a></li>
+        <li><a href="#三.-cluster模块源码解析">三. cluster模块源码解析</a><ul>
+        <li><a href="#起步">3.1 起步</a></li>
+        <li><a href="#入口">3.2 入口</a></li>
+        <li><a href="#主进程模块master.js">3.3 主进程模块master.js</a></li>
+        <li><a href="#子进程模块child.js">3.4 子进程模块child.js</a></li>
+        </ul></li>
+        <li><a href="#四.-小结">四. 小结</a></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/【nodejs原理&amp;源码赏析（4）】深度剖析cluster模块源码与node.js多进程（上）0.png" /></p>
+<blockquote>
+<p>示例代码托管在：<a href="http://www.github.com/dashnowords/blogs">https://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<h2 id="一.-概述">一. 概述</h2>
+<p><code>cluster</code>模块是<code>node.js</code>中用于实现和管理多进程的模块。常规的<code>node.js</code>应用程序是单线程单进程的，这也意味着它很难充分利用服务器多核CPU的性能，而<code>cluster</code>模块就是为了解决这个 问题的，它使得<code>node.js</code>程序可以以多个实例并存的方式运行在不同的进程中，以求更大地榨取服务器的性能。<code>node.js</code>在官方示例代码中使用<code>worker</code>实例来表示主进程fork出的子进程，使得前端开发者在学习过程中非常容易和浏览器环境中的<code>worker</code>实现的多线程混淆。为了容易区分，我们和<code>node</code>官方文档使用一致的名称，用集群中的<code>master</code>和<code>worker</code>来区分主进程和工作进程，用<code>worker_threads</code>来描述工作线程。</p>
+<p><code>node.js</code>的主从模型中，<code>master</code>主进程相当于一个包工头，主管监听端口，而<code>slave</code>进程被用于实际的任务执行，当任务请求到达后，它会根据某种方式将连接循环分发给<code>worker</code>进程来处理。理论上，如果根据当前各个<code>worker</code>进程的负载状况或者相关信息来挑选工作进程，效率应该比直接循环发放要更高，但<code>node.js</code>文档中声明这种方式由于受到操作系统调度机制的影响，会使得分发变得不稳定，所以会将<strong>&quot;循环法&quot;</strong>作为默认的分发策略。</p>
+<p>关于<code>cluster</code>模块的用法和<strong>API</strong>细节，可以直接参考官方文档<a href="http://nodejs.cn/api/cluster.html">《Node.js中文网V10.15.3/cluster》</a>。</p>
+<h2 id="二.-线程与进程">二. 线程与进程</h2>
+<p>想要尽可能利用服务器性能，首先需要了解“线程”（thread）和“进程”（process）这两个概念。</p>
+<p>计算机是由CPU来执行计算任务的，如果你只有一个CPU，那么这台机器上所有的任务都将由它来执行。它既可以按照串联执行的原则一个接一个执行任务，也可以依据并联原则同步执行多个任务，多个任务同步执行时，CPU会快速在多个线程之间进行切换，切换线程的同时要切换对应任务的上下文，这就会造成额外的CPU资源消耗，所以当线程数量非常多时，线程切换本身就会浪费大量的CPU资源。如果在执行一个任务的同时，CPU和内存都还有充足的剩余，就可以通过某种方式让它们去执行其他任务。</p>
+<blockquote>
+<p>你可以将“线程”看作是一种轻量级的“进程”。</p>
+</blockquote>
+<p>如果你在操作系统中打开任务管理器，在<code>进程</code>标签下就可以看到如下图的示例：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（4）】深度剖析cluster模块源码与node.js多进程（上）1.png" /></p>
+<p>我们可以看到每一个程序<strong>至少</strong>开辟一个新的进程（你可能瞬间就明白了chrome效率高的原因，我什么都没说），它是一种粒度更大的资源隔离单元，进程之间使用不同的内存区域，无法直接共享数据，只能通过跨进程通讯机制来通讯，而且由于要使用新的内存区域，它的创建销毁和切换相对而言都更耗时，它的好处就是进程之间是互相隔离的，互不影响，所以你可以一边听音乐一边玩游戏，而不会因为音乐软件里突然放了一首轻音乐，结果你游戏里的角色攻击力减半了。</p>
+<p>再来看一下<code>性能</code>这个标签：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（4）】深度剖析cluster模块源码与node.js多进程（上）2.png" /></p>
+<p>可以看到线程数是远大于进程数的。“线程”通常用来在单个“进程”中提高CPU的利用率，它是一种粒度更细的资源调度单位，它更容易创建和销毁，在同一个进程内的线程共享分配给这个进程的内存，所以也就实现了共享数据，多线程的编程要更加复杂，由于共享数据，如果线程之间传递指针然后操作同一数据源，就必须考虑“原子操作”和“锁”的问题，否则很容易就乱套了，如果传递数据的拷贝，又会造成内存浪费，另外线程异常不会被隔离，而会导致整个进程异常。</p>
+<p>线程和进程的相关知识涉及到底层操作系统的内容，笔者涉猎有限，先分享这么多（会的都告诉你了，还要我怎样）。</p>
+<h2 id="三.-cluster模块源码解析">三. cluster模块源码解析</h2>
+<blockquote>
+<p>源码中个别方法比较长，建议使用带有代码折叠的工具来看。</p>
+</blockquote>
+<h3 id="起步">3.1 起步</h3>
+<p><code>cluster</code>模块的用法看起来并不复杂，官方给出的示例是这样的：</p>
+<pre><code><code>const cluster = require(&#39;cluster&#39;);
+const http = require(&#39;http&#39;);
+const numCPUs = require(&#39;os&#39;).cpus().length;
+
+if (cluster.isMaster) {
+  console.log(`主进程 ${process.pid} 正在运行`);
+
+  // 衍生工作进程。
+  for (let i = 0; i &lt; numCPUs; i++) {
+    cluster.fork();
+  }
+
+  cluster.on(&#39;exit&#39;, (worker, code, signal) =&gt; {
+    console.log(`工作进程 ${worker.process.pid} 已退出`);
+  });
+} else {
+  // 工作进程可以共享任何 TCP 连接。
+  // 在本例子中，共享的是 HTTP 服务器。
+  http.createServer((req, res) =&gt; {
+    res.writeHead(200);
+    res.end(&#39;你好世界\n&#39;);
+  }).listen(8000);
+
+  console.log(`工作进程 ${process.pid} 已启动`);
+}</code></pre>
+<h3 id="入口">3.2 入口</h3>
+<p><code>cluster</code>模块的入口在<code>/lib/cluster.js</code>，这里的代码很简单：</p>
+<pre><code><code>&#39;use strict&#39;;
+const childOrMaster = &#39;NODE_UNIQUE_ID&#39; in process.env ? &#39;child&#39; : &#39;master&#39;;
+module.exports = require(`internal/cluster/${childOrMaster}`);</code></pre>
+<p>可以看到，如果进程对象的环境变量中有<code>NODE_UNIQUE_ID</code>这个变量，就透传<code>internal/cluster/child.js</code>模块的输出，否则就透传<code>internal/cluster/master.js</code>模块的输出。这是<code>node</code>的主进程在进行子进程管理时的标识，后面的代码中可以看到当调用<code>cluster.fork( )</code>生成一个子进程时会以一个自增ID的形式生成这个环境变量。</p>
+<h3 id="主进程模块master.js">3.3 主进程模块master.js</h3>
+<p>首先运行<code>node</code>程序的肯定是主线程，那么我们从<code>master.js</code>这个模块开始，先用工具折叠一下代码浏览一下：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（4）】深度剖析cluster模块源码与node.js多进程（上）3.png" /></p>
+<p>可以看到除了模块属性外，cluster模块对外暴露的方法只有下面3个，其他的都是用来完成内部功能的：</p>
+<ul>
+<li><code>setupMaster(options )</code>-修改<code>fork</code>时默认设置</li>
+<li><code>fork( )</code>-生成子进程</li>
+<li><code>disconnect( )</code>- 断开和所有子进程的连接</li>
+</ul>
+<p>我们按照官方示例的逻辑路线来阅读代码<code>cluster.fork( )</code>方法定义在161-217行，一样是用折叠工具来看全貌：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（4）】深度剖析cluster模块源码与node.js多进程（上）4.png" /></p>
+<p>可以看到<code>cluster.fork( )</code>执行时做了如下几件事情：</p>
+<pre><code><code>1.设置主线程参数
+2.传入一个自增参数id(就是前文提到的NODE_UNIQUE_ID)和环境信息env来生成一个worker线程的process对象
+3.将id和新的process对象传入Worker构造器生成新的worker进程实例
+4.在子进程的process对象上添加了一些事件监听
+5.在cluster.workers中以id为键添加对子进程的引用
+6.返回子进程worker实例</code></pre>
+<p>接着看第一步<code>setupMaster( )</code>，在源码中50-95行，着重看81-95行：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（4）】深度剖析cluster模块源码与node.js多进程（上）5.png" /></p>
+<p>留意一下主线程在进程层面监听的<code>internalMessage</code>事件非常关键，主进程监听到这个事件后，首先判断消息对象的cmd属性是否为<code>NODE_DEBUGE_ENABLED</code>，并以此为条件判断后续语句是否执行，后续的逻辑是遍历每一个<code>worker</code>进程实例，如果子进程的状态是<code>online</code>或<code>listening</code>就将子进程<strong>pid</strong>作为参数调用主进程的<code>_debugProcess( )</code>方法，否则改为在<code>worker</code>进程实例首次上线时调用。</p>
+<p><code>process._debugProcess</code>的定义在<code>src/node_process_methods.cc</code>里，看名字推测大致的意思就是为了启用对子进程的调试功能。这是一个重载方法，在<strong>windows</strong>和<strong>linux</strong>下有不同的实现。<code>linux</code>下的代码较短，基本可以看懂（不秀一下怎么对得住自己看1周的C++）：</p>
+<pre class="cpp"><code>#ifdef __POSIX__
+static void DebugProcess(const FunctionCallbackInfo&lt;Value&gt;&amp; args) {
+    //这里的常量参数是通过地址引用的worker.process.pid
+  Environment* env = Environment::GetCurrent(args); 
+    //用pid做参数获取当前激活的环境变量，这一步应该是在获取上下文
+
+  if (args.Length() != 1) {//不合法调用时报错，没什么可说的
+    return env-&gt;ThrowError(&quot;Invalid number of arguments.&quot;);
+  }
+  
+  CHECK(args[0]-&gt;IsNumber());//检测参数
+  pid_t pid = args[0].As&lt;Integer&gt;()-&gt;Value();
+  int r = kill(pid, SIGUSR1);//发送SIGUSR1信号，终止了这个子进程
+
+  if (r != 0) {//exit code为0时是正常退出，子进程未能正常中止时报错
+    return env-&gt;ThrowErrnoException(errno, &quot;kill&quot;);
+  }
+}</code></pre>
+<p>win32平台中对应的代码比较长，看不懂。总结一下这里就是，在没有收到<code>cmd</code>属性等于<code>NODE_DEBUG_ENABLED</code>的内部消息之前，什么都不做，如果收到这个消息，就<strong>终止所有的子进程，或者通过事件在子进程第一次处于online状态就终止它</strong>。</p>
+<p>按照执行顺序接下来是101-140行的<code>createWorkerProcess(id,env)</code>方法，看名字就知道是生成子进程process对象的，前半部分合并和处理环境参数，然后判断运行参数中是否包含启用<code>--inspect</code>功能的参数并进行一些处理，最后传入一堆参数调用了<code>fork</code>方法，这个方法就是<code>child_process.fork( )</code>，它就是用来生成子进程的，返回值就是子进程实例，你可以先简单浏览一下API<a href="http://nodejs.cn/api/child_process.html#child_process_child_process_fork_modulepath_args_options">【官方文档child_process.fork功能】</a>，或者知道这里生成了子进程就好。</p>
+<p>回到<code>cluster.fork</code>方法继续执行，下一步使用新生成的子进程process对象和唯一id作为参数传入Worker构造函数，生成<code>worker</code>实例,<code>Worker</code>的定义就在当前文件夹的<code>worker.js</code>中，它首先继承了<code>EventEmitter</code>的消息的发布订阅能力，然后把子进程的process对象挂在在自己的process属性上，接着为子进程添加<code>error</code>和 <code>message</code>事件的监听，最后暴露了一些更语义化的针对进程实例的管理方法（更详细的分析可以参考本系列前一篇博文）。生成了<code>worker</code>进程实例后，添加了对于<code>message</code>事件的响应，并在子进程<code>process</code>对象上监听进程的<code>exit</code>,<code>disconnect</code>,<code>internalMessage</code>事件，最后将worker实例和自己的id以键值对的形式添加到<code>cluster.workers</code>中记录，并通过<code>return</code>返回给外界，至此<code>master</code>模块的初始化流程就告一段落，先mark一下，后面还会讲这里。</p>
+<h3 id="子进程模块child.js">3.4 子进程模块child.js</h3>
+<p>子进程模块是从<code>master.js</code>调用<code>child_process</code>时启动的，它和主进程是并行执行的。老规矩，代码折叠看一下：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（4）】深度剖析cluster模块源码与node.js多进程（上）6.png" /></p>
+<p>看出什么了吗？<code>child.js</code>的代码里只有引用和定义，<code>_setupWorker</code>是在<code>nodejs</code>工作进程初始化时执行的，它在自己的独立进程中初始化了一个进程管理实例，并执行了下述逻辑：</p>
+<pre><code><code>1.实例化进程管理对象worker
+2.全局添加`disconnect`事件响应
+3.全局添加`internalMessage`事件响应，主要是分发`act:newconn`和`act:disconnect`事件
+4.用send方法发送`online`事件，通知主线程自己已上线。</code></pre>
+<p>注意，这个<code>process</code>对象就是IPC(Inter Process Communication,也称为跨进程通讯)能够实现的关键，很明显它继承了<code>EventEmitter</code>的消息收发能力，在子进程内部进行消息收发不存在任何问题，还记得<code>master.js</code>中<code>fork</code>方法吗？这个process就是调用<code>child_process</code>启动子进程时返回给主进程的那个process对象，当你在主进程中获取它后，就可以共享worker进程的消息能力，从而在资源隔离的条件下实现<code>master</code>和<code>worker</code>进程的跨进程通讯。<code>_getServer( )</code>方法是在建立server实例时调用的，等到驱动事件信息到达<code>child.js</code>时再看，可以留意一下最后两个添加在<code>Worker</code>原型方法上的方法，它们只在子进程中有效。</p>
+<h2 id="四.-小结">四. 小结</h2>
+<p>至此，你已经看到node是如何通过cluster模块实现多实例并初始化跨进程通讯了。但是跨进程通讯的底层实现以及服务器的建立，以及如何在进程间协调网络请求的处理，还依赖于<code>net</code>和<code>http</code>的一些内容，只好等研究完了再继续，硬刚反正我是吃不消的。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

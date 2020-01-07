@@ -1,0 +1,328 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【Vue.js游戏机实战】- Vue.js实现大转盘抽奖总结' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【Vue.js游戏机实战】- Vue.js实现大转盘抽奖总结</center></div><div class='banquan'>原文出处:本文由博客园博主码上组合提供。<br/>
+原文连接:https://www.cnblogs.com/codeon/p/11636558.html</div><br>
+    <p>大家好！先上图看看本次案例的整体效果。</p>
+<p><img src="./images/【Vue.js游戏机实战】- Vue.js实现大转盘抽奖总结0.png" alt="" /></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;实现思路：</p>
+<ol>
+<li>Vue component实现大转盘组件，可以嵌套到任意要使用的页面。</li>
+<li>css3 transform控制大转盘抽奖过程的动画效果。</li>
+<li>抽奖组件内使用钩子函数watch监听抽奖结果的返回情况播放大转盘动画并给用户弹出中奖提示。</li>
+<li>中奖结果弹窗，为抽奖组件服务。</li>
+</ol>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;实现步骤如下：</p>
+<ol>
+<li>&nbsp;构建api奖品配置信息和抽奖接口，vuex全局存放奖品配置和中奖结果数据信息。<br />api：<br />
+<div class="cnblogs_code">
+<pre><code>export default<span> {
+  getPrizeList () {
+    let prizeList =<span> [
+      {
+        id: 1<span>,
+        name: '小米8'<span>,
+        img: 'https://i1.mifile.cn/f/i/g/2015/cn-index/m8-140.png'<span>
+      },
+      {
+        id: 2<span>,
+        name: '小米电视'<span>,
+        img: 'https://i1.mifile.cn/f/i/g/2015/TV4A-43QC.png'<span>
+      }, {
+        id: 3<span>,
+        name: '小米平衡车'<span>,
+        img: 'https://i1.mifile.cn/f/i/g/2015/cn-index/scooter-140!140x140.jpg'<span>
+      }, {
+        id: 4<span>,
+        name: '小米耳机'<span>,
+        img: 'https://c1.mifile.cn/f/i/g/2015/video/pinpai140!140x140.jpg'<span>
+      }
+    ]
+    return<span> prizeList
+  },
+  lottery () {
+    return<span> {
+      id: 4<span>,
+      name: '小米耳机'<span>,
+      img: 'https://c1.mifile.cn/f/i/g/2015/video/pinpai140!140x140.jpg'<span>
+    }
+  }
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+</div>
+<p>store:</p>
+<div class="cnblogs_code">
+<pre><code>import lotteryApi from '../../api/lottery.api.js'<span>
+
+const state =<span> {
+  prizeList: [],
+  lotteryResult: {}
+}
+
+const getters =<span> {
+  prizeList: state =&gt;<span> state.prizeList,
+  lotteryResult: state =&gt;<span> state.lotteryResult
+}
+
+const mutations =<span> {
+  SetPrizeList (state, { prizeList }) {
+    state.prizeList =<span> prizeList
+  },
+  SetLotteryResult (state, { lotteryResult }) {
+    state.lotteryResult =<span> lotteryResult
+  }
+}
+
+const actions =<span> {
+  getPrizeList ({ commit }) {
+    let result =<span> lotteryApi.getPrizeList()
+    commit('SetPrizeList'<span>, { prizeList: result })
+  },
+  lottery ({ commit }) {
+    let result =<span> lotteryApi.lottery()
+    commit('SetLotteryResult'<span>, { lotteryResult: result })
+  }
+}
+
+export default<span> {
+  state,
+  getters,
+  mutations,
+  actions,
+  namespaced: true<span>
+}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+</div>
+<p>&nbsp;</p>
+</li>
+<li>编写抽奖组件，为保证通用性，组件只负责播放抽奖结果。接收两个数据和一个方法，如下：<br />数据一：预置的奖品列表数据（轮播奖品需要）<br />数据二：抽奖结果，播放抽奖动画和弹出中奖结果需要<br />方法：抽奖动作，返回的抽奖结果数据即为数据二，响应式传递给组件<br />大概代码思路如下（仅供参考，不可运行）<br />
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;section&gt;
+    &lt;div class="lucky-item"&gt;
+      &lt;img src="//www.cnblogs.com/images/cnblogs_com/codeon/878827/o_backImage.jpg"<span style="color: #000000;">
+           alt</span>&gt;
+      &lt;div class="lucky-box"&gt;
+        &lt;img src="//www.cnblogs.com/images/cnblogs_com/codeon/878827/o_circle.jpg"<span style="color: #000000;">
+             alt</span>&gt;
+        &lt;ul id="wheel"<span style="color: #000000;">
+            class</span>="wheel-list"<span style="color: #000000;">
+            :style</span>="wheelStyle"<span style="color: #000000;">
+            :class</span>="transition"&gt;
+          &lt;li v-<span style="color: #0000ff;">for</span>="(prize,index) in slotPrizes"<span style="color: #000000;">
+              :style</span>="{transform: 'rotate('+index*45+'deg)'}"<span style="color: #000000;">
+              v</span>-bind:key="index"&gt;
+            &lt;div class="fan-item"<span style="color: #000000;">
+                 style</span>="transform: rotate(15deg) skewY(45deg);"&gt;&lt;/div&gt;
+            &lt;div class="lucky-prize"&gt;
+              &lt;h3&gt;{{prize.name}}&lt;/h3&gt;
+            &lt;/div&gt;
+          &lt;/li&gt;
+        &lt;/ul&gt;
+        &lt;div class="wheel-btn"<span style="color: #000000;">
+             @click</span>="$emit('lottery')"&gt;
+          &lt;a&gt;
+            &lt;img src="//images.cnblogs.com/cnblogs_com/codeon/878827/o_go.jpg"<span style="color: #000000;">
+                 alt</span>&gt;
+          &lt;/a&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;prize-pop :prize="lotteryResult"<span style="color: #000000;">
+                 v</span>-<span style="color: #0000ff;">if</span>="showPrize"<span style="color: #000000;">
+                 @closeLotteryPop</span>="showPrize=false" /&gt;
+    &lt;/div&gt;
+  &lt;/section&gt;
+&lt;/template&gt;
+&lt;script&gt;<span style="color: #000000;">
+import PrizePop from </span>'./common/prize-pop.vue'<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  name: </span>'BigTurntable'<span style="color: #000000;">,
+  data () {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      isStart: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+      showPrize: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+      wheelStyle: { </span>'transform': 'rotate(0deg)'<span style="color: #000000;"> },
+      transition: </span>'transitionclear'<span style="color: #000000;">,
+      playTurns: </span>5 <span style="color: #008000;">//</span><span style="color: #008000;"> 默认先旋转5圈</span>
+<span style="color: #000000;">    }
+  },
+  components: {
+    PrizePop
+  },
+  props: {
+    prizes: {
+      type: Array,
+      required: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+    },
+    lotteryResult: {
+      type: Object,
+      </span><span style="color: #0000ff;">default</span>: () =&gt;<span style="color: #000000;"> { }
+    }
+  },
+  computed: {
+    slotPrizes () {
+      </span><span style="color: #0000ff;">var</span> self = <span style="color: #0000ff;">this</span><span style="color: #000000;">
+      console.log(self.prizes)
+      let prizeList </span>=<span style="color: #000000;"> []
+      prizeList.push({ ...self.prizes[</span>0], slotIndex: 1<span style="color: #000000;"> })
+      prizeList.push({ name: </span>'谢谢参与', slotIndex: 2<span style="color: #000000;"> })
+      prizeList.push({ ...self.prizes[</span>1], slotIndex: 3<span style="color: #000000;"> })
+      prizeList.push({ name: </span>'谢谢参与', slotIndex: 4<span style="color: #000000;"> })
+      prizeList.push({ ...self.prizes[</span>2], slotIndex: 5<span style="color: #000000;"> })
+      prizeList.push({ name: </span>'谢谢参与', slotIndex: 6<span style="color: #000000;"> })
+      prizeList.push({ ...self.prizes[</span>3], slotIndex: 7<span style="color: #000000;"> })
+      prizeList.push({ name: </span>'谢谢参与', slotIndex: 8<span style="color: #000000;"> })
+      console.log(prizeList)
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> prizeList
+    }
+  },
+  methods: {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 执行抽奖动画
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    playWheel (index) {
+      
+    },
+     </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取中奖结果所在奖品列表中的索引，以确定抽奖动画最终落在哪个奖品
+    </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getPrizeIndex (prizeId) {
+    
+    }
+  },
+  watch: {
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 监听抽奖结果，一旦有中奖信息就开始执行抽奖动画
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    lotteryResult (newVal, oldVal) {
+      </span><span style="color: #0000ff;">var</span> self = <span style="color: #0000ff;">this</span>
+      <span style="color: #0000ff;">if</span> (newVal.id &amp;&amp; newVal.id &gt; 0<span style="color: #000000;">) {
+        let index </span>=<span style="color: #000000;"> self.getPrizeIndex(newVal.id)
+        self.playWheel(index)
+      }
+    }
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p>&nbsp;</p>
+</li>
+<li>弹出中奖结果组件，依附于抽奖组件，在上一步的执行抽奖结果动画结束后执行。<br />
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+&lt;div class="subject-pop" style="z-index: 10;" v-if="prize.id&gt;0"&gt;
+      &lt;div class="subject-pop-mask"&gt;&lt;/div&gt;
+      &lt;div class="subject-pop-box"&gt;
+        &lt;h3&gt;恭喜您&lt;/h3&gt;
+        &lt;p&gt;
+          &lt;img :src="prize.img" alt&gt;
+        &lt;/p&gt;
+        &lt;h4&gt;<span>获得
+          &lt;span&gt;&lt;/span&gt;
+          &lt;span&gt;{{prize.name}}&lt;/span&gt;
+        &lt;/h4&gt;
+        &lt;div class="subject-pop-footer"&gt;
+          &lt;a href="javascript:;" class="november-btn1" @click="closeLotteryEmit"&gt;知道了&lt;/a&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;<span>
+export default<span> {
+  props: {
+    prize: {
+      type: Object,
+      default: () =&gt;<span> {
+        return<span> {
+          id: 0<span>
+        }
+      }
+    }
+  },
+  methods: {
+    closeLotteryEmit () {
+      this.$emit('closeLotteryPop'<span>)
+    }
+  }
+}
+&lt;/script&gt;</span></span></span></span></span></span></span></pre>
+</div>
+<p>&nbsp;</p>
+</li>
+<li>抽奖组件运用在需要使用的页面中，此页面需要为抽奖组件提前准备好预置奖品列表和中奖结果信息，并提供好抽奖方法供子组件（抽奖组件）触发，触发完更改抽奖结果响应式传入到抽奖组件中。<br />
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;section&gt;
+    &lt;div style="width:100%;text-align:center;margin:2rem 0;"&gt;您有一次抽奖机会，祝君好运~~~&lt;/div&gt;
+    &lt;BigTurntable :prizes="prizeList"<span style="color: #000000;">
+                  :lotteryResult</span>="lotteryResult"<span style="color: #000000;">
+                  @lottery</span>="lottery" /&gt;
+  &lt;/section&gt;
+&lt;/template&gt;
+
+&lt;script&gt;<span style="color: #000000;">
+import { mapGetters, mapActions } from </span>'vuex'<span style="color: #000000;">
+import BigTurntable from </span>'@/components/bigTurntable.vue'<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  name: </span>'BigTurntableRun'<span style="color: #000000;">,
+  created () {
+    </span><span style="color: #0000ff;">var</span> self = <span style="color: #0000ff;">this</span><span style="color: #000000;">
+    self.getPrizeList()
+  },
+  components: {
+    BigTurntable
+  },
+  computed: {
+    ...mapGetters({
+      prizeList: </span>'lottery/prizeList'<span style="color: #000000;">,
+      lotteryResult: </span>'lottery/lotteryResult'<span style="color: #000000;">
+    })
+  },
+  methods: {
+    ...mapActions({
+      getPrizeList: </span>'lottery/getPrizeList'<span style="color: #000000;">,
+      lottery: </span>'lottery/lottery'<span style="color: #000000;">
+    })
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p><br />以上就是大转盘抽奖核心步骤的整体思路，欢迎讨论。</p>
+
+
+
+
+
+
+
+</li>
+
+
+
+
+
+
+</ol>
+<h1 class="postTitle" style="text-align: center;"><span style="color: red;">Vue.js实战之游戏抽奖系列全集</span></h1>
+<h2 class="postTitle" style="text-align: center;"><span style="color: red;">&darr;&darr;&darr;&darr;&darr;&darr;&darr;&darr;&darr;&darr;&darr;</span></h2>
+<h2 class="postTitle" style="text-align: center;"><span style="color: #0000ff;"><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/codeon/p/10754968.html" target="_blank"><span style="color: #0000ff;">【Vue.js实战案例】- Vue.js实现老虎-机抽奖总结</span></a></span></h2>
+<h2 class="postTitle" style="text-align: center;"><span style="color: #0000ff;"><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/codeon/p/11078143.html" target="_blank"><span style="color: #0000ff;">【Vue.js实战案例】- Vue.js实现九宫格水果机抽奖游戏总结</span></a></span></h2>
+<h2 class="postTitle" style="text-align: center;"><span style="color: #0000ff;"><a id="cb_post_title_url" class="postTitle2" href="https://www.cnblogs.com/codeon/p/11636558.html" target="_blank"><span style="color: #0000ff;">【Vue.js实战案例】- Vue.js实现大转盘抽奖总结</span></a></span></h2>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

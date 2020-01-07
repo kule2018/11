@@ -1,0 +1,196 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScrip 之 DOM' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScrip 之 DOM</center></div><div class='banquan'>原文出处:本文由博客园博主G_Owen提供。<br/>
+原文连接:https://www.cnblogs.com/gaoguowen/p/12056235.html</div><br>
+    <h2 id="dom-树">DOM 树</h2>
+<p>HTML 文档的骨干是标签。<br />
+根据文档对象模型(DOM)，每个HTML标签都是一个对象，同样标签内的文本也是一个对象。因此这些对象都可通过 JavaScript 操作<br />
+如果文档中有空格（就像任何字符一样），那么它们将成为 DOM 中的文本节点，如果我们删除它们，则不会有任何内容。<br />
+<code>&lt;head&gt;</code> 之前的空格和换行符被忽略<br />
+<code>&lt;/body&gt;</code> 之后放置了一些东西，那么它会自动移动到 body 内部，因为 HTML 规范要求所有内容必须位于 <code>&lt;body&gt;</code> 内。所以<code>&lt;/body&gt;</code> 后面可能没有空格。</p>
+<p>通常再浏览器中的文本不会显示开头/结尾的空文本节点，标签之间也不会显示空文本节点。</p>
+<p>如果浏览器遇到格式不正确的HTML，在形成DOM是会自动修复它<br />
+如：<br />
+<code>&lt;html&gt;</code> 即使不在文档中，浏览器也会自动创建它</p>
+<p>按DOM规范，table 必须具有 <code>&lt;tbody&gt;</code>,因此table中未使用<code>&lt;tbody&gt;</code> 形成DOM时会自动添加。</p>
+<p><strong>其它 节点：</strong><br />
+注释不会以任何方式影响视觉表示，但是必须遵循一条规则 —— 如果HTML中有东西，那么它必须在DOM树中。<br />
+HTML中所有内容都是DOM的一部分，<br />
+注释是一个节点甚至<code>&lt;!DOCTYPE...&gt;</code>也是一个节<br />
+DOM总有<a href="https://dom.spec.whatwg.org/#node">12种节点</a></p>
+<h3 id="遍历dom节点">遍历DOM节点</h3>
+<p>所有对DOM的操作都是从<code>document</code>对象开始，将这个对象赋予一个变量，对其进行修改操作</p>
+<h4 id="最顶端的节点">最顶端的节点</h4>
+<p>DOM节点树可以通过 <code>document</code>属性使用<br />
+顶端的节点对应<code>&lt;html&gt;</code> 并且 <code>&lt;html&gt; = document.documentElement</code><br />
+而<code>&lt;body&gt; = document.body</code>,<code>&lt;head&gt; = document.head</code><br />
+<code>docment.body</code>可能为null，如果将<code>script</code>脚本放入 <code>&lt;head&gt;</code>标签种，那么此脚本无法访问到<code>document.body</code>，即为null</p>
+<h4 id="childnodes">childNodes</h4>
+<p><code>childNodes</code> 集合提供对所有子节点包括文本节点的访问，它看起来是一个数字，实际上只是一个可迭代的类数组对象，因此没有数组的方法<br />
+<strong>所有的Dom 集合节点都是只读的无法通过赋值来替换对应的节点</strong><br />
+<strong>除小部分节点，几乎所有的DOM集合都是实时的，它们反应的是DOM的实时状态</strong><br />
+<strong>不要是有 <code>for...in</code>来遍历DOM集合，此方法会列出其所有的属性。</strong><br />
+<strong>注意此属性只能访问到当前<code>script</code>脚本之前对应的节点</strong><br />
+可以通过<code>elem.hasChildNodes()</code>来检测是否含有子节点</p>
+<h4 id="parentnode-siblingnode">parentNOde / siblingNode</h4>
+<p>通过<code>elem.parentNode</code>可访问当前节点的父节点<br />
+通过<code>elem.previousSibling/elem.nextSibling</code>可访问对应节点的上/下兄弟节点</p>
+<h4 id="只访问元素节点">只访问元素节点</h4>
+<ul>
+<li>children： 只获取类型为元素节点的子节点</li>
+<li>firstElementChild,lastElementChild：只获取第一或最后一个子元素</li>
+<li>previousElementSibling, nextElementSibling：兄弟元素</li>
+<li>parentElement：父元素</li>
+</ul>
+<p><strong>parentElement 可能为null,因为其方法返回的是父元素节点，而parentNode返回的是任何类型的父节点，因此,<code>document.documentElement.parentElement === null</code></strong></p>
+<h4 id="htmlcollection-动态">HTMLCollection （动态）</h4>
+<p>通过元素查找子元素如果子元素是一个集合将返回 <code>HTMLCollection</code> 类数组</p>
+<pre><code><code>let tb = documet.querySelector(&#39;table&#39;)
+let tbs = tb.tBodies  // HTMLCollection [tbody]
+let trs =tbs.rows // HTMLCollection [tr,tr,tr,...]
+let tr1 = trs[0]
+    tr1.sectionRowIndex //0 当前 tr 在集合中的位置
+    tr1.rowIndex // 1 当前 tr 在整张表中的 位置
+let tds = tr1.cells // HTMLCollection [td,td,td,...]
+    td[0].cellIndex //0 当前 td 在父元素 tr节点 中的位置</code></pre>
+<h4 id="nodelist-静态-如果使用循环创建查询的元素新的元素不会实时加入到nodelist中">NodeList （静态 如果使用循环创建查询的元素，新的元素不会实时加入到NodeList中）</h4>
+<p>通过 <code>document</code> 中的方法 <code>document.querySelectorAll</code> 或<code>elem.querySelectorAll</code>获取的元素集合将返回<code>NodeList</code>类数组<br />
+<code>getElement*</code> 方法只能通过 <code>document</code>对象调用</p>
+<pre><code><code>let divs = document.querySelectorAll(&#39;div&#39;) // NodeList(4) [div.Owen, div#modal, div.main, div]
+ document.getElementsByTagName(&#39;div&#39;)//HTMLCollection [div.Owen]</code></pre>
+<h4 id="matches">matches</h4>
+<p><code>elem.matches(css)</code>会检测 <code>elem</code>是否匹配到给定的css选择器，返回 true 或 false</p>
+<h4 id="closest">closest</h4>
+<p><code>elem.closest(css)</code>此方法会查找css选择器匹配到的祖先HTML，包括自身，并返回最先找到的元素</p>
+<h4 id="contains">contains</h4>
+<p><code>elem.catains(dom)</code> 判断 dom 是否为 elem 的后代，或等于elem，返回true 或false</p>
+<h4 id="节点属性">节点属性</h4>
+<p>所有的节点都继承自根节点 <code>EventTarget</code></p>
+<ul>
+<li>EventTarget:作为基础，让所有DOM 节点都支持事件</li>
+<li>Node：作为DOM 节点的基础，提供DOM树的核心功能：<code>parentNode</code>、<code>nextSibling</code>、<code>previousSibling</code>、<code>ChildNodes</code>等（只能读取 getter）;文本节点 <code>Text</code>,元素节点<code>Element</code>,注释节点<code>Comment</code>都继承自Node</li>
+<li>Element：做为DOM 元素的基类。提供元素级导航： <code>nextElementSibling</code>、<code>children</code>、<code>getElement*</code>、<code>querySelector</code>等等，浏览器不仅支持HTML，还支持 XML、SVG等，分别对应的基类 <code>HTMLElement</code>、<code>XMLElement</code>、<code>SVGElement</code></li>
+<li>HTMLElement:作为所有元素的基类，被各种元素继承</li>
+</ul>
+<h5 id="innerhtml-和-outerhtml">innerHTML 和 outerHTML</h5>
+<ul>
+<li>innerHTML: 获取或替换当前节点的所有子节点（不包含当前节点）</li>
+<li>outerHTML: 替换当前节点</li>
+</ul>
+<h4 id="文档片段-documentfragment">文档片段 DocumentFragment</h4>
+<p>用于存储节点的包装器，不会再浏览器中展示，需要通过插值方法才能展示包装器里面的内容</p>
+<pre><code><code>function creatEl(){
+let frag = new DocumentFragment();
+ for (let i=1;i&lt;4;i++) {
+let li = document.createElement(&#39;li&#39;)
+  li.append(i)
+  frag.append(li)
+}
+
+return frag
+}
+ul.append(creatEl())</code></pre>
+<h4 id="类样式的修改等操作">类样式的修改等操作</h4>
+<p><code>elem.className</code> 对应元素的类名，多个类目以空格分隔</p>
+<pre><code><code>ul.className // &quot;class1 class2 ...&quot;</code></pre>
+<p>同时还要一个 <code>elem.classList</code> 对象可访问类名，它以类数组的方式存在，同时具有 <code>add/remove/toggle/contains</code> 等方法</p>
+<pre><code><code>ul.classList //  DOMTokenList(2) [&quot;333&quot;, &quot;444&quot;, value: &quot;333 444&quot;]
+ul.classList.add(&#39;class1&#39;)
+ul.classList.remove(&#39;class1&#39;)
+ul.classList.toggle(&#39;class1&#39;) // true 新增
+ul.classList.toggle(&#39;class1&#39;) // false 去除
+ul.classList.contains(&#39;class1&#39;) //false 是否包含
+</code></pre>
+<p>通常我们使用 <code>style.*</code>单独对样式属性进行修改，如果想要对多种样式进行调整可使用 <code>cssText</code>，<strong>此方法会直接替换之前的样式</strong></p>
+<pre><code><code>ul.style.cssText = `
+    color: red ;
+    background-color: skyblue;
+    width: 20px;
+    text-align: center;`</code></pre>
+<p>style 属性仅针对 style 属性值进行操作，无法读取css类中的属性值</p>
+<pre class="html"><code>&lt;style&gt;
+body {margin:20 auto;}
+&lt;/style&gt;
+&lt;script&gt;
+document.body.style.margin // &quot;&quot;
+&lt;/script&gt;</code></pre>
+<p>这时我们需要使用 <code>getComputedStyle(el,[,pseudo])</code>方法来获取对应的值<br />
+如果不传参或值无意义，将返回元素所有样式,其属性值都为解析值，如 <code>font-size:1em</code> 最后获取的可能为解析后的值&quot;16px&quot;</p>
+<pre><code><code>let res = getComputedStyle(document.body)
+res.marginTop // &quot;20px&quot;
+res.margin // 谷歌 &quot;20px 0px&quot; 在火狐中为 &quot;&quot;  因此访问确切属性值须使用完整属性名
+
+</code></pre>
+<h4 id="获取元素的尺寸和滚动距离">获取元素的尺寸和滚动距离</h4>
+<ul>
+<li>offsetTop/Left: 获取相对于设置有position属性为 absolute relative、fixed 的值或td、th、table、body的元素的距离</li>
+<li>offsetWidth/Height：获取外部宽度/高度，包含border,padding,scrollbar (display:none 或自身不在文档中，其值为0或null，由此可判断当前元素是否被隐藏)</li>
+<li>clientTop/Left：获取内侧与外侧的距离（滚动条在左边时，包含滚动条的宽度）</li>
+<li>clientWidth/Height：获取可视区内容的宽高，即不包含滚动条和border</li>
+<li>scrollWidth/Height：获取全部内容（包含隐藏部分）的宽高</li>
+<li>scrollTop/Left: 获取 元素隐藏部分的上/左距离，包含border,这两个属性可修改，其它属性能只读取</li>
+</ul>
+<p><strong>HTML 文件里如果没有 <code>&lt;!DOCTYPE HTML&gt;</code> 上述的属性可能会有所不同，这不是一个 JavaScript 的问题，但会影响到 JavaScript。</strong></p>
+<h4 id="滚动浏览器窗口">滚动浏览器窗口</h4>
+<p>pageXOffset/pageYOffset: 获取可视窗口移动的距离 无法设值</p>
+<p>可通过 window.scrollBy, window.scrollTo, elem.scrollIntoView来滚动窗口</p>
+<ul>
+<li><code>scrollBy(x,y)</code>：滚动页面至相对于现在位置的(x,y)位置</li>
+<li><code>scrollTo(x,y)</code>：滚动到页面相对于文档左上方的（x,y）,位置，类似于 <code>scrollTop/scrollLeft</code></li>
+<li><code>elem.scrollIntoView(truly)</code>：如果 truly 为真则使 当前元素 滚动至窗口顶部，元素顶部与窗口顶部对齐，如果truly 为false,则当前元素底部与窗口底部对齐。</li>
+</ul>
+<p>如果禁止窗口滚动可使 样式属性 <code>overflow</code> 值为 <code>hidden</code></p>
+<h4 id="坐标">坐标</h4>
+<h5 id="getboundingclientrect方法获取相对于可视窗口的坐标对象">getBoundingClientRect()`方法获取相对于可视窗口的坐标对象</h5>
+<p>其所有属性都是以可视窗口左端（X）和顶部（Y）为起点</p>
+<pre><code><code>ul.getBoundingClientRect()
+/*
+
+DOMRect {
+    bottom: 829.59375  // 元素底部的Y坐标
+    height: 210  // 元素真实高度
+    left: 0 // 元素左边 X 坐标
+    right: 1903 // 元素右边 X 坐标
+    top: 619.59375 // 元素顶部 Y 坐标
+    width: 1903 // 元素自身真实宽度即不包含滚动条
+    x: 0
+    y: 619.59375
+}
+
+*/</code></pre>
+<h6 id="document.elementfrompoint">document.elementFromPoint</h6>
+<p><code>document.elementFromPoint(x,y)</code>返回可视窗口坐标（x,y），最顶层的元素</p>
+<pre><code><code>let elem = document.elementFromPoint(0,0) // &lt;p&gt;556666&lt;/p&gt;</code></pre>
+<p>如果<code>x,y</code>不在正常范围内将返回 null,</p>
+<h5 id="相对于文档坐标js并未提供原生标准方法可自己写一个出来">相对于文档坐标，JS并未提供原生标准方法，可自己写一个出来：</h5>
+<pre><code><code>function getDomCoords(el){
+    let {top,left} = el.getBoundingClientRect()
+  return {
+    top:top+ window.pageYOffset,
+    left:left+window.pageXOffest
+  }
+}</code></pre>
+<p><a href="https://owen027.github.io/2019/06/13/vueNotes/">Owen 的个人博客</a><br />
+<a href="https://www.cnblogs.com/gaoguowen/">博客园</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

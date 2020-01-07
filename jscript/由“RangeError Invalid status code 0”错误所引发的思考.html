@@ -1,0 +1,70 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修由“RangeError Invalid status code 0”错误所引发的思考' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>由“RangeError Invalid status code 0”错误所引发的思考</center></div><div class='banquan'>原文出处:本文由博客园博主Jaxu提供。<br/>
+原文连接:https://www.cnblogs.com/jaxu/p/11096344.html</div><br>
+    <p>　　最近发现一个基于<a href="https://nodejs.org/" target="_blank">Node.js</a>平台上的<a href="http://www.expressjs.com.cn/" target="_blank">Express</a>框架运行的Web网站经常报这样一个错误：</p>
+<div class="cnblogs_code">
+<pre><code>RangeError: Invalid status code: <span style="color: #800080;">0</span></pre>
+</div>
+<p>　　网站的源码中有专门针对错误处理的中间件，经过精简之后的代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>module.exports = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (err, req, res, next) {
+  </span><span style="color: #0000ff;">var</span> _code = err.code || 500<span style="color: #000000;">;
+  </span><span style="color: #0000ff;">if</span> (_code &lt; 100 || _code &gt;= 600<span style="color: #000000;">) {
+    _code </span>= 500<span style="color: #000000;">;
+  }
+  </span><span style="color: #0000ff;">var</span> _finalErr = {statusCode: -1, message: '500 - 服务器内部错误', code: _code, err: err, error: <span style="color: #0000ff;">true</span><span style="color: #000000;">};
+
+  res.status(_code);
+  </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">res.headersSent) {
+      res.json(_finalErr);
+  }
+
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (err) {
+    next(err);
+  }
+};</span></pre>
+</div>
+<p>　　乍一看，这里的status code不太可能为0，因为无论err.code的值为字符串0还是数字0，最终都会被赋值为500。除非err.code的原始值是一个不能隐式转换成数字的字符串。为了进行验证，我们写了如下代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> _err = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Error();
+_err.code </span>= "illegal http status code"<span style="color: #000000;">;
+</span><span style="color: #0000ff;">throw</span> _err;</pre>
+</div>
+<p>　　启动WebStorm进入调试模式，果然复现了本文开头给出的那个错误。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/由“RangeError Invalid status code 0”错误所引发的思考0.png" alt="" width="1220" height="272" /></p>
+<p>　　那么问题来了，为什么给定的http status code是一个字符串，错误提示却显示这里的status code是0呢？为了搞清楚其中的原因，我们根据错误堆栈一层层查找源码。该错误的最终出处是在<a href="https://nodejs.org/en/download/" target="_blank">Node.js源码</a>的_http_server.js文件的writeHead函数中，核心部分的代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>statusCode |= 0<span style="color: #000000;">;
+</span><span style="color: #0000ff;">if</span> (statusCode &lt; 100 || statusCode &gt; 999<span style="color: #000000;">)
+  </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> RangeError(`Invalid status code: ${statusCode}`);
+
+</span><span style="color: #0000ff;">if</span> (common._checkInvalidHeaderChar(<span style="color: #0000ff;">this</span><span style="color: #000000;">.statusMessage))
+  </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Error('Invalid character in statusMessage.');</pre>
+</div>
+<p>　　这里使用了javascript中的按位或运算符：| 。其目的是将所有非数字的statusCode都默认转换成0。可以参考以下两篇文章中的描述来理解javascript中的位运算符：</p>
+<p>　　<a href="http://www.w3school.com.cn/js/pro_js_operators_bitwise.asp" target="_blank">http://www.w3school.com.cn/js/pro_js_operators_bitwise.asp</a></p>
+<p>　　<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#Bitwise_XOR" target="_blank">https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Bitwise_Operators#Bitwise_XOR</a></p>
+<p>　　值得注意的是，当参与计算的值不能隐式转换成数字时，得到的结果为0，可以参考上面第二篇文章中给出的一些实际例子。</p>
+<p>　　在实际应用中，巧妙使用位运算符，可以非常方便地实现我们想要的效果，例如，判断一个给定的数值是否为偶数、找出给定数值最接近的偶数、判断一个字符串是否包含在另一个字符串中等等。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

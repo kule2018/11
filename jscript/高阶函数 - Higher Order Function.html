@@ -1,0 +1,224 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修高阶函数 - Higher Order Function' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>高阶函数 - Higher Order Function</center></div><div class='banquan'>原文出处:本文由博客园博主apolis提供。<br/>
+原文连接:https://www.cnblogs.com/apolis/p/11079084.html</div><br>
+    <p>一个函数如果有 参数是函数 或 返回值是函数，就称为高阶函数。</p>
+<p><strong>这篇文章介绍高阶函数的一个子集：输入 <code>fn</code>，输出 <code>fn'</code>。</strong><br />
+按 <code>fn</code> 与 <code>fn'</code> 功能是否一致，即相同输入是否始终对应相同输出，把这类高阶函数的作用分为两种：</p>
+<ol>
+<li>包装函数：功能一致</li>
+<li>修改函数：功能不一致</li>
+</ol>
+<hr />
+<h2 id="包装函数">包装函数</h2>
+<p>从斐波那契数列开始。</p>
+<pre><code><code>const fib = n =&gt;
+  n &lt;= 1 ? 1 : fib(n - 1) + fib(n - 2);
+
+fib(42);</code></pre>
+<h3 id="记录执行时间">记录执行时间</h3>
+<ul>
+<li><p>普通青年</p>
+<pre><code><code>const fib = n =&gt;
+  n &lt;= 1 ? 1 : fib(n - 1) + fib(n - 2);
+
+console.time(&quot;fib&quot;);
+fib(42);
+console.timeEnd(&quot;fib&quot;);</code></pre></li>
+<li><p>函数式青年</p>
+<pre><code><code>const timed = fn =&gt; (...args) =&gt; {
+  console.time(fn.name);
+  const result = fn(...args);
+  console.timeEnd(fn.name);
+  return result;
+};
+const fib = n =&gt;
+  n &lt;= 1 ? 1 : fib(n - 1) + fib(n - 2);
+
+timed(fib)(42);</code></pre></li>
+</ul>
+<h3 id="优化性能">优化性能</h3>
+<ul>
+<li><p>普通青年</p>
+<pre><code><code>const memory = {};
+const fib = n =&gt; {
+  if (n &lt;= 1) return 1;
+  else {
+    if (memory[n]) return memory[n];
+    else {
+      memory[n] = fib(n - 1) + fib(n - 2);
+      return memory[n];
+    }
+  }
+};
+const timed = fn =&gt; (...args) =&gt; {
+  console.time(fn.name);
+  const result = fn(...args);
+  console.timeEnd(fn.name);
+  return result;
+};
+timed(fib)(42);</code></pre></li>
+<li><p>函数式青年</p>
+<pre><code><code>const memoize = fn =&gt; {
+  const memory = {};
+  return arg =&gt; {
+    if (memory[arg]) return memory[arg];
+    else {
+      memory[arg] = fn(arg);
+      return memory[arg];
+    }
+  };
+};
+const fib = memoize(n =&gt;
+  n &lt;= 1 ? 1 : fib(n - 1) + fib(n - 2)
+);
+const timed = fn =&gt; (...args) =&gt; {
+  console.time(fn.name);
+  const result = fn(...args);
+  console.timeEnd(fn.name);
+  return result;
+};
+timed(fib)(42);</code></pre></li>
+</ul>
+<hr />
+<h2 id="修改函数">修改函数</h2>
+<h3 id="once">once</h3>
+<blockquote>
+<p><strong>场景：</strong><br />
+发送请求，如果后台返回 session 超时，弹出重新登录提示框。<br />
+发出多个请求，都 session 超时，只希望弹一个重新登录提示框。</p>
+</blockquote>
+<pre><code><code>const once = fn =&gt; {
+  let executed = false;
+  return (...args) =&gt; {
+    if (!executed) {
+      executed = true;
+      fn(...args);
+    }
+  };
+};
+const showLogoutWin = once(() =&gt; {
+  // ...
+});</code></pre>
+<h3 id="debounce">debounce</h3>
+<blockquote>
+<p><strong>场景：</strong><br />
+输入框 change 事件触发向后台查询。<br />
+为消除不必要查询，用户连续输入时不触发查询，<br />
+当 200ms 内没有新的输入时，才向后台查询。</p>
+</blockquote>
+<pre><code><code>const debounce = (fn, ms = 200) =&gt; {
+  let timeoutId;
+  return (...args) =&gt; {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() =&gt; fn(...args), ms);
+  };
+};</code></pre>
+<hr />
+<h2 id="更多实际场景">更多实际场景</h2>
+<h3 id="validaterequired">validateRequired</h3>
+<blockquote>
+<p><strong>场景：</strong><br />
+根据 <code>rule.required</code> 判断空值时是否报错，<br />
+这段逻辑出现在多个 validator 中。</p>
+</blockquote>
+<pre><code><code>const ipv4Validator = (rule, value, callback) =&gt; {
+  if (value) {
+    if (ipv4RegExp.test(value)) {
+      callback();
+    } else {
+      callback(&quot;请输入合法IP&quot;);
+    }
+  } else {
+    if (rule.required) {
+      callback(&quot;该域为必填项&quot;);
+    } else {
+      callback();
+    }
+  }
+};</code></pre>
+<p>把判空的逻辑提取到高阶函数中：</p>
+<pre><code><code>const validateRequired = (
+  validator,
+  msg = &quot;该域为必填项&quot;
+) =&gt; (rule, value, callback) =&gt; {
+  if (value) {
+    validator(rule, value, callback);
+  } else {
+    if (rule.required) {
+      callback(msg);
+    } else {
+      callback();
+    }
+  }
+};
+
+const ipv4Validator = validateRequired(
+  (rule, value, callback) =&gt; {
+    if (ipV4Regexp.test(value)) {
+      callback();
+    } else {
+      callback(&quot;请输入合法IP&quot;);
+    }
+  }
+);</code></pre>
+<h3 id="tryuntilsucceeded">tryUntilSucceeded</h3>
+<blockquote>
+<p><strong>场景：</strong><br />
+因为网络不稳定，请求可能出错。<br />
+出错后重新请求，直到得到响应为止。</p>
+</blockquote>
+<pre><code><code>let res;
+while (true) {
+  try {
+    res = await get(path);
+    break;
+  } catch (err) {
+    console.log(err);
+  }
+}</code></pre>
+<p>把出错重试的逻辑提取到高阶函数中：</p>
+<pre><code><code>const tryUntilSucceeded = fn =&gt; async (
+  ...args
+) =&gt; {
+  while (true) {
+    try {
+      return await fn(...args);
+    } catch (err) {
+      console.log(err);
+    }
+  }
+};
+
+const enhancedGet = tryUntilSucceeded(get);
+const enhancedPost = tryUntilSucceeded(post);
+
+const resGet = await enhancedGet(path);
+const resPost = await enhancedPost(path);</code></pre>
+<hr />
+<h2 id="小结">小结</h2>
+<p>两个代码块一样，把这个代码块提取出来，封成一个函数，减少代码重复，这个技巧大家都知道；<br />
+两段代码流程一样，用高阶函数把公共流程提取出来，减少代码重复，这个技巧知道的人就不多了。<br />
+可以类比 react 高阶组件，道理是一样的。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

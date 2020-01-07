@@ -1,0 +1,155 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入理解闭包' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入理解闭包</center></div><div class='banquan'>原文出处:本文由博客园博主秋月渔舟提供。<br/>
+原文连接:https://www.cnblogs.com/Black-Skin/p/11456263.html</div><br>
+    <p><strong>前言：</strong></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;对于大多数前端同学来说闭包一直是个很让人困惑的问题，我自己之前虽说在项目中有意无意的用到但是都没有刻意的去深入研究它，大部分时间是为了应付面试。后来某一天我突然意识到自己要去认真研究下它，因为知其然而不知其所以然并不应该是学习一种语言的态度，所以我打算写篇文章尝试着用我自己的理解去解释下闭包。</p>
+<p><strong>一、什么是闭包?</strong></p>
+<p>&nbsp; &nbsp; &nbsp; 关于闭包不同的人有不同的理解，在javaScript高级编程第三版中给出了如下的解释：<span style="background-color: #ffffff; color: #ff0000;">闭包是指有权访问另一个函数作用域中的变量的函数。<span style="color: #000000;">其实解释出来说闭包就是一个函数，只不过它可以访问别的函数内部的变量。单纯的看这句话很是抽象 ，我们先看一段代码:</span></span></p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">function</span><span style="color: #000000;"> fn1() {
+            </span><span style="color: #0000ff;">var</span> a = 1<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> fn2() {
+                console.log(a)
+            }
+        }
+        fn1();</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>这段代码中我们先声明了一个函数fn1然后在函数内部生明了一个函数fn2而我们在fn2中引用了fn1中的变量a ；当我们执行fn1时，这时候闭包就产生了。我们可以借助谷歌浏览器f12调试工具很清楚的看到闭包</p>
+<p><img src="./images/深入理解闭包0.png" alt="" /></p>
+<p>在14行打断点后我们很清楚的看到在内部函数f2内部有一个Closure的对象，这就是我们所说的闭包.此时我们对闭包可以更准确的的解释：<span style="color: #ff0000;">闭包是一个存在内部函数对象里的包含被引用变量的对象</span>。</p>
+<p><strong>二、如何产生闭包？</strong></p>
+<p>当一个嵌套的内部函数引用了外部函数的变量时，就产生了闭包。上例中 内部函数fn2引用了外部函数f1的内部变量a 因此就产生了闭包。</p>
+<p><strong>三、常见的产生闭包的方式</strong></p>
+<p>(1)、将函数作为另一个函数的返回值</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">function</span><span style="color: #000000;"> add() {
+            </span><span style="color: #0000ff;">var</span> num = 0<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">var</span> fn2 = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                num</span>++<span style="color: #000000;">;
+                console.log(num)
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> fn2
+        }
+        </span><span style="color: #0000ff;">var</span> fn =<span style="color: #000000;"> add();
+        fn() </span><span style="color: #008000;">//</span><span style="color: #008000;">1</span>
+        fn() <span style="color: #008000;">//</span><span style="color: #008000;">2</span></pre>
+</div>
+<p>由于内部函数对象fn2引用了外部函数add内的变量num，所以当add方法执行时就产生了闭包。</p>
+<p>(2)、将一个函数当作实参传入</p>
+<div class="cnblogs_code">
+<pre><code>        <span style="color: #0000ff;">function</span><span style="color: #000000;"> showMsg(msg, time) {
+            setTimeout(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                alert(msg)
+            }, time)
+        }
+        showMsg(</span>'hello', 2000)</pre>
+</div>
+<p>由于内部匿名函数引用了外部函数showMsg的变量msg 因此产生了闭包</p>
+<p><strong>四、闭包的作用</strong></p>
+<p>我们接着使用之前的例子:</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">function</span><span style="color: #000000;"> add() {
+            </span><span style="color: #0000ff;">var</span> num = 0<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">var</span> fn2 = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                num</span>++<span style="color: #000000;">;
+                console.log(num)
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> fn2
+        }
+        </span><span style="color: #0000ff;">var</span> fn=<span style="color: #000000;">add();
+            fn()</span><span style="color: #008000;">//</span><span style="color: #008000;">1</span>
+            fn()<span style="color: #008000;">//</span><span style="color: #008000;">2</span></pre>
+</div>
+<p>&nbsp;(1)函数在执行完毕后依然保留内部变量</p>
+<p>正常情况下add函数执行完成后，add函数内部的局部变量将会被垃圾回收机制回收，但当我们用fn保留对add内部的函数的引用时 内部函数对象就不会被释放，而内部函数又引用了num，因此变量num在add函数执行完毕后也不会被释放，而是继续存在内存中。</p>
+<p>（2）访问函数内部变量</p>
+<p>&nbsp;由于js的机制导致我们访问某一变量时我们只能从内往外部去访问，但是使用闭包我们就可以访问某函数内部的局部变量。从上例可以看到，我们在window中调用了add（）函数，并且访问到了add的局部变量 num&nbsp;</p>
+<p><strong>五、闭包在实际开发中的应用</strong></p>
+<p>正如文章开头所说，我们在实际的开发过程中总能有意无意的用到闭包，下面我随便列举几个例子，更好的帮大家理解闭包、</p>
+<p>(1)、循环便利加监听</p>
+<p>&nbsp; 现在我有一个ul 内部4个li，要求点击每个li的时候弹出其对应的下标，大家很容易想到如下写法:</p>
+<div class="cnblogs_code">
+<pre><code>  let list = document.querySelectorAll('li'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; list.length; i++<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">var</span> el =<span style="color: #000000;"> list[i];
+            el.index </span>=<span style="color: #000000;"> i;
+            el.onclick </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                alert(el.index)
+            }
+        }</span></pre>
+</div>
+<p>当我们执行的时候发现，点击的时候弹出的都是3。这是因为i声明的是一个全局变量，当我们加监听之前循环已经执行完毕了这时候我们得到的i是3，所以每一个el.indexf赋的值都是一样的，所以每次点击都是3.我们现需要改进下代码:</p>
+<div class="cnblogs_code">
+<pre><code> let list = document.querySelectorAll('li'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; list.length; i++<span style="color: #000000;">) {
+            (</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                </span><span style="color: #0000ff;">var</span> el =<span style="color: #000000;"> list[i];
+                el.index </span>=<span style="color: #000000;"> i;
+                el.onclick </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                    alert(el.index)
+                }
+            })(i)
+        }</span></pre>
+</div>
+<p>我们在监听事件外部 包了一个匿名的自执行函数，这时候我们发现都能得到我们期望的结果了。因为for循环每此执行时我们将i传入了匿名函数并赋值给了el.index，而onclick的函数又引用了el.index这个变量，因此产生了闭包，每一个index都将被存下。&nbsp;</p>
+<p>&nbsp;(2)、缓存this</p>
+<div class="cnblogs_code">
+<pre><code>   <span style="color: #0000ff;">var</span> name = 'Jony'<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">var</span> obj =<span style="color: #000000;"> {
+            name: </span>'Tom'<span style="color: #000000;">,
+            fn: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                </span><span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                        alert(_this.name)
+                    }
+                }
+            }
+
+        }
+        obj.fn()()() </span><span style="color: #008000;">//</span><span style="color: #008000;">Tom</span></pre>
+</div>
+<p>此例子中，我们obj.fn()得到了一个函数对象，并且此时得this是obj，我们把this赋值给了_this，因此我们执行最终得alert时得到得是Tom</p>
+<p>(3)、封装JS模块</p>
+<p>我们为了防止变量被污染经常回去使用闭包去封装JS 模块</p>
+<div class="cnblogs_code">
+<pre><code>  (<span style="color: #0000ff;">function</span><span style="color: #000000;">(window) {
+            </span><span style="color: #0000ff;">var</span> msg = "Hello"; <span style="color: #008000;">//</span><span style="color: #008000;">私有变量</span>
+            <span style="color: #0000ff;">function</span><span style="color: #000000;"> fn() {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> msg.toLowerCase()
+            }
+
+            </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> fn2() {
+                </span><span style="color: #0000ff;">return</span> msg.split(''<span style="color: #000000;">);
+            }
+            window.module </span>=<span style="color: #000000;"> {
+                fn: fn,
+                fn2: fn2
+            }
+        })(window)</span></pre>
+</div>
+<p>以上就是我个人对于闭包的理解，希望能帮助到正在为闭包而困惑的你.</p>
+<p>如有错误敬请指出!!，与诸君共勉!!</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

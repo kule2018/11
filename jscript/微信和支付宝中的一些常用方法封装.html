@@ -1,0 +1,304 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信和支付宝中的一些常用方法封装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信和支付宝中的一些常用方法封装</center></div><div class='banquan'>原文出处:本文由博客园博主一步一步向上爬提供。<br/>
+原文连接:https://www.cnblogs.com/z937741304/p/11426962.html</div><br>
+    <p>　　最近做了同一个样子的小程序的支付宝版本，现在如果想想是开发两次的话心里应该是很难受的。</p>
+<p>　　去年11月12月份左右开发了两个微信小程序是一个在超市买商品的，一个用户版本，一个商户版本的。我们团队看到了uniapp这个东西，然后用这个东西写了一点demo，然后就决定采纳这个东西开发微信小程序了。这个开发体验真的是让人揪心，因为编译起来太慢了，就是这边保存完代码，你如果想去微信小程序开发工具中看效果的话要等好久，然后测试一点点东西有时候uniapp这边代保存了，但是微信开发工具中的代码不动，还需要重新编译，而且当时的uniapp的开发还没有现在成熟，因为已经开发了很多个版本了，不可能在转到原生的开发了，所以在骂声中进行着开发。到后来都没有人想维护这个东西了。</p>
+<p>　　直到上周四开始开发支付宝版本的，因为uniapp是可以跨平台的，看了一些文档就开始搞了，编译到支付宝之后发现布局错乱掉了，心里感觉难道还需要重新开发一遍吗。后来耐下心了看，发现很多问题都只是图片的问题，然后使用文档中的条件编译，花了一天的时间把布局给搞定了，之后就是一些js代码的兼容。因为他们两个是很类似的，支付宝上面的和微信上面的文档什么的都是简直雷同。所以把一些经常使用的东西做了一个总结。</p>
+<p>　　小程序中主要是获取授权的方法，获取用户信息，上传用户信息，版本更新升级、支付方法不同。</p>
+<p>　　uniapp的跨平台不是那种写很多 if else 去判断不同的平台，然后运行不同的代码，他是根据同一套代码，可以选择分别把每个平台的代码编译到那个平台上面去运行，这个我是真的发现了跨平台确实是好做。</p>
+<p>　　废话不多说了，就写一点最基本的一些方法总结一下。</p>
+<p>　　</p>
+<p>　　现在随着Promise的流行吧，异步方法都可以封装成为Promise对象，然后就很容易对一些方法进行封装了。</p>
+<p>因为我做了兼容，最开始做的是微信的，所以名称和返回值都优先考虑使用了微信的名字，导致页面中的代码改动会很少。</p>
+<h3>1.获取登录的code</h3>
+<p>微信的获取</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 获取微信code码
+ * return {Promise Function} code
+ *     成功 {code:'', status: 200}
+ *     失败 {status: 400, err}
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+getWxCode: () </span>=&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+        wx.login({
+            success(res) {
+                resolve({
+                    status: </span>200<span style="color: #000000;">,
+                    code: res.code
+                });
+            },
+            fail(err) {
+                resolve({
+                    status: </span>400<span style="color: #000000;">,
+                    err: err
+                });
+            }
+        })
+    })
+},</span></pre>
+</div>
+<p>支付宝的获取</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+* 获取支付宝code码
+* return {Promise Function} code
+*     成功 {code:'', status: 200}
+*     失败 {status: 400, err}
+</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+getWxCode: () </span>=&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+        my.getAuthCode({
+            scopes: </span>'auth_base', <span style="color: #008000;">//</span><span style="color: #008000;"> auth_base  auth_user   auth_zhimaauth_zhima</span>
+<span style="color: #000000;">            success(res) {
+                console.log(</span>'获取成功的回调函数'<span style="color: #000000;">);
+                console.log(res)
+                resolve({
+                    status: </span>200<span style="color: #000000;">,
+                    code: res.authCode
+                });
+            },
+            fail(err) {
+                console.log(</span>'获取失败的回调'<span style="color: #000000;">);
+                console.log(err);
+                resolve({
+                    status: </span>400<span style="color: #000000;">,
+                    err: err
+                });
+            }
+        })
+    })
+},</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>2.授权后获取用户信息</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 获取目前授权状态信息 这里只判断状态码如果不是 200 就是没有拿到信息就好
+ * 
+ * 检测用户是否授权个人用户信息
+ * 如果有授权返回中文的json格式个人信息
+ * 如果无授权或者失败的几种情况
+ *     {status: 200, result: res.userInfo, msg: '获取用户信息成功'}
+ *     {status: 400, result: false, msg: '调取配置信息函数失败'}
+ *     {status: 400, result: false, msg: '没有授权'}
+ *     {status: 402, result: false, msg: '获取用户信息函数失败'}
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+checkIsAuthUserInfo() {
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    wx.getSetting({
+      success(res) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log('成功');</span>
+        <span style="color: #0000ff;">if</span> (res.authSetting['scope.userInfo'<span style="color: #000000;">]) {
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 授权信息</span>
+<span style="color: #000000;">          wx.getUserInfo({
+            lang: </span>'zh_CN'<span style="color: #000000;">,
+            success(res) {
+              </span><span style="color: #008000;">//</span><span style="color: #008000;"> 授权了 并且调用成功</span>
+              resolve({ status: 200, result: res.userInfo, msg: '获取用户信息成功'<span style="color: #000000;"> });
+            },
+            fail(err) {
+              </span><span style="color: #008000;">//</span><span style="color: #008000;"> 授权了 但是调用方法失败了</span>
+              <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(err);</span>
+              resolve({ status: 402, result: <span style="color: #0000ff;">false</span>, msg: '获取用户信息函数失败'<span style="color: #000000;"> });
+            }
+          })
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 未授权</span>
+          resolve({ status: 400, result: <span style="color: #0000ff;">false</span>, msg: '没有授权'<span style="color: #000000;"> });
+        }
+      },
+      fail(err) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log("调取配置信息方法失败")</span>
+        resolve({ status: 400, result: <span style="color: #0000ff;">false</span>, msg: '调取配置信息函数失败'<span style="color: #000000;"> });
+      }
+    })
+  })
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>支付宝获取用户信息</p>
+<p>支付宝的比较麻烦，因为必须要真机调试才可以获取。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取目前授权状态信息 这里只判断状态码如果不是 200 就是没有拿到信息就好
+     * 
+     * 检测用户是否授权个人用户信息
+     * 如果有授权返回中文的json格式个人信息
+     * 如果无授权或者失败的几种情况
+     *     {status: 200, result: res.userInfo, msg: '获取用户信息成功'}
+     *     {status: 400, result: false, msg: '调取配置信息函数失败'}
+     *     {status: 400, result: false, msg: '没有授权'}
+     *     {status: 402, result: false, msg: '获取用户信息函数失败'}
+     *     {statsu: 403,result: jsonResult.response,msg: '获取用户权限函数调用成功，但是没有拿到信息'} 此种情况应该不会出现但是内部做了一些判断
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+checkIsAuthUserInfo() {
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    my.getSetting({
+      success: (res) </span>=&gt;<span style="color: #000000;"> {
+        console.log(</span>'获取用户设置'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">if</span> (res.authSetting['userInfo'<span style="color: #000000;">]) {
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 已经授权</span>
+<span style="color: #000000;">          my.getOpenUserInfo({
+            success(res) {
+              </span><span style="color: #008000;">//</span><span style="color: #008000;"> 授权了并且调用成功了</span>
+<span style="color: #000000;">              console.log(res);
+              </span><span style="color: #0000ff;">var</span> jsonResult =<span style="color: #000000;"> JSON.parse(res.response);
+              </span><span style="color: #0000ff;">if</span> (jsonResult.response.code === '10000'<span style="color: #000000;">) {
+                resolve({
+                  status: </span>200<span style="color: #000000;">,
+                  result: jsonResult.response,
+                  msg: </span>'获取用户信息成功'<span style="color: #000000;">
+                });
+              } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                resolve({
+                  statsu: </span>403<span style="color: #000000;">,
+                  result: jsonResult.response,
+                  msg: </span>'获取用户权限函数调用成功，但是没有拿到权限'<span style="color: #000000;">
+                })
+              }
+            },
+            fail(err) {
+              </span><span style="color: #008000;">//</span><span style="color: #008000;"> 授权了 但是调用方法失败了</span>
+              <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(err);</span>
+<span style="color: #000000;">              console.log(err);
+              resolve({
+                status: </span>402<span style="color: #000000;">,
+                result: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+                msg: </span>'获取用户信息函数失败'<span style="color: #000000;">
+              });
+            }
+          });
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 未授权</span>
+<span style="color: #000000;">          resolve({
+            status: </span>400<span style="color: #000000;">,
+            result: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+            msg: </span>'没有授权'<span style="color: #000000;">
+          });
+        }
+      },
+      fail(err) {
+        resolve({
+          status: </span>400<span style="color: #000000;">,
+          result: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+          msg: </span>'调取配置信息函数失败'<span style="color: #000000;">
+        });
+      }
+    });
+  })
+},</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>3.点击授权的按钮</h3>
+<p>因为他们两个都做了调整，提高用户使用体验，不在支持直接使用函数调用的方式弹出授权框，必须使用点击button弹出授权框点击同意和拒绝的方式来做。</p>
+<p>可能点击事件需要用各个平台的 on</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 微信授权登录 </span><span style="color: #008000;">--&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">open-type</span><span style="color: #0000ff;">="getUserInfo"</span><span style="color: #ff0000;"> @getuserinfo.stop</span><span style="color: #0000ff;">="getuserinfo"</span><span style="color: #ff0000;"> lang</span><span style="color: #0000ff;">='zh_CN'</span><span style="color: #0000ff;">&gt;</span>授权登录<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>&lt;!-- 支付宝授权登录 --&gt;</pre>
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">open-type</span><span style="color: #0000ff;">="getAuthorize"</span><span style="color: #ff0000;"> @getAuthorize</span><span style="color: #0000ff;">="getuserinfo"</span><span style="color: #ff0000;"> @error</span><span style="color: #0000ff;">="cancelAuth"</span><span style="color: #ff0000;"> scope</span><span style="color: #0000ff;">='userInfo'</span><span style="color: #0000ff;">&gt;</span>授权登录<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>4.版本更新升级</h3>
+<p>他们的升级函数做的差不多一样，内容也是差不多的。</p>
+<p>微信版本升级</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 我的这些函数是在app.js 的 onshow中调用的</span>
+<span style="color: #000000;">
+const updateManager </span>=<span style="color: #000000;"> wx.getUpdateManager()
+console.log(</span>'小程序更新'<span style="color: #000000;">);
+console.log(updateManager);
+
+updateManager.onCheckForUpdate(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(res) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 请求完新版本信息的回调</span>
+<span style="color: #000000;">    console.log(res.hasUpdate)
+})
+
+updateManager.onUpdateReady(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    uni.showModal({
+        title: </span>'更新提示'<span style="color: #000000;">,
+        content: </span>'新版本已经准备好，是否重启应用？'<span style="color: #000000;">,
+        success: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(res) {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (res.confirm) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 新的版本已经下载好，调用 applyUpdate 应用新版本并重启</span>
+<span style="color: #000000;">                updateManager.applyUpdate()
+            }
+        }
+    })
+})
+
+updateManager.onUpdateFailed(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 新的版本下载失败</span>
+<span style="color: #000000;">    uni.showModal({
+        title: </span>'更新提示'<span style="color: #000000;">,
+        content: </span>'新版本下载失败'<span style="color: #000000;">,
+        showCancel: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+    })
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>支付宝小程序升级</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 小程序更新</span>
+const updateManager =<span style="color: #000000;"> my.getUpdateManager();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log('支付宝小程序更新');</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> console.log(updateManager);</span>
+updateManager.onCheckForUpdate(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (res) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 请求完新版本信息的回调</span>
+<span style="color: #000000;">    console.log(res.hasUpdate)
+})
+
+updateManager.onUpdateReady(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    my.confirm({
+        title: </span>'更新提示'<span style="color: #000000;">,
+        content: </span>'新版本已经准备好，是否重启应用？'<span style="color: #000000;">,
+        success: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (res) {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (res.confirm) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 新的版本已经下载好，调用 applyUpdate 应用新版本并重启</span>
+<span style="color: #000000;">                updateManager.applyUpdate()
+            }
+        }
+    })
+})
+
+updateManager.onUpdateFailed(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 新版本下载失败</span>
+<span style="color: #000000;">    uni.showModal({
+        title: </span>'更新提示'<span style="color: #000000;">,
+        content: </span>'新版本下载失败'<span style="color: #000000;">,
+        showCancel: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+    })
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>再有就是他们调起支付的时候所需的一些字段的不同了，微信是有四五个，而支付宝只需要一个订单号就可以了。</p>
+<p>&nbsp;</p>
+<p>还好当时选择的是一种跨平台的开发方式，可能性能上会比原生的开发差一点，但是开发上来说还是好很多的，而且语法和vue是一样的，不需要学习那么多杂东西。</p>
+<p>如果你也在开发两种程序，我这篇文章对你有一点点帮助，那我会很高兴的。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

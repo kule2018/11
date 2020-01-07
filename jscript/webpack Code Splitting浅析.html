@@ -1,0 +1,292 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack Code Splitting浅析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack Code Splitting浅析</center></div><div class='banquan'>原文出处:本文由博客园博主大~熊提供。<br/>
+原文连接:https://www.cnblogs.com/floor/p/10788304.html</div><br>
+    <blockquote>
+<p>Code Splitting是webpack的一个重要特性，他允许你将代码打包生成多个bundle。对多页应用来说，它是必须的，因为必须要配置多个入口生成多个bundle；对于单页应用来说，如果只打包成一个bundle可能体积很大，导致无法利用浏览器并行下载的能力，且白屏时间长，也会导致下载很多可能用不到的代码，每次上线用户都得下载全部代码，Code Splitting能够将代码分割，实现按需加载或并行加载多个bundle，可利用并发下载能力，减少首次访问白屏时间，可以只上线必要的文件。</p>
+</blockquote>
+<hr />
+<h2 id="三种code-splitting方式">三种Code Splitting方式</h2>
+<p>webpack提供了三种方式来切割代码，分别是:</p>
+<ol>
+<li>多entry方式</li>
+<li>公共提取</li>
+<li>动态加载<br />
+本文将简单介绍多entry方式和公共提取方式，重点介绍的是动态加载。这几种方式可以根据需要组合起来使用。这里是官方文档，<a href="https://www.webpackjs.com/guides/code-splitting/#%E5%85%A5%E5%8F%A3%E8%B5%B7%E7%82%B9-entry-points-">中文</a> <a href="https://webpack.js.org/guides/code-splitting/#prevent-duplication">英文</a></li>
+</ol>
+<h3 id="多entry方式">多entry方式</h3>
+<p>这种方式就是指定多个打包入口，从入口开始将所有依赖打包进一个bundle，每个入口打包成一个bundle。此方式特别适合多页应用，我们可以每个页面指定一个入口，从而每个页面生成一个js。此方式的核心配置代码如下：</p>
+<pre><code><code>const path = require(&#39;path&#39;);
+
+module.exports = {
+  mode: &#39;development&#39;,
+  entry: {
+    page1: &#39;./src/page1.js&#39;,
+    page2: &#39;./src/page2.js&#39;
+  },
+  output: {
+    filename: &#39;[name].bundle.js&#39;,
+    path: path.resolve(__dirname, &#39;dist&#39;)
+  }
+};</code></pre>
+<p>上边的配置最终将生成两个bundle, 即page1.bundle.js和page2.bundle.js。</p>
+<h3 id="公共提取">公共提取</h3>
+<p>这种方式将公共模块提取出来生成一个bundle，公共模块意味着有可能有很多地方使用，可能导致每个生成的bundle都包含公共模块打包生成的代码，造成浪费，将公共模块提取出来单独生成一个bundle可有效解决这个问题。这里贴一个官方文档给出的配置示例：</p>
+<pre><code><code>  const path = require(&#39;path&#39;);
+
+  module.exports = {
+    mode: &#39;development&#39;,
+    entry: {
+      index: &#39;./src/index.js&#39;,
+      another: &#39;./src/another-module.js&#39;
+    },
+    output: {
+      filename: &#39;[name].bundle.js&#39;,
+      path: path.resolve(__dirname, &#39;dist&#39;)
+    },
+    // 关键
+    optimization: {
+      splitChunks: {
+        chunks: &#39;all&#39;
+      }
+    }
+  };</code></pre>
+<p>这个示例中index.js和another-module.js中都import了loadsh，如果不配置optimization，将生成两个bundle, 两个bundle都包含loadsh的代码。配置optimization后，loadsh代码被单独提取到一个vendors~another~index.bundle.js。</p>
+<h3 id="动态加载">动态加载</h3>
+<p>动态加载的含义就是讲代码打包成多个bundle, 需要用到哪个bundle时在加载他。这样做的好处是可以让用户下载需要用到的代码，避免无用代码下载。确定是操作体验可能变差，因为操作之后可能还有一个下载代码的过程。关于动态加载，后面详解。</p>
+<hr />
+<h2 id="实现一个简单的动态加载">实现一个简单的动态加载</h2>
+<p>动态加载就是要实现可以在代码里边去加载其他js，这个太简单了，新建script标签插入dom就可以了，如下：</p>
+<pre><code><code>function loadScript(url) {
+    const script = document.createElement(&#39;script&#39;);
+    script.src = url;
+    document.head.appendChild(script);
+}</code></pre>
+<p>只需要在需要加载某个js时调用即可，例如需要点击按钮时加载js可能就如下边这样。</p>
+<pre><code><code>btn.onClick = function() {
+    console.log(&#39;1&#39;);
+    loadScript(&#39;http://abc.com/a.js&#39;);
+}</code></pre>
+<p>看上去非常简单，事实上webpack也是这么做的，但是他的处理更加通用和精细。</p>
+<hr />
+<h2 id="webpack动态加载">webpack动态加载</h2>
+<h3 id="webpak打包出来的代码怎么执行">webpak打包出来的代码怎么执行</h3>
+<p>现有一个文件test2.js, 其中代码为</p>
+<pre><code><code>console.log(&#39;1&#39;)</code></pre>
+<p>此文件通过webpack打包后输出如下，删除了部分代码，完整版可自己尝试编译一个，也可查看<a href="https://github.com/yibingxiong/web-test/tree/test-code-split">web-test</a>(这个项目是基于react,express,webpack的用于web相关实验的项目，里边使用了code splitting方案来基于路由拆分代码，与code splitting相关的实验放在test-code-split分支)。</p>
+<pre><code><code>(function (modules) { // webpackBootstrap
+  // The module cache
+  var installedModules = {};
+
+  // The require function
+  function __webpack_require__(moduleId) {
+
+    // Check if module is in cache
+    if (installedModules[moduleId]) {
+      return installedModules[moduleId].exports;
+    }
+    // Create a new module (and put it into the cache)
+    var module = installedModules[moduleId] = {
+      i: moduleId,
+      l: false,
+      exports: {}
+    };
+
+    // Execute the module function
+    modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+
+    // Flag the module as loaded
+    module.l = true;
+
+    // Return the exports of the module
+    return module.exports;
+  }
+  return __webpack_require__(__webpack_require__.s = &quot;./test2.js&quot;);
+})
+  ({
+
+    &quot;./test2.js&quot;:
+      (function (module, exports, __webpack_require__) {
+
+        &quot;use strict&quot;;
+        eval(&quot;\n\nconsole.log(&#39;1&#39;);\n\n//# sourceURL=webpack:///./test2.js?&quot;);
+
+      })
+
+  });</code></pre>
+<p>不知大家是不是跟大雄一样之前从未看过webpack编译产出的代码。其实看一下还是挺有趣的，原来我们的代码是放在eval中执行的。细看下这段代码，其实并不复杂。他是一个自执行函数，参数是一个对象，key是模块id（moduleId), value是函数，这个函数是里边是执行我们写的代码，在自执行函数体内是直接调用了一个__webpack_require__，参数就是入口moduleId, __webpack_require__方法里值执行给定模块id对应的函数，核心代码是<code>modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);</code>。</p>
+<p>上面是没有import命令的情况，对于有import命令的情况，产出和上边类似，只是自执行函数的参数有变化。例如：</p>
+<pre><code><code>// 入口文件test2.js
+import &#39;./b.js&#39;
+console.log(&#39;1&#39;)
+// b.js
+console.log(&#39;b&#39;)</code></pre>
+<p>这段代码产出的自执行函数里边的参数如下：</p>
+<pre><code><code>// 自执行函数里边的参数
+{
+
+  &quot;./b.js&quot;:
+  (function (module, exports, __webpack_require__) {
+
+    &quot;use strict&quot;;
+    eval(&quot;\n\nconsole.log(&#39;b&#39;);\n\n//# sourceURL=webpack:///./b.js?&quot;);
+  }),
+
+    &quot;./test2.js&quot;:
+  (function (module, exports, __webpack_require__) {
+
+    &quot;use strict&quot;;
+    eval(&quot;\n\n__webpack_require__(/*! ./b.js */ \&quot;./b.js\&quot;);\n\nconsole.log(&#39;1&#39;);\n\n//# sourceURL=webpack:///./test2.js?&quot;);
+  })
+}</code></pre>
+<p><code>./test2.js</code>这个moduleId对应的函数的eval里边调用了__webpack_require__方法，为了看起来方便，将eval中的字符串拿出来，如下</p>
+<pre><code><code>__webpack_require__(&quot;./b.js&quot;);
+console.log(&#39;1&#39;);</code></pre>
+<p>原来import命令在webpack中就是被转换成了<code>__webpack_require__</code>的调用。太奇妙了，但是话说为啥模块里边为啥要用eval来执行我们写的代码，大雄还是比较困惑的。</p>
+<h3 id="webpack动态code-splitting方案">webpack动态code splitting方案</h3>
+<p>经过一番铺垫，终于到主题了，即webpack是如何实现动态加载的。前文大雄给了一个粗陋的动态加载的方法--<code>loadScript</code>, 说白了就是动态创建script标签。webpack中也是类似的，只是他做了一些细节处理。本文只介绍主流程，具体实现细节大家可以自己编译产出一份代码进行研究。</p>
+<p>首先需要介绍在webpack中如何使用code splitting，非常简单，就像下边这样</p>
+<pre><code><code>import(&#39;lodash&#39;).then(_ =&gt; {
+    // Do something with lodash (a.k.a &#39;_&#39;)...
+  });</code></pre>
+<p>我们使用了一个<code>import()</code>方法, 这个<code>import</code>方法经过webpack打包后类似于前文提到的<code>loadScript</code>, 大家可以参看下边的代码：</p>
+<pre><code><code>__webpack_require__.e = function requireEnsure(chunkId) {
+    var promises = [];
+
+
+    // JSONP chunk loading for javascript
+
+    var installedChunkData = installedChunks[chunkId];
+    if(installedChunkData !== 0) { // 0 means &quot;already installed&quot;.
+
+        // a Promise means &quot;currently loading&quot;.
+        if(installedChunkData) {
+            promises.push(installedChunkData[2]);
+        } else {
+            // setup Promise in chunk cache
+            var promise = new Promise(function(resolve, reject) {
+                installedChunkData = installedChunks[chunkId] = [resolve, reject];
+            });
+            promises.push(installedChunkData[2] = promise);
+
+            // start chunk loading
+            var script = document.createElement(&#39;script&#39;);
+            var onScriptComplete;
+
+            script.charset = &#39;utf-8&#39;;
+            script.timeout = 120;
+            if (__webpack_require__.nc) {
+                script.setAttribute(&quot;nonce&quot;, __webpack_require__.nc);
+            }
+            script.src = jsonpScriptSrc(chunkId);
+
+            onScriptComplete = function (event) {
+                // avoid mem leaks in IE.
+                script.onerror = script.onload = null;
+                clearTimeout(timeout);
+                var chunk = installedChunks[chunkId];
+                if(chunk !== 0) {
+                    if(chunk) {
+                        var errorType = event &amp;&amp; (event.type === &#39;load&#39; ? &#39;missing&#39; : event.type);
+                        var realSrc = event &amp;&amp; event.target &amp;&amp; event.target.src;
+                        var error = new Error(&#39;Loading chunk &#39; + chunkId + &#39; failed.\n(&#39; + errorType + &#39;: &#39; + realSrc + &#39;)&#39;);
+                        error.type = errorType;
+                        error.request = realSrc;
+                        chunk[1](error);
+                    }
+                    installedChunks[chunkId] = undefined;
+                }
+            };
+            var timeout = setTimeout(function(){
+                onScriptComplete({ type: &#39;timeout&#39;, target: script });
+            }, 120000);
+            script.onerror = script.onload = onScriptComplete;
+            document.head.appendChild(script);
+        }
+    }
+    return Promise.all(promises);
+};</code></pre>
+<p>是不是非常熟悉，代码中也调用了document.createElement('script')来创建script标签，最后插入到head里。这段代码所做的就是动态加载js，加载失败时reject，加载成功resolve，这里并不能看到resolve的情况，resolve是在拆分出去的代码里调用一个全局函数实现的。拆分出的js如下：</p>
+<pre><code><code>(window[&quot;webpackJsonp&quot;] = window[&quot;webpackJsonp&quot;] || []).push([[0],{
+
+/***/ &quot;./b.js&quot;:
+/*!**************!*\
+  !*** ./b.js ***!
+  \**************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+&quot;use strict&quot;;
+eval(&quot;\n\nconsole.log(&#39;b&#39;);\n\n//# sourceURL=webpack:///./b.js?&quot;);
+
+/***/ })
+
+}]);</code></pre>
+<p>在webpackJsonp方法里调用了对应的resolve，具体如下：</p>
+<pre><code><code>function webpackJsonpCallback(data) {
+    var chunkIds = data[0];
+    var moreModules = data[1];
+
+
+    // add &quot;moreModules&quot; to the modules object,
+    // then flag all &quot;chunkIds&quot; as loaded and fire callback
+    var moduleId, chunkId, i = 0, resolves = [];
+    for(;i &lt; chunkIds.length; i++) {
+        chunkId = chunkIds[i];
+        if(installedChunks[chunkId]) {
+            resolves.push(installedChunks[chunkId][0]);
+        }
+        installedChunks[chunkId] = 0;
+    }
+    for(moduleId in moreModules) {
+        if(Object.prototype.hasOwnProperty.call(moreModules, moduleId)) {
+            modules[moduleId] = moreModules[moduleId];
+        }
+    }
+    if(parentJsonpFunction) parentJsonpFunction(data);
+
+    while(resolves.length) {
+        resolves.shift()();
+    }
+
+};</code></pre>
+<p>这里的挂到全局的webpackJsonp是个数组，其push方法被改为webpackJsonpCallback方法的数组。所以每次在执行webpackJsonp时实际是在调用webpackJsonpCallback方法。</p>
+<pre><code><code>var jsonpArray = window[&quot;webpackJsonp&quot;] = window[&quot;webpackJsonp&quot;] || [];
+var oldJsonpFunction = jsonpArray.push.bind(jsonpArray);
+jsonpArray.push = webpackJsonpCallback;
+jsonpArray = jsonpArray.slice();
+for(var i = 0; i &lt; jsonpArray.length; i++) webpackJsonpCallback(jsonpArray[i])</code></pre>
+<p>总结起来，webpack的动态加载流程大致如下：</p>
+<p><img src="./images/webpack Code Splitting浅析0.png" alt="webpack动态加载原理图" /></p>
+<h2 id="总结">总结</h2>
+<p>本文对webpack打包出的代码的结构和执行过程作了简单分析，介绍了webpack中code splitting的几种方式，重点分析了一下动态加载的流程。分析的不一定完全正确，大家可以自己使用webpack打包产出代码进行研究，一定会有所收获。大雄看完至少大概知道了原来webpack编出来的代码是那样执行的、Promise原来可以那么灵活的使用。</p>
+<hr />
+<p>大雄在学习web开发或在项目中遇到问题时经常需要做一些实验, 在react出了什么新的特性时也常常通过做实验来了解一下. 最开始常常直接在公司的项目做实验, 直接拉个test分支就开搞, 这样做有如下缺点:</p>
+<ul>
+<li>在公司的项目去做实验本身就是一件不好的事情</li>
+<li>公司的项目里边只有前端的部分, 想要做接口有关的实验不方便. 例如想测试跨域的响应头Access-Control-Allow-Origin就得再启一个web服务器</li>
+<li>实验过的东西零散, 过一段时间想查找却找不到了</li>
+</ul>
+<p>基于以上原因, 特搭建了个基于react,webpack,express的用于web开发相关实验的项目<a href="https://github.com/yibingxiong/web-test">web-test</a>.欢迎使用。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

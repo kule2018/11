@@ -1,0 +1,77 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于ajax异步请求的一个细节问题' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于ajax异步请求的一个细节问题</center></div><div class='banquan'>原文出处:本文由博客园博主茶木君提供。<br/>
+原文连接:https://www.cnblogs.com/chamujun/p/chamujun.html</div><br>
+    <p><span style="font-size: 16px;">首先描述一下<span style="background-color: #ffff00;">问题场景</span>：我们正在做一个汽车出租项目，使用maven+ssm+easyui来完成，这个问题是在做<span style="color: #3366ff;">汽车办理出租业务</span>的时候出现的。</span></p>
+<p><span style="font-size: 16px;"><span style="background-color: #ffff00;">问题描述</span>：在使用ajax发送异步请求时，遇到一个问题，就是<strong><span style="text-decoration: underline;">在回调函数中接受到了异步响应的数据，但是在前端页面中的表单中却不回显该数据。</span></strong></span></p>
+<p><span style="font-size: 16px;">下面请看<span style="color: #3366ff;">问题代码</span>：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> 办理出租业务 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #0000ff;">function</span><span style="color: #000000;"> rentCars(value){
+</span><span style="color: #008080;"> 3</span>             <span style="color: #008000;">/*</span><span style="color: #008000;"> 获取选中的行 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">var</span> row = $("#dgCarRents").datagrid("getSelected"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;">(row){
+</span><span style="color: #008080;"> 6</span>                 url="saveRents"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;"> 清空表单数据 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 8</span>                 $("#fm").form('clear'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 9</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;"> 禁止在下面这些文本框中输入 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">10</span>                 $("#rentid").textbox('textbox').attr('readonly',<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">11</span>                 $("#price").textbox('textbox').attr('readonly',<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">12</span>                 $("#ident").textbox('textbox').attr('readonly',<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">13</span>                 $("#carnumber").textbox('textbox').attr('readonly',<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">14</span>                 $("#opername").textbox('textbox').attr('readonly',<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+</span><span style="color: #008080;">15</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;"> 异步提交到后台，获取数据 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">16</span>                 $.post('genRentCode',<span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+</span><span style="color: #008080;">17</span>                     <span style="color: #008000;">/*</span><span style="color: #008000;"> 将数据加载至form表单 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">18</span>                     <span style="color: #008000;">/*</span><span style="color: #008000;"> $("#fm").form('load',data); </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">19</span>                     row['rentid']=<span style="color: #000000;">data.rentid;
+</span><span style="color: #008080;">20</span>                     row['opername']=<span style="color: #000000;">data.opername;
+</span><span style="color: #008080;">21</span>                     <span style="color: #008000;">/*</span><span style="color: #008000;"> $("#fm").form('load',row); </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">22</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">23</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;"> 将身份证号放到row中 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">24</span>                 row['identity']=$("#identity"<span style="color: #000000;">).val();
+</span><span style="color: #008080;">25</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;"> 打开对话框 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">26</span>                 $("#dlgRentCar").dialog('open').dialog('setTitle','办理出租'<span style="color: #000000;">);
+</span><span style="color: #008080;">27</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;"> 将json对象row中的数据加载至表单 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">28</span>                 $("#fm").form('load'<span style="color: #000000;">,row);
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">30</span>         }</pre>
+</div>
+<p><span style="font-size: 16px;">请注意这里：</span></p>
+<p><img src="./images/关于ajax异步请求的一个细节问题0.png" alt="" width="502" height="444" /></p>
+<p><span style="font-size: 16px;">前端页面显示：</span></p>
+<p><img src="./images/关于ajax异步请求的一个细节问题1.png" alt="" width="812" height="602" /></p>
+<p><span style="font-size: 16px;">发现就只有identity所对应的数据显示了，而opername和rentid所对应的数据都没有显示，可是我明明已经在函数的最后一行将json对象row中的所有数据全部都加载到表单中了，但是表单为什么没有显示呢？带着这个问题，我试了一下老师的方法：</span></p>
+<p><img src="./images/关于ajax异步请求的一个细节问题2.png" alt="" width="553" height="347" /></p>
+<p><span style="background-color: #ffff00; font-size: 16px;">注意：这里直接将后台数据直接加载至表单时，异步响应回来的json对象data的键（key）值一定要与表单中文本框的name属性所对应的值一样，否则数据加载不到表单中。</span></p>
+<p><span style="background-color: #ffffff; font-size: 16px;">前端页面：</span></p>
+<p><span style="background-color: #ffffff;"><img src="./images/关于ajax异步请求的一个细节问题3.png" alt="" width="400" height="368" /></span></p>
+<p><span style="font-size: 16px;">rentid和opername全部都加载出来了。</span></p>
+<p><span style="font-size: 16px;">问题解析：1.一开始，我的回调函数中，只有往json对象中赋值的语句；2.在回调函数中没有往表单中加载数据的代码；3.我发送的是异步请求，那也就是说，对话框中的表单，是在异步响应到达之前，将数据回显的。</span></p>
+<p><span style="font-size: 16px;">得出结论：在异步响应到达之后（在这个案例中，异步响应是在&nbsp;表单回显完数据之后&nbsp;到达的），需要将数据再次加载到form表单中。</span></p>
+<p><span style="font-size: 16px;">如果还不理解，那么除了上述写法之外还可以这样写：</span></p>
+<p><img src="./images/关于ajax异步请求的一个细节问题4.png" alt="" width="500" height="450" /></p>
+<p><span style="font-size: 16px;">这个方法也是可以的，看到了吧，老师是直接将异步响应回来的数据加载到表单的所以不会出现问题，而我居然想试图通过赋值的方法将数据加载到表单，但是却不在回调函数中加入将异步响应回来的数据加载至表单的代码，而是只有赋值到json对象的语句，虽然我在最后将异步响应回来的数据加载至表单，但是这样导致的结果就是：对话框中的表单只加载了<span style="color: #3366ff;">非异步响应回来的数据</span>，而异步响应回来的数据因为是异步的，所以在表单回显完数据之后，异步响应回来的数据才发送到前端，json对象row才接受到赋值，此时如果没有<span style="color: #3366ff;">再次</span>将数据加载至表单，那么表单中就会没有这异步响应回来的数据。</span></p>
+<p><span style="font-size: 16px;"><strong>再次总结一下前端获取数据的过程：前端页面在&nbsp;<span style="color: #ff0000;">第一次加载数据</span><span style="color: #ff0000;">的同时&nbsp;<span style="color: #000000;">发送<span style="color: #ff9900;">异步请求</span></span></span>，但是 这个&nbsp;<span style="color: #ff9900;">异步响应</span>&nbsp;是<span style="color: #3366ff;"><span style="text-decoration: underline;"><span style="color: #000000; text-decoration: underline;">在&nbsp;</span><span style="color: #0000ff; text-decoration: underline;">页面加载完数据之后&nbsp;</span></span><span style="color: #000000;">到达</span></span>的，因此在&nbsp;<span style="color: #ff9900;">异步响应&nbsp;</span>到达之后（<span style="color: #0000ff;">这时表单数据已加载完毕</span>）&nbsp; 需要<span style="color: #ff0000;">第二</span><span style="color: #ff0000;">次将数据加载到表单中<span style="color: #000000;">（将&nbsp;</span><span style="color: #ff9900;">异步响应回来的数据&nbsp;<span style="color: #000000;">加载至表单）</span></span></span>。</strong></span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

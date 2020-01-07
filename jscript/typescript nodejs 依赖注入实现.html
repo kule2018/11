@@ -1,0 +1,157 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修typescript nodejs 依赖注入实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>typescript nodejs 依赖注入实现</center></div><div class='banquan'>原文出处:本文由博客园博主村长lv提供。<br/>
+原文连接:https://www.cnblogs.com/lvshunbin/p/typescript-1.html</div><br>
+    <p>依赖注入通常也是我们所说的ioc模式，今天分享的是用typescript语言实现的ioc模式，这边用到的主要组件是 reflect-metadata 这个组件可以获取或者设置元数据信息，它的作用是拿到原数据后进行对象创建类似C#中的反射，先看第一段代码：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>import "reflect-metadata";
+
+/**
+ * 对象管理器
+ */
+const _partialContainer = new Map&lt;string, any&gt;();
+
+const PARAMTYPES = "design:paramtypes";//需要反射的原数据，有很多种选择，我们这里选择的是拿到构造函数的参数类型，为了后续判断
+/**
+ * 局部注入器，注入的是全局服务，实例是全局共享
+ */
+export function Inject(): ClassDecorator {
+	return target =&gt; {
+		const params: Array&lt;any&gt; = Reflect.getMetadata(PARAMTYPES, target);
+		if (params)
+			for (const item of params) {
+				if (item === target) throw new Error("不能注入自己");
+			}
+		_partialContainer.set(target.name, target);//加入到对象管理器中，这个时候对象还没有被创建
+	}
+}
+</pre>
+</div>
+<p>　&nbsp; 上面的代码是创建一个类级别的装饰器，表示凡是使用了这个装饰器的类都会被依赖注入对象管理器管理，这里没有马上创建服务，原因是reflect-metadata的执行优先级是最高的，而这个依赖注入是支持手动注入一些实例对象，所有为了防止出现注入参数为undefined所以创建实例的工作是放在后面的，请看接下来的代码：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>/**
+ * 
+ * @param type 已创建的实例对象
+ */
+export function addServiceInGlobal(...types: Array&lt;Object&gt;) {
+	for (const iterator of types) {
+		_partialContainer.set(iterator.constructor.name, iterator);
+	}
+}
+</pre>
+</div>
+<p>　上面的方法是手动注入实例对象时调用的，我们需要提高这个方法的执行优先级，具体的实例会在后面演示，接下来是最重要部分，创建实例部分：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>export function serviceProvider&lt;T&gt;(service: ServiceType&lt;T&gt;): T {
+	if (_partialContainer.has(service.name) &amp;&amp; !_partialContainer.get(service.name).name)
+		return _partialContainer.get(service.name);// 如果实例已经被创建就直接返回
+
+	const params: Array&lt;any&gt; = Reflect.getMetadata(PARAMTYPES, service);// 反射拿到构造函数的参数类型
+	const constrparams = params.map(item =&gt; { // 实例化参数中的依赖
+		if (!_partialContainer.has(item.name)) throw new Error(`${item}没有被注入`);// 如果没有注入就抛出异常
+		if (item.length)// 表示这个类型还有其它依赖
+			return serviceProvider(item);// 递归继续获取其他依赖
+		if (_partialContainer.has(item.name) &amp;&amp; !_partialContainer.get(item.name).name)
+			return _partialContainer.get(item.name);// 如果实例已经被创建就直接返回
+		const obj = new item();// 已经没有其他依赖了 开始创建实例
+		_partialContainer.set(item.name, obj);// 替换对象管理器中原来没有实例化的对象
+		return obj; 
+	});
+	const obj = new service(...constrparams); // 这里表示对象没有被创建，开始创建对象
+	_partialContainer.set(service.name, obj);// 替换对象管理器中原来没有实例化的对象
+	return obj;
+}
+</pre>
+</div>
+<p>　上面代码写的稍微有一点点复杂，其他理解起来也不困难，大白话讲就是 如果已经实例化了直接返回实例不然就开始对象以及创建出所有的依赖。接下来是例子：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>import { serviceProvider, addServiceInGlobal, Inject } from './core/injectable/injector';
+import "reflect-metadata";
+import moment = require('moment');
+
+@Inject()
+export class ServiceA{
+	property?:string;
+	msg(){
+		return "ServiceA";
+	}
+}
+
+@Inject()
+export class ServiceC {
+	constructor(private service: ServiceA) { }
+	print() {
+	  console.log(	this.service.property);
+		return "调用了我";
+	}
+}
+
+@Inject()
+export class ServiceD{
+   print(){
+     console.log("我在测试注入");
+   }
+}
+
+@Inject()
+export class GlobalService {
+	constructor(private service: ServiceC) { }
+	msg!: string;
+	print() {
+		console.log(`共享模块${this.service.print()}`)
+	}
+}
+
+@Inject()
+export class Init {
+	constructor(private service: ServiceA,
+		private serviceD: ServiceD,
+		private global: GlobalService,
+		private date: Date,
+		private strList: string[],
+		private serviceC: ServiceC,
+	) { }
+	start() {
+		console.log(this.service.msg());
+		this.service.property = "A模块设置的共享数据"
+		console.log(moment(this.date).format("YYYY-MM-DD"))
+		console.log(this.strList);
+		this.serviceD.print();
+		this.serviceC.print();
+		this.global.print();
+	}
+}
+
+const obj = new Date("2017-1-1");
+const str = ['吕顺彬','菜鸟','豆豆','大铁','CC哥','码农之家的一群人'];
+addServiceInGlobal(obj, str); // 添加手动创建的实例对象到对象管理器
+const service = serviceProvider(Init); // 开始创建实例
+service.start()// 执行
+</pre>
+</div>
+<p>　　</p>
+<p>上面的实例中得到一下执行结果：</p>
+<p><img src="./images/typescript nodejs 依赖注入实现0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>总结：上面我用的是默认全局注入，没有做<span class="skip"><a data-keyword="singleton">singletion (单例) ，如果要做的话稍微修改下代码就可以实现，这里边的难点可能是基于反射的设计方法，如果前端思维可能理解起来稍微困难点，后台的话稍微好点。</a></span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

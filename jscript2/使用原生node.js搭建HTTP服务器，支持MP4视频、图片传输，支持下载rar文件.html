@@ -1,0 +1,218 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用原生node.js搭建HTTP服务器，支持MP4视频、图片传输，支持下载rar文件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用原生node.js搭建HTTP服务器，支持MP4视频、图片传输，支持下载rar文件</center></div><div class='banquan'>原文出处:本文由博客园博主我白给了提供。<br/>
+原文连接:https://www.cnblogs.com/guasses/p/11284120.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>如何安装node.js，如何搭建一个简易的http服务器我这里就不再赘述了，不懂的同学可以先去学习一下。当然了，我写的也就属于简易版的增强版，大家有什么高见的欢迎提出，然后进入正题。</p>
+<h2>目录结构</h2>
+<div class="cnblogs_code">
+<pre><code>|-<span style="color: #000000;">server.js
+</span>|-router.js<br />|-test.html<br />|-css|-test.css<br />|-js |-test.js</pre>
+</div>
+<h3>server.js</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">原生模块</span>
+<span style="color: #0000ff;">var</span> http = require('http'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> fs = require('fs'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> url = require('url'<span style="color: #000000;">);<br /></span><span style="color: #008000;">//</span><span style="color: #008000;">自定义模块</span>
+<span style="color: #0000ff;">var</span> router = require('./router.js'<span style="color: #000000;">);<br />
+http.createServer(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(request,response){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取客户端访问的路径</span>
+    <span style="color: #0000ff;">var</span> pathname =<span style="color: #000000;"> url.parse(request.url).pathname;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果用户只输入域名就改变访问路径，并发送主页的内容给客户端</span>
+    <span style="color: #0000ff;">if</span>(pathname == "/"<span style="color: #000000;">){
+        pathname </span>= "/index.html"<span style="color: #000000;">;
+    }
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;">获取当前请求客户端的IP地址</span>
+    <span style="color: #0000ff;">var</span> ipv4 =<span style="color: #000000;"> get_client_ipv4(request);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">输出日志到控制台</span>
+    showLog(ipv4,("请求"+<span style="color: #000000;">decodeURI(pathname)));
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">判断文件是否存在</span>
+    fs.exists(__dirname + decodeURI(pathname),<span style="color: #0000ff;">function</span><span style="color: #000000;">(exists){
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(exists){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">使用router模块的函数</span>
+<span style="color: #000000;">            router.readFileBySuffixName(pathname,fs,request,response);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            console.log(decodeURI(pathname)</span>+"文件不存在！"<span style="color: #000000;">);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">文件不存在，向客户端发送404状态码，并发送该文件不存在的字符串</span>
+            response.writeHead(404,{"Content-Type":"text/plain"<span style="color: #000000;">});
+            response.end(pathname</span>+"文件不存在！"<span style="color: #000000;">);
+        }
+    });
+}).listen(</span>80);  <span style="color: #008000;">//</span><span style="color: #008000;">监听80端口</span>
+<span style="color: #000000;">
+console.log(</span>'web服务已运行！'<span style="color: #000000;">);
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * @desc 获取IPV4地址
+ * @param req htttp.request
+ * @return string 32位IP地址
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> get_client_ipv4(req) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取任意浏览器的IP地址，</span>
+    <span style="color: #0000ff;">var</span> ip = req.headers['x-forwarded-for'] ||<span style="color: #000000;">
+        req.ip </span>||<span style="color: #000000;">
+        req.connection.remoteAddress </span>||<span style="color: #000000;">
+        req.socket.remoteAddress </span>||<span style="color: #000000;">
+        req.connection.socket.remoteAddress </span>|| ''<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取到的IP地址中存在IPV4和IPV6的地址，我们只需要IPV4的地址</span>
+    <span style="color: #0000ff;">if</span>(ip.split(',').length&gt;0<span style="color: #000000;">){
+        ip </span>= (ip.split(',')[0]).match(/(\d+\.\d+\.\d+\.\d+)/)[0<span style="color: #000000;">];
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ip;
+};
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * @desc 向控制台输出日志，自动在头部添加时间、地址
+ * @param ipv4 string
+ * @param message string
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> showLog(ipv4,message){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">获取当前时间</span>
+    <span style="color: #0000ff;">var</span> date = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">转换为本地时间的字符串形式并输入到控制台</span>
+    console.log(date.toLocaleDateString() + " " + date.toLocaleTimeString() +
+        " " + ipv4 + " " +<span style="color: #000000;"> message);
+}</span></pre>
+</div>
+<p>首先引入模块，使用<span style="color: #ff6600;"><strong>http.createServer</strong></span>创建http服务器，并监听80端口；<span style="color: #ff6600;"><strong>http.createServer</strong><span style="color: #000000;">的回调函数接收两个值，一个<strong><span style="color: #ff6600;">request</span></strong>请求对象，一个<strong><span style="color: #ff6600;">response</span></strong>响应对象，request对象可以获取到客户端请求的信息，response对象用来返回数据到客户端；上面创建了两个简单的工具函数，分别用来获取客户端的IPV4地址、向控制台输出日志；使用<span style="color: #ff6600;"><strong>fs.exists</strong></span>函数判断客户端请求的文件是否存在，如果不存在则返回404状态码，如果存在，则使用下面<strong><span style="color: #ff6600;">router.js</span></strong>中创建的<strong><span style="color: #ff6600;">readFileBySuffixName</span></strong>函数，读取相应的文件并根据后缀名设置响应头，然后发送数据到客户端。</span><strong><br /></strong></span></p>
+<h3>router.js</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * @desc 根据后缀名读取文件
+ * @param pathname string 文件路径 url.parse(request.url).pathname
+ * @param fs fs
+ * @param request htttp.request
+ * @param response https.response
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+exports.readFileBySuffixName </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(pathname,fs,request,response){
+    </span><span style="color: #0000ff;">var</span> ext = pathname.match(/(\.[^.]+|)$/)[0];<span style="color: #008000;">//</span><span style="color: #008000;">取得后缀名</span>
+    <span style="color: #0000ff;">switch</span>(ext){    <span style="color: #008000;">//</span><span style="color: #008000;">根据后缀名读取相应的文件，设置响应头，并发送到客户端</span>
+        <span style="color: #0000ff;">case</span> ".css"<span style="color: #000000;">:
+        </span><span style="color: #0000ff;">case</span> ".js"<span style="color: #000000;">:
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">读取文件</span>
+            fs.readFile("."+request.url,'utf-8',<span style="color: #0000ff;">function</span><span style="color: #000000;">(err,data){
+                </span><span style="color: #0000ff;">if</span>(err) <span style="color: #0000ff;">throw</span><span style="color: #000000;"> err;
+                response.writeHead(</span>200,{  <span style="color: #008000;">//</span><span style="color: #008000;">根据不同的后缀设置不同的响应头</span>
+                    "Content-Type"<span style="color: #000000;">:{
+                        </span>".css":"text/css"<span style="color: #000000;">,
+                        </span>".js":"application/javascript"<span style="color: #000000;">,
+                    }[ext]
+                });
+                response.write(data);   </span><span style="color: #008000;">//</span><span style="color: #008000;">发送文件数据到客户端</span>
+                response.end();         <span style="color: #008000;">//</span><span style="color: #008000;">发送完成</span>
+<span style="color: #000000;">            });
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">jpg、gif、png后缀的图片</span>
+        <span style="color: #0000ff;">case</span> ".jpg"<span style="color: #000000;">:
+        </span><span style="color: #0000ff;">case</span> ".gif"<span style="color: #000000;">:
+        </span><span style="color: #0000ff;">case</span> ".png"<span style="color: #000000;">:
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">二进制读取文件</span>
+            fs.readFile("."+decodeURI(request.url),'binary',<span style="color: #0000ff;">function</span><span style="color: #000000;">(err,data){
+                </span><span style="color: #0000ff;">if</span>(err)<span style="color: #0000ff;">throw</span><span style="color: #000000;"> err;
+                response.writeHead(</span>200<span style="color: #000000;">,{
+                    </span>"Content-Type"<span style="color: #000000;">:{
+                        </span>".jpg":"image/jpeg"<span style="color: #000000;">,
+                        </span>".gif":"image/gif"<span style="color: #000000;">,
+                        </span>".png":"image/png"<span style="color: #000000;">,
+                    }[ext]
+                });
+                response.write(data,</span>'binary'); <span style="color: #008000;">//</span><span style="color: #008000;">发送二进制数据</span>
+<span style="color: #000000;">                response.end();
+            });
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">case</span> ".mp4"<span style="color: #000000;">:
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">读取文件的状态</span>
+            fs.stat('.'+decodeURI(request.url),<span style="color: #0000ff;">function</span><span style="color: #000000;">(err,stats){
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(err){
+                    </span><span style="color: #0000ff;">if</span>(err.code === 'ENOENT'<span style="color: #000000;">){
+                        </span><span style="color: #0000ff;">return</span> response.sendStatus(404<span style="color: #000000;">);
+                    }
+                    response.end(err);
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">断点续传，获取分段的位置</span>
+                <span style="color: #0000ff;">var</span> range =<span style="color: #000000;"> request.headers.range;
+                </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">range){
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">206状态码表示客户端通过发送范围请求头Range抓取到了资源的部分数据</span>
+                    <span style="color: #008000;">//</span><span style="color: #008000;">416状态码表示所请求的范围无法满足</span>
+                    <span style="color: #0000ff;">return</span> response.sendStatus(416<span style="color: #000000;">);
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">替换、切分，请求范围格式为：Content-Range: bytes 0-2000/4932</span>
+                <span style="color: #0000ff;">var</span> positions = range.replace(/bytes=/,"").split("-"<span style="color: #000000;">);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获取客户端请求文件的开始位置</span>
+                <span style="color: #0000ff;">var</span> start = parseInt(positions[0<span style="color: #000000;">]);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获得文件大小</span>
+                <span style="color: #0000ff;">var</span> total =<span style="color: #000000;"> stats.size;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获取客户端请求文件的结束位置</span>
+                <span style="color: #0000ff;">var</span> end = positions[1] ? parseInt(positions[1],10):total -1<span style="color: #000000;">;
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">获取需要读取的文件大小</span>
+                <span style="color: #0000ff;">var</span> chunksize = (end-start) + 1<span style="color: #000000;">;
+
+                response.writeHead(</span>206<span style="color: #000000;">,{
+                    </span>"Content-Range":"bytes "+ start+"-"+end+"/"+<span style="color: #000000;">total,
+                    </span>"Accept-Ranges":"bytes"<span style="color: #000000;">,
+                    </span>"Content-Length"<span style="color: #000000;">:chunksize,
+                    </span>"Content-Type":"video/mp4"<span style="color: #000000;">
+                });
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">创建读取流</span>
+                <span style="color: #0000ff;">var</span> stream = fs.createReadStream('.'+<span style="color: #000000;">decodeURI(request.url),{start:start,end:end})
+                　　.on(</span>"open",<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+                    stream.pipe(response); </span><span style="color: #008000;">//</span><span style="color: #008000;">读取流向写入流传递数据</span>
+                }).on("error",<span style="color: #0000ff;">function</span><span style="color: #000000;">(err){
+                    response.end(err);
+                });
+            });
+            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+　　　　　　</span><span style="color: #0000ff;">case</span> ".rar"<span style="color: #000000;">:
+          </span><span style="color: #008000;">//</span><span style="color: #008000;">同步读取文件状态</span>
+          　　<span style="color: #0000ff;">var</span> stats = fs.statSync("." +<span style="color: #000000;"> decodeURI(request.url));
+                response.writeHead(</span>200<span style="color: #000000;">,{
+                    </span>"Content-Type": "application/octet-stream", <span style="color: #008000;">//</span><span style="color: #008000;">相应该文件应该下载</span>
+                    <span style="color: #008000;">//</span><span style="color: #008000;">模板字符串</span>
+                    "Content-Disposition": `attachment; filename = ${pathname.replace("/",""<span style="color: #000000;">)}`,
+                    </span>"Content-Length"<span style="color: #000000;">:stats.size
+                });
+             </span><span style="color: #008000;">//</span><span style="color: #008000;">管道流</span>
+             fs.createReadStream("." +<span style="color: #000000;"> decodeURI(request.url)).pipe(response);
+             </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+　　　　　　　　</span><span style="color: #008000;">//</span><span style="color: #008000;">以上都不匹配则使用默认的方法</span>
+　　　　　　<span style="color: #0000ff;">default</span><span style="color: #000000;">:
+ 　　　　　　　fs.readFile(</span>'.'+pathname,'utf-8',<span style="color: #0000ff;">function</span><span style="color: #000000;">(err,data){    
+                response.writeHead(</span>200<span style="color: #000000;">,{
+                    </span>"Content-Type":"text/html"<span style="color: #000000;">
+                });
+                response.write(data);
+                response.end();
+            });
+        }
+}</span></pre>
+</div>
+<p><strong><span style="color: #ff6600;">router.js</span></strong>文件中只有一个<strong><span style="color: #ff6600;">readFileBySuffixName</span></strong>函数，该函数的作用是判断客户端访问文件的后缀名，css、js、图片、mp4视频、rar文件等都能成功返回到客户端；其中视频和下载文件使用流传输；因为如果不使用流的话，服务器要先缓存文件，然后再发送文件到客户端；使用HTML5视频的客户端会发送一个<strong><span style="color: #ff6600;">Content-Range</span></strong>的值到服务器，服务器根据这个range值读取一个文件指定的部分，并返回这个特定的部分数据到客户端，就实现了视频的断点续传，你可以随意的跳转到视频的任意一部分了！</p>
+<h3>进入项目文件夹，输入</h3>
+<div class="cnblogs_code">
+<pre><code>node ./server.js</pre>
+</div>
+<p>服务器端输出日志和测试页面</p>
+<p><img src="./images/使用原生node.js搭建HTTP服务器，支持MP4视频、图片传输，支持下载rar文件0.png" alt="" width="475" height="331" /><img style="margin-left: 10px; margin-right: 10px;" src="./images/使用原生node.js搭建HTTP服务器，支持MP4视频、图片传输，支持下载rar文件1.png" alt="" width="434" height="332" /></p>
+<p>&nbsp;favicon.ico文件是该页面的图标文件，第一次进入页面浏览器会自动请求。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

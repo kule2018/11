@@ -1,0 +1,1077 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发</center></div><div class='banquan'>原文出处:本文由博客园博主RopeHuo提供。<br/>
+原文连接:https://www.cnblogs.com/rope/p/10741113.html</div><br>
+    <h1><strong><span style="font-family: 宋体;">一、</span>React<span style="font-family: 宋体;">生命周期</span></strong></h1>
+<p><span style="font-family: 宋体;">一个组件从出生到消亡，在各个阶段</span>React<span style="font-family: 宋体;">提供给我们调用的接口，就是生命周期。</span></p>
+<p>生命周期这个东西，必须有项目，才知道他们干嘛的。</p>
+<p><img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发0.png" alt="" /></p>
+<hr />
+<h2><strong>1.1 Mouting<span style="font-family: 宋体;">阶段【</span></strong><strong><span style="font-family: Helvetica;">装载过程</span></strong><strong>】</strong></h2>
+<p>这个阶段在组件上树的时候发生，依次是：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">constructor(props)     构造函数        作用：初始化state值，此时可访问props、发Ajax请求
+componentWillMount()     组件将要上树    作用：常用于根组件中的引用程序配置，不能做任何涉及DOM的事情完成一些计算工作
+render()                渲染组件        作用：创建虚拟DOM，组建的UI样式
+componentDidMount()    组件已经上树    作用：启动AJAX调用，加载组件的数据，还能用ref得到DOM，添加事件监听</span></pre>
+</div>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">App.js<span style="font-family: 宋体;">：</span></span></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import Child from </span>"./Child.js"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class App extends React.Component{
+    constructor(){
+        super();
+        </span><span style="color: #0000ff;">this</span>.state =<span style="color: #000000;"> {
+            a:</span>100<span style="color: #000000;">,
+            isShow:</span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+        }
+    }
+    render(){
+        </span><span style="color: #0000ff;">return</span> &lt;div&gt;
+            &lt;button <span style="color: #0000ff;">onClick={<span style="color: #ff0000;">()=&gt;{this.setState({a:this.state.a+1})}</span>}</span>&gt;改变a值&lt;/button&gt;
+            &lt;button <span style="color: #0000ff;">onClick={<span style="color: #ff0000;">()=&gt;{this.setState({isShow:!this.state.isShow})}</span>}</span>&gt;<span style="color: #000000;">
+显示</span>/隐藏组件
+&lt;/button&gt;
+            { <span style="color: #ff0000;">this.state.isShow ?<span style="color: #0000ff;"> &lt;Child</span> a={this.state.a}<span style="color: #0000ff;">&gt;&lt;/Child&gt;</span> : null</span> }
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+};</span></pre>
+</div>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">Child<span style="font-family: 宋体;">组件：　　</span></span></p>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class Child extends React.Component {
+   <span style="color: #0000ff;"> constructor(){</span>
+        super();
+        console.log(</span>"我是constructor构造函数"<span style="color: #000000;">);
+        </span><span style="color: #ff0000;">this.state = {
+            m : 200</span><span style="color: #000000;"><span style="color: #ff0000;">
+        }</span>
+    <span style="color: #0000ff;">}
+    </span></span><span style="color: #008000;">//</span><span style="color: #008000;">组件将要上树</span>
+<span style="color: #000000;"><span style="color: #0000ff;">    componentWillMount(){</span>
+        console.log(</span>"我是componentWillMount"<span style="color: #000000;">);
+    <span style="color: #0000ff;">}
+    </span></span><span style="color: #008000;">//</span><span style="color: #008000;">组件已经上树</span>
+<span style="color: #000000;"><span style="color: #0000ff;">    componentDidMount(){</span>
+        console.log(</span>"我是componentDidMount"<span style="color: #000000;">);
+   <span style="color: #0000ff;"> }</span>
+
+    render(){
+        console.log(</span>"我是render"<span style="color: #000000;">);　　
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> (
+            </span>&lt;div&gt;
+                &lt;button onClick={<span style="color: #ff0000;">()=&gt;{this.setState({m:this.state.m+1})}</span>}&gt;改变m值&lt;/button&gt;
+                子组件的m值：<span style="color: #ff0000;">{this</span><span style="color: #000000;"><span style="color: #ff0000;">.state.m}，</span>
+                子组件接收a值：<span style="color: #ff0000;">{</span></span><span style="color: #ff0000;">this.props.a}
+            </span>&lt;/div&gt;
+<span style="color: #000000;">        );
+    }
+}</span></pre>
+</div>
+<p class="MsoNormal">&nbsp;</p>
+<hr />
+<h2><strong><span style="font-family: 宋体; font-size: 14pt;">1.2 Updating<span style="font-family: 宋体;">阶段【</span></span></strong><strong><span style="font-family: Helvetica; color: #333333; letter-spacing: 0pt; font-size: 13pt; background-image: initial; background-position: initial; background-size: initial; background-repeat: initial; background-attachment: initial; background-origin: initial; background-clip: initial;"><span style="font-family: Helvetica;">更新过程</span></span></strong><strong><span style="font-family: 宋体; font-size: 14pt;">】</span></strong></h2>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; color: #00b050; font-size: 10.5pt;"><span style="font-family: 宋体;">当组件的</span>props<span style="font-family: 宋体;">改变或</span><span style="font-family: Consolas;">state</span><span style="font-family: 宋体;">改变的时候触发，依次是：</span></span></strong></p>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; font-size: 10.5pt;">componentWillReceiveProps(nextProps)</span></strong></p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;"><span style="font-family: 宋体;">当收到新的</span>props<span style="font-family: 宋体;">的时候触发</span></span></p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; font-size: 10.5pt;">shouldComponentUpdate(nextProps,nextState)</span></strong></p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;"><span style="font-family: 宋体;">【门神函数】当组件</span>state<span style="font-family: 宋体;">或</span><span style="font-family: Consolas;">props</span><span style="font-family: 宋体;">改变时触发，</span></span><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; color: #ff0000; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;"><span style="font-family: 宋体;">这个函数需要</span>return true<span style="font-family: 宋体;">或者</span><span style="font-family: Consolas;">false</span><span style="font-family: 宋体;">，表示是否继续进</span><span style="font-family: Consolas;">Updating</span><span style="font-family: 宋体;">阶段</span></span><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;"><span style="font-family: 宋体;">。如</span>return false<span style="font-family: 宋体;">，视图将不再更新，大致是为了增加效率。</span></span></p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; font-size: 10.5pt;">componentWillUpdate(nextProps, nextState)</span></strong></p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;"><span style="font-family: 宋体;">当组件</span>state<span style="font-family: 宋体;">或</span><span style="font-family: Consolas;">props</span><span style="font-family: 宋体;">改变时触发，用来在</span><span style="font-family: Consolas;">update</span><span style="font-family: 宋体;">的时候进行一些准备。</span></span></p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; font-size: 10.5pt;">render()</span></strong><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;"><span style="font-family: 宋体;">渲染方法，创建虚拟</span>DOM</span></p>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; font-size: 10.5pt;">componentDidUpdate(prevProps, prevState)</span></strong></p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;"><span style="font-family: 宋体;">当组件</span>state<span style="font-family: 宋体;">或</span><span style="font-family: Consolas;">props</span><span style="font-family: 宋体;">改变时触发，用来进行一些更新的验证。组件更新完成后调用，此时可以获取最新的</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">节点，用来验证信息的。</span></span></p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">&nbsp;</span></p>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; color: #ff0000; font-size: 11pt;"><span style="font-family: 宋体;">在</span>Updating<span style="font-family: 宋体;">阶段中，绝对不允许改变</span><span style="font-family: Consolas;">state</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">props</span><span style="font-family: 宋体;">，否则会死循环。</span></span></strong></p>
+<hr />
+<p>&nbsp;</p>
+<h2><strong><span style="font-family: 宋体; font-size: 14pt;">1.3 unmounting<span style="font-family: 宋体;">阶段【卸载过程】</span></span></strong></h2>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; color: #ff0000; font-size: 10.5pt;"><span style="font-family: 宋体;">就一个函数：</span>componentWillUnmount()<span style="font-family: 宋体;">组件将要下树。</span></span></strong></p>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; color: #ff0000; font-size: 10.5pt;"><span style="font-family: 宋体;">完整的</span>Child.js<span style="font-family: 宋体;">子组件：</span></span></strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('40c31ce2-46c0-432b-869d-0447a2e38514')"><img id="code_img_closed_40c31ce2-46c0-432b-869d-0447a2e38514" class="code_img_closed" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发1.png" alt="" /><img id="code_img_opened_40c31ce2-46c0-432b-869d-0447a2e38514" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('40c31ce2-46c0-432b-869d-0447a2e38514',event)" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发2.png" alt="" />
+<div id="cnblogs_code_open_40c31ce2-46c0-432b-869d-0447a2e38514" class="cnblogs_code_hide">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class Child extends React.Component {
+    constructor() {
+        super();
+        console.log(</span>"我是constructor构造函数"<span style="color: #000000;">)
+        </span><span style="color: #0000ff;">this</span>.state =<span style="color: #000000;"> {
+            m:</span>200<span style="color: #000000;">
+        }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">组件将要上树</span>
+<span style="color: #000000;">    componentWillMount(){
+        console.log(</span>"我是componentWillMount将要上树"<span style="color: #000000;">)
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">组件已经上树</span>
+<span style="color: #000000;">    componentDidMount(){
+        console.log(</span>"我是componentDidMount已经上树"<span style="color: #000000;">)
+    }
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">************Updataing阶段【更新阶段】************** */</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> 当组件的props或state改变时触发</span>
+<span style="color: #000000;">componentWillReceiveProps(nextProps){
+    console.log(</span>"更阶段的：componentWillReceiveProps"<span style="color: #000000;">, nextProps)
+}
+shouldComponentUpdate(nextProps, nextState) {
+    console.log(</span>"更阶段的：shouldComponentUpdate"<span style="color: #000000;">, nextProps, nextState)
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+}
+componentWillUpdate(nextProps, nextState){
+    console.log(</span>"更阶段的：componentWillUpdate"<span style="color: #000000;">, nextProps, nextState)
+}
+componentDidUpdate(prevProps, prevState){
+    console.log(</span>"更阶段的：componentDidUpdate"<span style="color: #000000;">, prevProps, prevState)
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">组件下树</span>
+<span style="color: #000000;">    componentWillUnmount(){
+        console.log(</span>"componentWillUnmount组件下树了"<span style="color: #000000;">);
+}
+
+    render(){
+        console.log(</span>"我是render"<span style="color: #000000;">)
+        </span><span style="color: #0000ff;">return</span> &lt;div&gt;
+            &lt;button onClick={()=&gt;{ <span style="color: #0000ff;">this</span>.setState({m: <span style="color: #0000ff;">this</span>.state.m + 1 })}}&gt;改变m值&lt;/button&gt;
+            &lt;h2&gt;子组件的m值：{<span style="color: #0000ff;">this</span>.state.m}&lt;/h2&gt;
+            &lt;h2&gt;子组件接收父组件a值：{<span style="color: #0000ff;">this</span>.props.a}&lt;/h2&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p class="MsoNormal">&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">上树阶段：
+    constructor
+    componentWillMount
+    render
+    componentDidMount
+更新阶段：
+    componentWillReceiveProps
+    shouldComponentUpdate
+    componentWillUpdate
+    render
+    componentDidUpdate
+下树阶段
+    componentWillUnmount</span></pre>
+</div>
+<hr />
+<h1><strong><span style="font-family: 宋体; font-size: 18pt;"><span style="font-family: 宋体;">二、</span>Virtual DOM<span style="font-family: 宋体;">和</span><span style="font-family: Consolas;">Diff</span><span style="font-family: 宋体;">算法（理论知识）</span></span></strong></h1>
+<p class="MsoNormal"><strong><span style="text-decoration: underline;"><span style="font-family: 宋体; color: #ff0000; font-size: 10.5pt; background: #ffff00;">React<span style="font-family: 宋体;">会在内存中存储一份</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">的镜像，当有</span><span style="font-family: Consolas;">render</span><span style="font-family: 宋体;">发生的时候，此时会在内存中用</span><span style="font-family: Consolas;">Diff</span><span style="font-family: 宋体;">算法进行最小差异比较，实现最小的更新。</span></span></span></strong></p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">Virtual DOM<span style="font-family: 宋体;">是</span><span style="font-family: Consolas;">React</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">Vue</span><span style="font-family: 宋体;">中的一个很重要的概念，在日常开发中，前端工程师们需要将后台的数据呈现到界面中，同时要能对用户的操作提供反馈，作用到</span><span style="font-family: Consolas;">UI</span><span style="font-family: 宋体;">上&hellip;&hellip; 这些都离不开</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">操作。</span></span><strong><span style="text-decoration: underline;"><span style="font-family: 宋体; color: #ff0000; font-size: 10.5pt;"><span style="font-family: 宋体;">但是我们知道，频繁的</span>DOM<span style="font-family: 宋体;">操作会造成极大的资源浪费，也通常是性能瓶颈的原因。于是</span><span style="font-family: Consolas;">React</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">Vue</span><span style="font-family: 宋体;">引入了</span><span style="font-family: Consolas;">Virtual DOM</span><span style="font-family: 宋体;">。</span><span style="font-family: Consolas;">Virtual DOM</span><span style="font-family: 宋体;">的核心就是计算比较改变前后的</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">区别，然后用最少的</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">操作语句对</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">进行操作</span></span></span></strong><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">。</span></p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">&nbsp;</span></p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;"><span style="font-family: 宋体;">现在需要将下图左边的</span>DOM<span style="font-family: 宋体;">结构替换成右边的结构，这种情景在实战项目中是经常会遇到的。但是如果直接操作</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">的话，进行移除的话可能就是</span></span><strong><span style="text-decoration: underline;"><span style="font-family: 宋体; color: #ff0000; font-size: 10.5pt;"><span style="font-family: 宋体;">四次删除，五次插入，这种消耗是很大的</span></span></span></strong><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">。</span><strong><span style="text-decoration: underline;"><span style="font-family: 宋体; color: #ff0000; font-size: 10.5pt;"><span style="font-family: 宋体;">但是使用</span>Virtual DOM,<span style="font-family: 宋体;">那就是比较两个结构的差异，发现仅仅改变了四次内容，一次插入</span></span></span></strong><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">。</span><strong><span style="text-decoration: underline;"><span style="font-family: 宋体; color: #ff0000; font-size: 10.5pt;"><span style="font-family: 宋体;">这种消耗就小很多</span></span></span></strong><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">，无非加上一个比较的时间。</span></p>
+<p class="MsoNormal">&nbsp;</p>
+<p><img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发3.png" alt="" /></p>
+<p><img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发4.png" alt="" /></p>
+<p>React<span style="font-family: 宋体;">告诉我们的是在内存中维护一颗和页面一样的</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">树，这颗</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">树不是真正渲染在</span><span style="font-family: Consolas;">html</span><span style="font-family: 宋体;">中的，而是放在内存中的，因此修改它将会特别的快，并且资源消耗也少很多，当我们</span><span style="font-family: Consolas;">render</span><span style="font-family: 宋体;">一个页面的时候首先先将我们最新的</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">去和内存中的这棵虚拟</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">树去做对比（脏检查），然后对比出差异点，然后再用这棵虚拟</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">差异的部分去替换真正</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">树中的一部分。</span></p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">这就是所谓的</span> Virtual DOM <span style="font-family: 宋体;">算法。包括几个步骤：</span></strong></span></p>
+<p>&nbsp;<span style="font-family: 宋体;">用</span> JavaScript <span style="font-family: 宋体;">对象结构表示 </span><span style="font-family: Consolas;">DOM </span><span style="font-family: 宋体;">树的结构；然后用这个树构建一个真正的 </span><span style="font-family: Consolas;">DOM </span><span style="font-family: 宋体;">树，插到文档当中。</span></p>
+<p>&nbsp;当状态变更的时候，重新构造一棵新的对象树。然后用新的树和旧的树进行比较，记录两棵树差异。</p>
+<p>&nbsp;<span style="font-family: 宋体;">把</span>2<span style="font-family: 宋体;">所记录的差异应用到步骤</span><span style="font-family: Consolas;">1</span><span style="font-family: 宋体;">所构建的真正的</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">树上，视图就更新了。</span></p>
+<p>&nbsp;</p>
+<p>Virtual DOM <span style="font-family: 宋体;">本质上就是在 </span><span style="font-family: Consolas;">JS </span><span style="font-family: 宋体;">和 </span><span style="font-family: Consolas;">DOM </span><span style="font-family: 宋体;">之间做了一个缓存。这个概念就和我们当初学操作系统一样，可以类比 </span><span style="font-family: Consolas;">CPU </span><span style="font-family: 宋体;">和硬盘，既然硬盘这么慢，我们就在它们之间加个缓存：既然 </span><span style="font-family: Consolas;">DOM </span><span style="font-family: 宋体;">这么慢，我们就在它们 </span><span style="font-family: Consolas;">JS </span><span style="font-family: 宋体;">和 </span><span style="font-family: Consolas;">DOM </span><span style="font-family: 宋体;">之间加个缓存。</span><span style="font-family: Consolas;">CPU</span><span style="font-family: 宋体;">（</span><span style="font-family: Consolas;">JS</span><span style="font-family: 宋体;">）只操作内存（</span><span style="font-family: Consolas;">Virtual DOM</span><span style="font-family: 宋体;">），最后的时候再把变更写入硬盘（</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">）。</span></p>
+<p><strong>App.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class App extends React.Component {
+    constructor() {
+        super();
+        </span><span style="color: #0000ff;">this</span>.state =<span style="color: #000000;"> {
+            a : </span>100<span style="color: #000000;">
+        }
+    }
+    componentDidMount(){
+$(</span><span style="color: #0000ff;">this</span>.refs.list).find("li").css("position","relative").animate({"left":500},5000<span style="color: #000000;">)
+    }
+    render(){
+        console.log(</span>"我是render函数"<span style="color: #000000;">)
+        </span><span style="color: #0000ff;">return</span> &lt;div&gt;
+            &lt;button onClick={()=&gt;{<span style="color: #ff0000;">this.setState({a : this.state.a + 1})}</span>}&gt;按我&lt;/button&gt;
+            &lt;ul ref="list"&gt;
+                &lt;li&gt;A&lt;/li&gt;
+                &lt;li&gt;B&lt;/li&gt;
+                &lt;li&gt;<span style="color: #ff0000;">{this.state.a}</span>&lt;/li&gt;
+                &lt;li&gt;D&lt;/li&gt;
+            &lt;/ul&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p><span style="font-family: 宋体;">当某一个组件状态、属性被更改时，它的子组件、孙组件都会被重新渲染，</span>Virtual DOM<span style="font-family: 宋体;">也将会计算这些组件的</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">更新。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发5.png" alt="" /></p>
+<hr />
+<h1><strong>三、日历组件</strong></h1>
+<h2><strong>3.1<span style="font-family: 宋体;">业务</span></strong></h2>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="237">
+<p>日选择视图</p>
+</td>
+<td valign="top" width="237">
+<p>年选择视图</p>
+</td>
+<td valign="top" width="237">
+<p>月选择视图</p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="237">
+<p>&nbsp;<img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发6.png" alt="" /></p>
+<p>&nbsp;</p>
+</td>
+<td valign="top" width="237">
+<p>&nbsp;<img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发7.png" alt="" /></p>
+<p>&nbsp;</p>
+</td>
+<td valign="top" width="237">&nbsp;<img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发8.png" alt="" />
+<p>&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<hr />
+<h2><strong>3.2<span style="font-family: 宋体;">划分组件</span></strong></h2>
+<p>组件划分就是根据第一直观印象即可，按结构、功能独立进行划分。</p>
+<p><span style="font-family: 宋体;">最大组件</span>Canlendar<span style="font-family: 宋体;">，里面有数据</span><span style="font-family: Consolas;">year</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">month</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">date</span></p>
+<p><span style="font-family: 宋体;">点击一个按钮，可以显示弹出层，弹出层的组件名：</span>Canlendar_menu</p>
+<p>下辖五个组件，五个组件都兄弟：</p>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="178">
+<p>ChooserDate</p>
+<p>&nbsp;<img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发9.png" alt="" /></p>
+<p>&nbsp;</p>
+</td>
+<td valign="top" width="178">
+<p>ChooserYear</p>
+<p>&nbsp;<img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发10.png" alt="" /></p>
+<p>&nbsp;</p>
+</td>
+<td valign="top" width="178">
+<p>ChooserMonth</p>
+<p>&nbsp;<img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发11.png" alt="" /></p>
+<p>&nbsp;</p>
+</td>
+<td valign="top" width="178">
+<p>PickerDate</p>
+<p>&nbsp;<img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发12.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>PickerYear</p>
+<p>&nbsp;<img src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发13.png" alt="" /></p>
+<p>&nbsp;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong><span style="text-decoration: underline;"><span style="font-family: 宋体;">所有的组件不需要对兄弟组件负责，只需要对最大组件的数据负责。</span></span></strong></span></p>
+<p>&nbsp;</p>
+<p><strong>【先实现日历视图】</strong></p>
+<p><strong>index.html</strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('2506506f-7ddb-4556-80ef-43dd5a8fea7f')"><img id="code_img_closed_2506506f-7ddb-4556-80ef-43dd5a8fea7f" class="code_img_closed" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发1.png" alt="" /><img id="code_img_opened_2506506f-7ddb-4556-80ef-43dd5a8fea7f" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('2506506f-7ddb-4556-80ef-43dd5a8fea7f',event)" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发2.png" alt="" />
+<div id="cnblogs_code_open_2506506f-7ddb-4556-80ef-43dd5a8fea7f" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>日历组件<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="stylesheet"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="css/style.css"</span> <span style="color: #0000ff;">/&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="app"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="lib/jquery-2.2.4.min.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="dist/bundle.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p><strong><span style="font-family: 宋体;">创建</span>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>index.js<span style="font-family: 宋体;">文件，这是最大的组件。</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class <span style="color: #ff0000;">Canlendar</span> extends React.Component {
+    constructor() {
+        super();
+    }
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div&gt;<span style="color: #000000;">
+            我是Canlendar组件
+        </span>&lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>app/App.js<span style="font-family: 宋体;">引入</span></strong><strong>c</strong><strong>anlendar</strong><strong>最大</strong><strong>组件</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+<span style="color: #ff0000;">import Canlendar from </span></span><span style="color: #ff0000;">"./components/canlendar"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class <span style="color: #ff0000;">App</span> extends React.Component {
+    constructor() {
+        super();
+     
+    }
+    render(){
+        </span><span style="color: #0000ff;">return</span> &lt;div&gt;
+            &lt;div&gt;<span style="color: #000000;">
+                出生日期：</span><span style="color: #ff0000;">&lt;Canlendar&gt;&lt;/Canlendar&gt;</span>
+            &lt;/div&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">开始写</span>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>index.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+<span style="color: #ff0000;">import CanlendarMenu from </span></span><span style="color: #ff0000;">"./CanlendarMenu.js"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class Canlendar extends React.Component {
+    constructor() {
+        super();
+        </span><span style="color: #ff0000;">this.state = {
+            year : 2018 ,
+            month : 8 ,
+            date : 8,
+            isShowMenu : false</span><span style="color: #000000;"><span style="color: #ff0000;">
+        }</span>
+    } 
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div <span style="color: #ff0000;">className="canlendar"</span>&gt;
+            &lt;div<span style="color: #ff0000;"> className="inputBox"</span>&gt;<span style="color: #ff0000;">
+                {this.state.year}</span>年<span style="color: #ff0000;">{this.state.month}</span>月<span style="color: #ff0000;">{this</span><span style="color: #000000;"><span style="color: #ff0000;">.state.date}</span>日
+            </span>&lt;/div&gt;
+<span style="color: #000000;">            {
+                </span><span style="color: #ff0000;">this.state.isShowMenu 
+                ?</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #000000;"><span style="color: #0000ff;">CanlendarMenu</span>
+                    year</span>={<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.year}
+                    month</span>={<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.month}
+                    date</span>={<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.date}
+                </span><span style="color: #0000ff;">&gt;&lt;/CanlendarMenu&gt;</span>
+<span style="color: #ff0000;">                :
+                null</span><span style="color: #000000;">
+            }
+        </span>&lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p><strong>css<span style="font-family: 宋体;">样式：</span></strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('2dac0e97-7e0f-46e7-b2df-d5eebb4b4f35')"><img id="code_img_closed_2dac0e97-7e0f-46e7-b2df-d5eebb4b4f35" class="code_img_closed" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发1.png" alt="" /><img id="code_img_opened_2dac0e97-7e0f-46e7-b2df-d5eebb4b4f35" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('2dac0e97-7e0f-46e7-b2df-d5eebb4b4f35',event)" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发2.png" alt="" />
+<div id="cnblogs_code_open_2dac0e97-7e0f-46e7-b2df-d5eebb4b4f35" class="cnblogs_code_hide">
+<pre><code><span style="color: #800000;">*</span>{<span style="color: #ff0000;">margin</span>:<span style="color: #0000ff;">0</span>;<span style="color: #ff0000;">padding</span>:<span style="color: #0000ff;">0</span>;}<span style="color: #800000;">
+.canlendar</span>{<span style="color: #ff0000;">position</span>:<span style="color: #0000ff;"> relative</span>;}<span style="color: #800000;">
+.canlendar .inputBox</span>{<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 150px</span>;<span style="color: #ff0000;">height</span>:<span style="color: #0000ff;"> 20px</span>;<span style="color: #ff0000;">border</span>:<span style="color: #0000ff;"> 1px solid #BDBDBD</span>;<span style="color: #ff0000;">
+    border-radius</span>:<span style="color: #0000ff;">2px</span>;<span style="color: #ff0000;">position</span>:<span style="color: #0000ff;">relative</span>;<span style="color: #ff0000;">font-size</span>:<span style="color: #0000ff;">13px</span>;<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;">0 10px</span>;<span style="color: #ff0000;">color</span>:<span style="color: #0000ff;">#424242</span>;<span style="color: #ff0000;">line-height</span>:<span style="color: #0000ff;"> 20px</span>;
+}<span style="color: #800000;">
+.canlendar .inputBox::before</span>{<span style="color: #ff0000;">
+    content</span>:<span style="color: #0000ff;">""</span>;<span style="color: #ff0000;">position</span>:<span style="color: #0000ff;"> absolute</span>;<span style="color: #ff0000;">right</span>:<span style="color: #0000ff;">0</span>;<span style="color: #ff0000;">top</span>:<span style="color: #0000ff;">0</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;">20px</span>;<span style="color: #ff0000;">height</span>:<span style="color: #0000ff;">20px</span>;<span style="color: #ff0000;">background</span>:<span style="color: #0000ff;"> #F5F5F5</span>;
+}</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">开始写</span>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>CanlendarMenu.js<span style="font-family: 宋体;">弹出层</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+<span style="color: #ff0000;">import PickerDate from </span></span><span style="color: #ff0000;">"./PickerDate.js";
+import ChooserDate from "./ChooserDate.js"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class CanlendarMenu extends React.Component {
+    constructor() {
+        super();
+    }
+render() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">解构得到年、月、日</span>
+    const <span style="color: #ff0000;">{year, month, date} = this.props;
+        </span><span style="color: #0000ff;">return</span> &lt;div <span style="color: #ff0000;">className="canlendar_menu"</span>&gt;
+           <span style="color: #0000ff;"> &lt;PickerDate</span> <span style="color: #ff0000;">year={year} month={month}</span><span style="color: #0000ff;">&gt;&lt;/PickerDate&gt;</span>
+          <span style="color: #0000ff;">  &lt;ChooserDate</span> <span style="color: #ff0000;">year={year} month={month}</span> <span style="color: #ff0000;">date={date}</span><span style="color: #0000ff;">&gt;&lt;/ChooserDate&gt;</span>
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p><strong>css<span style="font-family: 宋体;">样式：</span></strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('8c4545a3-dadb-4702-821e-1f1e1e615f81')"><img id="code_img_closed_8c4545a3-dadb-4702-821e-1f1e1e615f81" class="code_img_closed" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发1.png" alt="" /><img id="code_img_opened_8c4545a3-dadb-4702-821e-1f1e1e615f81" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('8c4545a3-dadb-4702-821e-1f1e1e615f81',event)" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发2.png" alt="" />
+<div id="cnblogs_code_open_8c4545a3-dadb-4702-821e-1f1e1e615f81" class="cnblogs_code_hide">
+<pre><code><span style="color: #800000;">.canlendar .canlendar_menu</span>{<span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> absolute</span>;<span style="color: #ff0000;">top</span>:<span style="color: #0000ff;"> 26px</span>;<span style="color: #ff0000;">left</span>:<span style="color: #0000ff;">0</span>;<span style="color: #ff0000;">z-index</span>:<span style="color: #0000ff;"> 999</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;">360px</span>;<span style="color: #ff0000;"> height</span>:<span style="color: #0000ff;">260px</span>;<span style="color: #ff0000;">
+    border</span>:<span style="color: #0000ff;"> 1px solid #BDBDBD</span>;<span style="color: #ff0000;">
+    box-shadow</span>:<span style="color: #0000ff;"> 0px 0px 8px #00000036</span>;<span style="color: #ff0000;">
+    border-radius</span>:<span style="color: #0000ff;"> 5px</span>;<span style="color: #ff0000;">background</span>:<span style="color: #0000ff;">white</span>;
+}</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p><strong>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>PickerDate.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class <span style="color: #ff0000;">PickerDate</span> extends React.Component {
+    constructor() {
+        super();
+    }
+    render() {
+      <span style="color: #ff0000;">  const {year, month} </span></span><span style="color: #ff0000;">= this.props;
+        </span><span style="color: #0000ff;">return</span> &lt;div <span style="color: #ff0000;">className="picker"</span>&gt;
+            &lt;div className="left"&gt;
+                &lt;a className="btn" href="###"&gt;上1月&lt;/a&gt;
+            &lt;/div&gt;
+            &lt;div className="center"&gt;
+                &lt;a href="###"&gt;<span style="color: #ff0000;">{year}</span>&lt;/a&gt;年
+                &lt;a href="###"&gt;<span style="color: #ff0000;">{month}</span>&lt;/a&gt;月
+            &lt;/div&gt;
+            &lt;div className="right"&gt;
+                &lt;a className="btn" href="###"&gt;下1月 &lt;/a&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p><strong>css<span style="font-family: 宋体;">样式：</span></strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('d5763090-3976-4bfe-92e5-12d44e3fb337')"><img id="code_img_closed_d5763090-3976-4bfe-92e5-12d44e3fb337" class="code_img_closed" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发1.png" alt="" /><img id="code_img_opened_d5763090-3976-4bfe-92e5-12d44e3fb337" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('d5763090-3976-4bfe-92e5-12d44e3fb337',event)" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发2.png" alt="" />
+<div id="cnblogs_code_open_d5763090-3976-4bfe-92e5-12d44e3fb337" class="cnblogs_code_hide">
+<pre><code><span style="color: #800000;">.canlendar .picker</span>{<span style="color: #ff0000;">padding-top</span>:<span style="color: #0000ff;">10px</span>;<span style="color: #ff0000;">overflow</span>:<span style="color: #0000ff;"> hidden</span>;<span style="color: #ff0000;">margin-bottom</span>:<span style="color: #0000ff;"> 13px</span>;}<span style="color: #800000;">
+.canlendar .picker .left</span>{<span style="color: #ff0000;">float</span>:<span style="color: #0000ff;"> left</span>;<span style="color: #ff0000;">width</span>:<span style="color: #0000ff;">33.33%</span>;<span style="color: #ff0000;">text-align</span>:<span style="color: #0000ff;"> center</span>;}<span style="color: #800000;">
+.canlendar .picker .right</span>{<span style="color: #ff0000;">float</span>:<span style="color: #0000ff;">left</span>;<span style="color: #ff0000;">width</span>:<span style="color: #0000ff;">33.33%</span>;<span style="color: #ff0000;">text-align</span>:<span style="color: #0000ff;"> center</span>;}<span style="color: #800000;">
+.canlendar .picker .center</span>{<span style="color: #ff0000;">
+    float</span>:<span style="color: #0000ff;"> left</span>;<span style="color: #ff0000;">width</span>:<span style="color: #0000ff;">33.33%</span>;<span style="color: #ff0000;">text-align</span>:<span style="color: #0000ff;"> center</span>;<span style="color: #ff0000;">font-size</span>:<span style="color: #0000ff;"> 18px</span>;<span style="color: #ff0000;">font-weight</span>:<span style="color: #0000ff;"> bold</span>;
+}<span style="color: #800000;">
+.canlendar .picker .btn</span>{<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;">4px 10px</span>;<span style="color: #ff0000;">background</span>:<span style="color: #0000ff;"> #2196F3</span>;<span style="color: #ff0000;">font-size</span>:<span style="color: #0000ff;"> 12px</span>;<span style="color: #ff0000;">
+    border-radius</span>:<span style="color: #0000ff;"> 4px</span>;<span style="color: #ff0000;">text-decoration</span>:<span style="color: #0000ff;"> none</span>;<span style="color: #ff0000;">color</span>:<span style="color: #0000ff;"> white</span>;
+}<span style="color: #800000;">
+.canlendar .chooserDate</span>{<span style="color: #ff0000;">color</span>:<span style="color: #0000ff;">#333</span>;<span style="color: #ff0000;">font-size</span>:<span style="color: #0000ff;"> 12px</span>;}<span style="color: #800000;">
+.canlendar .chooserDate span</span>{<span style="color: #ff0000;">display</span>:<span style="color: #0000ff;"> block</span>;}<span style="color: #800000;">
+.canlendar .chooserDate table</span>{<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;">100%</span>;<span style="color: #ff0000;">text-align</span>:<span style="color: #0000ff;">center</span>;<span style="color: #ff0000;">line-height</span>:<span style="color: #0000ff;"> 14px</span>;<span style="color: #ff0000;">border-collapse</span>:<span style="color: #0000ff;">collapse</span>;
+}<span style="color: #800000;">
+.canlendar .chooserDate span.cd</span>{<span style="color: #ff0000;">font-size</span>:<span style="color: #0000ff;"> 10px</span>;}<span style="color: #800000;">
+.canlendar .chooserDate table td</span>{<span style="color: #ff0000;">padding-bottom</span>:<span style="color: #0000ff;"> 2px</span>;<span style="color: #ff0000;">cursor</span>:<span style="color: #0000ff;"> pointer</span>;}<span style="color: #800000;">
+.canlendar .chooserDate table th</span>{<span style="color: #ff0000;">line-height</span>:<span style="color: #0000ff;"> 26px</span>;}<span style="color: #800000;">
+.canlendar .chooserDate table td.gray</span>{<span style="color: #ff0000;">color</span>:<span style="color: #0000ff;"> #c1bcbc</span>;}<span style="color: #800000;">
+.canlendar .chooserDate table td.cur</span>{<span style="color: #ff0000;">background-color</span>:<span style="color: #0000ff;"> #FFCDD2</span>;}</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>ChooserDate.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class <span style="color: #ff0000;">ChooserDate</span> extends React.Component {
+    constructor() {
+        super();
+    }
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div<span style="color: #ff0000;"> className="chooserDate"</span>&gt;
+            &lt;table&gt;
+                &lt;tbody&gt;
+                    &lt;tr&gt;
+                        &lt;th&gt;日&lt;/th&gt;
+                        &lt;th&gt;一&lt;/th&gt;
+                        &lt;th&gt;二&lt;/th&gt;
+                        &lt;th&gt;三&lt;/th&gt;
+                        &lt;th&gt;四&lt;/th&gt;
+                        &lt;th&gt;五&lt;/th&gt;
+                        &lt;th&gt;六&lt;/th&gt;
+                    &lt;/tr&gt;
+                    &lt;tr&gt;
+                        &lt;td&gt;
+                            &lt;span&gt;31&lt;/span&gt;
+                            &lt;span className="cd"&gt;初一&lt;/span&gt;
+                        &lt;/td&gt;
+                    &lt;/tr&gt;
+                    tr*6&gt;td*7
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+<span style="color: #ff0000;">import { solar2lunar } from </span></span><span style="color: #ff0000;">"solarlunar"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+import classnames from </span>"classnames"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class ChooserDate extends React.Component {
+    constructor() {
+        super();
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">显示表格</span>
+<span style="color: #0000ff;">    showTable(){
+        const {year , month , date} = this.props;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">三要素</span>
+        <span style="color: #0000ff;">var</span> thisMonth1Day = <span style="color: #0000ff;">new</span> Date(year, month - 1 , 1<span style="color: #000000;">).getDay();
+        </span><span style="color: #0000ff;">var</span> thisMonthDateAmount = <span style="color: #0000ff;">new</span> Date(year, month, 0<span style="color: #000000;">).getDate();
+        </span><span style="color: #0000ff;">var</span> prevMonthDateAmount = <span style="color: #0000ff;">new</span> Date(year, month - 1, 0<span style="color: #000000;">).getDate();
+    
+        </span><span style="color: #ff0000;">var arr = [];
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">上个月的尾巴</span>
+      <span style="color: #0000ff;">  while(thisMonth1Day--){
+            </span><span style="color: #ff0000;">var d = prevMonthDateAmount--;
+            var sl = solarLunar.solar2lunar(year, month - 1</span><span style="color: #000000;"><span style="color: #ff0000;">, d);</span>
+         <span style="color: #0000ff;">   arr.unshift({
+                </span></span><span style="color: #ff0000;">"d" : d,
+                "cd": sl.term ||</span><span style="color: #000000;"><span style="color: #ff0000;"> sl.dayCn,</span>
+         <span style="color: #0000ff;">   })
+        }
+        </span></span><span style="color: #008000;">//</span><span style="color: #008000;">本月</span>
+<span style="color: #ff0000;">        var count = 0;
+        </span><span style="color: #0000ff;">while (thisMonthDateAmount--</span><span style="color: #000000;"><span style="color: #0000ff;">){</span>
+       <span style="color: #ff0000;"> count</span></span><span style="color: #ff0000;">++;
+            var d = count;
+            var sl =</span><span style="color: #000000;"><span style="color: #ff0000;"> solarLunar.solar2lunar(year, month, d);</span>
+      <span style="color: #0000ff;">      arr.push({
+                </span></span><span style="color: #ff0000;">"d": d,
+                "cd": sl.term ||</span><span style="color: #000000;"><span style="color: #ff0000;"> sl.dayCn,</span>
+       <span style="color: #0000ff;">     });</span>
+            
+      <span style="color: #0000ff;">  }
+        </span></span><span style="color: #008000;">//</span><span style="color: #008000;">下月开头</span>
+        <span style="color: #0000ff;">var</span> nextCount = 0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">while(arr.length != 42){
+        nextCount++;
+            <span style="color: #ff0000;">var d = nextCount;
+            var sl = solarLunar.solar2lunar(year, month + 1, d);</span>
+            arr.push({
+                <span style="color: #ff0000;">"d": d,
+                "cd": sl.term || sl.dayCn,</span>
+            });
+        }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">表格上树显示</span>
+       <span style="color: #ff0000;"> var domArr = [];
+       </span><span style="color: #0000ff;"> for(var i = 0;  i &lt; arr.length / 7; i++){
+            domArr.push(
+                </span>&lt;tr key={i}&gt;<span style="color: #000000;">
+                    {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数组会自动展开</span>
+                        <span style="color: #0000ff;">arr.slice(i * 7, i * 7 + 7).map((item, index)=&gt;{
+                            </span><span style="color: #ff0000;">return</span><span style="color: #ff0000;"> &lt;td key={index}&gt;
+                                &lt;span&gt;{item.d}&lt;/span&gt;
+                                &lt;span className="cd"&gt;{item.cd}&lt;/span&gt;
+                            &lt;/td&gt;</span>
+<span style="color: #000000;"><span style="color: #0000ff;">                        })</span>
+                    }
+                </span>&lt;/tr&gt;
+<span style="color: #000000;"><span style="color: #0000ff;">            )</span>
+       <span style="color: #0000ff;"> }
+        </span></span><span style="color: #ff0000;">return</span><span style="color: #000000;"><span style="color: #ff0000;"> domArr;</span>
+    }
+
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div className="chooserDate"&gt;
+            &lt;table&gt;
+                &lt;tbody&gt;
+                    &lt;tr&gt;
+                        &lt;th&gt;日&lt;/th&gt;
+                        &lt;th&gt;一&lt;/th&gt;
+                        &lt;th&gt;二&lt;/th&gt;
+                        &lt;th&gt;三&lt;/th&gt;
+                        &lt;th&gt;四&lt;/th&gt;
+                        &lt;th&gt;五&lt;/th&gt;
+                        &lt;th&gt;六&lt;/th&gt;
+                    &lt;/tr&gt;
+               <span style="color: #ff0000;">     {this.showTable()}
+                </span>&lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>index.js<span style="font-family: 宋体;">实现切换上月、下月</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import CanlendarMenu from </span>"./CanlendarMenu.js"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class Canlendar extends React.Component {
+    constructor() {
+        super();
+        </span><span style="color: #0000ff;">this</span>.state =<span style="color: #000000;"> {
+            year : </span>2018<span style="color: #000000;"> ,
+            month : </span>8<span style="color: #000000;"> ,
+            date : </span>8<span style="color: #000000;">,
+            isShowMenu : </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+        }
+    } 
+ <span style="color: #0000ff;">   setShowMenu(isShowMenu){
+        </span></span><span style="color: #0000ff;"><span style="color: #ff0000;">this.setState({isShowMenu});</span>
+    }
+    setYear(year){
+        <span style="color: #ff0000;">this.setState({ year });</span>
+    }
+    setMonth(month){
+        <span style="color: #ff0000;">this.setState({ month });</span>
+    }
+    setDate(date){
+        <span style="color: #ff0000;">this</span></span><span style="color: #000000;"><span style="color: #0000ff;"><span style="color: #ff0000;">.setState({date});</span>
+    }</span>
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div className="canlendar"&gt;
+            &lt;div className="inputBox" <span style="color: #0000ff;">onClick={()=&gt;{<span style="color: #ff0000;">this.setState({"isShowMenu" : true})</span>}}</span>&gt;<span style="color: #000000;">
+                {</span><span style="color: #0000ff;">this</span>.state.year}年{<span style="color: #0000ff;">this</span>.state.month}月{<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.date}日
+            </span>&lt;/div&gt;
+<span style="color: #000000;">            {
+                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.state.isShowMenu 
+                </span>?
+                &lt;<span style="color: #000000;">CanlendarMenu
+                    year</span>={<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.year}
+                    month</span>={<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.month}
+                    date</span>={<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.date}
+                   <span style="color: #0000ff;"> setYear</span></span><span style="color: #0000ff;">={this.setYear.bind(this)}
+                    setMonth={this.setMonth.bind(this)}
+                    setDate={this.setDate.bind(this)}
+                    setShowMenu={this.setShowMenu.bind(this)}
+                </span>&gt;&lt;/CanlendarMenu&gt;
+<span style="color: #000000;">                :
+                </span><span style="color: #0000ff;">null</span><span style="color: #000000;">
+            }   
+        </span>&lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">然后通过</span>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>CanlendarMenu.js<span style="font-family: 宋体;">继续往下传</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import PickerDate from </span>"./PickerDate.js"<span style="color: #000000;">;
+import ChooserDate from </span>"./ChooserDate.js"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class CanlendarMenu extends React.Component {
+    constructor() {
+        super();
+    }
+render() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">解构得到年、月、日</span>
+    const {year, month, date, <span style="color: #0000ff;">setYear, setMonth, setDate, setShowMenu</span>} = <span style="color: #0000ff;">this</span><span style="color: #000000;">.props;
+        </span><span style="color: #0000ff;">return</span> &lt;div className="canlendar_menu"&gt;
+        <span style="color: #0000ff;">  &lt;PickerDate <span style="color: #ff0000;">setYear={setYear} setMonth={setMonth}</span>&gt;&lt;/PickerDate&gt;
+          &lt;ChooserDate <span style="color: #ff0000;">setYear={setYear} setMonth={setMonth} setDate={setDate}</span>&gt;&lt;/ChooserDate&gt;</span>
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>canlender/PickerDate.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class PickerDate extends React.Component {
+    constructor() {
+        super();
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">下一月</span>
+<span style="color: #0000ff;">    nextMonth(){
+        //如果不是12月，此时月份加1 
+        if(this.props.month != 12){
+            <span style="color: #ff0000;">this.props.setMonth(this.props.month + 1);</span>
+        }else{
+            //如果是12月，此时月份变为1，年加1
+          <span style="color: #ff0000;">  this.props.setMonth(1);
+            this.props.setYear(this.props.year + 1);</span>
+        }   
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">上一月</span>
+<span style="color: #0000ff;">    prevMonth(){
+        if(this.props.month != 1) {
+            <span style="color: #ff0000;">this.props.setMonth(this.props.month - 1);</span>
+        }else{
+            <span style="color: #ff0000;">this.props.setMonth(12);
+            this.props.setYear(this.props.year - 1</span></span><span style="color: #000000;"><span style="color: #0000ff;"><span style="color: #ff0000;">);</span>
+        }
+    }</span>
+    render() {
+        const {year, month} </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.props;
+        </span><span style="color: #0000ff;">return</span> &lt;div className="picker"&gt;
+            &lt;div className="left"&gt;
+                &lt;a className="btn" href="###" <span style="color: #ff0000;">onClick={()=&gt;{this.prevMonth()}}</span>&gt;上1月&lt;/a&gt;
+            &lt;/div&gt;
+            &lt;div className="center"&gt;
+                &lt;a href="###"&gt;{year}&lt;/a&gt;年
+                &lt;a href="###"&gt;{month}&lt;/a&gt;月
+            &lt;/div&gt;
+            &lt;div className="right"&gt;
+                &lt;a className="btn" href="###" <span style="color: #ff0000;">onClick={()=&gt;{this.nextMonth()}}</span>&gt;下1月&lt;/a&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">完善</span>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>ChooserDate.js</strong></p>
+<p><strong>添加类名，点击单元格切换</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import { solar2lunar } from </span>"solarlunar"<span style="color: #000000;">;
+<span style="color: #ff0000;">import classnames from </span></span><span style="color: #ff0000;">"classnames"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class ChooserDate extends React.Component {
+    constructor() {
+        super();
+    }
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">点击某一个小格格改变年月日</span>
+<span style="color: #0000ff;">    clickTd(d, isPrevMonth, isNextMonth){
+        <span style="color: #ff0000;">this.props.setDate(d);</span>    //设置日子
+       <span style="color: #000000;"> this.props.setShowMenu(false);</span>    //关闭菜单
+        if(isPrevMonth){
+            <span style="color: #ff0000;">var dd = new Date(this.props.year, this.props.month - 2, d);    //月份要重算
+            this.props.setMonth(dd.getMonth() + 1);    //改变月份
+            this.props.setYear(dd.getFullYear());    //改变年</span>
+        }else if(isNextMonth){
+            <span style="color: #ff0000;">var dd = new Date(this.props.year, this.props.month, d);    //月份要重算
+            this.props.setMonth(dd.getMonth() + 1);    //改变月份
+            this.props.setYear(dd.getFullYear());    //改变年</span>
+        }
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">显示表格</span>
+<span style="color: #000000;">    showTable(){
+        const {year , month , date} </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.props;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">三要素</span>
+<span style="color: #000000;">           .......
+
+        </span><span style="color: #0000ff;">var</span> arr =<span style="color: #000000;"> [];
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">上个月的尾巴</span>
+        <span style="color: #0000ff;">var</span> count =<span style="color: #000000;"> thismonth1day;
+        </span><span style="color: #0000ff;">while</span>(count--<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">var</span> d = prevmonthdateamount -<span style="color: #000000;"> count;
+            </span><span style="color: #0000ff;">var</span> sl = solar2lunar(year, month - 1<span style="color: #000000;">, d);
+            arr.push({
+                </span>"d"<span style="color: #000000;"> : d,
+                </span>"cd": sl.term ||<span style="color: #000000;"> sl.dayCn,
+                </span><span style="color: #ff0000;">"gray" : true ,
+                "cur" : false ,
+                "prevMonth" : true</span><span style="color: #000000;">
+            })
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">本月</span>
+        <span style="color: #0000ff;">var</span> count = 1<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">while</span> (count &lt;=<span style="color: #000000;"> thismonthdateamount){
+            </span><span style="color: #ff0000;">var d = count;
+            </span><span style="color: #0000ff;">var</span> sl =<span style="color: #000000;"> solar2lunar(year, month, <span style="color: #ff0000;">d</span>);
+            arr.push({
+                </span>"d"<span style="color: #000000;">: d,
+                </span>"cd": sl.term ||<span style="color: #000000;"> sl.dayCn,
+                </span><span style="color: #ff0000;">"gray": false ,
+                "cur": date ==</span><span style="color: #000000;"><span style="color: #ff0000;"> d</span>
+            });
+            count</span>++<span style="color: #000000;">;
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">下月开头</span>
+        <span style="color: #0000ff;">var</span> count = 1<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">while</span>(arr.length != 35 &amp;&amp; arr.length != 42<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">var</span> d = count++<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">var</span> sl = solar2lunar(year, month + 1<span style="color: #000000;">, d);
+            arr.push({
+                </span>"d"<span style="color: #000000;">: d,
+                </span>"cd": sl.term ||<span style="color: #000000;"> sl.dayCn,
+                </span><span style="color: #ff0000;">"gray" : true ,
+                "cur" : false ,
+                'nextMonth' : true</span><span style="color: #000000;">
+            });
+        }
+
+        </span><span style="color: #0000ff;">var</span> domArr =<span style="color: #000000;"> [];
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0 ;  i &lt; arr.length / 7 ; i++<span style="color: #000000;">){
+            domArr.push(
+                </span>&lt;tr key={i}&gt;<span style="color: #000000;">
+                    {
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数组会自动展开</span>
+                        arr.slice(i * 7, i * 7 + 7).map((item, index) =&gt;<span style="color: #000000;"> {
+                            </span><span style="color: #0000ff;">return</span> &lt;<span style="color: #000000;">td 
+                                key</span>=<span style="color: #000000;">{index} 
+                             <span style="color: #ff0000;">   className</span></span><span style="color: #ff0000;">={classnames({"gray":item.gray, "cur"</span><span style="color: #000000;"><span style="color: #ff0000;">:item.cur})}</span>
+                                onClick</span>={()=&gt;{<span style="color: #0000ff;">this</span><span style="color: #000000;">.clickTd(item.d, item.prevMonth, item.nextMonth)}}
+                            </span>&gt;
+                                &lt;span className="d"&gt;{item.d}&lt;/span&gt;
+                                &lt;span className="cd"&gt;{item.cd}&lt;/span&gt;
+                            &lt;/td&gt;
+<span style="color: #000000;">                        })
+                    }
+                </span>&lt;/tr&gt;
+<span style="color: #000000;">            )
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> domArr;
+    }
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div className="chooserDate"&gt;
+            &lt;table&gt;<span style="color: #000000;">
+                ...   
+            </span>&lt;/table&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>CanlendarMenu.js<span style="font-family: 宋体;">切换视图</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import PickerDate from </span>"./PickerDate.js"<span style="color: #000000;">;
+import ChooserDate from </span>"./ChooserDate.js"<span style="color: #000000;">;
+<span style="color: #ff0000;">import ChooserDate from </span></span><span style="color: #ff0000;">"./ChooserYear.js"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class CanlendarMenu extends React.Component {
+    constructor() {
+        super();
+    }
+render() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">解构得到年、月、日</span>
+    const {year, month, date} = <span style="color: #0000ff;">this</span><span style="color: #000000;">.props;
+        </span><span style="color: #0000ff;">return</span> &lt;div className="canlendar_menu"&gt;
+            &lt;PickerDate year={year} month={month}&gt;&lt;/PickerDate&gt;
+            {<span style="color: #008000;">/*</span><span style="color: #008000;">&lt;ChooserDate year={year} month={month} date={date}&gt;&lt;/ChooserDate&gt;</span><span style="color: #008000;">*/</span><span style="color: #000000;">}
+        </span><span style="color: #ff0000;">&lt;ChooserYear year={year} setYear={setYear}&gt;&lt;/ChooserYear&gt;</span>
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>app/components/</strong><strong>c</strong><strong>anlendar</strong><strong>/</strong><strong>ChooserYear.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import classnames from </span>"classnames"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class <span style="color: #ff0000;">chooserYear</span> extends React.Component {
+    constructor() {
+        super();
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">组件上树之后</span>
+<span style="color: #0000ff;">    componentDidMount(){
+        var self = this;
+        //事件委托，因为td太多了
+        $(this.refs.table).on("click","td", function(){
+            //得到你点击的小格格里面的内容，内容就是年份
+            <span style="color: #ff0000;">var year = $(this).html();
+            self.props.setYear(year);        //设年
+            self.props.setView("date");     //回到日视图</span>
+        });
+    }
+ 
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">显示表格</span>
+<span style="color: #0000ff;">    showTable(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">算出基数年，比如当前2018年，基数年就是2010年。就是年份减去&ldquo;零头&rdquo;。</span>
+        <span style="color: #ff0000;">const baseYear = this.props.year - this.props.year % 10;
+        </span><span style="color: #0000ff;">var</span> arr =<span style="color: #000000;"> [];
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; 10 ; i++<span style="color: #000000;">){
+            arr.push(
+                </span>&lt;tr key={i}&gt;
+                    &lt;td&gt;<span style="color: #ff0000;">{baseYear + i - 20}</span>&lt;/td&gt;
+                    &lt;td&gt;<span style="color: #ff0000;">{baseYear + i - 10}</span>&lt;/td&gt;
+                    &lt;td <span style="color: #ff0000;">className={classnames({"cur":baseYear + i == this.props.year})}</span>&gt;<span style="color: #000000;">
+　　　　　　　　　　　　　　<span style="color: #ff0000;">{baseYear </span></span><span style="color: #ff0000;">+</span><span style="color: #000000;"><span style="color: #ff0000;"> i}</span>
+　　　　　　　　　　　　</span>&lt;/td&gt;
+                    &lt;td&gt;<span style="color: #ff0000;">{baseYear + i + 10}</span>&lt;/td&gt;
+                    &lt;td&gt;<span style="color: #ff0000;">{baseYear + i + 20}</span>&lt;/td&gt;
+                &lt;/tr&gt;
+<span style="color: #000000;">            )
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> arr;
+    <span style="color: #0000ff;">}</span>
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div className="chooserYear"&gt;
+            &lt;table <span style="color: #ff0000;">ref="table"</span>&gt;
+                &lt;tbody&gt;<span style="color: #000000;">
+                    {</span><span style="color: #ff0000;">this</span><span style="color: #000000;"><span style="color: #ff0000;">.showTable()</span>}
+                </span>&lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p><strong>CSS<span style="font-family: 宋体;">样式：</span></strong></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ffbae9a8-78fe-4b98-8009-2c0e989e78ab')"><img id="code_img_closed_ffbae9a8-78fe-4b98-8009-2c0e989e78ab" class="code_img_closed" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发1.png" alt="" /><img id="code_img_opened_ffbae9a8-78fe-4b98-8009-2c0e989e78ab" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ffbae9a8-78fe-4b98-8009-2c0e989e78ab',event)" src="./images/前端笔记之React（四）生命周期&amp;Virtual DOM和Diff算法&amp;日历组件开发2.png" alt="" />
+<div id="cnblogs_code_open_ffbae9a8-78fe-4b98-8009-2c0e989e78ab" class="cnblogs_code_hide">
+<pre><code><span style="color: #800000;">.canlendar .chooserYear table .cur</span>{<span style="color: #ff0000;">color</span>:<span style="color: #0000ff;">red</span>;<span style="color: #ff0000;">font-weight</span>:<span style="color: #0000ff;"> bold</span>;}<span style="color: #800000;">
+.canlendar .chooserMonth table</span>{<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;">100%</span>;<span style="color: #ff0000;">text-align</span>:<span style="color: #0000ff;"> center</span>;<span style="color: #ff0000;">line-height</span>:<span style="color: #0000ff;"> 40px</span>;
+}<span style="color: #800000;">
+.canlendar a</span>{<span style="color: #ff0000;">
+    color</span>:<span style="color: #0000ff;"> #2196F3</span>;<span style="color: #ff0000;">text-decoration</span>:<span style="color: #0000ff;"> none</span>;<span style="color: #ff0000;">padding</span>:<span style="color: #0000ff;"> 0 3px</span>;
+}</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p><strong>canlendar/CanlendarMenu.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import PickerDate from </span>"./PickerDate.js"<span style="color: #000000;">;
+<span style="color: #ff0000;">import PickerYear from </span></span><span style="color: #ff0000;">"./PickerYear.js"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+import ChooserDate from </span>"./ChooserDate.js"<span style="color: #000000;">;
+<span style="color: #ff0000;">import ChooserYear from </span></span><span style="color: #ff0000;">"./ChooserYear.js";
+import ChooserMonth from "./ChooserMonth.js"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class CanlendarMenu extends React.Component {
+    constructor() {
+        super();
+        </span><span style="color: #ff0000;">this.state = {
+            view : "date"  //当前的视图date、month、year
+</span><span style="color: #000000;"><span style="color: #ff0000;">        }</span>
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">设置视图</span>
+<span style="color: #0000ff;">    setView(view){
+       <span style="color: #ff0000;"> this</span></span><span style="color: #000000;"><span style="color: #0000ff;"><span style="color: #ff0000;">.setState({view});</span>
+    }</span>
+    render() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">解构得到年、月、日</span>
+        const { year, month, date, setYear, setMonth, setDate, setShowMenu} = <span style="color: #0000ff;">this</span><span style="color: #000000;">.props;
+         
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">定义Chooser组件</span>
+      <span style="color: #0000ff;">  const <span style="color: #ff0000;">Chooser</span> = ()=&gt;{
+            //根据state的view属性的值，来决定真实的chooser
+            if(this.state.view == "date"){
+                </span><span style="color: #0000ff;">return</span><span style="color: #0000ff;"> &lt;</span><span style="color: #000000;"><span style="color: #0000ff;">ChooserDate</span>
+                   <span style="color: #ff0000;"> year</span></span><span style="color: #ff0000;">={year}
+                    month={month}
+                    date={date}
+                    setYear={setYear}
+                    setMonth={setMonth}
+                    setDate={setDate}
+                    setShowMenu={setShowMenu}
+                </span><span style="color: #0000ff;">&gt;&lt;/ChooserDate&gt;
+            }else if(this.state.view == "year"){
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">&lt;</span><span style="color: #000000;"><span style="color: #0000ff;">ChooserYear</span>
+                    <span style="color: #ff0000;">year</span></span><span style="color: #ff0000;">={year}
+                    setYear={setYear}
+                    setView={this.setView.bind(this)}
+                </span><span style="color: #0000ff;">&gt;&lt;/ChooserYear&gt;
+            } else if (this.state.view == "month") {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">&lt;</span><span style="color: #000000;"><span style="color: #0000ff;">ChooserMonth</span>
+                    <span style="color: #ff0000;">setMonth</span></span><span style="color: #ff0000;">={setMonth}
+                    setView={this.setView.bind(this)}
+                </span><span style="color: #0000ff;">&gt;&lt;/ChooserMonth&gt;
+            }
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">定义Picker组件</span>
+        <span style="color: #0000ff;">const <span style="color: #ff0000;">Picker</span> = ()=&gt;{
+            if(this.state.view == "date"){
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">&lt;</span><span style="color: #000000;"><span style="color: #0000ff;">PickerDate</span> 
+                   <span style="color: #ff0000;"> year</span></span><span style="color: #ff0000;">={year} 
+                    month={month} 
+                    setYear={setYear} 
+                    setMonth={setMonth} 
+                    setView={this.setView.bind(this)}
+                </span><span style="color: #0000ff;">&gt;&lt;/PickerDate&gt; 
+            }else if(this.state.view == "year"){
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">&lt;</span><span style="color: #000000;"><span style="color: #0000ff;"> PickerYear</span>
+                   <span style="color: #ff0000;"> year</span></span><span style="color: #ff0000;">={year}
+                    setYear={setYear}
+                </span><span style="color: #0000ff;">&gt;&lt;/PickerYear &gt;
+            }else if(this.state.view == "month"){
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+           <span style="color: #0000ff;"> }
+        }
+
+        </span></span><span style="color: #0000ff;">return</span> &lt;div className="canlendar_menu"&gt;
+            <span style="color: #ff0000;">&lt;Picker&gt;&lt;/Picker&gt;
+            &lt;Chooser&gt;&lt;/Chooser&gt;</span>
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>canlendar/PickerYear.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class <span style="color: #ff0000;">PickerYear</span> extends React.Component {
+    constructor() {
+        super();
+    }
+    render() {
+        <span style="color: #ff0000;">const {year, setYear} </span></span><span style="color: #ff0000;">= this.props;
+        </span><span style="color: #0000ff;">return</span> &lt;div className="picker"&gt;
+            &lt;div className="left"&gt;
+                &lt;a className="btn" href="javascript:;"<span style="color: #ff0000;"> onClick={()=&gt;{setYear(year-1)}}</span>&gt;<span style="color: #000000;">
+                   上1年
+                </span>&lt;/a&gt;
+            &lt;/div&gt;
+            &lt;div className="center"&gt;<span style="color: #000000;"><span style="color: #ff0000;">
+                {year}</span>年
+            </span>&lt;/div&gt;
+            &lt;div className="right"&gt;
+                &lt;a className="btn" href="javascript:;" <span style="color: #ff0000;">onClick={()=&gt;{ setYear(year + 1)}}</span>&gt;<span style="color: #000000;">
+                    下1年
+                </span>&lt;/a&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p><strong>canlendar/ChooserMonth.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import classnames from </span>"classnames"<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class <span style="color: #ff0000;">chooserMonth</span> extends React.Component {
+    constructor() {
+        super();
+
+    }
+    componentDidMount(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">事件委托</span>
+        <span style="color: #0000ff;">var</span> self = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+       <span style="color: #0000ff;"> $(</span></span><span style="color: #0000ff;">this.refs.table).on("click","td", function(){
+           <span style="color: #ff0000;"> self.props.setMonth(parseInt($(this).data("m")));
+            self.props.setView("date"</span></span><span style="color: #000000;"><span style="color: #0000ff;"><span style="color: #ff0000;">);</span>
+        })</span>
+    }
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div className="chooserMonth"&gt;
+            &lt;table <span style="color: #0000ff;">ref="table"</span>&gt;
+                &lt;tbody&gt;
+                    &lt;tr&gt;
+                        &lt;td data-m="1"&gt;1月&lt;/td&gt;
+                        &lt;td data-m="7"&gt;7月&lt;/td&gt;
+                    &lt;/tr&gt;
+                    &lt;tr&gt;
+                        &lt;td data-m="2"&gt;2月&lt;/td&gt;
+                        &lt;td data-m="8"&gt;8月&lt;/td&gt;
+                    &lt;/tr&gt;
+                    &lt;tr&gt;
+                        &lt;td data-m="3"&gt;3月&lt;/td&gt;
+                        &lt;td data-m="9"&gt;9月&lt;/td&gt;
+                    &lt;/tr&gt;
+                    &lt;tr&gt;
+                        &lt;td data-m="4"&gt;4月&lt;/td&gt;
+                        &lt;td data-m="10"&gt;10月&lt;/td&gt;
+                    &lt;/tr&gt;
+                    &lt;tr&gt;
+                        &lt;td data-m="5"&gt;5月&lt;/td&gt;
+                        &lt;td data-m="11"&gt;11月&lt;/td&gt;
+                    &lt;/tr&gt;
+                    &lt;tr&gt;
+                        &lt;td data-m="6"&gt;6月&lt;/td&gt;
+                        &lt;td data-m="12"&gt;12月&lt;/td&gt;
+                    &lt;/tr&gt;
+                &lt;/tbody&gt;
+            &lt;/table&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<hr />
+<p><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">&nbsp;</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

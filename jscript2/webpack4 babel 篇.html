@@ -1,0 +1,137 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack4 babel 篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack4 babel 篇</center></div><div class='banquan'>原文出处:本文由博客园博主郭佬提供。<br/>
+原文连接:https://www.cnblogs.com/guolao/p/11244758.html</div><br>
+    <p><a href="https://github.com/imguolao/webpack4-demo">demo 代码点此</a>，如果对 babel 不熟，可以看一下<a href="https://github.com/imguolao/webpack4-demo/blob/master/babel7/babel_7.md">babel 7 简单指北</a>。</p>
+<p>webpack 使用 babel 来打包使用 es6 及以上语法的 js 文件是非常方便的，可以通过配置，将 es6 转化为 es5.</p>
+<h2 id="start">start</h2>
+<hr />
+<p>准备个空文件，执行如下命令：</p>
+<pre><code><code>npm init -y
+npm i -D webpack webpack-cli
+npm i -D babel-loader @babel/core</code></pre>
+<p>然后创建一个 dist 文件夹，创建一个 html 文件：</p>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+  &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;ie=edge&quot;&gt;
+  &lt;title&gt;webpack4 babel 篇&lt;/title&gt;
+&lt;body&gt;
+  &lt;div id=&quot;root&quot;&gt;&lt;/div&gt;
+&lt;script type=&quot;text/javascript&quot; src=&quot;bundle.js&quot;&gt;&lt;/script&gt;&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>根目录下创建 webpack.config.js，配置 webpack:</p>
+<pre class="js"><code>const path = require(&#39;path&#39;);
+
+module.exports = {
+  mode: &#39;development&#39;,
+  entry: {
+    main: &#39;./index.js&#39;,
+  },
+  module: {
+    rules: [
+      { 
+        test: /\.js$/, 
+        exclude: /node_modules/, 
+        loader: &quot;babel-loader&quot;,
+      },
+    ],
+  },
+  devtool: &#39;source-map&#39;,
+  // 出口
+  output: {
+    filename: &#39;bundle.js&#39;,
+    path: path.resolve(__dirname, &#39;dist&#39;),
+  },
+}</code></pre>
+<p>为了转化 es6 代码，要安装 babel 插件:</p>
+<pre><code><code>npm i -D @babel/preset-env @babel/polyfill</code></pre>
+<p>然后在根目录下创建 babel 配置文件 .babelrc:</p>
+<pre><code><code>{
+  &quot;presets&quot;: [
+    [
+      &quot;@babel/preset-env&quot;,
+      {
+        &quot;useBuiltIns&quot;: &quot;usage&quot;,
+        &quot;targets&quot;: {
+          &quot;browsers&quot;: [&quot;last 2 versions&quot;, &quot;ie &gt;= 10&quot;]
+        }
+      }
+    ]
+  ]
+}</code></pre>
+<p>然后在根目录下创建 index.js:</p>
+<pre class="js"><code>const add = (x, y) =&gt; {
+  return new Promise((resolve, reject) =&gt; {
+    resolve( x + y);
+  });
+}
+
+add(1, 2).then(res =&gt; console.log(res));</code></pre>
+<h2 id="打包">打包</h2>
+<hr />
+<p>终端执行打包：</p>
+<pre><code><code>npx webpack</code></pre>
+<p>打开 dist 目录下的 bundle.js，可以看见代码已经转为 es5，搜索 promise，会发现加上了 promise 的 polyfill：</p>
+<pre class="js"><code>// bundle.js
+
+...
+var add = function add(x, y) {
+  return new Promise(function (resolve, reject) {
+    resolve(x + y);
+  });
+};
+
+add(1, 2).then(function (res) {
+  return console.log(res);
+});
+...</code></pre>
+<p>访问 index.html，console 也打印正常。</p>
+<h2 id="防止全局污染">防止全局污染</h2>
+<hr />
+<p>如果是写第三方库或者框架，使用 polyfill 可能会造成全局污染，所以可以使用 @babel/plugin-transform-runtime 防止全局污染。</p>
+<p>安装：</p>
+<pre class="pow"><code>npm i -D @babel/plugin-transform-runtime
+npm i -S @babel/runtime @babel/runtime-corejs2</code></pre>
+<p>修改 babel 配置：</p>
+<pre><code><code>{
+  &quot;plugins&quot;: [
+    [
+      &quot;@babel/plugin-transform-runtime&quot;,
+      {
+        &quot;corejs&quot;: 2,
+        &quot;helpers&quot;: true,
+        &quot;regenerator&quot;: true,
+        &quot;useESModules&quot;: false
+      }
+    ]
+  ]
+}</code></pre>
+<p>打包即可。</p>
+<h2 id="备注">备注</h2>
+<hr />
+<p>这个主要是 babel 的配置。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

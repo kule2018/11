@@ -1,0 +1,183 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ES6入门之Proxy' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ES6入门之Proxy</center></div><div class='banquan'>原文出处:本文由博客园博主lieone提供。<br/>
+原文连接:https://www.cnblogs.com/lieone/p/11572833.html</div><br>
+    <h2 id="概述">1. 概述</h2>
+<blockquote>
+<p>Proxy 用于修改某些操作的默认行为，等同于在语言层面做出修改，所以属于一种『元编程』即对编程语言进行编程。</p>
+</blockquote>
+<h3 id="理解">1.1 理解</h3>
+<blockquote>
+<p>Proxy 是在目标对象之前架设一层『拦截』，外部对对象的访问，都需要经过该层拦截。因此在拦截中对外界的访问进行过滤和改写。</p>
+</blockquote>
+<p>在Es6 中 提供了原生的 Proxy 构造函数，可以用来生成 Proxy实例。</p>
+<pre><code><code>let proxy = new Proxy(target, handler)</code></pre>
+<p>Proxy 对象的所有用法，都是上面的形式，不同的只是handler参数的写法。其中new Proxy() 表示生成一个 Proxy实例，target 参数表示所有拦截的目标对象， handler 参数也是一个对象，用来定制拦截行为。如下：</p>
+<pre><code><code>let proxy = new Proxy({}, {
+    get: function(target, property) {
+        return 35
+    }
+})
+
+proxy.time // 35
+proxy.name // 35
+proxy.title // 35</code></pre>
+<p><strong>解读：</strong></p>
+<p>在上面中，作为构造函数，Proxy接受两个参数。第一个参数即所要代理的目标对象，如果没有 Proxy的介入，操作原来要访问的就是这个对象。第二个参数是一个配置对象，用来对每个代理对象的操作，提供具体的函数和拦截操作。上述代码中有一个 get 函数，用来拦截对目标对象属性的访问请求。</p>
+<p>另外，要使 Proxy起作用，必须针对 Proxy 实例进行操作，而不是针对目标对象进行操作。</p>
+<p>如果 handler 没有设置任何拦截，那就等同于直接通向原对象。如下：</p>
+<pre><code><code>let target = {}
+let handler = {}
+let proxy = new Proxy(target, handler)
+
+
+proxy.a = &#39;b&#39;
+target.a = &#39;b&#39;</code></pre>
+<p>对于上面的例子，我们可以讲Proxy对象，设置到 object.proxy属性，从而可以在object对象上调用。</p>
+<pre><code><code>let object = {proxy: new Proxy(target, handler)}</code></pre>
+<p>Proxy 实例也可以作为其他对象的原型对象。</p>
+<pre><code><code>let proxy = new Proxy({}, {
+    get: function(target, property) {
+        retrun 35
+    }
+})
+
+let obj = Object.create(proxy)
+obj.time    // 35
+
+另外同一个拦截器，可以设置多个拦截操作。</code></pre>
+<p>常用的Proxy支持的拦截操作如下：</p>
+<ul>
+<li>get(target, propKey, receiver): 拦截对象属性的读取，比如 proxy.foo 和 proxy['foo']</li>
+<li>set(target, propKey, value, receiver): 拦截对象属性的设置，比如 proxy.foo = v 或 proxy['foo'] = v， 返回一个布尔值</li>
+<li>has(target, proKey): 拦截propKey in proxy的操作，返回一个布尔值</li>
+<li>apply(target, object, args): 拦截Proxy 实例作为函数调用的操作，比如 proxy(...args)、proxy.call(object, ...args) 、 proxy.apply(...)。</li>
+<li>deleteProperty(target, proKey): 拦截 delete proxy[propKey]的操作，返回一个布尔值</li>
+<li>ownKeys(target): 拦截 Object.getOwnProPertyNames(proxy),返回一个数组。该方法返回目标对象所有自身的属性的属性名，而Object.keys() 的返回结果仅包括目标对象自身的可遍历属性。</li>
+</ul>
+<h3 id="get">1.2 get()</h3>
+<blockquote>
+<p>get 方法用于拦截某个属性的读取操作，可以接受三个参数，依次为目标对象、属性名和proxy实例本身，最后一个参数可选。</p>
+</blockquote>
+<pre><code><code>let p = {
+    name: &#39;李四&#39;
+}
+
+let proxy = new Proxy(p, {
+    get: function(target, property) {
+        if (property in target) {
+            retrun target[property]
+        } else {
+            console.log(&#39;报错&#39;)
+        }
+    }
+})
+
+proxy.name // &#39;李四&#39;
+proxy.age  // &#39;报错&#39;</code></pre>
+<p><strong>注意点</strong></p>
+<ul>
+<li>get方法可以继承</li>
+<li>get方法可以进行链式操作</li>
+</ul>
+<h3 id="set">1.3 set</h3>
+<blockquote>
+<p>set 方法用来拦截某个属性的赋值操作，可以接受四个参数，依次为目标对象、属性名、属性值和Proxy实例本身，最后一个可选</p>
+</blockquote>
+<pre><code><code>let v = {
+    set: function(obj, prop, value) {
+         if (prop === &#39;age&#39;) {
+             if(!Number.isInteger(value)) {
+                 console.log(&#39;报错&#39;)
+             }
+             
+             if(value &gt; 200) {
+                 console.log(&#39;成功&#39;)
+             }
+             
+             obj[prop] = value
+         }
+    }
+}
+
+let p = new Proxy({}, v)
+
+p.age = 100
+
+p.age   // 100
+
+p.age = &#39;n&#39;
+p.age   // 报错</code></pre>
+<p><strong>利用set方法，可以数据绑定，即每当对象发生变化时，会自动更新Dom</strong></p>
+<p>如果目标对象自身的某个属性，不可写且不可配置，那么Set 方法将不起作用。</p>
+<p>1.4 apply()</p>
+<blockquote>
+<p>apply 方法拦截函数的调用、call 和 apply操作。它可以接受三个参数，分别时目标对象、目标对象的上下文对象（this）和目标对象的参数数组。</p>
+</blockquote>
+<pre><code><code>let h = {
+    apply(target, ctx, args) {
+        return Reflect.apply(...arguments)
+    }
+}
+
+let target = function() {return &#39;haha&#39;)
+let h = {
+    apply: function() {
+        return &#39;heihei&#39;
+    }
+}
+
+let p = new Proxy(taraget, h)
+
+p() // &#39;heihei&#39;</code></pre>
+<h3 id="has">1.5 has</h3>
+<blockquote>
+<p>has 方法用来拦截 HasProperty 操作， 即判断对象是否具有某个属性时，这个方法会生效。</p>
+</blockquote>
+<p>has 方法可以接受两个参数，分别时目标对象、需要查询的属性名。</p>
+<p>注意：has 方法拦截的时 HasProperty操作，而不是HasOwnProperty操作，即has 方法不判断一个属性是对象自身的属性，还是继承的属性。</p>
+<h3 id="construct">1.6 construct</h3>
+<blockquote>
+<p>construct 方法用于拦截 new命令，下面是拦截对象的写法</p>
+</blockquote>
+<pre><code><code>let h = {
+    construct(target, args, newTarget) {
+        retrun new target(...args)
+    }
+}
+
+target: 目标对象
+args： 构造函数的参数对象
+newTarget: 创造实例对象时，new命令作用的构造函数</code></pre>
+<h3 id="deleteproperty">1.7 deleteProperty()</h3>
+<blockquote>
+<p>deleteProperty 方法用于拦截 delete 操作，如果这个方法抛出错误或者返回false，当前属性就无法被delete命令删除。</p>
+</blockquote>
+<h2 id="this问题">2. this问题</h2>
+<blockquote>
+<p>虽然 Proxy 可以代理针对目标对象的访问，但它不是目标对象的透明代理，即不做任何拦截的情况下，也无法保证目标对象的行为一致。主要原因就是在Proxy代理的情况下，目标对象内部的this关键字会指向Proxy代理</p>
+</blockquote>
+<h3 id="关注公众号-小夭同学">关注公众号 【小夭同学】</h3>
+<p><img src="./images/ES6入门之Proxy0.png" alt="公众号小夭同学" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

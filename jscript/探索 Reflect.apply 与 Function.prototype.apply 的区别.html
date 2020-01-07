@@ -1,0 +1,167 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修探索 Reflect.apply 与 Function.prototype.apply 的区别' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>探索 Reflect.apply 与 Function.prototype.apply 的区别</center></div><div class='banquan'>原文出处:本文由博客园博主BlackStorm提供。<br/>
+原文连接:https://www.cnblogs.com/BlackStorm/p/11975502.html</div><br>
+    <h1 id="探索-reflect.apply-与-function.prototype.apply-的区别">探索 Reflect.apply 与 Function.prototype.apply 的区别</h1>
+<p>众所周知， ES6 新增了一个全局、内建、不可构造的 <code>Reflect</code> 对象，并提供了其下一系列可被拦截的操作方法。其中一个便是 <code>Reflect.apply()</code> 了。下面探究下它与传统 ES5 的 <code>Function.prototype.apply()</code> 之间有什么异同。</p>
+<h2 id="函数签名">函数签名</h2>
+<p>MDN 上两者的函数签名分别如下：</p>
+<pre><code><code>Reflect.apply(target, thisArgument, argumentsList)</code></pre>
+<pre class="javascript"><code>function.apply(thisArg, [argsArray])</code></pre>
+<p>而 TypeScript 定义的函数签名则分别如下：</p>
+<pre class="typescript"><code>declare namespace Reflect {
+    function apply(target: Function, thisArgument: any, argumentsList: ArrayLike&lt;any&gt;): any;
+}</code></pre>
+<pre class="typescript"><code>interface Function {
+    apply(this: Function, thisArg: any, argArray?: any): any;
+}</code></pre>
+<p>它们都接受一个提供给被调用函数的 this 参数和一个参数数组（或一个类数组对象， array-like object ）。</p>
+<h3 id="可选参数">可选参数</h3>
+<p>可以最直观看到的是， <code>function.apply()</code> 给函数的第二个传参「参数数组」是可选的，当不需要传递参数给被调用的函数时，可以不传或传递 <code>null</code> 、 <code>undefined</code> 值。而由于 <code>function.apply()</code> 只有两个参数，所以实践中连第一个参数也可以一起不传，原理上可以在实现中获得 <code>undefined</code> 值。</p>
+<pre class="javascript"><code>(function () { console.log(&#39;test1&#39;) }).apply()
+// test1
+(function () { console.log(&#39;test2&#39;) }).apply(undefined, [])
+// test2
+(function () { console.log(&#39;test3&#39;) }).apply(undefined, {})
+// test3
+(function (text) { console.log(text) }).apply(undefined, [&#39;test4&#39;])
+// test4</code></pre>
+<p>而 <code>Reflect.apply()</code> 则要求所有参数都必传，如果希望不传参数给被调用的函数，则必须填一个空数组或者空的类数组对象（纯 JavaScript 下空对象也可以，若是 TypeScript 则需带上 <code>length: 0</code> 的键值对以通过类型检查）。</p>
+<pre class="javascript"><code>Reflect.apply(function () { console.log(&#39;test1&#39;) }, undefined)
+// Thrown:
+// TypeError: CreateListFromArrayLike called on non-object
+Reflect.apply(function () { console.log(&#39;test2&#39;) }, undefined, [])
+// test2
+Reflect.apply(function () { console.log(&#39;test3&#39;) }, undefined, {})
+// test3
+Reflect.apply(function (text) { console.log(text) }, undefined, [&#39;test4&#39;])
+// test4</code></pre>
+<h3 id="非严格模式">非严格模式</h3>
+<p>由文档可知， <code>function.apply()</code> 在非严格模式下 <code>thisArg</code> 参数变现会有所不同，若它的值是 <code>null</code> 或 <code>undefined</code> ，则会被自动替换为全局对象（浏览器下为 <code>window</code> ），而基本数据类型值则会被自动包装（如字面量 <code>1</code> 的包装值等价于 <code>Number(1)</code> ）。</p>
+<blockquote>
+<p>Note that <code>this</code> may not be the actual value seen by the method: if the method is a function in <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Strict_mode">non-strict mode</a> code, <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/null"><code>null</code></a> and <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/undefined"><code>undefined</code></a> will be replaced with the global object, and primitive values will be boxed. This argument is not optional</p>
+</blockquote>
+<pre class="javascript"><code>(function () { console.log(this) }).apply(null)
+// Window {...}
+(function () { console.log(this) }).apply(1)
+// Number { [[PrimitiveValue]]: 1 }
+(function () { console.log(this) }).apply(true)
+// Boolean { [[PrimitiveValue]]: true }</code></pre>
+<pre class="javascript"><code>&#39;use strict&#39;;
+(function () { console.log(this) }).apply(null)
+// null
+(function () { console.log(this) }).apply(1)
+// 1
+(function () { console.log(this) }).apply(true)
+// true</code></pre>
+<p>但经过测试，发现上述该非严格模式下的行为对于 <code>Reflect.apply()</code> 也是有效的，只是 MDN 文档没有同样写明这一点。</p>
+<h2 id="异常处理">异常处理</h2>
+<p><code>Reflect.apply</code> 可视作对 <code>Function.prototype.apply</code> 的封装，一些异常判断是一样的。如传递的目标函数 <code>target</code> 实际上不可调用、不是一个函数等等，都会触发异常。但异常的表现却可能是不一样的。</p>
+<p>如我们向 <code>target</code> 参数传递一个对象而非函数，应当触发异常。</p>
+<p>而 <code>Function.prototype.apply()</code> 抛出的异常语义不明，直译是 <code>.call</code> 不是一个函数，但如果我们传递一个正确可调用的函数对象，则不会报错，让人迷惑 <code>Function.prototype.apply</code> 下到底有没有 <code>call</code> 属性？</p>
+<pre class=" javascript"><code>Function.prototype.apply.call()
+// Thrown:
+// TypeError: Function.prototype.apply.call is not a function
+Function.prototype.apply.call(console)
+// Thrown:
+// TypeError: Function.prototype.apply.call is not a function
+Function.prototype.apply.call(console.log)
+///- 输出为空，符合预期</code></pre>
+<p><code>Function.prototype.apply()</code> 抛出的异常具有歧义，同样是给 <code>target</code> 参数传递不可调用的对象，如果补齐了第二、第三个参数，则抛出的异常描述与上述完全不同：</p>
+<pre class="javascript"><code>Function.prototype.apply.call(console, null, [])
+// Thrown:
+// TypeError: Function.prototype.apply was called on #&lt;Object&gt;, which is a object and not a function
+Function.prototype.apply.call([], null, [])
+// Thrown:
+// TypeError: Function.prototype.apply was called on [object Array], which is a object and not a function
+Function.prototype.apply.call(&#39;&#39;, null, [])
+// Thrown:
+// TypeError: Function.prototype.apply was called on , which is a string and not a function</code></pre>
+<p>不过 <code>Reflect.apply()</code> 对于只传递一个不可调用对象的异常，是与 <code>Function.prototype.apply()</code> 全参数的异常是一样的：</p>
+<pre class="javascript"><code>Reflect.apply(console)
+// Thrown:
+// TypeError: Function.prototype.apply was called on #&lt;Object&gt;, which is a object and not a function</code></pre>
+<p>而如果传递了正确可调用的函数，才会去校验第三个参数数组的参数；这也说明 <code>Reflect.apply()</code> 的参数校验是有顺序的：</p>
+<pre class="javascript"><code>Reflect.apply(console.log)
+// Thrown:
+// TypeError: CreateListFromArrayLike called on non-object</code></pre>
+<h2 id="实际使用">实际使用</h2>
+<p>虽然目前没有在 <code>Proxy</code> 以外的场景看到更多的使用案例，但相信在兼容性问题逐渐变得不是问题的时候，使用率会得到逐渐上升。</p>
+<p>我们可以发现 ES6 <code>Reflect.apply()</code> 的形式相较于传统 ES5 的用法，会显得更直观、易读了，让人更容易看出，一行代码希望使用哪个函数，执行预期的行为。</p>
+<pre class="javascript"><code>// ES5
+Function.prototype.apply.call(&lt;Function&gt;, undefined, [...])
+&lt;Function&gt;.apply(undefined, [...])
+// ES6
+Reflect.apply(&lt;Function&gt;, undefined, [...])</code></pre>
+<p>我们选择常用的 <code>Object.prototype.toString</code> 比较看看：</p>
+<pre class="javascript"><code>Object.prototype.toString.apply(/ /)
+// &#39;[object RegExp]&#39;
+Reflect.apply(Object.prototype.toString, / /, [])
+// &#39;[object RegExp]&#39;</code></pre>
+<p>可能有人会不同意，这不是写得更长、更麻烦了吗？关于这点，见仁见智，对于单一函数的重复调用，确实是打的代码更多了；对于需要灵活使用的场景，会更符合函数式的风格，只需指定函数对象、传递参数，即可获得预期的结果。</p>
+<p>但是对于这个案例来说，可能还会有一点小问题：每次调用都需要创建一个新的空数组！尽管现在多数设备性能足够好，程序员不需额外考虑这点损耗，但是对于高性能、引擎又没有优化的场景，先创建一个可重复使用的空数组可能会更好：</p>
+<pre class="javascript"><code>const EmptyArgs = []
+
+function getType(obj) {
+    return Reflect.apply(
+        Object.prototype.toString,
+        obj,
+        EmptyArgs
+    )
+}</code></pre>
+<p>另一个调用 <code>String.fromCharCode()</code> 的场景可以做代码中字符串的混淆：</p>
+<pre class="javascript"><code>Reflect.apply(
+    String.fromCharCode,
+    undefined,
+    [104, 101, 108, 108,
+     111,  32, 119, 111,
+     114, 108, 100,  33]
+)
+// &#39;hello world!&#39;</code></pre>
+<p>对于可传多个参数的函数如 <code>Math.max()</code> 等可能会更有用，如：</p>
+<pre class="javascript"><code>const arr = [1, 1, 2, 3, 5, 8]
+Reflect.apply(Math.max, undefined, arr)
+// 8
+Function.prototype.apply.call(Math.max, undefined, arr)
+// 8
+Math.max.apply(undefined, arr)
+// 8</code></pre>
+<p>但由于语言标准规范没有指定最大参数个数，如果传入太大的数组的话也可能报超过栈大小的错误。这个大小因平台和引擎而异，如 PC 端 node.js 可以达到很大的大小，而手机端的 JSC 可能就会限制到 65536 等。</p>
+<pre class="javascript"><code>const arr = new Array(Math.floor(2**18)).fill(0)
+// [
+//   0, 0, 0, 0,
+//   ... 262140 more items
+// ]
+Reflect.apply(Math.max, null, arr)
+// Thrown:
+// RangeError: Maximum call stack size exceeded</code></pre>
+<h2 id="总结">总结</h2>
+<p>ES6 新标准提供的 <code>Reflect.apply()</code> 更规整易用，它有如下特点：</p>
+<ol>
+<li>直观易读，将被调用函数放在参数中，贴近函数式风格；</li>
+<li>异常处理具有一致性，无歧义；</li>
+<li>所有参数必传，编译期错误检查和类型推断更友好。</li>
+</ol>
+<p>如今 Vue.js 3 也在其响应式系统中大量使用 Proxy 和 Reflect 了，期待不久的将来 Reflect 会在前端世界中大放异彩！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

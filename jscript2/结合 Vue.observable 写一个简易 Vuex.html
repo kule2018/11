@@ -1,0 +1,153 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修结合 Vue.observable 写一个简易 Vuex' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>结合 Vue.observable 写一个简易 Vuex</center></div><div class='banquan'>原文出处:本文由博客园博主Wise.Wrong提供。<br/>
+原文连接:https://www.cnblogs.com/wisewrong/p/11497394.html</div><br>
+    <p><span style="font-size: 14px;">作为 Vue 全家桶的一员，Vuex 的重要性不言而喻，不管是用来管理状态，还是封装 Controler 都很好用</span></p>
+<p><span style="font-size: 14px;">不过在一些体量较小的项目中，为了几个简单的状态或者处理函数而引入 Vuex，就像是高射炮打蚊子，大材小用了</span></p>
+<p><span style="font-size: 14px;">这时候就可以模拟 Vuex，自己写一个简单的 Store， 用来管理状态并实时更新数据</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>一、构造函数</strong></span></p>
+<p><span style="font-size: 14px;">模拟 Vuex 的结构，创建一个 Class</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">export <span style="color: #0000ff;">default</span> <span style="color: #0000ff;">class</span><span style="color: #000000;"> Store {
+  constructor({ states, actions, mutations }) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 状态</span>
+    <span style="color: #0000ff;">this</span>.states =<span style="color: #000000;"> states || {};
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 异步函数</span>
+    <span style="color: #0000ff;">this</span>.actions =<span style="color: #000000;"> actions || {};
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 同步函数</span>
+    <span style="color: #0000ff;">this</span>.mutations =<span style="color: #000000;"> mutations || {};
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用 mutations 中的同步函数</span>
+  commit = (fun, <span style="color: #0000ff;">params</span>) =&gt;<span style="color: #000000;"> {};
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用 actions 中的异步函数</span>
+  dispatch = (fun, <span style="color: #0000ff;">params</span>) =&gt;<span style="color: #000000;"> {};
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 更新 states 的状态</span>
+  update = (key, value) =&gt;<span style="color: #000000;"> {};
+}</span></span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 14px;">然后实例化一个 Store</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">import Store <span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">./store</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+
+import states </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">./states</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import actions </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">./actions</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import mutations </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">./mutations</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+
+</span><span style="color: #0000ff;">const</span> store = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Store({
+  states,
+  actions,
+  mutations,
+});
+
+export </span><span style="color: #0000ff;">default</span> store;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 14px;">然后挂到 vue 的原型上，通过 vue.$store 的方式使用，一个高仿 vuex 的架子就搭好了</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #008000;">//</span><span style="color: #008000;"> 在 main.js 中引入 Store</span>
+import store <span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">./store/index</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+Vue.prototype.$store </span>= store;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>二、实现操作函数（<strong><strong>commit、dispatch、update</strong></strong>）</strong></span></p>
+<p><span style="font-size: 14px;">在 Vuex 中，如果需要更新 state 中的状态，需要通过 commit 调用&nbsp;mutations 中的方法</span></p>
+<p><span style="font-size: 14px;">而 mutations 的方法都具备一个默认的参数 state，因此 commit 方法可以这么写：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #008000;">//</span><span style="color: #008000;"> 向 mutations 中的传入固定参数 state</span>
+commit = (fun, <span style="color: #0000ff;">params</span>) =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">this</span>.mutations[fun](<span style="color: #0000ff;">this</span>.states, <span style="color: #0000ff;">params</span><span style="color: #000000;">);
+};</span></span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 14px;">不过由于一些历史遗留问题，我习惯用 this.states 的方式获取 state<span style="color: #888888;">（这个习惯不好）</span>，所以改成了这样：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">  commit = (fun, <span style="color: #0000ff;">params</span>) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (fun) {
+      </span><span style="color: #0000ff;">this</span>.mutations[fun].call(<span style="color: #0000ff;">this</span>, <span style="color: #0000ff;">params</span><span style="color: #000000;">);
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+  };</span></span></pre>
+</div>
+<p><span style="font-size: 14px;">类似的 actions 和 update 可以参考 commit 的写法</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>三、响应式对象</strong></span></p>
+<p><span style="font-size: 14px;">目前的 store 有一个致命的问题：state 更新之后并不会即时渲染到视图层</span></p>
+<p><span style="font-size: 14px;">这时候 <span style="color: #800000;"><strong>Vue 2.6.0</strong></span> 新增的&nbsp;<strong><span style="color: #008080;">observable()</span></strong> 就派上用场了</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 14px;">如果将一个对象作为入参传给 Vue.observable() ，经过处理之后，这个对象在 Vue 内就可以实时更新</span></p>
+<p><span style="font-size: 14px;">其返回值可以直接用于 render 和 computed 中，并且会在发生改变时触发相应的更新</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 14px;">于是 Store 的构造函数需要改一改：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000000;">  constructor({ states, actions, mutations }) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 状态</span>
+    <span style="color: #0000ff;">this</span>.states = Vue.observable(states ||<span style="color: #000000;"> {});
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 异步函数</span>
+    <span style="color: #0000ff;">this</span>.actions = Vue.observable(actions ||<span style="color: #000000;"> {});
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 同步函数</span>
+    <span style="color: #0000ff;">this</span>.mutations = Vue.observable(mutations ||<span style="color: #000000;"> {});
+  }</span></span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 14px;"><strong>⚠️注意:</strong></span></p>
+<p><span style="font-size: 14px;">假如对象 obj 经过&nbsp;observable() 处理之后，赋值给了新对象 new_boj</span></p>
+<p><span style="font-size: 14px;">在 Vue 2.x 中，直接修改 obj 也会触发&nbsp;new_boj 的更新</span></p>
+<p><span style="font-size: 14px;">但在 Vue 3.x 中，由于响应机制的变更，只有修改 new_obj 才能触发视图层的更新</span></p>
+<p><span style="color: #800000; font-size: 14px;"><strong>所以在使用<span style="color: #008080;">&nbsp;observable() </span>的时候，最好始终操作使用&nbsp;<span style="color: #008080;">observable()</span> 处理后的 new_obj</strong></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>四、简单用用</strong></span></p>
+<p><span style="font-size: 14px;">超低配的 Vuex 已经写好了，上面已经把 store 挂到 Vue 的原型上，所以可以直接使用</span></p>
+<p><span style="font-size: 14px;">假如 state 中已经存在一个状态 name，在组件中可以通过 computed 去获取</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000000;">computed: {
+    name() {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.$store.states.name;
+    },
+}</span></span></pre>
+</div>
+<p><span style="font-size: 14px;">如果需要修改状态，可以通过 $store.update()</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000000;">methods: {
+    updateName(val) {
+        </span><span style="color: #0000ff;">this</span>.$store.update(<span style="color: #800000;">'</span><span style="color: #800000;">name</span><span style="color: #800000;">'</span><span style="color: #000000;">, val);
+    }  
+}</span></span></pre>
+</div>
+<p><span style="font-size: 14px;">或者使用 $store.commit() 调用&nbsp;mutations 中的方法</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000000;">methods: {
+    commitName(val) {
+        </span><span style="color: #0000ff;">this</span>.$store.commit(<span style="color: #800000;">'</span><span style="color: #800000;">handleNameChange</span><span style="color: #800000;">'</span><span style="color: #000000;">, val);
+    }  
+}</span></span></pre>
+</div>
+<p><span style="font-size: 14px;">大功告成～</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,145 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入理解枚举属性与for-in和for-of' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入理解枚举属性与for-in和for-of</center></div><div class='banquan'>原文出处:本文由博客园博主王梓瑞提供。<br/>
+原文连接:https://www.cnblogs.com/wangzirui98/p/11227853.html</div><br>
+    <p>首先要分清什么是可枚举属性，什么是不可枚举属性</p>
+<h2 id="可枚举属性">1.可枚举属性</h2>
+<p>在JavaScript中，对象的属性分为可枚举和不可枚举之分，它们是由属性的enumerable值决定的。可枚举性决定了这个属性能否被for…in查找遍历到。</p>
+<h3 id="怎么判断属性是否可枚举">1.1怎么判断属性是否可枚举</h3>
+<p><strong>js中基本包装类型的原型属性是不可枚举的</strong>,如Object, Array, Number等，如果你写出这样的代码遍历其中的属性：</p>
+<pre><code><code>var num = new Number();
+for(var pro in num) {
+    console.log(&quot;num.&quot; + pro + &quot; = &quot; + num[pro]);
+}</code></pre>
+<p>它的输出结果会是空。这是因为Number中内置的属性是不可枚举的，所以不能被for…in访问到。</p>
+<p>Object对象的propertyIsEnumerable()方法可以判断此对象是否包含某个属性，并且这个属性是否可枚举。</p>
+<p>需要注意的是：如果判断的属性存在于Object对象的原型内，不管它是否可枚举都会返回false。</p>
+<h3 id="枚举性的作用">1.2枚举性的作用</h3>
+<p>举个例子：</p>
+<pre><code><code>Object.prototype.objCustom = function () { };
+
+function Person() {
+    this.name = &quot;KXY&quot;;
+}
+Person.prototype = {
+    constructor: Person,
+    job: &quot;student&quot;,
+};
+ 
+var kxy = new Person();
+Object.defineProperty(kxy, &quot;sex&quot;, {
+    value: &quot;female&quot;,
+    enumerable: false
+});</code></pre>
+<p>则用for in 来遍历的话</p>
+<pre><code><code>for(var pro in kxy) {
+    console.log(&quot;kxy.&quot; + pro + &quot; = &quot; + kxy[pro]);
+}
+// kxy.name = KXY
+// kxy.constructor = function Person() {
+// this.name = &quot;KXY&quot;;
+// }
+// kxy.job = student
+// kxy.objCustom = function () { }</code></pre>
+<p>在这个kxy实例对象之中，我们可以发现我们可以遍历出四个可枚举属性，这个单纯看的话，很难理解为什么会有这四个属性，于是我画了张图，给大家解释下，红色部分表示不可枚举属性，绿色表示可枚举属性。这张图呢如果一看一脸懵逼，大家可以去参考《JavaScript高级程序设计》这本书的原型讲解的那一部分，我之前也发过随笔单独做了原型那一部分的笔记，也可以去翻一翻。</p>
+<p><img src="./images/深入理解枚举属性与for-in和for-of0.png" /></p>
+<p>其中<code>sex</code>不可以枚举是因为设置了<code>enumberle</code>这个属性，而<code>object</code>是因为他是JS基本包装类，所以他的任何属性都不可以被枚举。</p>
+<p>我们for-in的事这个实例，他有<code>proto</code>和<code>sex</code>这两个属性，<code>sex</code>不行，所以顺着<code>__proto__</code>是往下翻，可以接收到他的原型的<code>constructor</code>， <code>job</code>， <code>__proto__</code>其中<code>job</code>可以直接枚举，然后剩下两个<code>constructor</code>和<code>__proto__</code>可以接着往下找，<code>constructor</code>是连接着构造函数，构造函数里有一个<code>name</code>所以将他输出，然后这一条路结束了。然后看原型的<code>__proto__</code>就是<code>Object</code>，因为他是JS的基本包装类，所以他里面的任何自带属性都不能被枚举,而我们自定义的objCustom方法是可以被枚举的，他不是自带的属性。所以综上所述，最后迭代出四个属性。所以for-in的大致过程就是这样。</p>
+<h3 id="object.keys-和json.stringify">1.3 Object.keys() 和JSON.stringify()</h3>
+<p>这两个方法也可以帮助我们判断属性是否可以枚举。</p>
+<p>首先 Object.keys() 这个方法是专门用来返回一个对象的所有可枚举属性的字符串的。所以用它可以达到和for-in近似的效果。唯一不同的就是不能取到所有属性的值。</p>
+<p>而JSON.stringify()这个只能stringify可枚举属性的值，如果不可枚举的是不会显示的。</p>
+<h2 id="for-in和for-of">2.for-in和for-of</h2>
+<h3 id="for-in">2.1for-in</h3>
+<p>上面讲了那么多，感觉for-in讲的已经差不多了，for-in的主要作用就是迭代一个对象里的可枚举属性。</p>
+<p>用法是：</p>
+<pre><code><code>for (variable in object) {...}</code></pre>
+<ul>
+<li><p><code>variable</code></p>
+<p>在每次迭代时，将不同的属性名分配给<em>变量</em>。</p></li>
+<li><p><code>object</code></p>
+<p>被迭代枚举其属性的对象。</p></li>
+</ul>
+<p>实例：</p>
+<pre><code><code>  &lt;script&gt;
+    function Person() {
+      this.name = &quot;KXY&quot;;
+    }
+
+    var kxy = new Person();
+    for (var pro in kxy) {
+      kxy[pro] = &#39;yxk&#39;
+      console.log(&quot;kxy.&quot; + pro + &quot; = &quot; + kxy[pro]);
+    }
+    console.log(kxy);
+  &lt;/script&gt;</code></pre>
+<p>结果：<br />
+<img src="./images/深入理解枚举属性与for-in和for-of1.png" /></p>
+<p>值得一提的是，for-in 和for-of在迭代的过程中如果修改了属性的值，会直接作用在对象上。但是不推荐这么做因为这里并不保证是否一个被添加的属性在迭代过程中会被访问到，不保证一个修改后的属性（除非是正在被访问的）会在修改前或者修改后被访问，不保证一个被删除的属性将会在它被删除之前被访问。</p>
+<p>另外for-in不推荐去迭代一个数组，因为数组索引只是具有整数名称的枚举属性，并且与通用对象属性相同。不能保证<code>for ... in</code>将以任何特定的顺序返回索引。</p>
+<h4 id="hasownproperty">2.1.1 hasOwnProperty()</h4>
+<p><code>asOwnProperty()</code> 方法会返回一个布尔值，指示对象<strong>自身</strong>属性中是否具有指定的属性（也就是是否有指定的键）</p>
+<p>最开始的枚举属性的例子for-in不仅会将实例的属性迭代，而且会将原型上的属性一并迭代，如果只想迭代自身属性的话，那么就要配合上hasOwnProperty()这个属性了。</p>
+<p>实例：</p>
+<pre><code><code>Object.prototype.objCustom = function() {}; 
+Array.prototype.arrCustom = function() {};
+
+let iterable = [3, 5, 7];
+iterable.foo = &#39;hello&#39;;
+
+for (let i in iterable) {
+  if (iterable.hasOwnProperty(i)) {
+    console.log(i);
+  }
+}
+ // 结果：
+ // logs 0, 1, 2, &quot;foo&quot;
+
+for (let i in iterable) {
+  console.log(i); 
+}
+
+// 结果：
+// logs 0, 1, 2, &quot;foo&quot;, &quot;arrCustom&quot;, &quot;objCustom&quot;</code></pre>
+<h3 id="for-of">2.2 for-of</h3>
+<p><strong>for...of语句</strong>在可迭代对象上（包括Array,Map,Set,String,TyedArray,arguments对象等等）上创建一个迭代循环，调用自定义迭代钩子，并为每个不同属性的值执行语句</p>
+<p>用法</p>
+<pre><code><code>for (variable of iterable) {
+    //statements
+}</code></pre>
+<ul>
+<li><code>variable</code></li>
+</ul>
+<p>在每次迭代中，将不同属性的值分配给变量。</p>
+<ul>
+<li><code>iterable</code></li>
+</ul>
+<p>被迭代枚举其属性的对象。</p>
+<p>for-of同样可以直接修改迭代对象的值，而且不像for-in会去迭代可枚举属性的值。</p>
+<p>For-of除了遍历最基本的数组，还经常用在迭代字符串上。</p>
+<p>具体更多的方法就参考文档吧，for-of感觉并没有什么难点。</p>
+<p><a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/for...of" class="uri">https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Statements/for...of</a><br />
+更多的遍历数组可以看我上一篇随笔：<a href="https://www.cnblogs.com/wangzirui98/p/11226781.html" class="uri">https://www.cnblogs.com/wangzirui98/p/11226781.html</a></p>
+<p>就写这么多吧，只是很简单的总结，如果有什么问题请大家指正。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

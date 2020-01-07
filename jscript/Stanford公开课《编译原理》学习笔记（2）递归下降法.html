@@ -1,0 +1,246 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Stanford公开课《编译原理》学习笔记（2）递归下降法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Stanford公开课《编译原理》学习笔记（2）递归下降法</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11632103.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-parse阶段">一. Parse阶段</a><ul>
+        <li><a href="#cfg">CFG</a></li>
+        <li><a href="#recursive-descent递归下降遍历">Recursive Descent（递归下降遍历）</a></li>
+        </ul></li>
+        <li><a href="#二.-递归下降遍历">二. 递归下降遍历</a><ul>
+        <li><a href="#预备知识">2.1 预备知识</a></li>
+        <li><a href="#多行语句的处理思路">2.2 多行语句的处理思路</a></li>
+        <li><a href="#简易的文法定义">2.3 简易的文法定义</a></li>
+        <li><a href="#文法产生式的代码转换">2.4 文法产生式的代码转换</a></li>
+        <li><a href="#逐行解析">2.5 逐行解析</a></li>
+        <li><a href="#查看计算过程">2.6 查看计算过程</a></li>
+        </ul></li>
+        <li><a href="#三.小结">三.小结</a></li>
+        </ul>
+    </div>
+</div>
+<blockquote>
+<p>示例代码托管在：<a href="https://github.com/dashnowords/blogs/blob/master/Demo/compiler/parser/recursive-descent.js">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<p>B站地址：<a href="https://www.bilibili.com/video/av27845355">【编译原理】</a></p>
+<p>Stanford公开课：<a href="%5Bhttps://lagunita.stanford.edu">【Stanford大学公开课官网】</a></p>
+<p>课程里涉及到的内容讲的还是很清楚的，但个别地方有点脱节，建议课下自己配合经典著作<strong>《Compilers-priciples, Techniques and Tools》</strong>(也就是大名鼎鼎的龙书）作为补充阅读。</p>
+<h2 id="一.-parse阶段">一. Parse阶段</h2>
+<p>词法分析阶段的任务是将字符串转为<code>Token</code>组，而<code>Parse</code>阶段的目标是将<code>Token</code>变为<code>Parse Tree</code>，本篇只是这部分内容最基础的一部分。</p>
+<h3 id="cfg">CFG</h3>
+<p><code>CFG</code>即<code>context free grammer</code>，定义一种<code>CFG</code>语法规则需要声明如下特征：</p>
+<p><img src="./images/Stanford公开课《编译原理》学习笔记（2）递归下降法0.png" /></p>
+<ul>
+<li>一组终止符号集，也称为“词法单元”</li>
+<li>一组非终止符号集，也称为“语法变量”</li>
+<li>一个开始符号集</li>
+<li>若干产生式规则（产生式则就是指在当前<code>CFG</code>的语法下，产生符号<code>-&gt;</code>左右两侧可以互相替代）</li>
+</ul>
+<p><code>CFG</code>的基本转换流程如下：</p>
+<p><img src="./images/Stanford公开课《编译原理》学习笔记（2）递归下降法1.png" /></p>
+<p>从隶属于开始集<code>S</code>开始，尝试将字符串中的非终止符<code>X</code>替换为终止集的形式(<code>X-&gt;Y1Y2...Yn</code>)，重复这个步骤直到字符串序列中不再有非终止符。这个过程被称为<code>Derivation</code>(派生)，它是一系列变换过程的序列，可以转换为树的形式，树的根节点即为起始集合<code>S</code>中的成员，转换后的每个终止集以子节点的形式挂载在根节点下，这棵生成的树就被称为<strong>Parse Tree</strong>,可以看出最后的结果实际上就是<code>Parse Tree</code>的叶节点遍历结果。</p>
+<p>当需要转换的非终结字符有多个时，需要按照一定的顺序来逐个推导，派生过程可以按照<code>left-most</code>或<code>right-most</code>进行，但有时会得到不同的合法的转换树，通常会通过修改转换集语法或设定优先级来解决。</p>
+<h3 id="recursive-descent递归下降遍历">Recursive Descent（递归下降遍历）</h3>
+<p><code>Recursive Descent</code>是一种遍历<code>parse tree</code>的策略，是一种典型的递归回溯算法，从树的根节点开始，逐个尝试当前父节点上记录的非终止字符能够支持的产生规则，并判断其子节点是否符合这样的形式，直到子节点符合某个特定的产生式规则，然后再继续递归进行深度遍历，如果在某个非终止节点上尝试完所有的产生式规则都无法继续向下进行使得子树的叶节点都符合终止符号集，则需要通过回溯到上一节点并尝试父节点的下一个产生式规则，使得循环程序可以继续向后进行。课程里用了很多的数学符号定义和伪代码来描述递归遍历的过程，如果觉得太抽象不好理解可以暂时略过。需要注意左递归文法会使得递归下降遍历进入死循环，在文法设计时应该避免，龙书中也提供了一种通用的拆分方法来解决这个问题。</p>
+<h2 id="二.-递归下降遍历">二. 递归下降遍历</h2>
+<blockquote>
+<p>【声明】由于课程中并没有看到从<code>tokens</code>到<code>parse tree</code>的全貌，只能先逐步消化基础知识。下文的过程只是笔者自己的理解（尤其是逐行分析的形式，因为尚未涉及任何结构性语法，所以通用性还有待考量），仅供参考，也欢迎交流指正。<strong>但对于直观理解递归下降法而言是足够的。</strong></p>
+</blockquote>
+<h3 id="预备知识">2.1 预备知识</h3>
+<p>本节中使用<code>JavaScript</code>来实现递归下降遍历，目标代码仍是上一篇博文中的示例代码：</p>
+<pre><code><code>var b3 = 2;
+a = 1 + ( b3 + 4);
+return a;</code></pre>
+<p>经过上一节的分词器后可以得到下面的词素序列：</p>
+<pre><code><code>[ &#39;keywords&#39;, &#39;var&#39; ],
+[ &#39;id&#39;, &#39;b3&#39; ],
+[ &#39;assign&#39;, &#39;=&#39; ],
+[ &#39;num&#39;, &#39;2&#39; ],
+[ &#39;semicolon&#39;, &#39;;&#39; ],
+[ &#39;id&#39;, &#39;a&#39; ],
+[ &#39;assign&#39;, &#39;=&#39; ],
+[ &#39;num&#39;, &#39;1&#39; ],
+[ &#39;plus&#39;, &#39;+&#39; ],
+[ &#39;lparen&#39;, &#39;(&#39; ],
+[ &#39;id&#39;, &#39;b3&#39; ],
+[ &#39;plus&#39;, &#39;+&#39; ],
+[ &#39;num&#39;, &#39;4&#39; ],
+[ &#39;rparen&#39;, &#39;)&#39; ],
+[ &#39;semicolon&#39;, &#39;;&#39; ],
+[ &#39;keywords&#39;, &#39;return&#39; ],
+[ &#39;id&#39;, &#39;a&#39; ],
+[ &#39;semicolon&#39;, &#39;;&#39; ]</code></pre>
+<p>语法分析是基于<strong>语法规则</strong>的，所谓语法规则，通常是指一系列CFG表示的产生式，大多数开发者并不具备设计一套语法规则的能力，此处直接借鉴<code>Mozilla</code>中的<code>Javascript</code>引擎<code>SpiderMonkey</code>中的文法定义来进行基本产生式，由于<code>Javascript</code>语言中涉及的文法非常多，本节只筛选出与目标解析式相关的一部分简化的语法规则（图中标记为蓝色的部分）：</p>
+<p><img src="./images/Stanford公开课《编译原理》学习笔记（2）递归下降法2.png" /></p>
+<p>完整的语法规则可以查看<a href="https://developer.mozilla.org/zh-CN/docs/Mozilla/Projects/SpiderMonkey/Parser_API">【SpiderMonkey_ParserAPI】</a>进行了解。</p>
+<h3 id="多行语句的处理思路">2.2 多行语句的处理思路</h3>
+<p>我们把上面的目标解析代码当做是一段<code>Javascript</code>代码，自顶向下分析时，根节点的类型是<code>Program</code>，它可以由多个<code>Statement</code>节点（语句节点）构成，所以本例中进行简化后以<code>semicolon</code>（分号）作为词素批量处理的分界点，每次将两个分号之间的部分读入缓冲区进行分析，由于上例中均为单行语句，所以理解起来比较简单。</p>
+<p>在更为复杂的情况中，代码中包含<code>条件语句</code>,<code>循环语句</code>等一些结构化的关键词时可能会存在跨行的语句，此时可以在递归下降之前先对缓冲区的词素队列进行基本的结构分析，如果发现匹配的结构化模式，就从<code>tokens</code>序列中将下一行（或多行）也读入缓冲区，直到缓冲区中的所有<code>tokens</code>放在一起符合了某些特定的结构，再开始进行递归下降。</p>
+<h3 id="简易的文法定义">2.3 简易的文法定义</h3>
+<p>为方便理解，本例中均使用关键词缩写来表示可能的语法规则集，如果你对<code>Javascript</code>语言有一定了解，它们是非常容易理解的</p>
+<pre><code><code>/**
+ * 文法定义-生产规则
+ * Program -&gt; Statement
+ * P -&gt; S
+ * 
+ * 语句 -&gt; 块状语句 | if语句 | return语句 | 声明 | 表达式 |......
+ * Statement -&gt; BlockStatement | IfStatement | ReturnStatement | Declaration | Expression |......
+ * S -&gt; B | I | R | D | E
+ * 
+ * B -&gt; { Statement }
+ * 
+ * I -&gt; if ( ExpressionStatement ) { Statement }
+ * 
+ * R -&gt; return Expression | null
+ * 
+ * 声明 -&gt; 函数声明 | 变量声明
+ * Declaration -&gt; FunctionDeclaration | VariableDeclaration
+ * D -&gt; F | V
+ * 
+ * F -&gt; function ID ( SequenceExpression ) { ... }
+ * 
+ * V -&gt; &#39;var | let | const&#39; ID [= Expression | Null] ?
+ * 
+ * 表达式 -&gt; 赋值表达式 | 序列表达式 | 一元运算表达式 | 二元运算表达式 |......
+ * Expression -&gt; AssignmentExpression | SequenceExpression | UnaryExpression | BinaryExpression | BracketExpression......
+ * E -&gt; A | Seq | U | BI | BRA |...
+ * 
+ * A -&gt; E = E //赋值表达式
+ * 
+ * Seq -&gt; ID,ID,ID//类似形式
+ * 
+ * //一元表达式
+ * U -&gt; &quot;-&quot; | &quot;+&quot; | &quot;!&quot; | &quot;~&quot; | &quot;typeof&quot; | &quot;void&quot; | &quot;delete&quot; E
+ * 
+ * //二元表达式
+ * BI -&gt; E &quot;==&quot; | &quot;!=&quot; | &quot;===&quot; | &quot;!==&quot;
+         | &quot;&lt;&quot; | &quot;&lt;=&quot; | &quot;&gt;&quot; | &quot;&gt;=&quot;
+         | &quot;&lt;&lt;&quot; | &quot;&gt;&gt;&quot; | &quot;&gt;&gt;&gt;&quot;
+         | &quot;+&quot; | &quot;-&quot; | &quot;*&quot; | &quot;/&quot; | &quot;%&quot;
+         | &quot;|&quot; | &quot;^&quot; | &quot;&amp;&quot; | &quot;in&quot;
+         | &quot;instanceof&quot; | &quot;..&quot;  E
+ * 
+ * //括号表达式
+ * BRA -&gt; ( E )
+ * 
+ * N -&gt; null  
+ */</code></pre>
+<p>需要额外注意的是表达式<code>Expression</code>到赋值表达式<code>AssignmentExpression</code>的产生式，<code>E</code>的判断规则里需要判断<code>A</code>，而<code>A</code>的逻辑里又再次调用了<code>E</code>，这里就是一种左递归，如果不进行任何处理，在代码运行时就会陷入死循环然后爆栈，这也就是前文强调的需要在语法产生式设计时消除左递归的场景。这里并不是说<code>spiderMonkey</code>的<code>parserAPI</code>是错的，因为消除左递归的语法改造只是一种等价形式的转换，是为了防止产生式产生无限递推（或者说程序实现时进入无限递归的死循环）而做的一种形式处理，改造的过程可能只是引入了某个中间集合来消除这种场景的影响，对于最终的语法表意并不会产生影响。</p>
+<p>下文示例代码中并没有进行严谨的&quot;左递归消除&quot;，而是简单地使用了一个<code>E_</code>集合，与原本的<code>E</code>进行一些微小的差异区分，从而避免了死循环。</p>
+<h3 id="文法产生式的代码转换">2.4 文法产生式的代码转换</h3>
+<p>下面将上一小节的语法规则进行代码翻译（只包含部分产生式的推导，本例中的完整代码可以从demo或代码仓中获取）：</p>
+<pre><code><code>//判断是否为Statement
+function S(tokens) {
+    //把结尾的分号全部去除
+    while(tokens[tokens.length - 1][0] === TT.semicolon){
+        tokens.pop();
+    }
+    return B(tokens) || I(tokens) || R(tokens) || D(tokens) || E(tokens);
+}
+
+//判断是否为BlockStatement  B -&gt; { Statement } (本例中并不涉及本方法，故暂不考虑末尾分号和文法递归的情况)
+function B(tokens) {
+     //本例中不涉及，直接返回false
+    return false;
+}
+
+//判断是否为IfStatement I -&gt; if ( ExpressionStatement ) { Statement }
+function I(tokens) {
+    //本例中不涉及，直接返回false
+    return false;
+}
+//判断是否为ReturnStatement  R -&gt; return Expression | null
+function R(tokens) {
+    return isReturn(tokens[0]) &amp;&amp; (E(tokens.slice(1)) || N(tokens.slice(1)[0]));
+}
+
+//判断是否为声明语句 Declaration -&gt; FunctionDeclaration | VariableDeclaration
+function D(tokens) {
+    return F(tokens) || V(tokens);
+}
+
+//判断是否为函数声明  F -&gt; function ID ( SequenceExpression ) { ... }
+function F(tokens) {
+    //本例中不涉及，直接返回false
+    return false;
+}
+
+//判断是否为变量声明  V -&gt; &#39;var | let | const&#39; ID [= Expression | Null] ?
+function V(tokens) {
+    //判断为1.单纯的声明 还是 2.带有初始值的声明
+    if (tokens.length === 2) {
+        return isVariableDeclarationKeywords(tokens[0]) &amp;&amp; tokens[1][0] === TT.id;
+    }
+    return isVariableDeclarationKeywords(tokens[0]) &amp;&amp; (A(tokens.slice(1))) || N(tokens.slice(1));
+}
+
+//....其他代码形式雷同，不再赘述</code></pre>
+<h3 id="逐行解析">2.5 逐行解析</h3>
+<p>解析时默认每次遇到一个分号时表示一个<code>statement</code>的结束，前文已经提及过对于多行语句的处理思路。实现时只需要将<code>tokens</code>序列一点点读进buffer数组并从顶层的<code>S</code>方法启动分析，即可完成自顶向下的推理过程。</p>
+<pre><code><code> /**parser */
+function parse(tokens) {
+    let buffer = nextStatement(tokens);
+    let flag = true;
+
+    while (buffer &amp;&amp; flag){
+
+       if (!S(buffer)) {
+           console.log(&#39;检测到不符合语法的tokens序列&#39;);
+           flag = false;
+       } 
+       buffer = nextStatement(tokens);
+    }   
+    
+    //如果没有出错则提示正确
+    flag &amp;&amp; console.log(&#39;检测结束，被检测tokens序列是合法的代码段&#39;);
+}
+
+//将下一个Statement全部读入缓冲区
+function nextStatement(tokens) {
+    let result = [];
+    let token;
+
+    while(tokens.length) {
+        token = tokens.shift();
+        result.push(token);
+        //如果不是换行符则
+        if (token[0] === CRLF) {
+            break;
+        }
+    }
+
+    return result.length ? result : null;
+}
+</code></pre>
+<h3 id="查看计算过程">2.6 查看计算过程</h3>
+<p>单步执行查看计算过程可以帮助我们更好地理解递归下降法的执行过程：</p>
+<p>在demo所在目录下打开命令行，输入：<code>node --inspect-brk recursive-descent.js</code>，然后单步执行就很容易看出代码在执行过程中如何实现递归和回溯：</p>
+<p><img src="./images/Stanford公开课《编译原理》学习笔记（2）递归下降法3.png" /></p>
+<h2 id="三.小结">三.小结</h2>
+<p>单纯地递归下降法最终的结果只找出了不满足任何语法规则的语句，或是最终所有语句都符合语法规则时给出提示，但并没有得到一个树结构的对象，也没有向下一个环节提供输出，如何在编译过程中与后续环节进行连接还有待探索。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,548 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修es6学习笔记-proxy对象' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>es6学习笔记-proxy对象</center></div><div class='banquan'>原文出处:本文由博客园博主热爱前端的17号诶提供。<br/>
+原文连接:https://www.cnblogs.com/sqh17/p/10755165.html</div><br>
+    <h1 id="前提摘要">前提摘要</h1>
+<p>尤大大的vue3.0即将到来，虽然学不动了，但是还要学的啊，据说vue3.0是基于proxy来进行对值进行拦截并操作，所以es6的proxy也是要学习一下的。</p>
+<h1 id="一-什么是proxy">一 什么是proxy</h1>
+<p>Proxy 对象用于定义基本操作的自定义行为（如属性查找，赋值，枚举，函数调用等） --摘自MDN<br />
+Proxy 用于修改某些操作的默认行为，等同于在语言层面做出修改，所以属于一种“元编程”（meta programming），即对编程语言进行编程。 --摘自阮一峰的ES6入门<br />
+Proxy 这个词的原意是代理，用在这里表示由它来“代理”某些操作，可以译为“代理器”。<br />
+Proxy 也可以理解成，在目标对象之前架设一层“拦截”，外界对该对象的访问，都必须先通过这层拦截，因此提供了一种机制，可以对外界的访问进行过滤和改写。<br />
+总结来说：Proxy对象就是要在目标对象上设置自定义的规则和方法，让它按照自己定义的规则去实行某些操作。</p>
+<h1 id="二-proxy声明">二 Proxy声明</h1>
+<p>ES6 原生提供 Proxy 构造函数，用来生成 Proxy 实例，所以可以按照构造函数创建对象的形式去实例化一个Proxy对象。</p>
+<pre><code><code>var proxy = new Proxy({},{})
+console.log(proxy) // Proxy{}</code></pre>
+<p>注意点：<br />
+1 实例化一个Proxy对象时，必须要传两个参数对象,否则会报错：Uncaught TypeError: Cannot create proxy with a non-object as target or handler,不能创建没有对象的proxy对象。<br />
+2 传两个空对象时，默认的是简单声明了一个Proxy实例，（好像没啥卵用……）</p>
+<p>参数对象解释：</p>
+<ul>
+<li><p>第一个参数：target，目标对象，是你要代理的对象.它可以是JavaScript中的任何合法对象.如: (数组, 对象, 函数等等)<br />
+tip:</p>
+<pre><code><code>var arr = []
+var obj = {}
+var Person = class{}
+var foo = function (){}
+console.log(Person instanceof Object) // true
+console.log(foo instanceof Object)  // true
+console.log(arr instanceof Object)  // true
+console.log(obj instanceof Object)  // true</code></pre></li>
+<li><p>第二个参数：handler，配置对象，用来定制拦截行为，对于每一个被代理的操作，需要提供一个对应的处理函数，该函数将拦截对应的操作。<br />
+Proxy支持的拦截操作，有13种，使用方法可以参考 <a href="http://es6.ruanyifeng.com/#docs/proxy">阮一峰的ES6入门</a></p></li>
+</ul>
+<h1 id="三-常见情况">三 常见情况</h1>
+<h2 id="当目标对象为空时">3.1 当目标对象为空时</h2>
+<p>var proxy = new Proxy({},handler)<br />
+这样直接代表着，拦截的对象是空的，所以直接对proxy对象进行操控。</p>
+<pre><code><code>var target = {};
+var handler = {
+  get(target,propKey,receiver){
+    return &#39;peter&#39;
+  }
+};
+var proxy = new Proxy(target, handler);
+proxy.name = &#39;tom&#39;;
+console.log(proxy.name) // tom
+console.log(target.name) // undefined</code></pre>
+<p>上面的代码说明了：target是个空对象，但是操作了proxy，也影响不了target<br />
+ps：要使得Proxy起作用，必须针对Proxy实例进行操作，而不是针对目标对象进行操作</p>
+<h2 id="当拦截对象为空时">3.2 当拦截对象为空时</h2>
+<p>var proxy = new Proxy(target,{})<br />
+handler没有设置任何拦截，那就等同于直接通向原对象。</p>
+<pre><code><code>var target = {};
+var handler = {};
+var proxy = new Proxy(target, handler);
+proxy.name = &#39;peter&#39;;
+console.log(proxy.name) // peter
+console.log(target.name) // peter</code></pre>
+<p>上面的代码说明了：handler是一个空对象，没有任何拦截效果，访问proxy就等同于访问target</p>
+<h1 id="四-方法解析">四 方法解析</h1>
+<p>Proxy实例化的对象默认带有get和set方法。也可以在这些基础上进行拦截操作，其他的13种方法也是如此。</p>
+<ol>
+<li>get() 用于拦截某个属性的读取（read）操作，换句话讲，就是在读取目标对象的属性之前，操作该属性。<br />
+参数解释：
+<ul>
+<li>target：目标对象</li>
+<li>property：属性名</li>
+<li><p>receiver：proxy实例<br />
+例子：</p>
+<pre><code><code>var person = {
+  name: &quot;张三&quot;
+};
+
+var proxy = new Proxy(person, {
+  get: function(target, property) {
+    if (property in target) {
+      return target[property];
+    } else {
+      throw new ReferenceError(&quot;Property \&quot;&quot; + property + &quot;\&quot; does not exist.&quot;);
+    }
+  }
+});
+
+proxy.name // &quot;张三&quot;
+proxy.age // Property &quot;age&quot; does not exist.</code></pre>
+<p>参考阮一峰的例子，上述说明了，如果输入目标函数不存在的属性，就直接报错。</p></li>
+</ul></li>
+<li>set() 用来拦截目标对象的赋值（write）操作<br />
+参数解释：
+<ul>
+<li>target：目标对象</li>
+<li>propertyName：属性名</li>
+<li>propertyValue：属性值</li>
+<li><p>receiver：Proxy实例本身<br />
+例子：</p>
+<pre><code><code>var target = {}
+var handler = {
+  set(target, propKey, value, receiver) {
+    if (typeof value !== &#39;string&#39;) {
+      target[propKey] = String(value);
+    }else{
+      target[propKey] = value;
+    }
+  }
+}
+var proxy = new Proxy(target, handler)
+proxy.name = &#39;peter&#39;
+proxy.age = 25
+console.log(typeof proxy.name) // string
+console.log(typeof proxy.age) // string</code></pre>
+<p>上面例子就是拦截对象是不是字符串，不是字符串的话会强制转化为字符串。</p></li>
+</ul></li>
+<li>apply() 用来拦截函数的调用、call和apply操作<br />
+参数解释：
+<ul>
+<li>target：目标对象</li>
+<li>context：目标对象的上下文对象(this）</li>
+<li><p>arguments：目标对象的参数数组<br />
+例子：</p>
+<pre><code><code>var target = function(a,b){
+  return 10 + a + b
+}
+var handler = {
+  apply(target,context,arguments){
+    arguments[0] = 10
+    arguments[1] = 20
+    return arguments.reduce(function(prev, curr, idx, arr){
+        return prev + curr;
+    });
+  }
+}
+var proxy = new Proxy(target,handler)
+console.log(proxy(1,2)) // 30</code></pre>
+<p>上面的例子，就是目标函数是要传两个参数，并且返回之和，拦截目标做的就是改变目标对象的参数，并且求和，所以这样写触发了apply方法，返回30，而不是13</p></li>
+</ul></li>
+<li>has() 用来拦截hasProperty操作，即判断对象是否具有某个属性时，这个方法会生效。典型的操作就是in运算符。<br />
+参数解释：
+<ul>
+<li>target：目标对象</li>
+<li><p>key： 需查询的属性名,是一个字符串！！！！！<br />
+例子：</p>
+<pre><code><code>var target = {
+  name: &#39;peter&#39;,
+  age:25
+}
+var handler = {
+  has(target,key){
+    return key in target;
+  }
+
+}
+var proxy = new Proxy(target,handler)
+console.log(&#39;age&#39; in proxy) // true
+console.log(&#39;colors&#39; in proxy) // false</code></pre>
+<p>上面的例子是典型的has的方法，判断所要查询的属性名是不是在目标对象上的属性名，返回布尔值。<br />
+ps：has拦截对for...in循环不生效。</p></li>
+</ul></li>
+<li>construct() 用于拦截new命令，要返回是一个对象，否则会报错<br />
+参数解释：
+<ul>
+<li>target：目标对象</li>
+<li>args：构造函数的参数对象</li>
+<li><p>newTarget：创造实例对象时，new命令作用的构造函数<br />
+例子：</p>
+<pre><code><code>var p = new Proxy(function () {}, {
+  construct: function(target, args) {
+    console.log(&#39;called: &#39; + args.join(&#39;, &#39;));
+    return { value: args[0] * 10 };
+  }
+});
+
+(new p(1)).value
+// &quot;called: 1&quot;
+// 10</code></pre>
+<p>由此可见，是针对构造函数而言的，对目标对象的构造函数进行拦截。</p></li>
+</ul></li>
+<li>defineProperty() 拦截了Object.defineProperty操作，在声明时进行拦截，设置的是一个布尔值
+<ul>
+<li>参数解释：
+<ul>
+<li>target：目标对象</li>
+<li>key：要定义或修改的属性的名称</li>
+<li>descriptor： 将被定义或修改的属性描述符,是一个对象</li>
+</ul></li>
+<li><p>拓展：<br />
+Object.defineProperty(),声明对象的属性，参数说明和上述一样<br />
+例子：</p>
+<pre><code><code>var obj = {}
+Object.defineProperty(obj, &quot;key&quot;, {
+  enumerable: false,
+  configurable: false,
+  writable: false,
+  value: &quot;static&quot;
+});</code></pre></li>
+<li><p>例子：</p>
+<pre><code><code>var target = {
+  name: &#39;peter&#39;,
+  age:25
+}
+var handler = {
+  defineProperty(target,key,descriptor){
+    if(key === &#39;color&#39;){
+      throw new Error(&#39;不能定义颜色&#39;)
+    }
+    Object.defineProperty(target, key, descriptor)
+    // return true
+  }
+}
+var proxy = new Proxy(target,handler)
+var descriptor = {
+  writable : true,
+  enumerable : true,
+  configurable : true
+}
+descriptor.value = &#39;sport&#39;
+Object.defineProperty(proxy, &#39;favor&#39;, descriptor)
+console.log(proxy.favor) // sport
+descriptor.value = &#39;red&#39;
+Object.defineProperty(proxy, &#39;color&#39;, descriptor)  // 不能定义颜色
+console.log(proxy.color)</code></pre>
+<p>如果目标对象不可扩展（non-extensible），则defineProperty不能增加目标对象上不存在的属性，否则会报错。另外，如果目标对象的某个属性不可写（writable）或不可配置（configurable），则defineProperty方法不得改变这两个设置。</p></li>
+</ul></li>
+<li>deleteProperty() 用于拦截delete操作，如果这个方法抛出错误或者返回false，当前属性就无法被delete命令删除。
+<ul>
+<li>参数解释：
+<ul>
+<li>target：目标对象</li>
+<li>key：要删除的属性名<br />
+(delete是关键字，目前用到的就是删除对象的某个属性)</li>
+</ul></li>
+<li><p>例子：</p>
+<pre><code><code>var target = { _prop: &#39;foo&#39; };
+var handler = {
+  deleteProperty (target, key) {
+    if (key[0] === &#39;_&#39;) {
+      throw new Error(`Invalid attempt to ${target} private &quot;${key}&quot; property`);
+    }
+    delete target[key];
+    return true;
+  }
+};
+var proxy = new Proxy(target, handler);
+delete proxy._prop // Error: Invalid attempt to delete private &quot;_prop&quot; property</code></pre>
+<p>上面代码中，deleteProperty方法拦截了delete操作符，删除第一个字符为下划线的属性会报错。<br />
+注意，目标对象自身的不可配置（configurable）的属性，不能被deleteProperty方法删除，否则报错。</p></li>
+</ul></li>
+<li>getOwnPropertyDescriptor() 拦截Object.getOwnPropertyDescriptor()，返回一个属性描述对象或者undefined。
+<ul>
+<li>参数解释：
+<ul>
+<li>target：目标对象</li>
+<li>key： 属性名</li>
+</ul></li>
+<li>拓展：<br />
+Object.getOwnPropertyDescriptor(obj,prop) 返回指定对象上一个自有属性对应的属性描述符
+<ul>
+<li>参数解释：
+<ul>
+<li>obj：需要查找的目标对象</li>
+<li>prop: 目标对象内属性名称</li>
+</ul></li>
+<li>返回值：<br />
+如果指定的属性存在于对象上，则返回其属性描述符对象（property descriptor），否则返回 undefined。</li>
+<li><p>例子：</p>
+<pre><code><code>o = { bar: 42 };
+d = Object.getOwnPropertyDescriptor(o, &quot;bar&quot;);
+console.log(d)
+// d {
+//   configurable: true,
+//   enumerable: true,
+//   value: 42,
+//   writable: true
+// }</code></pre></li>
+</ul></li>
+<li><p>例子：</p>
+<pre><code><code>var target = { _foo: &#39;bar&#39;, baz: &#39;tar&#39; };
+var handler = {
+  getOwnPropertyDescriptor (target, key) {
+    if (key[0] === &#39;_&#39;) {
+      return;
+    }
+    return Object.getOwnPropertyDescriptor(target, key);
+  }
+};
+var proxy = new Proxy(target, handler);
+Object.getOwnPropertyDescriptor(proxy, &#39;wat&#39;)
+// undefined
+Object.getOwnPropertyDescriptor(proxy, &#39;_foo&#39;)
+// undefined
+Object.getOwnPropertyDescriptor(proxy, &#39;baz&#39;)
+// { value: &#39;tar&#39;, writable: true, enumerable: true, configurable: true }</code></pre>
+<p>上述说明：对于第一个字符为下划线的属性名会返回undefined。</p></li>
+</ul></li>
+<li>getPrototypeOf() 用来拦截获取对象原型,主要拦截以下操作：
+<ul>
+<li>如下：
+<ul>
+<li>Object.prototype.__proto__<br />
+-- 该特性已经从 Web 标准中删除</li>
+<li>Object.prototype.isPrototypeOf()<br />
+用于测试一个对象是否存在于另一个对象的原型链上。
+<ul>
+<li>参数：
+<ul>
+<li>object 在该对象的原型链上搜寻</li>
+</ul></li>
+<li>返回值：
+<ul>
+<li>返回值 表示调用对象是否在另一个对象的原型链上。布尔值</li>
+</ul></li>
+<li><p>例子：</p>
+<pre><code><code>function Baz() {}
+var baz = new Baz();
+console.log(Baz.prototype.isPrototypeOf(baz)); // true</code></pre></li>
+</ul></li>
+<li>Object.getPrototypeOf(obj) 返回指定对象的原型（内部[[Prototype]]属性的值）
+<ul>
+<li>参数：
+<ul>
+<li>obj 返回其原型的对象</li>
+</ul></li>
+<li>返回值：<br />
+给定对象的原型。如果没有继承属性，则返回 null 。</li>
+<li><p>例子：</p>
+<pre><code><code>var proto = {};
+var obj = Object.create(proto);
+Object.getPrototypeOf(obj) === proto; // true</code></pre></li>
+</ul></li>
+<li>Reflect.getPrototypeOf()</li>
+<li>instanceof</li>
+</ul></li>
+<li><p>例子：</p>
+<pre><code><code>var proto = {};
+var p = new Proxy({}, {
+  getPrototypeOf(target) {
+    return proto;
+  }
+});
+Object.getPrototypeOf(p) === proto // true</code></pre>
+上面代码中，getPrototypeOf方法拦截Object.getPrototypeOf()，返回proto对象。<br />
+ps:
+<ol>
+<li>getPrototypeOf方法的返回值必须是对象或者null，否则报错</li>
+<li>如果目标对象不可扩展（non-extensible）， getPrototypeOf方法必须返回目标对象的原型对象。</li>
+</ol></li>
+</ul></li>
+<li>isExtensible() 拦截Object.isExtensible()操作
+<ul>
+<li>Object.isExtensible() 判断是否可以为对象添加新的属性<br />
+参数：
+<ul>
+<li>object 要进行判断的对象<br />
+返回值：</li>
+<li><p>是个布尔值，true是可以添加，false不可以添加<br />
+例子：</p>
+<pre><code><code>let obj = { 
+  name: &#39;peter&#39;,
+  age:25
+}
+console.log(Object.isExtensible(obj)) // true</code></pre></li>
+</ul>
+对象默认情况下是可以添加新的属性的。</li>
+<li><p>例子：</p>
+<pre><code><code>var p = new Proxy({}, {
+  isExtensible: function(target) {
+    console.log(&quot;called&quot;);
+    return true;
+  }
+});
+Object.isExtensible(p) // called</code></pre>
+<p>这个方法有一个强限制，它的返回值必须与目标对象的isExtensible属性保持一致，否则就会抛出错误。<br />
+即：Object.isExtensible(proxy) === Object.isExtensible(target)</p></li>
+</ul></li>
+<li>preventExtensions() 拦截Object.preventExtensions()操作
+<ul>
+<li>Object.preventExtensions(object) 不能再为此对象添加新的属性或者方法
+<ul>
+<li>参数：object，要成为不可扩展的对象的对象</li>
+<li>无返回值</li>
+<li><p>例子</p>
+<pre><code><code>let obj = { 
+  name: &#39;peter&#39;,
+  age:25
+} 
+Object.preventExtensions(obj)
+obj.color = &#39;red&#39; // object is not extensible</code></pre></li>
+</ul></li>
+<li>例子<br />
+————————————</li>
+</ul></li>
+<li>setPrototypeOf() 拦截Object.setPrototypeOf方法
+<ul>
+<li>Object.setPrototypeOf(obj,proto) 设置对象的原型<br />
+此方法修改的是对象实例的内部属性[[Prototype]]，也就是__proto__属性所指向的对象，它只是修改了特定对象上的原型对象，对于构造函数的prototype指向的原型对象没有影响
+<ul>
+<li>参数：
+<ul>
+<li>obj 对其设置原型的对象</li>
+<li>proto 新的原型对象</li>
+</ul></li>
+<li><p>例子：</p>
+let proto = {<br />
+color: red<br />
+};<br />
+let obj = {<br />
+name: 'peter'<br />
+age: 26<br />
+};<br />
+Object.setPrototypeOf(obj, proto);<br />
+console.log(obj.color); // red</li>
+</ul></li>
+<li><p>例子</p>
+<pre><code><code>var handler = {
+  setPrototypeOf (target, proto) {
+    throw new Error(&#39;Changing the prototype is forbidden&#39;);
+  }
+};
+var proto = {};
+var target = function () {};
+var proxy = new Proxy(target, handler);
+Object.setPrototypeOf(proxy, proto);
+// Error: Changing the prototype is forbidden</code></pre>
+上面代码中，只要修改target的原型对象，就会报错。</li>
+<li>ps
+<ol>
+<li>该方法只能返回布尔值，否则会被自动转为布尔值</li>
+<li>如果目标对象不可扩展（non-extensible），setPrototypeOf方法不得改变目标对象的原型</li>
+</ol></li>
+</ul></li>
+<li>ownKeys() 用来拦截对象自身属性的读取操作
+<ul>
+<li>如下：
+<ul>
+<li>Object.getOwnPropertyNames(obj) 获取对象的属性名称，并存储在数组中。
+<ul>
+<li>参数解释： obj 要获取属性名称的对象</li>
+<li>返回值：存放属性名称的数组</li>
+<li>只能拿到对象的自有属性，拿不到原型上的属性，另外，defineProperty的值也可以拿到</li>
+<li><p>例子：</p>
+<pre><code><code>function Person(){
+  this.name = &#39;peter&#39;
+  this.age = 26
+}
+Person.prototype={
+  address:&quot;北京&quot;
+}
+let peter=new Person();
+console.log(Object.getOwnPropertyNames(peter)); // [&#39;name&#39;,&#39;age&#39;]</code></pre></li>
+</ul></li>
+<li>Object.getOwnPropertySymbols(obj) 返回一个给定对象自身的所有 Symbol 属性的数组
+<ul>
+<li>参数解释： obj 要返回 Symbol 属性的对象</li>
+<li>返回值： 在给定对象自身上找到的所有 Symbol 属性的数组。</li>
+<li><p>例子：</p>
+<pre><code><code>var obj = {};
+var a = Symbol(&quot;a&quot;);
+var b = Symbol.for(&quot;b&quot;);
+
+obj[a] = &quot;localSymbol&quot;;
+obj[b] = &quot;globalSymbol&quot;;
+
+var objectSymbols = Object.getOwnPropertySymbols(obj);
+
+console.log(objectSymbols.length); // 2
+console.log(objectSymbols)         // [Symbol(a), Symbol(b)]
+console.log(objectSymbols[0])      // Symbol(a)</code></pre></li>
+</ul></li>
+<li>Object.keys() 返回一个由一个给定对象的自身可枚举属性组成的数组，数组中属性名的排列顺序和使用 for...in 循环遍历该对象时返回的顺序一致
+<ul>
+<li>参数：obj 要返回其枚举自身属性的对象</li>
+<li>返回值： 一个表示给定对象的所有可枚举属性的字符串数组</li>
+<li><p>例子：</p>
+<pre><code><code>var obj = { 0: &#39;a&#39;, 1: &#39;b&#39;, 2: &#39;c&#39; };
+console.log(Object.keys(obj)); // [&#39;0&#39;, &#39;1&#39;, &#39;2&#39;]</code></pre></li>
+</ul></li>
+<li>for...in循环<br />
+————————————</li>
+</ul></li>
+<li><p>例子之一：</p>
+<pre><code><code>var p = new Proxy({}, {
+  ownKeys: function(target) {
+    return [&#39;a&#39;, &#39;b&#39;, &#39;c&#39;];
+  }
+});
+
+Object.getOwnPropertyNames(p)
+// [ &#39;a&#39;, &#39;b&#39;, &#39;c&#39; ]</code></pre></li>
+</ul></li>
+</ol>
+<h1 id="五-proxy.revocabletarget-handler">五 Proxy.revocable(target, handler)</h1>
+<p>返回一个可取消的 Proxy 实例</p>
+<ul>
+<li>参数解释：
+<ul>
+<li>target 用Proxy包装的目标对象（可以是任何类型的对象，包括原生数组，函数，甚至另一个代理）。</li>
+<li>handler 拦截对象，其属性是当执行一个操作时定义代理的行为的函数。</li>
+</ul></li>
+<li>返回值<br />
+返回一个包含了所生成的代理对象本身以及该代理对象的撤销方法的对象<br />
+其结构为： {&quot;proxy&quot;: proxy, &quot;revoke&quot;: revoke}，其中：
+<ul>
+<li>proxy<br />
+表示新生成的代理对象本身，和用一般方式 new Proxy(target, handler) 创建的代理对象没什么不同，只是它可以被撤销掉</li>
+<li>revoke<br />
+撤销方法，调用的时候不需要加任何参数，就可以撤销掉和它一起生成的那个代理对象</li>
+</ul></li>
+<li><p>例子：</p>
+<pre><code><code>var revocable = Proxy.revocable({}, {
+  get(target, propKey) {
+    return propKey + &#39;啦啦啦&#39;;
+  }
+});
+var proxy = revocable.proxy;
+console.log(proxy.foo) // foo啦啦啦
+revocable.revoke(); // 执行撤销方法
+console.log(proxy.foo); // Uncaught TypeError: Cannot perform &#39;get&#39; on a proxy that has been revoked</code></pre></li>
+</ul>
+<h1 id="总结">总结</h1>
+<p>刚开始学proxy时，都是懵逼的状态，阮一峰ES6入门一开始看代码有点难度，所以我一边看一边查资料，里面关于Object对象的方法居多，也顺便学习了一下，知识很多，需要日常回顾加深理解，经过查阅，对于代理模式 Proxy 的作用主要体现在三个方面:1拦截和监视外部对对象的访问，2降低函数或类的复杂度，3在复杂操作前对操作进行校验或对所需资源进行管理，目前还没有大量运用，最常见的应该是拦截和监听对象的变化吧。<br />
+我把笔记放到<a href="https://github.com/sqh17/notes/blob/master/ways/proxy.md">GitHub</a>里了，如需要可以去看看，有什么不对的地方，欢迎指正，大家一起进步加油。</p>
+<h1 id="参考文献">参考文献</h1>
+<p><a href="http://es6.ruanyifeng.com/#docs/proxy">阮一峰ES6入门</a><br />
+<a href="https://www.jb51.net/article/132373.htm">详解ES6中的代理模式——Proxy</a><br />
+<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Proxy">MDN</a><br />
+<a href="https://segmentfault.com/a/1190000006035363">[译] 实例解析 ES6 Proxy 使用场景</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

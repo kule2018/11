@@ -1,0 +1,242 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修GoogleMap增加标记和路线轨迹的方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>GoogleMap增加标记和路线轨迹的方法</center></div><div class='banquan'>原文出处:本文由博客园博主Captain&amp;D提供。<br/>
+原文连接:https://www.cnblogs.com/captainad/p/11245693.html</div><br>
+    <blockquote>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">声明：本文基于<strong>JavaScript</strong>环境编写。</span></p>
+</blockquote>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">前言</span></h1>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">按照目前的项目需求，我们需要在谷歌地图上标记出当前仓库的位置、司机补货的行车路径、司机当前班次需要补货的机器的位置，同时根据补货状态的不同标记成不同状态的图标。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">分析完需求，总结一下就是我们需要在谷歌地图上显示<span style="color: #ff0000;"><strong>众多标记、轨迹画线、不同的标记显示不同的图标</strong></span>，于是前往Google Map查看Api，因为我们的需求重点是在PC浏览器上实现，所以我们只关注了基于JavaScript的API，本文也基于此展开叙述。</span></p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">目标</span></h1>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">从本文中我将大概总结以下几点内容：</span></p>
+<ul>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">在web项目中<strong>引入Google Map</strong>。</span></li>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">在地图上<strong>增加位置标记</strong>。</span></li>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">在地图上<strong>增加自定义图标标记</strong>。</span></li>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">在地图上根据众多GPS点<strong>绘制路线</strong>，并<strong>标记不同颜色</strong>。</span></li>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">在地图上<strong>清除已经绘制好的标记</strong>。</span></li>
+</ul>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">我截取了一张实际的效果图，其中图标有蓝色的仓库、绿色状态表示已完成的机器，未完成的机器应该是灰色的，但是这张图中没有这种状态的数据。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><img src="./images/GoogleMap增加标记和路线轨迹的方法0.png" alt="" width="1054" height="826" /></span></p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">功能实现</span></h1>
+<p><strong><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">前期准备</span></strong></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">1、准备好SDK引入</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">按照GoogleMap API中的指引，你需要引入以下JS文件：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> &lt;!--
+<span style="color: #008080;">2</span> *<span style="color: #000000;"> Load the API from the specified URL
+</span><span style="color: #008080;">3</span> * The async attribute allows the browser to render the page <span style="color: #0000ff;">while</span><span style="color: #000000;"> the API loads
+</span><span style="color: #008080;">4</span> * The key parameter will contain your own API key (which is not needed <span style="color: #0000ff;">for</span> <span style="color: #0000ff;">this</span><span style="color: #000000;"> tutorial)
+</span><span style="color: #008080;">5</span> * The callback parameter executes the initMap() <span style="color: #0000ff;">function</span>
+<span style="color: #008080;">6</span> --&gt;
+<span style="color: #008080;">7</span> &lt;script async defer src="https://maps.googleapis.com/maps/api/js?key=<span style="color: #ff6600;"><strong>YOUR_API_KEY</strong></span>&amp;callback=initMap"&gt;&lt;/script&gt;</pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">其中，<span style="color: #ff0000;"><strong>YOUR_API_KEY</strong></span>是你在Google云平台操作面板为GoogleMap API使用所申请的秘钥，你可以通过以下指南找到答案。</span></p>
+<blockquote>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">申请GoogleMap API KEY：https://developers.google.com/maps/documentation/javascript/get-api-key</span></p>
+</blockquote>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">同时，按照上面引用的JS文件中指明的回调方法，你需要写出函数体，并在此中初始化地图和数据：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> &lt;script&gt;
+<span style="color: #008080;">2</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> Initialize and add the map</span>
+<span style="color: #008080;">3</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> initMap() {
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">        ....
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">6</span> &lt;/script&gt;</pre>
+</div>
+<p><strong><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">创建地图</span></strong></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">1、创建一个div用来放置地图，可以给地图设置一个id属性，以便生成地图时使用</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">&nbsp;<span class="cnblogs_code"><span style="color: #800000;">&lt;div id="<strong><span style="color: #ff6600;">map</span></strong>" class="ibox-content" style="padding:15px 0 20px 0"&gt;</span><span style="color: #800000;">&lt;/div&gt;</span></span>&nbsp;</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">2、创建Google地图对象，设置中心点和视图层级等信息</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> 初始化地图对象 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> initMap() {
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> center = {lat: 13.751898, lng: 100.500565<span style="color: #000000;">};
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">var</span> map = <span style="color: #0000ff;">new</span> google.maps.Map(document.getElementById('map'<span style="color: #000000;">), {
+</span><span style="color: #008080;"> 5</span>         center: center, <span style="color: #008000;">//</span><span style="color: #008000;"> 地图所展现视图的中心点</span>
+<span style="color: #008080;"> 6</span>         zoom: 10<span style="color: #000000;">,
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        mapTypeId: google.maps.MapTypeId.ROADMAP,
+</span><span style="color: #008080;"> 8</span>         mapTypeControl: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 9</span>         panControl: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;">10</span>         zoomControl: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;">11</span>         streetViewControl: <span style="color: #0000ff;">false</span>
+<span style="color: #008080;">12</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;">13</span> }</pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">3、添加仓库位置标记</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> 获取仓库位置数据，并在地图上显示仓库图标 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> showWarehousePosition(map) {
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> warehouseId = $("#warehouse"<span style="color: #000000;">).val();
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">    $.ajax({
+</span><span style="color: #008080;"> 5</span>         url: 'getWarehouseGpsData'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span>         type: 'GET'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 7</span>         dataType: 'JSON'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        data: {warehouseId: warehouseId},
+</span><span style="color: #008080;"> 9</span>         success: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (data) {
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">if</span>(data.code == 200<span style="color: #000000;">) {
+</span><span style="color: #008080;">11</span>                 <span style="color: #0000ff;">if</span>(data.result !=<span style="color: #000000;"> undefined) {
+</span><span style="color: #008080;">12</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> 从后台响应回来的是一个包含lat和lng属性的对象</span>
+<span style="color: #008080;">13</span>                     <span style="color: #0000ff;">var</span> warehouseGpsPosition =<span style="color: #000000;"> {lat: Number(data.result.lat), lng: Number(data.result.lng)};
+</span><span style="color: #008080;">14</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> 在地图上生成仓库的标记，仓库图标自定义</span>
+<span style="color: #008080;">15</span>                     <span style="color: #0000ff;">var</span> marker = <span style="color: #0000ff;">new</span><span style="color: #000000;"> google.maps.Marker({
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                        position: warehouseGpsPosition,
+</span><span style="color: #008080;">17</span>                         icon: "./googlemap/images/warehouse.png"<span style="color: #000000;">,
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">                        map: map
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                    });
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">21</span>             }<span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">22</span>                 alert("Failed."<span style="color: #000000;">);
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">25</span>         error: <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">26</span>             alert("System error."<span style="color: #000000;">);
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">    })
+</span><span style="color: #008080;">29</span> }</pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">4、添加机器的位置，为不同状态标注不同图标</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 用于记录机器标注位置，以便于后续清除标记</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">var</span> deviceMarkerArray =<span style="color: #000000;"> [];
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> 查询机器位置数据 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 5</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> showMachinePosition(map) {
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">var</span> buzId = $("#business"<span style="color: #000000;">).val();
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    $.ajax({
+</span><span style="color: #008080;"> 8</span>         url: 'getMachineGpsList'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 9</span>         type: 'GET'<span style="color: #000000;">,
+</span><span style="color: #008080;">10</span>         dataType: 'JSON'<span style="color: #000000;">,
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        data: {buzId: buzId},
+</span><span style="color: #008080;">12</span>         success: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (data) {
+</span><span style="color: #008080;">13</span>             <span style="color: #0000ff;">if</span>(data.code == 200 &amp;&amp; data.result !=<span style="color: #000000;"> undefined) {
+</span><span style="color: #008080;">14</span>                 <span style="color: #0000ff;">var</span> finishedMachineGpsList =<span style="color: #000000;"> data.result.finishedMachineGpsList;
+</span><span style="color: #008080;">15</span>                 <span style="color: #0000ff;">var</span> unfinishedMachineGpsList =<span style="color: #000000;"> data.result.unfinishedMachineGpsList;
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                drawMachinePosition(map, finishedMachineGpsList, unfinishedMachineGpsList);
+</span><span style="color: #008080;">17</span>             }<span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">18</span>                 alert("Failed."<span style="color: #000000;">);
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">21</span>         error: <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">22</span>             alert("System error."<span style="color: #000000;">);
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">    })
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> 绘制机器位置 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">28</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> drawMachinePosition(map, finishedMachineGpsList, unfinishedMachineGpsList) {
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 先清除地图上之前标记过的机器图标</span>
+<span style="color: #008080;">31</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 可做可不做，业务需要的话可以清除</span>
+<span style="color: #008080;">32</span> <span style="color: #000000;">    clearOverlays();
+</span><span style="color: #008080;">33</span> 
+<span style="color: #008080;">34</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 已完成机器位置</span>
+<span style="color: #008080;">35</span>     <span style="color: #0000ff;">if</span>(finishedMachineGpsList != <span style="color: #0000ff;">null</span> &amp;&amp; finishedMachineGpsList !=<span style="color: #000000;"> undefined) {
+</span><span style="color: #008080;">36</span>         $.each(finishedMachineGpsList, <span style="color: #0000ff;">function</span><span style="color: #000000;"> (index, item) {
+</span><span style="color: #008080;">37</span>             <span style="color: #0000ff;">var</span> marker = <span style="color: #0000ff;">new</span><span style="color: #000000;"> google.maps.Marker({
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">                position: item,
+</span><span style="color: #008080;">39</span>                 icon: "./googlemap/images/fulfilled.png"<span style="color: #000000;">,
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">                map: map
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">            deviceMarkerArray.push(marker);
+</span><span style="color: #008080;">43</span>             google.maps.event.addListener(marker,"click",<span style="color: #0000ff;">function</span><span style="color: #000000;">(){});
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">46</span> 
+<span style="color: #008080;">47</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 未完成机器位置</span>
+<span style="color: #008080;">48</span>     <span style="color: #0000ff;">if</span>(unfinishedMachineGpsList != <span style="color: #0000ff;">null</span> &amp;&amp; unfinishedMachineGpsList !=<span style="color: #000000;"> undefined) {
+</span><span style="color: #008080;">49</span>         $.each(unfinishedMachineGpsList, <span style="color: #0000ff;">function</span><span style="color: #000000;"> (index, item) {
+</span><span style="color: #008080;">50</span>             <span style="color: #0000ff;">var</span> marker = <span style="color: #0000ff;">new</span><span style="color: #000000;"> google.maps.Marker({
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">                position: item,
+</span><span style="color: #008080;">52</span>                 icon: "./googlemap/images/unfulfill.png"<span style="color: #000000;">,
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">                map: map
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">            deviceMarkerArray.push(marker);
+</span><span style="color: #008080;">56</span>             google.maps.event.addListener(marker,"click",<span style="color: #0000ff;">function</span><span style="color: #000000;">(){});
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">59</span> 
+<span style="color: #008080;">60</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">61</span> 
+<span style="color: #008080;">62</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> 清除之前的标记 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">63</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> clearOverlays() {
+</span><span style="color: #008080;">64</span>     <span style="color: #0000ff;">if</span>(deviceMarkerArray != undefined &amp;&amp; deviceMarkerArray != <span style="color: #0000ff;">null</span> &amp;&amp; deviceMarkerArray.length &gt; 0<span style="color: #000000;">) {
+</span><span style="color: #008080;">65</span>         <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; deviceMarkerArray.length; i++<span style="color: #000000;"> ) {
+</span><span style="color: #008080;">66</span>             deviceMarkerArray[i].setMap(<span style="color: #0000ff;">null</span><span style="color: #000000;">);
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">68</span>         deviceMarkerArray.length = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">69</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">70</span> } </pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">5、生成司机行车路线</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">通过司机手机手持app实时上报上来的GPS位置信息，我们将之在地图上逐个标记并串联成线，形成轨迹图效果。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> 获取司机行车记录下的GPS数据串，并在地图上连线形成路径 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> showDriverRoute(map) {
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> buzId = $("#business"<span style="color: #000000;">).val();
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">    $.ajax({
+</span><span style="color: #008080;"> 5</span>         url: 'getDriverGpsList'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span>         type: 'GET'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 7</span>         dataType: 'JSON'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        data: {buzId: buzId},
+</span><span style="color: #008080;"> 9</span>         success: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (data) {
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">if</span>(data.code == 200 &amp;&amp; data.result !=<span style="color: #000000;"> undefined) {
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">                drawDriverRoute(map, data.result.driverGpsDataList, 
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">                    data.result.routeColor, data.result.carLocation);
+</span><span style="color: #008080;">13</span>             }<span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">14</span>                 alert("Failed."<span style="color: #000000;">);
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">17</span>         error: <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">18</span>             alert("System error."<span style="color: #000000;">);
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">    })
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">22</span> 
+<span style="color: #008080;">23</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> 绘制行车路线 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">24</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> drawDriverRoute(map, driverGpsDataList, routeColor, carLocation) {
+</span><span style="color: #008080;">25</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 绘制行车路线</span>
+<span style="color: #008080;">26</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> driverGpsDataList是一个后台List对象，数组对象中包含的元素都是包含lat和lng属性的对象</span>
+<span style="color: #008080;">27</span>     <span style="color: #0000ff;">var</span> driverPath = <span style="color: #0000ff;">new</span><span style="color: #000000;"> google.maps.Polyline({
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">        path: driverGpsDataList,
+</span><span style="color: #008080;">29</span>         geodesic: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;">30</span>         strokeColor: routeColor, <span style="color: #008000;">//</span><span style="color: #008000;"> #ff0000</span>
+<span style="color: #008080;">31</span>         strokeOpacity: 1.0<span style="color: #000000;">,
+</span><span style="color: #008080;">32</span>         strokeWeight: 2
+<span style="color: #008080;">33</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">    driverPath.setMap(map);
+</span><span style="color: #008080;">35</span> 
+<span style="color: #008080;">36</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 抓取最后的一个点，绘制一个车的图标，表示车在这里</span>
+<span style="color: #008080;">37</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> carLocation是一个包含lat和lng属性的后台对象</span>
+<span style="color: #008080;">38</span>     <span style="color: #0000ff;">var</span> latLng =<span style="color: #000000;"> {lat: Number(carLocation.lat), lng: Number(carLocation.lng)};
+</span><span style="color: #008080;">39</span>     <span style="color: #0000ff;">var</span> carMarker = <span style="color: #0000ff;">new</span><span style="color: #000000;"> google.maps.Marker({
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">        position: latLng,
+</span><span style="color: #008080;">41</span>         icon: "./googlemap/images/vehicle.png"<span style="color: #000000;">,
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">        map: map
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;">44</span> }</pre>
+</div>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 16px;">参考资料</span></h1>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">1、https://developers.google.com/maps/documentation/javascript/tutorial</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,85 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于webpack实现多html页面开发框架六  提取公共代码' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于webpack实现多html页面开发框架六  提取公共代码</center></div><div class='banquan'>原文出处:本文由博客园博主Lisong提供。<br/>
+原文连接:https://www.cnblogs.com/lisong/p/12015791.html</div><br>
+    <p><strong>一、解决什么问题</strong></p>
+<p><strong>　　1、如果a.js和b.js都引用了common.js，那在打包的时候common.js会被重复打入到a.js和b.js，造成重复打包</strong></p>
+<p><strong>　　2、单独打包common.js对性能有帮助，浏览器下载一次后会缓存下来，不会重复下载</strong></p>
+<p><strong>二、未抽取公共代码的状况</strong></p>
+<p><strong>　　基于之前代码，测试如下：　　</strong></p>
+<p><strong>　　1、在assets/js文件夹下新建common.js，输入如下代码：</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> export <span style="color: #0000ff;">function</span><span style="color: #000000;"> printCommon(){
+</span><span style="color: #008080;">2</span>     console.log("common"<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> }</pre>
+</div>
+<p>　　2、在src/index文件夹下的index.js引入common.js，调用printCommon</p>
+<p>　　3、在src/home文件夹下的index.js引入common.js，调用printCommon</p>
+<p>　　4、测试结果如下：</p>
+<p>　　<img src="./images/基于webpack实现多html页面开发框架六  提取公共代码0.png" alt="" width="597" height="212" /><img src="./images/基于webpack实现多html页面开发框架六  提取公共代码1.png" alt="" width="662" height="223" /></p>
+<p>　　<span style="color: #ff6600;">很明显common.js分别打包到了home.js和index.js，造成了重复打包，且不能利用浏览器缓存的优点</span></p>
+<p><span style="color: #000000;"><strong>三、抽取公共代码后的状况</strong></span></p>
+<p><span style="color: #000000;"><strong>　　1、需要用到的插件</strong></span>SplitChunksPlugin，个人理解该插件主要是解决重复引用的问题，官网详细介绍<a href="https://webpack.js.org/plugins/split-chunks-plugin/">https://webpack.js.org/plugins/split-chunks-plugin/</a></p>
+<p>　　　&nbsp; 详细描述一个配置属性chunks：拆分模块的范围它有三个值async、initial和all</p>
+<p>　　　　async表示只从异步加载得模块（动态加载import()）里面进行拆分</p>
+<p>　　　　initial表示只从入口模块进行拆分</p>
+<p>　　　　all表示以上两者都包括</p>
+<p>　　2、如何配置splitChunks，如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>  <span style="color: #008000;">//</span><span style="color: #008000;"> 提取公共代码</span>
+<span style="color: #008080;"> 2</span> <span style="color: #000000;">    optimization: {
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">        splitChunks: {
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">            cacheGroups: {
+</span><span style="color: #008080;"> 5</span>                 vendor: {   <span style="color: #008000;">//</span><span style="color: #008000;"> 抽离第三方插件</span>
+<span style="color: #008080;"> 6</span>                     test: /node_modules/,   <span style="color: #008000;">//</span><span style="color: #008000;"> 指定是node_modules下的第三方包</span>
+<span style="color: #008080;"> 7</span>                     chunks: 'initial', <span style="color: #008000;">//</span><span style="color: #008000;"> 拆分模块的范围</span>
+<span style="color: #008080;"> 8</span>                     name: 'vendor',  <span style="color: #008000;">//</span><span style="color: #008000;"> 打包后的文件名，任意命名    </span>
+<span style="color: #008080;"> 9</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> 设置优先级，防止和自定义的公共代码提取时被覆盖，不进行打包</span>
+<span style="color: #008080;">10</span>                     priority: 10
+<span style="color: #008080;">11</span> <span style="color: #000000;">                },
+</span><span style="color: #008080;">12</span>                 utils: { <span style="color: #008000;">//</span><span style="color: #008000;"> 抽离自己写的公共代码，common这个名字可以随意起</span>
+<span style="color: #008080;">13</span>                     chunks: 'initial'<span style="color: #000000;">,
+</span><span style="color: #008080;">14</span>                     name: 'common',  <span style="color: #008000;">//</span><span style="color: #008000;"> 任意命名</span>
+<span style="color: #008080;">15</span>                     minSize: 0,    <span style="color: #008000;">//</span><span style="color: #008000;"> 只要超出0字节就生成一个新包</span>
+<span style="color: #008080;">16</span>                     minChunks: 2   <span style="color: #008000;">//
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">20</span>     },</pre>
+</div>
+<p>　　3、配置完重新运行npm run dev 效果如下：</p>
+<p>　　<span style="color: #ff6600;">头部引用超过两次的公共代码进行了单独打包，common.js和vendor.js</span></p>
+<p>　　<img src="./images/基于webpack实现多html页面开发框架六  提取公共代码2.png" alt="" width="1335" height="324" /></p>
+<p>&nbsp;　　<span style="color: #ff6600;">再次打开home页面，看common.js和vendor.js是否重新下载，状态为304，引用的缓存</span></p>
+<p>　　<img src="./images/基于webpack实现多html页面开发框架六  提取公共代码3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　</p>
+<p>&nbsp;</p>
+<p>　　源码地址：<a href="https://github.com/James-14/webpack4_multi_page_demo">https://github.com/James-14/webpack4_multi_page_demo</a></p>
+<p>　　写的不对之处请大家批评指正~~~~!!!!!!&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　文章原创，转载请注明出处，谢谢！</p>
+<p>　　　　</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

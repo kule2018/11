@@ -1,0 +1,109 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11581812.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-方案1threebsp.js或threecsg.js扩展库">一. 方案1：ThreeBSP.js或ThreeCSG.js扩展库</a></li>
+        <li><a href="#二.-方案2平面镂空模型拉伸">二. 方案2：平面镂空模型拉伸</a></li>
+        <li><a href="#三.-方案3cinema-4d建模后输出模型文件">三. 方案3：Cinema 4D建模后输出模型文件</a></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式0.png" /></p>
+<blockquote>
+<p>示例代码托管在：<a href="https://github.com/dashnowords/blogs/tree/master/Demo/threejs-demo/%E5%B8%A6%E7%9D%80canvas%E5%8E%BB%E6%B5%81%E6%B5%AA%EF%BC%8814%EF%BC%89-demo">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<p>浮雕模型，简单地说就是在木板上刻字时所形成的效果，如果把字的部分都剔除掉，就得到一个凹浮雕模型，如果把字以外的部分都剔除掉，就得到一个凸浮雕模型。本文分别对利用<code>Three.js</code>在Web环境中生成凹浮雕模型时的几种策略进行讲解。</p>
+<h2 id="一.-方案1threebsp.js或threecsg.js扩展库">一. 方案1：ThreeBSP.js或ThreeCSG.js扩展库</h2>
+<p>在众多技术博客里，提及最多的就是上述两个库，它们声称是<code>Three.js</code>的扩展库，用来对模型进行实体布尔操作。</p>
+<p><strong>But！不要用！不要用！不要用！</strong></p>
+<p>查看<code>github</code>的仓库就可以发现，这两个库早在N年前已经停止维护，完全是没有保障的。而笔者亲测后发现除了官方提供的示例外，它们连最基本的立方体挖孔都无法做到，按照官方示例的写法最终只得到了下面的模型，而笔者原本的期望是在大立方体上挖出一个小立方体凹槽，字体模型就更不用提了。</p>
+<p><img src="./images/【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式1.png" /></p>
+<h2 id="二.-方案2平面镂空模型拉伸">二. 方案2：平面镂空模型拉伸</h2>
+<p>由于期望实现的凹浮雕模型并不算复杂，可以换一种实现思路，先在平面上生成一个矩形，然后从其中去掉字体的形状，最后再将剩余的部分拉伸成几何体，当然如果期望的浮雕模型并没有完全穿过毛坯模型时，还需要使用一个额外的立方体来补全剩余的部分。</p>
+<p>字体文件的加载是异步的，当完成加载后，就可以获得字体对象，将它传入下面的函数来生成一个大小为<code>40</code>的<code>M</code>字符，它本质上是一个<code>shape</code>实例，将其作为参数就可以生成拉伸体模型：</p>
+<p><img src="./images/【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式2.png" /></p>
+<p>所有的<code>shape</code>实例都有<code>holes</code>属性，顾名思义它就是用来在封闭的平面图形上进行挖孔操作的，正好符合凹浮雕模型的制作需求，我们只需要生成一个尺寸略大于字体模型包围盒的矩形，然后将字体模型的数据填入包围盒<code>shape</code>实例的<code>holes</code>数组中，<code>Three.js</code>就可以自动将其识别为孔：</p>
+<p><img src="./images/【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式3.png" /></p>
+<p>关键代码如下所示（完整示例可在附件或文章开头的<code>github</code>仓库中获取）：</p>
+<pre><code><code>/*在平面上生成镂空字体*/
+    function calcShape(font) {
+        fontShape = font.generateShapes(&#39;M&#39;,40);
+        boxShape = new THREE.Shape();
+        boxShape.moveTo(-20,-20);
+        boxShape.lineTo(50,-20);
+        boxShape.lineTo(50,50);
+        boxShape.lineTo(-20,50);
+        boxShape.lineTo(-20,-20);
+        boxShape.holes.push(fontShape[0]);
+        return boxShape;
+}
+/*生成拉伸体*/
+ textGeometry = new THREE.ExtrudeGeometry(calcShape(font), {
+                    depth:10,
+                    bevelEnabled: false,
+                    curveSegments: 4
+                });
+</code></pre>
+<p>对于更为复杂的模型，这种方式仍然显得不够直观。</p>
+<h2 id="三.-方案3cinema-4d建模后输出模型文件">三. 方案3：Cinema 4D建模后输出模型文件</h2>
+<p><code>Three.js</code>这种基于编程的建模方式并不够直观，面对复杂模型时，通用的解决办法是使用三维建模软件进行模型构建，然后导出<code>Three.js</code>能够识别的模型文件，使用加载器载入后再对模型进行微调，<code>Three.js</code>为数十种通用的三维模型文件都提供了加载器，本节以<strong>C4D</strong>为例演示基本的实现过程，如果你它的基本使用方法还不清楚，可以在<a href="www.imooc.com">【慕课网】</a>上找到免费的使用教程。</p>
+<p><code>C4D</code>的主界面如下所示，建模的主要工具主要在图中红框标记的部分：</p>
+<p><img src="./images/【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式4.png" /></p>
+<p>在图标上长按左键就可以看到每个大类详细的功能：</p>
+<p><img src="./images/【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式5.png" /></p>
+<p>本例中恰好每个大类均用到一个功能（上图中红框标记的功能），<strong>立方体</strong>功能生成立体包围盒毛坯模型，<strong>文本</strong>功能生成需要雕刻的文字，使用<strong>挤压</strong>功能生成一个拉伸体对象后，在界面右侧的对象管理面板中将“文本模型”拖放到<strong>挤压</strong>文字上，就可以得到一个基于文本形状的拉伸体，最后生成一个<strong>实体布尔模型</strong>，在对象管理面板中将<strong>立方体</strong>和<strong>挤压体</strong>依次拖放到对象名<strong>布尔</strong>这两个字上，它们就会成为布尔运算的成员，在布尔模型的配置中将操作类型选择为<strong>A减B</strong>，就可以得到凹浮雕模型了。建模的通用思路就像是函数式编程，先指定操作，再传入数据。</p>
+<p><img src="./images/【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式6.png" /></p>
+<p><code>Three.js</code>官方建议的模型格式为<code>*.gltf</code>格式，想要在<strong>C4D</strong>中直接导出这种格式需要安装相应的插件（<a href="https://github.com/KhronosGroup/glTF">GLTF格式工具仓库</a>）。本例中我们采用另一种方式来实现，先在“文件”菜单中选择“导出”得到模型文件，本例中以<code>*.obj</code>扩展名为例。如果添加了表面材质，生成<code>obj</code>数据的同时还会带有一个同名的<code>mtl</code>文件（Material Template Library），它携带着<code>obj</code>几何体表面的材质信息，接下来使用命令行工具<code>obj2gltf</code>（<code>npm</code>上可以直接搜出来）对导出的文件进行格式转换，最后只需要将生成的<code>marvel.gltf</code>文件利用<code>Three.js</code>提供的<code>GLTFLoader</code>加载器导入到网页中即可，相关代码如下：</p>
+<pre><code><code>// instantiate a loader
+    var loader = new THREE.GLTFLoader();
+
+    // load a resource
+    loader.load(
+        // resource URL
+        &#39;assets/marvel.gltf&#39;,
+        // called when resource is loaded
+        function (event) {
+            console.log(event);
+            event.scene.scale.set(0.2,0.2,0.2);
+            scene.add(event.scene);
+            render();
+        },
+        // called when loading is in progresses
+        function (xhr) {
+            console.log((xhr.loaded / xhr.total * 100) + &#39;% loaded&#39;);
+        },
+        // called when loading has errors
+        function (error) {
+            console.log(&#39;An error happened&#39;);
+        }
+    );</code></pre>
+<p>可以看到网页中加载的模型既包含了凹浮雕模型，也包含了我们在建模软件中添加的蓝色材质（途中的亮蓝色区域是点光源照射的效果）。</p>
+<p><img src="./images/【带着canvas去流浪（14）】Three.js中凹浮雕模型的生成方式7.png" /></p>
+<p>本节的示例Demo可在文章开头的github仓库中获取到，如果觉得对你有用，可以在仓库帮我点个星星~</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

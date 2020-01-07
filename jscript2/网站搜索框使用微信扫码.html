@@ -1,0 +1,244 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修网站搜索框使用微信扫码' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>网站搜索框使用微信扫码</center></div><div class='banquan'>原文出处:本文由博客园博主地对地导弹提供。<br/>
+原文连接:https://www.cnblogs.com/missile/p/11357687.html</div><br>
+    <h2 id="背景">背景</h2>
+<p>客户要求可以直接识别标签二维码对某些仪器设备进行管理，类似于淘宝搜索框可以直接拍照搜索商品一样。前面已经做了一个<a href="https://www.cnblogs.com/missile/p/11139059.html">网页调用摄像头识别二维码的功能</a>，此功能有两个缺陷：</p>
+<ul>
+<li>识别需要先拍照，不能直接识别</li>
+<li>识别率低，尤其是拍照抖动，二维码内容稍微多一点或二维码小一点就识别不了。</li>
+</ul>
+<p>以上两点相加就相当不好用了。</p>
+<h2 id="使用微信扫码">使用微信扫码</h2>
+<p>鉴于我们的系统已经集成到了微信公众号，所以准备调用微信扫码（只有在微信内打开的页面才能使用微信扫码）。<br />
+参照<a href="https://mp.weixin.qq.com/wiki?t=resource/res_main&amp;id=mp1421141115">官方文档</a></p>
+<h3 id="绑定域名">绑定域名</h3>
+<p>打开公众号设置<br />
+<img src="./images/网站搜索框使用微信扫码0.png" alt="公众号设置" /><br />
+选择功能设置<br />
+<img src="./images/网站搜索框使用微信扫码1.png" alt="功能设置" /><br />
+添加JS接口安全域名，注意你添加的域名目录下面上次图中微信指定的文件，如果文件没在根目录，域名需要填写到子目录<br />
+<img src="./images/网站搜索框使用微信扫码2.png" alt="JS接口安全域名" /></p>
+<h3 id="引入js文件">引入JS文件</h3>
+<p>使用vs2019创建默认的asp.net mvc项目<br />
+在index.cshtml页面中使用的页面引用js<br />
+<code>&lt;script src=&quot;http://res.wx.qq.com/open/js/jweixin-1.1.0.js&quot;&gt;&lt;/script&gt;</code></p>
+<h3 id="前端主要代码">前端主要代码</h3>
+<pre><code><code>$(function () {
+    /**
+     * 判断是否微信内部打开页面
+     * */
+    function isWeiXin() {
+        var ua = window.navigator.userAgent.toLowerCase();
+        console.log(ua);//mozilla/5.0 (iphone; cpu iphone os 9_1 like mac os x) applewebkit/601.1.46 (khtml, like gecko)version/9.0 mobile/13b143 safari/601.1
+        if (ua.match(/MicroMessenger/i) == &#39;micromessenger&#39;) {
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+    /**
+     * 只有微信内部页面打开才能用
+     * */
+    if (isWeiXin()) {
+        $.ajax({
+            type: &quot;post&quot;,
+            url: &quot;/Home/GetSingDataAsync&quot;,
+            data: {
+                &quot;url&quot;: location.href.split(&#39;#&#39;)[0]
+            },
+            dataType: &quot;json&quot;,
+            success: function (data) {
+                alert(JSON.stringify(data));
+                wx.config({
+                    debug: true, // 开启调试模式,调用的所有api的返回值会在客户端alert出来，若要查看传入的参数，可以在pc端打开，参数信息会通过log打出，仅在pc端时才会打印。
+                    appId: data.appId, // 必填，公众号的唯一标识
+                    timestamp: data.timestamp, // 必填，生成签名的时间戳
+                    nonceStr: data.nonceStr, // 必填，生成签名的随机串
+                    signature: data.signature,// 必填，签名，见附录1
+                    jsApiList: [
+                        &#39;checkJsApi&#39;,
+                        &#39;startRecord&#39;,
+                        &#39;stopRecord&#39;,
+                        &#39;translateVoice&#39;,
+                        &#39;scanQRCode&#39;,// 微信扫一扫接口
+                        &#39;openCard&#39;
+                    ] // 必填，需要使用的JS接口列表，所有JS接口列表见附录2
+                });
+                wx.error(function (res) {
+                    alert(&quot;出错了：&quot; + res.errMsg);//这个地方的好处就是wx.config配置错误，会弹出窗口哪里错误，然后根据微信文档查询即可。
+                });
+                wx.ready(function () {
+                    wx.checkJsApi({
+                        jsApiList: [&#39;scanQRCode&#39;],
+                        success: function (res) {
+                            //扫描二维码
+                            wx.scanQRCode({
+                                needResult: 1, // 默认为0，扫描结果由微信处理，1则直接返回扫描结果，
+                                scanType: [&quot;qrCode&quot;], // 可以指定扫二维码还是一维码，默认二者都有
+                                success: function (res) {
+                                    var result = res.resultStr; // 当needResult 为 1 时，扫码返回的结果
+                                    alert(result);//因为我这边是扫描后有个链接，然后跳转到该页面
+                                },
+                                error: function () {
+                                    console.log(&#39;123&#39;);
+                                }
+                            });
+                        }
+                    });
+                });
+            },
+            error: function (url) {
+                alert(&quot;An error occurred!&quot;);
+            }
+        });
+    } else {
+        alert(&quot;请使用微信打开&quot;);
+    }
+})  </code></pre>
+<h3 id="后端代码">后端代码</h3>
+<pre class="c#"><code>public class HomeController : Controller
+{
+    //把APPID和APP_SECRET换成你自己的
+    private const string APPID = &quot;******&quot;;
+    private const string APP_SECRET = &quot;******&quot;;
+    //为了调试方便我这里第一次把Token和Ticket获取到之后就写死了，应该写入缓存（7200s过期）
+    private static string Token = &quot;24_cQsz9scwyXLnPaAes5JlfHTfuQ2e3Iw5L8JyWfUpQiMnTk4IToOTZ7dP0Fv190ZHTy5ST--jeuDzYwoUj_hvhSHDX288YYLYVcrmvMzRPwld8ccTTzWGNTKZz53jYKDy5f8U1E886msDPsrwORGbAJABET&quot;;
+    private static string Ticket = &quot;HoagFKDcsGMVCIY2vOjf9qZA_fkPP3enjnT58qu16hzZN-3kwAP0NK6jgQM0jyAc0sK8cxaGkT9_DSgp6cHCpw&quot;;
+    public ActionResult Index()
+    {
+
+        return View();
+    }
+
+    public ActionResult About()
+    {
+        ViewBag.Message = &quot;Your application description page.&quot;;
+
+        return View();
+    }
+
+    public ActionResult Contact()
+    {
+        ViewBag.Message = &quot;Your contact page.&quot;;
+
+        return View();
+    }
+
+
+    public async Task GetToken()
+    {
+        await GetTicketAsync();
+    }
+    //获取token和ticket
+    private async Task&lt;string&gt; GetTicketAsync()
+    {
+
+        var tokenUrl = $&quot;https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&amp;appid={APPID}&amp;secret={APP_SECRET}&quot;;
+
+        var client = new System.Net.WebClient();
+        client.Encoding = Encoding.UTF8;
+        client.Headers.Add(&quot;Content-Type&quot;, &quot;Application/x-www-form-urlencoded&quot;);
+        var responseData = client.UploadData(tokenUrl, &quot;POST&quot;, new byte[0]);
+        var responseText = Encoding.UTF8.GetString(responseData);
+        var token = JsonConvert.DeserializeAnonymousType(responseText, new { access_token = &quot;&quot;, expires_in = &quot;&quot; });
+
+
+        Token = token.access_token;
+        var ticketUrl = $&quot;https://api.weixin.qq.com/cgi-bin/ticket/getticket?access_token={Token}&amp;type=jsapi&quot;;
+        var ticResponseData = client.UploadData(ticketUrl, &quot;POST&quot;, new byte[0]);
+        var ticResponseText = Encoding.UTF8.GetString(ticResponseData);
+        var ticket = JsonConvert.DeserializeAnonymousType(ticResponseText, new { errcode = &quot;&quot;, errmsg = &quot;&quot;, ticket = &quot;&quot;, expires_in = &quot;&quot; });
+        Ticket = ticket.ticket;
+        return &quot;&quot;;
+    }
+    //获取签名字符串
+    public async Task&lt;string&gt; GetSingDataAsync(string url)
+    {
+
+        var sign = new SignData();
+        sign.appId = APPID;
+        sign.nonceStr = Create_nonce_str();
+        sign.timestamp = Create_timestamp();
+        //var url = Request.Url.AbsoluteUri;
+        if (url.IndexOf(&#39;#&#39;) &gt; 0)
+        {
+            url = url.Substring(0, url.IndexOf(&#39;#&#39;));
+        }
+        sign.url = url;
+        var string1 = &quot;jsapi_ticket=&quot; + Ticket +
+                &quot;&amp;noncestr=&quot; + sign.nonceStr +
+                &quot;&amp;timestamp=&quot; + sign.timestamp +
+                &quot;&amp;url=&quot; + sign.url;
+
+        //var string1 = GetTestSign();
+
+        var sha1 = SHA1.Create();
+        sign.signature = ByteToHex(sha1.ComputeHash(Encoding.UTF8.GetBytes(string1)));
+        return JsonConvert.SerializeObject(sign);
+    }
+    //测试签名字符串，和微信官方提供的一样，用来测试签名方法是否正确
+    private string GetTestSign()
+    {
+        var nonceStr = &quot;Wm3WZYTPz0wzccnW&quot;;
+        var ticket = &quot;sM4AOVdWfPE4DxkXGEs8VMCPGGVi4C3VM0P37wVUCFvkVAy_90u5h9nbSlYy3-Sl-HhTdfl2fzFy1AOcHKP7qg&quot;;
+        var timestamp = &quot;1414587457&quot;;
+        var url = &quot;http://mp.weixin.qq.com?params=value&quot;;
+        var string1 = &quot;jsapi_ticket=&quot; + ticket +
+                &quot;&amp;noncestr=&quot; + nonceStr +
+                &quot;&amp;timestamp=&quot; + timestamp +
+                &quot;&amp;url=&quot; + url;
+        return string1;
+    }
+
+    /// &lt;summary&gt;
+    /// 随机字符串
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    private string Create_nonce_str()
+    {
+        return Guid.NewGuid().ToString().Substring(0, 8);
+    }
+    /// &lt;summary&gt;
+    /// 时间戳
+    /// &lt;/summary&gt;
+    /// &lt;returns&gt;&lt;/returns&gt;
+    private string Create_timestamp()
+    {
+        return (DateTime.Now.Ticks / 100000000).ToString();
+    }
+    private string ByteToHex(byte[] hash)
+    {
+        var sb = new StringBuilder();
+        foreach (var b in hash)
+        {
+            sb.Append(b.ToString(&quot;x2&quot;));
+        }
+        return sb.ToString();
+    }
+}</code></pre>
+<p>代码已上传<a href="https://github.com/dashenxian/WeiXinQR">github</a></p>
+<p>我的博客即将同步至腾讯云+社区，邀请大家一同入驻：<a href="https://cloud.tencent.com/developer/support-plan?invite_code=1jyzgtqyi05ky" class="uri">https://cloud.tencent.com/developer/support-plan?invite_code=1jyzgtqyi05ky</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

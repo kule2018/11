@@ -1,0 +1,247 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修egg-socket在egg中的使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>egg-socket在egg中的使用</center></div><div class='banquan'>原文出处:本文由博客园博主科比net提供。<br/>
+原文连接:https://www.cnblogs.com/kbnet/p/10949074.html</div><br>
+    <p>&nbsp;</p>
+<div>
+<div>WebSocket 的产生源于 Web 开发中日益增长的实时通信需求，对比基于 http 的轮询方式，它大大节省了网络带宽，同时也降低了服务器的性能消耗； socket.io 支持 websocket、polling 两种数据传输方式以兼容浏览器不支持 WebSocket 场景下的通信需求。</div>
+<div>&nbsp;</div>
+</div>
+<div>
+<div>框架提供了 egg-socket.io 插件，增加了以下开发规约：</div>
+<div>namespace: 通过配置的方式定义 namespace（命名空间）</div>
+<div>middleware: 对每一次 socket 连接的建立/断开、每一次消息/数据传递进行预处理</div>
+<div>controller: 响应 socket.io 的 event 事件</div>
+<div>router: 统一了 socket.io 的 event 与 框架路由的处理配置方式</div>
+<div>&nbsp;</div>
+<div>安装</div>
+<div>
+<div class="cnblogs_code">
+<pre><code>$ npm i egg-socket.io --save</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+<p>&nbsp;开启插件：config/plugin.js</p>
+<div class="cnblogs_code">
+<pre><code>exports.io =<span style="color: #000000;"> {
+  enable: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+  package: </span><span style="color: #800000;">'</span><span style="color: #800000;">egg-socket.io</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+};<br /></span></pre>
+</div>
+<p>&nbsp;配置插件config/config.default.js&nbsp;&nbsp;</p>
+<p>/ 和 new2 属于不同的命名空间 即如果你有两个业务用到了socket，可以分别用不同的命名空间去管理，如果只用到一个写一个及可</p>
+<div class="cnblogs_code">
+<pre><code>exports.io =<span style="color: #000000;"> {
+  init: { }, </span><span style="color: #008000;">//</span><span style="color: #008000;"> passed to engine.io</span>
+  <span style="color: #0000ff;">namespace</span><span style="color: #000000;">: {
+    </span><span style="color: #800000;">'</span><span style="color: #800000;">/</span><span style="color: #800000;">'</span><span style="color: #000000;">: {
+      connectionMiddleware: [],
+      packetMiddleware: [],
+    },
+    </span><span style="color: #800000;">'</span><span style="color: #800000;">/news</span><span style="color: #800000;">'</span><span style="color: #000000;">: {
+      connectionMiddleware: [],
+      packetMiddleware: [],
+    },
+  },
+};</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;router\io.js 路由可以分别为不同的命名空间配置路由</p>
+<div>of 来划分命名空间</div>
+<div class="cnblogs_code">
+<pre><code>io.of(<span style="color: #800000;">'</span><span style="color: #800000;">/</span><span style="color: #800000;">'</span>).route(<span style="color: #800000;">'</span><span style="color: #800000;">chat</span><span style="color: #800000;">'</span><span style="color: #000000;">, io.controller.chat.index);
+io.of(</span><span style="color: #800000;">'</span><span style="color: #800000;">/</span><span style="color: #800000;">'</span>).route(<span style="color: #800000;">'</span><span style="color: #800000;">message</span><span style="color: #800000;">'</span><span style="color: #000000;">, io.controller.chat.message);
+io.of(</span><span style="color: #800000;">'</span><span style="color: #800000;">/</span><span style="color: #800000;">'</span>).route(<span style="color: #800000;">'</span><span style="color: #800000;">user</span><span style="color: #800000;">'</span><span style="color: #000000;">, io.controller.chat.online);
+
+io.of(</span><span style="color: #800000;">'</span><span style="color: #800000;">/news</span><span style="color: #800000;">'</span>).route(<span style="color: #800000;">'</span><span style="color: #800000;">news</span><span style="color: #800000;">'</span>, io.controller.news.index);</pre>
+</div>
+<p>&nbsp;</p>
+<p>在生产环境下Nginx 配置</p>
+<div class="cnblogs_code">
+<pre><code>location /<span style="color: #000000;"> {
+  proxy_set_header Upgrade $http_upgrade;
+  proxy_set_header Connection </span><span style="color: #800000;">"</span><span style="color: #800000;">upgrade</span><span style="color: #800000;">"</span><span style="color: #000000;">;
+  proxy_set_header X</span>-Forwarded-<span style="color: #000000;">For $proxy_add_x_forwarded_for;
+  proxy_set_header Host $host;
+  proxy_pass   http:</span><span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:7001;</span>
+<span style="color: #000000;">
+  # http:</span><span style="color: #008000;">//</span><span style="color: #008000;">nginx.org/en/docs/http/ngx_http_proxy_module.html#proxy_bind</span>
+<span style="color: #000000;">  # proxy_bind       $remote_addr transparent;
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<div>开启 egg-socket.io 的项目目录结构如下：</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">chat
+├── app
+│   ├── extend
+│   │   └── helper.js
+│   ├── io
+│   │   ├── controller
+│   │   │   └── </span><span style="color: #0000ff;">default</span><span style="color: #000000;">.js
+│   │   └── middleware
+│   │       ├── connection.js
+│   │       └── packet.js
+│   └── router.js
+├── config
+└── package.json</span></pre>
+</div>
+<p>对应的文件都在io下</p>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;app/io</p>
+<p><img src="./images/egg-socket在egg中的使用0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>配置socket的中间件在 app/io/middleware 下&nbsp; &nbsp; 新建auth.js</p>
+<p>在每一个客户端连接或者退出时发生作用，故而我们通常在这一步进行授权认证，对认证失败的客户端做出相应的处理</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * Created by bear on 2018/2/12.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">const</span> PREFIX = <span style="color: #800000;">'</span><span style="color: #800000;">room</span><span style="color: #800000;">'</span><span style="color: #000000;">;  //定义房间号
+
+module.exports </span>= app =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">return</span> async (ctx, next) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">const</span> { app, socket, logger, helper } =<span style="color: #000000;"> ctx;
+    </span><span style="color: #0000ff;">const</span> id =<span style="color: #000000;"> socket.id;
+    </span><span style="color: #0000ff;">const</span> nsp = app.io.of(<span style="color: #800000;">'</span><span style="color: #800000;">/</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">const</span> query =<span style="color: #000000;"> socket.handshake.query;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用户信息</span>
+    <span style="color: #0000ff;">const</span> { room, userId } =<span style="color: #000000;"> query;  //获取socket链接传过来的参数
+    </span><span style="color: #0000ff;">const</span> rooms =<span style="color: #000000;"> [ room ];
+
+    console.log(room, userId);
+
+    </span><span style="color: #0000ff;">const</span> tick = (id, msg) =&gt;<span style="color: #000000;"> {
+      logger.debug(</span><span style="color: #800000;">'</span><span style="color: #800000;">#tick</span><span style="color: #800000;">'</span><span style="color: #000000;">, id, msg);
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 踢出用户前发送消息</span>
+      socket.emit(id, helper.parseMsg(<span style="color: #800000;">'</span><span style="color: #800000;">deny</span><span style="color: #800000;">'</span><span style="color: #000000;">, msg));
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用 adapter 方法踢出用户，客户端触发 disconnect 事件</span>
+      nsp.adapter.remoteDisconnect(id, <span style="color: #0000ff;">true</span>, err =&gt;<span style="color: #000000;"> {
+        logger.error(err);
+      });
+    };
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 检查房间是否存在，不存在则踢出用户
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 备注：此处 app.redis 与插件无关，可用其他存储代替</span>
+   
+    <span style="color: #0000ff;">const</span> hasRoom = await app.redis.<span style="color: #0000ff;">get</span><span style="color: #000000;">(`${PREFIX}:${room}`);
+    console.log(hasRoom,`${PREFIX}:${room}`)
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> if (!hasRoom) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">   tick(id, {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">     type: 'deleted',
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">     message: 'deleted, room has been deleted.',
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">   });
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">   return;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用户加入</span>
+    logger.debug(<span style="color: #800000;">'</span><span style="color: #800000;">#join</span><span style="color: #800000;">'</span><span style="color: #000000;">, room);
+    socket.join(room);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 在线列表</span>
+    nsp.adapter.clients(rooms, (err, clients) =&gt;<span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 更新在线用户列表</span>
+      nsp.to(room).emit(<span style="color: #800000;">'</span><span style="color: #800000;">online</span><span style="color: #800000;">'</span><span style="color: #000000;">, {
+        clients,
+        action: </span><span style="color: #800000;">'</span><span style="color: #800000;">join</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+        target: </span><span style="color: #800000;">'</span><span style="color: #800000;">participator</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+        message: `User(${id}) joined.`,
+      });
+      console.log(</span><span style="color: #800080;">123</span><span style="color: #000000;">,clients)
+    });
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> socket.emit('connect', 'packet received!');</span>
+<span style="color: #000000;">    
+    await next();
+    console.log(</span><span style="color: #800000;">'</span><span style="color: #800000;">disconnect!</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+
+  };
+};</span></pre>
+</div>
+<p>&nbsp;app/io/middleware/filter.js</p>
+<div class="cnblogs_code">
+<pre><code>module.exports = (app) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> async (ctx, next) =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log(ctx.packet);</span>
+<span style="color: #000000;">        await next();
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log('packet response!');</span>
+<span style="color: #000000;">    };
+};</span></pre>
+</div>
+<div>
+<div>&nbsp;</div>
+</div>
+<div>踢出用户示例：</div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">const</span> tick = (id, msg) =&gt;<span style="color: #000000;"> {
+  logger.debug(</span><span style="color: #800000;">'</span><span style="color: #800000;">#tick</span><span style="color: #800000;">'</span><span style="color: #000000;">, id, msg);
+  socket.emit(id, msg);
+  app.io.of(</span><span style="color: #800000;">'</span><span style="color: #800000;">/</span><span style="color: #800000;">'</span>).adapter.remoteDisconnect(id, <span style="color: #0000ff;">true</span>, err =&gt;<span style="color: #000000;"> {
+    logger.error(err);
+  });
+};</span></pre>
+</div>
+<p>&nbsp;</p>
+<div>
+<div>Controller</div>
+<div>Controller 对客户端发送的 event 进行处理；由于其继承于 egg.Contoller, 拥有如下成员对象:</div>
+<div>ctx</div>
+<div>app</div>
+<div>service</div>
+<div>config</div>
+<div>logger</div>
+
+</div>
+</div>
+<p>app/io/controller/chat.js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * Created by bear on 2018/2/12.
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+module.exports </span>= app =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> chatController extends app.Controller {
+    async index() {
+      </span><span style="color: #0000ff;">this</span>.ctx.socket.emit(<span style="color: #800000;">'</span><span style="color: #800000;">res</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">test</span><span style="color: #800000;">'</span><span style="color: #000000;">);</span><span style="color: #000000;">
+    }
+    async message() {   //方法通过 客户端 this.emit（'message',{}）//触发
+      </span><span style="color: #0000ff;">this</span>.ctx.socket.emit(<span style="color: #800000;">'</span><span style="color: #800000;">message</span><span style="color: #800000;">'</span>, <span style="color: #800000;">'</span><span style="color: #800000;">test</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+      </span><span style="color: #0000ff;">const</span> <span style="color: #0000ff;">params</span> = <span style="color: #0000ff;">this</span>.ctx.args[<span style="color: #800080;">0</span><span style="color: #000000;">];
+     </span><span style="color: #008000;">//</span><span style="color: #008000;"> this.ctx.service.message.sendPeerMessage(params);</span>
+      console.log(<span style="color: #800080;">2</span>,<span style="color: #0000ff;">params</span><span style="color: #000000;">);
+    }
+
+
+    async online() {</span><span style="color: #008000;">//</span><span style="color: #008000;"> modelMessage.sendOfflineMessage(socket, data.userId);</span>
+<span style="color: #000000;">    }
+  }
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> chatController;
+};</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

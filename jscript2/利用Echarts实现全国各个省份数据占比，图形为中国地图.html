@@ -1,0 +1,369 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修利用Echarts实现全国各个省份数据占比，图形为中国地图' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>利用Echarts实现全国各个省份数据占比，图形为中国地图</center></div><div class='banquan'>原文出处:本文由博客园博主brock16提供。<br/>
+原文连接:https://www.cnblogs.com/brock/p/11721695.html</div><br>
+    <p>最近项目需求，需要一个对于全国各个省份的数据分析，图形最好是地图的样子，这样子更为直观。</p>
+<p>最先想到的图表插件是Echarts,他的文档相对于阿里的G2,G6更加清晰一些。在Echarts 里找到的个</p>
+<p>实例，效果如gif图，这里是实例的链接：&nbsp;<a title="https://gallery.echartsjs.com/editor.html?c=xa5_zRRpes" href="https://gallery.echartsjs.com/editor.html?c=xa5_zRRpes" target="_blank">https://gallery.echartsjs.com/editor.html?c=xa5_zRRpes</a>，</p>
+<p><img src="./images/利用Echarts实现全国各个省份数据占比，图形为中国地图0.png" alt="" width="427" height="335" /></p>
+<p>看到上面的评论里，有挺多人评论说图形显示不了，因为实例上只有图表的属性Option,是无法显示</p>
+<p>的。根据文档是需要创建一个 ECharts 实例，然后通过setOptions属性去设置图表实例的配置项以及</p>
+<p>数据，实例化代码如下：</p>
+<blockquote>
+<div>
+<div>&lt;div id="dom"&gt;&lt;/div&gt;</div>
+</div>
+<div>
+<p><span style="font-size: 14px;">//实例容器，一般是一个具有高宽的<code>div</code>元素。</span></p>
+<p><span style="font-size: 14px;">//注：如果<code>div</code>是隐藏的，ECharts 可能会获取不到<code>div</code>的高宽导致初始化失败，这时候可以明确指定<code>div</code>的<code>style.width</code>和<code>style.height</code>，或者在<code>div</code>显示后手动</span>调用&nbsp;<a href="https://www.echartsjs.com/zh/echartsInstance.resize" target="_blank">echartsInstance.resize</a>&nbsp;调整<span style="font-size: 14px;">尺寸。</span></p>
+</div>
+<div>let&nbsp; dom&nbsp;=&nbsp;echarts.init(document.querySelector('#dom')) //实例化dom</div>
+<div>dom.setOption(option)//设置</div>
+</blockquote>
+<p><span style="font-size: 14pt;">&nbsp;重要的一点：我们需要自己引入地图数据，中国地图就需要引入china.js</span></p>
+<p>ECharts 3 中因为地图精度的提高，不再内置地图数据增大代码体积，你可以在<a title="地图下载界面" href="http://ecomfe.github.io/echarts-builder-web/map3.html" target="_blank">地图下载界面</a>下载到需要的地图文件引入并注册到 ECharts 中。</p>
+<p>ECharts 中提供了两种格式的地图数据，一种是可以直接 script 标签引入的 js 文件，引入后会自动注册地图名字和数据。还有一种是 JSON 文件，需要通过 AJAX 异步加载后手动注册。</p>
+<p>下面是两种类型的使用示例：</p>
+<p>JavaScript 引入示例</p>
+<blockquote>
+<pre><code><code class="lang-html prettyprint prettyprinted"><span class="tag">&lt;script<span class="pln"> <span class="atn">src<span class="pun">=<span class="atv">"echarts.js"<span class="tag">&gt;&lt;/script&gt;<span class="pln">
+<span class="tag">&lt;script<span class="pln"> <span class="atn">src<span class="pun">=<span class="atv">"map/js/china.js"<span class="tag">&gt;&lt;/script&gt;<span class="pln">
+<span class="tag">&lt;script&gt;<span class="pln">
+<span class="kwd">var<span class="pln"> chart <span class="pun">=<span class="pln"> echarts<span class="pun">.<span class="pln">init<span class="pun">(<span class="pln">document<span class="pun">.<span class="pln">getElementById<span class="pun">(<span class="str">'main'<span class="pun">));<span class="pln">
+chart<span class="pun">.<span class="pln">setOption<span class="pun">({<span class="pln">
+    series<span class="pun">:<span class="pln"> <span class="pun">[{<span class="pln">
+        type<span class="pun">:<span class="pln"> <span class="str">'map'<span class="pun">,<span class="pln">
+        map<span class="pun">:<span class="pln"> <span class="str">'china'<span class="pln">
+    <span class="pun">}]<span class="pln">
+<span class="pun">});<span class="pln">
+<span class="tag">&lt;/script&gt;</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+</blockquote>
+<p>&nbsp;JSON 引入示例</p>
+<blockquote>
+<pre><code><code class="lang-js prettyprint prettyprinted"><span class="pln">$<span class="pun">.<span class="kwd">get<span class="pun">(<span class="str">'map/json/china.json'<span class="pun">,<span class="pln"> <span class="kwd">function<span class="pln"> <span class="pun">(<span class="pln">chinaJson<span class="pun">)<span class="pln"> <span class="pun">{<span class="pln">
+    echarts<span class="pun">.<span class="pln">registerMap<span class="pun">(<span class="str">'china'<span class="pun">,<span class="pln"> chinaJson<span class="pun">);<span class="pln">
+    <span class="kwd">var<span class="pln"> chart <span class="pun">=<span class="pln"> echarts<span class="pun">.<span class="pln">init<span class="pun">(<span class="pln">document<span class="pun">.<span class="pln">getElementById<span class="pun">(<span class="str">'main'<span class="pun">));<span class="pln">
+    chart<span class="pun">.<span class="pln">setOption<span class="pun">({<span class="pln">
+        series<span class="pun">:<span class="pln"> <span class="pun">[{<span class="pln">
+            type<span class="pun">:<span class="pln"> <span class="str">'map'<span class="pun">,<span class="pln">
+            map<span class="pun">:<span class="pln"> <span class="str">'china'<span class="pln">
+        <span class="pun">}]<span class="pln">
+    <span class="pun">});<span class="pln">
+<span class="pun">});</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+</blockquote>
+<p>&nbsp;完整的代码</p>
+<p>我是使用vue框架开发，需要install一下echarts，执行npm i -S&nbsp;echarts</p>
+<p>map.vue(地图组件代码)</p>
+<blockquote>
+<div>
+<div>&lt;template&gt;</div>
+<div>&nbsp;&nbsp;&lt;div&nbsp;:style="styles"&nbsp;ref="dom"&gt;&lt;/div&gt;</div>
+<div>&lt;/template&gt;</div>
+<div>&lt;script&gt;</div>
+<div>import&nbsp;echarts&nbsp;from&nbsp;"echarts";</div>
+<div>import&nbsp;{&nbsp;on,&nbsp;off,getChartsMapData&nbsp;}&nbsp;from&nbsp;'@/libs/tools'</div>
+<div>import&nbsp;"../../../../node_modules/echarts/map/js/china.js";&nbsp;//&nbsp;引入中国地图数据</div>
+<div>export&nbsp;default&nbsp;{</div>
+<div>&nbsp;&nbsp;name:&nbsp;"ChartsMap",</div>
+<div>&nbsp;&nbsp;props:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;/**</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@description&nbsp;图表宽</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;width:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;String,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:&nbsp;'50%'</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;/**</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@description&nbsp;图表高</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;height:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;String,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:&nbsp;'500px'</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;/**</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@description&nbsp;图表数据</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;data:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;Array,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:&nbsp;()&nbsp;=&gt;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@description&nbsp;getChartsMapData()&nbsp;获取地图的默认数据</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;getChartsMapData()</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;/**</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@description&nbsp;设置图表的标题</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;title:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;Object,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:&nbsp;()&nbsp;=&gt;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;show:&nbsp;true,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text:&nbsp;"排名情况",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textAlign:&nbsp;'center',</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textStyle:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color:&nbsp;"#2D3E53",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fontSize:&nbsp;30</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;left:&nbsp;'center',</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;/**</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@description&nbsp;指定&nbsp;visualMapContinuous&nbsp;组件的允许的最小值</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;min:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;[Number,String],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:&nbsp;0</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;/**</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@description&nbsp;指定&nbsp;visualMapContinuous&nbsp;组件的允许的最大值</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;max:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;[Number,String],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:&nbsp;34</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;/**</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@description&nbsp;指定&nbsp;visualMapContinuous&nbsp;组件的两端的文本&nbsp;如['高','低']</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;text:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;Array,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:&nbsp;()&nbsp;=&gt;&nbsp;['高','低']</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;/**</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;@description&nbsp;定义&nbsp;在选中范围中&nbsp;的视觉元素</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*/</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;inRange:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;Object,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;default:&nbsp;()&nbsp;=&gt;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color:&nbsp;["#6FCF6A",&nbsp;"#FFFD64",&nbsp;"#FF5000"]</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;data&nbsp;()&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;dom:&nbsp;null</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;computed:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;styles()&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;width:&nbsp;this.width,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;height:&nbsp;this.height</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;methods:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;resize&nbsp;()&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.dom.resize()</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;mounted&nbsp;()&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;var&nbsp;option&nbsp;=&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;title:&nbsp;this.title,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;tooltip:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;show:&nbsp;true,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;formatter:&nbsp;function(params)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;params.name&nbsp;+&nbsp;"："&nbsp;+&nbsp;params.data["value"]&nbsp;+&nbsp;"%";</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;visualMap:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;"continuous",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;orient:&nbsp;"horizontal",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itemWidth:&nbsp;10,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itemHeight:&nbsp;80,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text:&nbsp;this.text,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;showLabel:&nbsp;true,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;seriesIndex:&nbsp;[0],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min:&nbsp;this.min,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max:&nbsp;this.max,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inRange:&nbsp;this.inRange,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textStyle:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color:&nbsp;"#7B93A7"</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bottom:&nbsp;30,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;left:&nbsp;"left",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;grid:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;right:&nbsp;10,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;top:&nbsp;135,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;bottom:&nbsp;100,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;width:&nbsp;"20%"</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;geo:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//&nbsp;roam:&nbsp;true,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;map:&nbsp;"china",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;left:&nbsp;"left",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;right:&nbsp;"300",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;//&nbsp;layoutSize:&nbsp;'80%',</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;label:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;emphasis:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;show:&nbsp;false</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;itemStyle:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;emphasis:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;areaColor:&nbsp;"#fff464"</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;series:&nbsp;[</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name:&nbsp;"mapSer",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;type:&nbsp;"map",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;roam:&nbsp;false,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;geoIndex:&nbsp;0,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;label:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;show:&nbsp;false</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data:&nbsp;this.data</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;this.$nextTick(()&nbsp;=&gt;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.dom&nbsp;=&nbsp;echarts.init(this.$refs.dom)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;this.dom.setOption(option)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;on(window,&nbsp;'resize',&nbsp;this.resize)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;})</div>
+<div>&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;beforeDestroy&nbsp;()&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;off(window,&nbsp;'resize',&nbsp;this.resize)</div>
+<div>&nbsp;&nbsp;}</div>
+<div>};</div>
+<div>&lt;/script&gt;</div>
+</div>
+</blockquote>
+<p>&nbsp;使用代码</p>
+<blockquote>
+<div>&lt;template&gt;</div>
+<div>&nbsp;&nbsp;&lt;div&nbsp;id="app"&gt;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&lt;charts-map&gt;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&lt;/charts-map&gt;</div>
+<div>&nbsp;&nbsp;&lt;/div&gt;</div>
+<div>&lt;/template&gt;</div>
+<p>&nbsp;</p>
+<div>&lt;script&gt;</div>
+<div>import&nbsp;ChartsMap&nbsp;from&nbsp;"_c/charts/map"</div>
+<div>import&nbsp;{&nbsp;getChartsMapData&nbsp;}&nbsp;from&nbsp;'@/libs/tools.js'</div>
+<div>export&nbsp;default&nbsp;{</div>
+<div>&nbsp;&nbsp;name:&nbsp;'app',</div>
+<div>&nbsp;&nbsp;components:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;ChartsMap</div>
+<div>&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;data&nbsp;()&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;width:&nbsp;'70%',</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;height:&nbsp;'800px',</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data:&nbsp;getChartsMapData(),</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;min:&nbsp;10,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;max:&nbsp;30,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text:&nbsp;['High',&nbsp;'low'],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;inRange:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color:&nbsp;['#f00',&nbsp;'#fff',&nbsp;'#00f']</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;title:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;show:&nbsp;true,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;text:&nbsp;'全国数据',</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textAlign:&nbsp;'center',</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;textStyle:&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;color:&nbsp;'#2D3E53',</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;fontSize:&nbsp;30,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;lineHeight:&nbsp;100</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;},</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;left:&nbsp;'center',</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;}</div>
+<div>}</div>
+<div>&lt;/script&gt;</div>
+</blockquote>
+<p>tools.js 这个工具函数，监听浏览器的resize事件和创造假数据</p>
+<blockquote>
+<div>　　
+<div>
+<div>/**</div>
+<div>&nbsp;*&nbsp;@description&nbsp;绑定事件&nbsp;on(element,&nbsp;event,&nbsp;handler)</div>
+<div>&nbsp;*/</div>
+<div>export&nbsp;const&nbsp;on&nbsp;=&nbsp;(function&nbsp;()&nbsp;{</div>
+<div>&nbsp;&nbsp;if&nbsp;(document.addEventListener)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;function&nbsp;(element,&nbsp;event,&nbsp;handler)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(element&nbsp;&amp;&amp;&nbsp;event&nbsp;&amp;&amp;&nbsp;handler)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;element.addEventListener(event,&nbsp;handler,&nbsp;false)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;}&nbsp;else&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;function&nbsp;(element,&nbsp;event,&nbsp;handler)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(element&nbsp;&amp;&amp;&nbsp;event&nbsp;&amp;&amp;&nbsp;handler)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;element.attachEvent('on'&nbsp;+&nbsp;event,&nbsp;handler)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;}</div>
+<div>})()</div>
+<br />
+<div>/**</div>
+<div>&nbsp;*&nbsp;@description&nbsp;解绑事件&nbsp;off(element,&nbsp;event,&nbsp;handler)</div>
+<div>&nbsp;*/</div>
+<div>export&nbsp;const&nbsp;off&nbsp;=&nbsp;(function&nbsp;()&nbsp;{</div>
+<div>&nbsp;&nbsp;if&nbsp;(document.removeEventListener)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;function&nbsp;(element,&nbsp;event,&nbsp;handler)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(element&nbsp;&amp;&amp;&nbsp;event)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;element.removeEventListener(event,&nbsp;handler,&nbsp;false)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;}&nbsp;else&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;function&nbsp;(element,&nbsp;event,&nbsp;handler)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(element&nbsp;&amp;&amp;&nbsp;event)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;element.detachEvent('on'&nbsp;+&nbsp;event,&nbsp;handler)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;}</div>
+<div>})()</div>
+
+<br />
+<div>/**</div>
+<div>&nbsp;*&nbsp;@description&nbsp;获取地图数据&nbsp;getChartsMapData()</div>
+<div>&nbsp;*/</div>
+
+<br />
+<div>&nbsp;export&nbsp;const&nbsp;getChartsMapData&nbsp;=&nbsp;()&nbsp;=&gt;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;const&nbsp;data&nbsp;=&nbsp;["内蒙古","黑龙江","吉林","辽宁","北京","天津","河北","河南","山西","山东","江苏","安徽",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;"上海","湖北","湖南","江西","浙江","福建","台湾","广东","香港","澳门","海南","广西","贵州","云南","重庆",</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;"四川","甘肃","陕西","宁夏","青海","西藏","新疆",]</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;data.map((item,index)&nbsp;=&gt;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;name:&nbsp;item,</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;value:&nbsp;index&nbsp;+&nbsp;1</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;})</div>
+<div>&nbsp;}</div>
+
+</div>
+</div>
+</blockquote>
+<p>我已经将他封装成一个vue组件，做成一个npm包了，直接npm&nbsp;install&nbsp;brock-charts&nbsp;-S 就可以使用，具体使用方法可以看这个地址：</p>
+<p><a title="https://www.npmjs.com/package/brock-charts" href="https://www.npmjs.com/package/brock-charts">https://www.npmjs.com/package/brock-charts</a></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

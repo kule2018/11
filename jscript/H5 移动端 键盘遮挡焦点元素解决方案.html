@@ -1,0 +1,158 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修H5 移动端 键盘遮挡焦点元素解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>H5 移动端 键盘遮挡焦点元素解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主郭佬提供。<br/>
+原文连接:https://www.cnblogs.com/guolao/p/11936709.html</div><br>
+    <h2 id="前言">前言</h2>
+<hr />
+<p>最近在做 webapp，遇到了很多移动端兼容的问题，其中一个问题就是：输入框触发 focus 后，键盘弹出，然后遮住了输入框。</p>
+<p>然后在<code>Android</code>和<code>IOS</code>上，这个问题的表现形式不一样，而原生键盘和第三方键盘也不一样，但引起的问题都是一样的：输入框被遮住了。</p>
+<h2 id="需要的效果">需要的效果</h2>
+<hr />
+<p>在键盘弹出时，获得焦点的输入框要在可视区域内，效果如下图：</p>
+<div style="overflow: hidden;">
+<img style="height: 400px; width: 300px; float: left;" src="./images/H5 移动端 键盘遮挡焦点元素解决方案0.png" />
+</div>
+<h2 id="键盘弹出收起的表现">键盘弹出、收起的表现</h2>
+<hr />
+<ol>
+<li><p>IOS：</p>
+<p>输入框获取焦点，键盘弹出，<code>webview</code>高度不会改变，但<code>webview</code>会往上滚，且最大滚动高度<code>scrollTop</code>为键盘高度。</p>
+<p>点击键盘上的收起按钮，或者输入框以外的页面区域时，输入框失去焦点，键盘收起。</p></li>
+<li><p>Android：</p>
+<p>输入框获取焦点，键盘弹出，但是<code>webview</code>高度会发生改变，高度为原高度减去软键盘高度。</p>
+<p>点击输入框以外的区域时，输入框失去焦点，软键盘收起。而点击键盘上的收起按钮时，键盘收起 ，但输入框并不会失去焦点，<strong>坑</strong>。</p></li>
+</ol>
+<h2 id="解决方案">解决方案</h2>
+<hr />
+<p>当输入框被挡住，在<code>IOS</code>中，<code>webview</code>会往上滚一段距离，使得获取焦点的输入框自动处于可视区，而在<code>Android</code>里，只会改变<code>webview</code>高度，而不会发生焦点元素滚动到可视区的事情。</p>
+<p>所以<code>IOS</code>可以不用管，而<code>Android</code>需要在键盘弹出的时候，将输入框滚动到可视区。</p>
+<h2 id="获取设备类型">获取设备类型</h2>
+<hr />
+<p>首先是要获取设备类型，通过<code>navigator.userAgent</code>获取即可。</p>
+<pre><code><code>const judgeDeviceType = (() =&gt; {
+  let deviceType = null;
+
+  return () =&gt; {
+    if (!deviceType) {
+      const ua = window.navigator.userAgent.toLocaleLowerCase();
+      const isIOS = /iphone|ipad|ipod/.test(ua);
+      const isAndroid = /android/.test(ua);
+      const isMiuiBrowser = /miuibrowser/.test(ua);
+
+      deviceType = {
+        isIOS: isIOS,
+        isAndroid: isAndroid,
+        isMiuiBrowser: isMiuiBrowser
+      };
+    }
+
+    return deviceType;
+  };
+})();</code></pre>
+<h2 id="监听事件">监听事件</h2>
+<hr />
+<p>IOS 可以通过<code>focus</code>和<code>blur</code>事件监听键盘弹出、收起，但 Android 不行，但因为<code>webview</code>高度会变，所以通过监听<code>resize</code>事件解决。</p>
+<pre><code><code>export function listenAndroidKeybord() {
+  const { isAndroid } = judgeDeviceType();
+
+  if (isAndroid) {
+    const androidResize = function() {
+      // 将当前焦点元素滚动到可视区
+      activeElementScrollIntoView();
+    };
+
+    // android 键盘弹出、收起，可视区高度会发生变化
+    window.addEventListener(&#39;resize&#39;, androidResize, false);
+
+    return () =&gt; {
+      window.removeEventListener(&#39;resize&#39;, androidResize, false);
+    };
+  }
+}</code></pre>
+<h2 id="将元素滚动到可视区">将元素滚动到可视区</h2>
+<hr />
+<p>要将元素滚动到可视区，主要有两个方法：<code>scrollIntoView</code>和<code>scrollIntoViewIfNeeded</code>，兼容性在移动端都很不错。</p>
+<pre><code><code>function activeElementScrollIntoView() {
+  const activeEl = document.activeElement;
+
+  if (
+    activeEl.tagName === &#39;INPUT&#39; || 
+    activeEl.tagName === &#39;TEXTAREA&#39;
+  ) {
+    window.setTimeout(() =&gt; {
+      if (&#39;scrollIntoView&#39; in activeEl) {
+        activeElt.scrollIntoView();
+      } else {
+        activeEl.scrollIntoViewIfNeeded();
+      }
+    }, 100);
+  }
+}</code></pre>
+<h2 id="miuibrowser">MiuiBrowser</h2>
+<hr />
+<p>以上代码可以说解决了大部分浏览器键盘遮挡问题了，但我用自己的小米手机自带的小米浏览器测试时，出了问题，键盘弹出，页面纹丝不动，手动去拖，有时行，有时不行。</p>
+<p>搞了很久，发现了两个问题，我这手机上自带的小米浏览器，userAgent 上没有带<code>Android</code>标识，但有<code>MiuiBrowser</code>标识，<strong>坑</strong>。然后，页面有时能拖动，有时不能拖动，我猜应该是<code>webview</code>的可视区高度变化有问题，或者是我的代码监听<code>resize</code>导致有问题。</p>
+<p><strong>解决方案</strong></p>
+<ol>
+<li><p>增加设备类型判断</p>
+<pre><code><code>const ua = window.navigator.userAgent.toLocaleLowerCase();
+const isMiuiBrowser = /miuibrowser/.test(ua);</code></pre></li>
+<li><p>通过监听<code>focus</code>和<code>blur</code>事件来监听键盘弹出、收起，然后给<code>body</code>加高度</p>
+<pre class="css"><code>body, html {
+  height: 100%;
+}</code></pre>
+<pre><code><code>function listenMiuiBrowserKeybord() {
+  const { isMiuiBrowser } = judgeDeviceType();
+
+  if (isMiuiBrowser) {
+    const inputFocus = function() {
+      document.body.style.marginBottom = &#39;50px&#39;;
+      activeElementScrollIntoView();
+    };
+
+    const inputBlur = function() {
+      document.body.style.marginBottom = &#39;0px&#39;;
+      activeElementScrollIntoView();
+    };
+
+    let $inputs = document.getElementsByTagName(&#39;input&#39;);
+    for (let i = 0; i &lt; $inputs.length; i++) {
+      $inputs[i].addEventListener(&#39;focus&#39;, inputFocus, false);
+      $inputs[i].addEventListener(&#39;blur&#39;, inputBlur, false);
+    }
+
+    return () =&gt; {
+      for (let i = 0; i &lt; $inputs.length; i++) {
+        $inputs[i].removeEventListener(&#39;focus&#39;, inputFocus, false);
+        $inputs[i].removeEventListener(&#39;blur&#39;, inputBlur, false);
+      }
+    };
+  }
+}</code></pre></li>
+</ol>
+<p><strong>坑点：这种方案虽然解决了弹出问题，但点击键盘收起按钮，Android 下输入框并不会失去焦点，需要失去焦点才能让 body 增加的高度变为 0。</strong></p>
+<h2 id="备注">备注</h2>
+<hr />
+<p>解决方案并不完善，踩坑路漫漫。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

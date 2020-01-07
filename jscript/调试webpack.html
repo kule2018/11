@@ -1,0 +1,112 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修调试webpack' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>调试webpack</center></div><div class='banquan'>原文出处:本文由博客园博主_herbert提供。<br/>
+原文连接:https://www.cnblogs.com/yfrs/p/webpackdebug.html</div><br>
+    <h3 id="调试webpack">调试webpack</h3>
+<h4 id="摘要">1. 摘要</h4>
+<p>用过构建工具webpack的朋友应该都体会，面对其几百行的配置内容如大海一小舟，找不到边。看文档查百度，对其构建的生命周期看了又看。最终还是很茫然。原因很简单，构建配置一般都是通过脚手架工具自动生成。看似每天在用，其实接触很少。直到有一天，发现社区的插件不能满足需求时，相信你一定会定制一个自己的插件。这时你需要彻底了解它的机制，作为开发，调试代码一定是了解内部逻辑最好的方法。<a href="https://mp.weixin.qq.com/s/XhryTrM9gNxrfBmW3eGsAg">原文公众号地址</a></p>
+<p>不管是 npm 还是 webpack 都是基于nodejs的工具。所以最终是调试node。这里我介绍三种调试的方法。需要提前准备好以下工具</p>
+<ul>
+<li>vscode</li>
+<li>google chrome</li>
+</ul>
+<p>使用npm初始一个项目命名为webpacktest。需要源码的朋友可关注公众号<strong>小院不小</strong>,回复 <strong>webpackdebug</strong>。安装项目依赖</p>
+<pre><code><code>npm i -D webpack webpack-cli</code></pre>
+<p>添加webpack配置文件,并在其中使用<code>debugger</code>设置一个断点。</p>
+<pre class="js"><code>const path = require(&#39;path&#39;);
+
+debugger;
+module.exports = {
+    mode: &#39;development&#39;,
+    entry: &#39;./src/index.js&#39;,
+    output: {
+        path: path.resolve(__dirname, &#39;dist&#39;),
+        filename: &quot;index.js&quot;
+    }
+};</code></pre>
+<h4 id="方法一使用vscode运行npm调试">2. (方法一)使用vscode运行npm调试</h4>
+<p>在新建项目的package.json文件<code>scripts</code>项中添加一个key为debug的配置，内容如下</p>
+<pre class="json"><code>...
+ &quot;scripts&quot;: {
+    &quot;build&quot;: &quot;webpack&quot;,
+    &quot;debug&quot;: &quot;node --inspect-brk=5858 ./node_modules/webpack/bin/webpack&quot;
+  }
+...</code></pre>
+<p>vscode中选择调页签，在左上角调试的下拉框中选择添加配置，选择Node环境。vscode会自动生成一个 launch.json 文件，将文件的内容调整为以下内容</p>
+<pre class="json"><code>{
+    &quot;version&quot;: &quot;0.2.0&quot;,
+    &quot;configurations&quot;: [
+        {
+            &quot;type&quot;: &quot;node&quot;,
+            &quot;request&quot;: &quot;launch&quot;,
+            &quot;name&quot;: &quot;build&quot;,
+            &quot;stopOnEntry&quot;: true,
+            &quot;runtimeExecutable&quot;: &quot;npm&quot;,
+            &quot;runtimeArgs&quot;: [
+                &quot;run&quot;,
+                &quot;debug&quot;
+            ],
+            &quot;port&quot;: 5858
+        }
+    ]
+}</code></pre>
+<p>其中端口配置需要和inspect-brk配置的端口保持一致。<code>stopOnEntry</code>表示在运行的第一行代码中添加断点,点击开始调试按钮，即可进入如下界面</p>
+<p><img src="./images/调试webpack0.png" /></p>
+<p>继续点击运行，即可进入配置文件设置的断点</p>
+<p><img src="./images/调试webpack1.png" /></p>
+<p>其中左边的小红点是，直接在vscode中添加的断点。此断点也可中断。</p>
+<h4 id="方法二使用vscode运行node调试">3. (方法二)使用vscode运行node调试</h4>
+<p>我们细看在package.js文件中配置的调试脚本，其实是运行node，所以就想是否可以不通过npm直接运行。经过测试，确实是可以的。回到我们launch.json文件，将配置文件改为如下</p>
+<pre class="json"><code>{
+    &quot;version&quot;: &quot;0.2.0&quot;,
+    &quot;configurations&quot;: [
+        {
+            &quot;type&quot;: &quot;node&quot;,
+            &quot;request&quot;: &quot;launch&quot;,
+            &quot;name&quot;: &quot;Node&quot;,
+            &quot;stopOnEntry&quot;: true,
+            &quot;program&quot;: &quot;${workspaceFolder}/node_modules/webpack/bin/webpack&quot;
+        }
+    ]
+}</code></pre>
+<p>点击开始调试, 依然可得到方法一中一样的调试结果。通过这种方式，没有package.json文件的约束。更简单也减少了错误的几率。</p>
+<h4 id="方法三命令行结合chrome调试">4. (方法三)命令行结合Chrome调试</h4>
+<p>在命令行中输入命令 <code>node --inspect-brk ./node_modules/webpack/bin/webpack</code>，为了方便，我们这还是使用vscode，运行效果如下</p>
+<p><img src="./images/调试webpack2.png" /></p>
+<p>打开chrome浏览器，在地址栏输入 <a href="chrome://inspect/#devices" class="uri">chrome://inspect/#devices</a>,在界面中点击inspect,此时熟悉的界面就出来了，和平时调试前端一样。显示如下</p>
+<p><img src="./images/调试webpack3.png" /></p>
+<p>点击后，便可进入断点，如下</p>
+<p><img src="./images/调试webpack4.png" /></p>
+<p>在点击下调试按钮，可进入我们在配置文件中设置的断点</p>
+<p><img src="./images/调试webpack5.png" /></p>
+<h4 id="总结">5. 总结</h4>
+<p>在以前就配置过调试webpack,时间久了就忘了，这次突然有需求了又查了好久资料。想想了想，还是总结分享出来。做开发，每天接触的多，还是要多写。<br />
+若仔细看文章的朋友，所谓三个方法都是围绕命令 <code>node --inspect-brk ./node_modules/webpack/bin/webpack</code> .我在查询资料时，最初得到的命令是 <code>node --inspect-brk ./node_modules/.bin/webpack</code>,这命令会出现错误。</p>
+<p>欢迎感兴趣的朋友关注我的微信订阅号&quot;小院不小&quot;，或者点击下方的二维码关注。我将多年开发中遇到的难点，以及一些有意思的功能，体会都会一一发布到我的订阅号中。需要<strong>本文demo</strong>可以在公众号中回复<strong>webpackdebug</strong></p>
+<p><img src="./images/调试webpack6.png" /></p>
+<p>闲来无事，采用cocos creator开发了一个小游戏，感兴趣的朋友一个可以来玩玩</p>
+<p><img src="./images/调试webpack7.png" /></p>
+<p>有喜欢聊技术朋友也欢迎入群，若二维码失效可加我微信回复<strong>前端</strong></p>
+<p><img src="./images/调试webpack8.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

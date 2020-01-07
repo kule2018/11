@@ -1,0 +1,114 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何使 highchart图表标题文字可选择复制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何使 highchart图表标题文字可选择复制</center></div><div class='banquan'>原文出处:本文由博客园博主-渔人码头-提供。<br/>
+原文连接:https://www.cnblogs.com/imwtr/p/11066595.html</div><br>
+    <p>highchart图表的一个常见问题是不能复制文字</p>
+<p>比如官网的某个<a href="https://jshare.com.cn/highcharts/hhhhhG" target="_blank">图表例子</a>，文字不能选择，也无法复制，有时产品会抓狂...</p>
+<p>本文给出一个简单的方案，包括一些解决的思路，希望能帮助到有需要的人</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>初期想了蛮久也搜了蛮多，没搜到，找到的结论是图表使用的是<a href="https://www.highcharts.com/forum/viewtopic.php?t=28591" target="_blank">svg实现，必然无法选择文字</a>，似乎是个死问题，已经濒临放弃</p>
+<p>不过后来又看到一篇讨论，其实<a href="https://webmasters.stackexchange.com/questions/13802/is-text-in-svg-selectable-copyable-in-browsers" target="_blank">svg里面的文字是可以选择复制的</a></p>
+<p>顿时信心又来了，展开了新一轮思考</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong>思考一：可能是姿势不对</strong></p>
+<p>试试把标题配成 useHTML: true ，使用普通元素渲染，结果还是无法选</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>看看DOM结构，实际上已经和svg无关了</p>
+<p><strong>思考二：会不会是设置了某些样式呢</strong></p>
+<p>跟选择复制有关的也就这俩了，直接赋上去，还是无效</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制3.png" alt="" /></p>
+<p><strong>思考三：会不会是有事件影响，取消了点击选择效果呢</strong></p>
+<p>为了测试的简便与纯粹性，最好直接使用官方提供的简单例子</p>
+<p>查看元素对应的事件列表，有几个需要关注</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制4.png" alt="" /></p>
+<p>选择highchart.js ，跳的不准呀，代码混淆之后貌似chrome的跳转一致都不太可靠了</p>
+<p><strong>思考四：什么js东西使得点击选择无效呢</strong></p>
+<p>可能是事件禁止了冒泡 stopPropagation，或者是取消了元素的事件默认处理机制 preventDefault</p>
+<p>一搜，发现前者没找到，而后者有多处</p>
+<p>定位到一个 mouseDown事件触发的位置，柳暗花明的感觉</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制5.png" alt="" /></p>
+<p>试了一下可以发现，上下两处是关键点，直接造成文字选择功能失效了（当然这可能是作者的本意）</p>
+<p>接下来就是验证环节，把这文件下下来本地，改好后（注释那俩地方）用Fiddler的文件映射功能，替换这个例子中的 highchart.js，妥妥的可以进行选择复制</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong>思考五：如何运用在业务代码中？</strong></p>
+<p>在vue中使用的是npm的包管理，所以肯定不能直接改源代码，可选的一个方案是覆盖源代码，即覆盖这两个方法</p>
+<div class="cnblogs_code">
+<pre><code>    import Highcharts from "highcharts"<span style="color: #000000;">;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 重写Highcharts事件处理，使得内容可选择复制</span>
+    Highcharts.Pointer.prototype.onContainerMouseDown = <span style="color: #0000ff;">function</span><span style="color: #000000;">(a) {
+        a </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.normalize(a);
+        </span>2 !== a.button &amp;&amp; (<span style="color: #0000ff;">this</span><span style="color: #000000;">.zoomOption(a),
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> a.preventDefault &amp;&amp; a.preventDefault(),</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.dragStart(a))
+    };
+
+    Highcharts.Pointer.prototype.onContainerMouseMove </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(b) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 整理变量</span>
+        let a =<span style="color: #000000;"> Highcharts;
+        let B </span>=<span style="color: #000000;"> Highcharts.charts;
+        let q </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(a) {
+            </span><span style="color: #0000ff;">return</span> "undefined" !== <span style="color: #0000ff;">typeof</span> a &amp;&amp; <span style="color: #0000ff;">null</span> !==<span style="color: #000000;"> a
+        };
+
+        </span><span style="color: #0000ff;">var</span> c = <span style="color: #0000ff;">this</span><span style="color: #000000;">.chart;
+        q(a.hoverChartIndex) </span>&amp;&amp; B[a.hoverChartIndex] &amp;&amp; B[a.hoverChartIndex].mouseIsDown || (a.hoverChartIndex =<span style="color: #000000;"> c.index);
+        b </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.normalize(b);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> b.preventDefault || (b.returnValue = !1);</span>
+        "mousedown" === c.mouseIsDown &amp;&amp; <span style="color: #0000ff;">this</span><span style="color: #000000;">.drag(b);
+        </span>!<span style="color: #0000ff;">this</span>.inClass(b.target, "highcharts-tracker") &amp;&amp; !c.isInsidePlot(b.chartX - c.plotLeft, b.chartY - c.plotTop) || c.openMenu || <span style="color: #0000ff;">this</span><span style="color: #000000;">.runPointActions(b)
+    };</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>找到对象是谁，这一步可以断点调试看this，或往上翻代码，其实是个Pointer.&nbsp;</p>
+<p>通过分析可知，这个对象的Highcharts对象的一个子对象，我们也需要通过简单的判断来进行确认好</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制7.png" alt="" /></p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制8.png" alt="" /></p>
+<p>&nbsp;需要注意的是，代码中有一段用到了其他变量 q&nbsp; B&nbsp; a，所以在业务代码中覆盖的时候，我们需要另外提前赋值</p>
+<div class="cnblogs_code">
+<pre><code>q(a.hoverChartIndex) &amp;&amp; B[a.hoverChartIndex] &amp;&amp; B[a.hoverChartIndex].mouseIsDown || (a.hoverChartIndex = c.index);</pre>
+</div>
+<p>通过一系列分析和断点查询，以及确认值的一致，就能保证能覆盖地正确</p>
+<p>&nbsp;</p>
+<p><strong>思考六：在vue中为何没有生效</strong></p>
+<p>然鹅并不是顺利的，在实际场景vue-highcharts中使用竟然没啥变化，一轮调试下来也没有走断点，</p>
+<p>无可奈何只好去看下它的实现，看有没有什么突破口</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制9.png" alt="" /></p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制10.png" alt="" /></p>
+<p>源码很少，就是一层包装</p>
+<p>但这里可以发现，如果没有传入highcharts，就会另外引入npm包来使用</p>
+<p>所以很大可能是没传入这个属性，致使覆盖的Pointer并不是真正的图表Pointer</p>
+<p>仔细检查代码，才发现前人留个个坑，把大写的属性改成小写之后，即可匹配上</p>
+<p><img src="./images/如何使 highchart图表标题文字可选择复制11.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>当然，这个覆盖的方式是挺暴力的，可以根据需求加些判断处理，不过在现有业务中，不失为一个好办法</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,306 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修RxJS——Operators' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>RxJS——Operators</center></div><div class='banquan'>原文出处:本文由博客园博主沉睡的木木夕提供。<br/>
+原文连接:https://www.cnblogs.com/ms27946/p/RxJS-Operators.html</div><br>
+    <p>RxJS 的操作符（operators）是最有用的，尽管 Observable 是最基本的。操作符最基本的部分（pieces）就是以申明的方式允许复杂的异步代码组合简化。</p>
+<h1 id="什么是操作符">什么是操作符？</h1>
+<p>操作符是函数。这里有两种操作符：</p>
+<p>管道操作符（Pipeable Operators）是可以通过使用 <code>observableInstance.pipe(operator())</code> 管道传输到 Observable 对象。这些包括，<code>filter(...),mergeMap(...)</code>。当调用他们时，它们不会改变已存在的 Observable 实例。相反，他们会返回一个新的 Observable，它在第一个 Observable 的基础上的逻辑的 Observable。</p>
+<blockquote>
+<p>管道操作符是一个函数，它有一个 Observable 作为输入参数并且返回另一个 Observable。这是纯函数（函数式）的操作：上一个 Observable 保留未修改。</p>
+</blockquote>
+<p>管道操作符本质上就是一个纯函数，它可以作为独立函数被调用来创建一个新的 Observable。例如：<code>of(1, 2, 3)</code> 创建了一个 Observable，它会发送 1，2，3 一个接一个的。在下一接将详细讨论操作符的创建。</p>
+<p>例如，操作符 <code>map</code> 被调用跟数组的 map 是类似的。就比如 <code>[1, 2 , 3].map(x =&gt; x * x)</code> 会返回 <code>[1, 4, 9]</code>，被创建的 Observable 就像下面：</p>
+<pre><code><code>import { of } from &#39;rxjs&#39;;
+import { map } from &#39;rxjs/operators&#39;;
+
+map(x =&gt; x * x)(of(1, 2, 3)).subscribe((v) =&gt; console.log(`value: ${v}`));
+
+// Logs:
+// value: 1
+// value: 4
+// value: 9</code></pre>
+<p>将会发送 1，4，9。其他操作符的用法 first：</p>
+<pre><code><code>import { of } from &#39;rxjs&#39;;
+import { first } from &#39;rxjs/operators&#39;;
+
+first()(of(1, 2, 3)).subscribe((v) =&gt; console.log(`value: ${v}`));
+
+// Logs:
+// value: 1</code></pre>
+<p>注意 <code>map</code> 逻辑部分必须要动态构造，因为它必须被赋予映射函数来做。通过对比，first 是一个常数，但是还是得动态构造。作为一般实践，所有的操作符都要被构造，无论他们是否需要参数。</p>
+<h1 id="管道piping">管道（Piping）</h1>
+<p>管道操作符是函数，所以他们能像原生函数使用：<code>op()(obs)</code> — 但是实际上，他们都互相交织在一起，很快就会演变得不利于阅读的：<code>op4()(op3()(op2()(op1()(obs))))</code>。所以基于这个原因，Observables 有一个方法 <code>.pipe()</code> 可以调用，它能完成相同的事，并且更易读的：</p>
+<pre><code><code>obs.pipe(
+ op1(),
+ op2(),
+ op3(),
+ op4(),
+)</code></pre>
+<p>作为一个风格，<code>op()(obs)</code> 永不这样使用，甚至是只有一个操作符时，<code>obs.pipe(op())</code> 也是首选的。</p>
+<h1 id="创建操作符">创建操作符</h1>
+<p>什么是创建操作符？为了区别管道操作符，创建操作符是一个函数，能被用来创建通过一些共同的预定义的行为或者关联其他的 Observables 的 Observables 。</p>
+<p>一个典型的创建操作符例子是 <code>interval</code> 函数。它要求一个数字类型作为输入参数，并返回 Observable 作为输出：</p>
+<pre><code><code>import { interval } from &#39;rxjs&#39;;
+
+const observable = interval(1000 /* number of milliseconds */);</code></pre>
+<p><a href="https://rxjs.dev/guide/operators#creation-operators">这里</a>查看所有的静态创建操作符。</p>
+<h1 id="高阶-observables">高阶 Observables</h1>
+<p>Observables 大体上是有顺序的发送值（数字或字符串），但是也有例外，处理 Observables 的 Observables 是有必要的，叫做高阶 Observables。例如，想象你有一个 Observable，它发送文件的地址的字符串，这个字符串恰好是想要看到的。代码如下：</p>
+<pre><code><code>const fileObservable = urlObservable.pipe(
+    map(url =&gt; http.get(url)),
+);</code></pre>
+<p><code>http.get()</code> 返回每个 URL 的 Observable 对象（可能是字符串或字符串数组）。现在你有一个 Observables 对象了，一个高阶 Observable。</p>
+<p>但是这个高阶 Observable 是怎么工作的呢？通常通过平坦化：通过某种方式将高阶 Observable 转换成一个普通的 Observable。例如：</p>
+<pre><code><code>const fileObservable = urlObservable.pipe(
+    map(url =&gt; http.get(url)),
+    concatAll(),
+);</code></pre>
+<p><code>concatAll()</code> 操作订阅了每个内部的 Observable，它会带出来一个 Observable 对象，并复制所有的发送的值知道Observable 完成，然后继续执行下一个。所有的值都是以这种方式串起来的。其他的扁平用处的操作（也叫链接操作符（join operators））</p>
+<ul>
+<li><code>mergeAll()</code> —— 订阅每个内部到达的 Observable 对象，然后发送它到达的每一个值</li>
+<li><code>switchAll()</code> —— 当内部的 Observable 第一个到达时订阅（Observable），然后每个到达时发送值，但是当下个内部的 Observable 到达时，上一个订阅取消，并订阅这个新的 Observable。</li>
+<li><code>exhaust()</code> —— 当 Observable 到达时订阅第一个，每个在它到达时发送值，在第一个完成之前，丢弃所有新到大的 Observable 对象，完成之后等待下一个 Observable。</li>
+</ul>
+<p>就像组合了数组库中许多的 <code>map()</code>，<code>flat()</code>（或者是 <code>flatten()</code>），他们映射就等价于 RxJS 中的 扁平操作符 concatMap()，<code>mergeMap()</code>，<code>switchMap()</code> 以及 <code>exhaustMap()</code>。</p>
+<h2 id="弹珠图标marble-diagrams">弹珠图标（Marble diagrams）</h2>
+<p>为了解释操作符是如何工作的，本文还不足以描述。太多的操作符相关联了，他们实例化可能以不同的方式延迟，举例，节流，降低值发送（频率）。为了更好的描述，图标经常是最好的工具。弹珠图表是可视化的表示 operator 是如何工作的，也包括了 Observable 输入，operator 以及它们的参数，还有 Observable 的输出。</p>
+<blockquote>
+<p>在弹珠图中，时间轴向右移动，并且图描述了值 “弹珠” 在 Observable 运行的时候是如何发送的。</p>
+</blockquote>
+<p>根据下面你能看到弹珠图的解析。</p>
+<p><img src="F:\MS\Project\JavascriptStudy\src\rxjs\docs\asserts\marble-diagram-anatomy.svg" /></p>
+<p>贯穿文档节点，我们普遍使用 marble diagrams 来解释 operator 是如何工作的。它们在其他的方面也是很有用的，比如在白板甚至是在我们的单元测试中（作为 ASCII 图表）。</p>
+<blockquote>
+<p>按照图标的顺序，我解释下上面的意思：</p>
+<ol>
+<li>这个从左到右的时间轴是表示输入的 Observable 的执行过程</li>
+<li>4，6，a，8 这些值是 Observable 要发送的值</li>
+<li>紧接着的 “|” 是表示 “完成” 通知，表明这个 Observable 已经成功完成。</li>
+<li>中间的盒子表明操作符，它传递上面输入的 Observable 生成一个 Observable 作为输出（下面一条线）方框内的文本显示了转换的性质</li>
+<li>调用操作符输出 Observable</li>
+<li>“X” 表示这个输出的 Observable 发送错误，表明异常终止。至此之后不会有任何值发送。</li>
+</ol>
+</blockquote>
+<h1 id="操作符的分类">操作符的分类</h1>
+<p>有很多操作是使用目的是不同的，他们分这几类：创建，转换，过滤，联合，多播，错误处理，公共等等。下面的列表你会发现所有被分类的操作符。</p>
+<p>为了完成的概述，你可以看这个 <a href="https://rxjs.dev/api">API 文档</a></p>
+<h2 id="创建操作符-1">创建操作符</h2>
+<ul>
+<li><a href="https://rxjs.dev/api/ajax/ajax"><code>ajax</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/bindCallback"><code>bindCallback</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/bindNodeCallback"><code>bindNodeCallback</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/defer"><code>defer</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/empty"><code>empty</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/from"><code>from</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/fromEvent"><code>fromEvent</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/fromEventPattern"><code>fromEventPattern</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/generate"><code>generate</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/interval"><code>interval</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/of"><code>of</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/range"><code>range</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/throwError"><code>throwError</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/timer"><code>timer</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/iif"><code>iif</code></a></li>
+</ul>
+<h2 id="链接创建操作">链接创建操作</h2>
+<ul>
+<li><a href="https://rxjs.dev/api/index/function/combineLatest"><code>combineLatest</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/concat"><code>concat</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/forkJoin"><code>forkJoin</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/merge"><code>merge</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/race"><code>race</code></a></li>
+<li><a href="https://rxjs.dev/api/index/function/zip"><code>zip</code></a></li>
+</ul>
+<h2 id="转化操作符">转化操作符</h2>
+<ul>
+<li><a href="https://rxjs.dev/api/operators/buffer"><code>buffer</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/bufferCount"><code>bufferCount</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/bufferTime"><code>bufferTime</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/bufferToggle"><code>bufferToggle</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/bufferWhen"><code>bufferWhen</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/concatMap"><code>concatMap</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/concatMapTo"><code>concatMapTo</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/exhaust"><code>exhaust</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/exhaustMap"><code>exhaustMap</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/expand"><code>expand</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/groupBy"><code>groupBy</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/map"><code>map</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/mapTo"><code>mapTo</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/mergeMap"><code>mergeMap</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/mergeMapTo"><code>mergeMapTo</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/mergeScan"><code>mergeScan</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/pairwise"><code>pairwise</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/partition"><code>partition</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/pluck"><code>pluck</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/scan"><code>scan</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/switchMap"><code>switchMap</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/switchMapTo"><code>switchMapTo</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/window"><code>window</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/windowCount"><code>windowCount</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/windowTime"><code>windowTime</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/windowToggle"><code>windowToggle</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/windowWhen"><code>windowWhen</code></a></li>
+</ul>
+<h2 id="过滤操作符">过滤操作符</h2>
+<ul>
+<li><a href="https://rxjs.dev/api/operators/audit"><code>audit</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/auditTime"><code>auditTime</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/debounce"><code>debounce</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/debounceTime"><code>debounceTime</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/distinct"><code>distinct</code></a></li>
+<li><a href="https://rxjs.dev/class/es6/Observable.js~Observable.html#instance-method-distinctKey"><code>distinctKey</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/distinctUntilChanged"><code>distinctUntilChanged</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/distinctUntilKeyChanged"><code>distinctUntilKeyChanged</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/elementAt"><code>elementAt</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/filter"><code>filter</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/first"><code>first</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/ignoreElements"><code>ignoreElements</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/last"><code>last</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/sample"><code>sample</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/sampleTime"><code>sampleTime</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/single"><code>single</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/skip"><code>skip</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/skipLast"><code>skipLast</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/skipUntil"><code>skipUntil</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/skipWhile"><code>skipWhile</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/take"><code>take</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/takeLast"><code>takeLast</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/takeUntil"><code>takeUntil</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/takeWhile"><code>takeWhile</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/throttle"><code>throttle</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/throttleTime"><code>throttleTime</code></a></li>
+</ul>
+<h2 id="连接操作符">连接操作符</h2>
+<p>你也可以看 <a href="https://rxjs.dev/guide/operators#join-creation-operators">连接创建操作符</a> 一节</p>
+<ul>
+<li><a href="https://rxjs.dev/api/operators/combineAll"><code>combineAll</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/concatAll"><code>concatAll</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/exhaust"><code>exhaust</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/mergeAll"><code>mergeAll</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/startWith"><code>startWith</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/withLatestFrom"><code>withLatestFrom</code></a></li>
+</ul>
+<h2 id="多播操作符">多播操作符</h2>
+<ul>
+<li><a href="https://rxjs.dev/api/operators/multicast"><code>multicast</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/publish"><code>publish</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/publishBehavior"><code>publishBehavior</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/publishLast"><code>publishLast</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/publishReplay"><code>publishReplay</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/share"><code>share</code></a></li>
+</ul>
+<h2 id="异常处理操作符">异常处理操作符</h2>
+<ul>
+<li><a href="https://rxjs.dev/api/operators/catchError"><code>catchError</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/retry"><code>retry</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/retryWhen"><code>retryWhen</code></a></li>
+</ul>
+<h2 id="公共操作符">公共操作符</h2>
+<ul>
+<li><a href="https://rxjs.dev/api/operators/tap"><code>tap</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/delay"><code>delay</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/delayWhen"><code>delayWhen</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/dematerialize"><code>dematerialize</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/materialize"><code>materialize</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/observeOn"><code>observeOn</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/subscribeOn"><code>subscribeOn</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/timeInterval"><code>timeInterval</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/timestamp"><code>timestamp</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/timeout"><code>timeout</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/timeoutWith"><code>timeoutWith</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/toArray"><code>toArray</code></a></li>
+</ul>
+<h2 id="条件布尔操作符">条件布尔操作符</h2>
+<ul>
+<li><a href="https://rxjs.dev/api/operators/defaultIfEmpty"><code>defaultIfEmpty</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/every"><code>every</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/find"><code>find</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/findIndex"><code>findIndex</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/isEmpty"><code>isEmpty</code></a></li>
+</ul>
+<h2 id="数学和聚合操作符">数学和聚合操作符</h2>
+<ul>
+<li><a href="https://rxjs.dev/api/operators/count"><code>count</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/max"><code>max</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/min"><code>min</code></a></li>
+<li><a href="https://rxjs.dev/api/operators/reduce"><code>reduce</code></a></li>
+</ul>
+<h1 id="创建自定义的-observables">创建自定义的 Observables</h1>
+<h2 id="使用-pipe-函数生成新的-observable">使用 <code>pipe()</code> 函数生成新的 Observable</h2>
+<p>如果在你的代码里有常用的操作符序列，用 <code>pipe()</code> 函数来提取到新的操作符。甚至这个序列是不常见的，中断它到单个的操作符，这样能提高可读性。</p>
+<p>举个例子，你可以生成一个函数，这个函数舍弃奇数的值并给偶数值加倍：</p>
+<pre><code><code>import { pipe } from &#39;rxjs&#39;;
+import { filter, map } from &#39;rxjs&#39;;
+
+function discardOddDoubleEven()
+{
+    return pipe(
+        filter(v =&gt; !(v % 2)),
+        map(v =&gt; v +v),
+    );
+}</code></pre>
+<p>（<code>pipe()</code> 函数是这样类比的，但是又与 <code>.pipe()</code> 不是完全一样）</p>
+<h2 id="从零创建新的操作符">从零创建新的操作符</h2>
+<p>这个非常复杂，如果你一定要写一个不能通过现有的操作符组合而成的操作符（这是极少情况），你可以使用 Observable 构造函数从零写一个操作符，就像下面这样：</p>
+<pre><code><code>import { Observable } from &#39;rxjs&#39;;
+
+function delay(delayInMillis)
+{
+    return (observable) =&gt; new Observable(observer =&gt; {
+        //这个函数将会没当 Observable 订阅的时候调用
+        const allTimerIDs = new Set();
+        const subscription = observable.subscribe({
+            next(value){
+                const timerID = setTimeout(() =&gt; {
+                    observer.next(value);
+                    allTimeIDs.delete(timerID);
+                }, delayInMillis);
+                allTimerIDs.add(timerID);
+            },
+            error(err) {
+                observer.error(err);
+            },
+            complete() {
+                observer.complete();
+            }
+        });
+        //返回值是一个卸载函数
+        //它当新的 Observable 被取消订阅时调用
+        return () =&gt; {
+            subscription.unsubscribe();
+            allTimerIDs.forEach(timerID =&gt; {
+                clearTimeout(timerID)
+            });
+        }
+    });
+}</code></pre>
+<p>你必须要注意以下几点</p>
+<ol>
+<li>实现所有的 Observer 函数，<code>next()</code>，<code>error()</code>，<code>complete()</code> 当订阅这个输入的 Observer 的时候。</li>
+<li>实现一个卸载函数，它负责清理，当 Observable 完成的时候（在上面的例子是通过取消订阅以及清除时间定时器函数）</li>
+<li>返回一个从 Observable 构造传递过来的函数的卸载函数</li>
+</ol>
+<p>当然，这个只是一个例子；<code>delay()</code> 操作符已经存在了。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

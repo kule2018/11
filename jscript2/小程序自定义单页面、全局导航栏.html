@@ -1,0 +1,209 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修小程序自定义单页面、全局导航栏' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>小程序自定义单页面、全局导航栏</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/customize-wechat-miniprogram-navigation.html</div><br>
+    <p><strong>摘要：</strong> 小程序开发技巧。</p>
+<ul>
+<li>作者：<a href="https://segmentfault.com/u/fengqingyu">小白</a></li>
+<li>原文：<a href="https://segmentfault.com/a/1190000018512099">小程序自定义单页面、全局导航栏</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<h3 id="需求">需求</h3>
+<p>产品说小程序返回到首页不太方便，想添加返回首页按钮，UI说导航栏能不能设置背景图片，因为那样设计挺好看的。</p>
+<p><img src="./images/小程序自定义单页面、全局导航栏0.png" /></p>
+<h3 id="需求分析并制定方案">需求分析并制定方案</h3>
+<p>这产品和UI都提需求了，咱也不能反驳哈，所以开始调研，分析可行性方案；1、可以添加悬浮按钮。2、自定义导航栏。<br />
+添加悬浮按钮，是看起来是比较简单哈，但是感觉不太优雅，会占据页面的空间，体验也不太好。所以想了下第二种方案，自定义导航栏既可以实现产品的需求还可以满足UI的设计美感，在顶部空白处加上返回首页的按钮，这样和返回按钮还对称（最终如图所示，顶部导航栏是个背景图片，分两块组合起来）。</p>
+<h3 id="实现方案">实现方案</h3>
+<p><strong>一、实现的前提</strong></p>
+<p>1、首先查看文档，看文档里关于自定义导航栏是怎么规定的，有哪些限制；还有小程序自定义导航栏全局配置和单页面配置的微信版本和调试库的最低支持版本。</p>
+<p>2、在app.json window 增加 navigationStyle:custom ，顶部导航栏就会消失，只保留右上角胶囊状的按钮，如何修改胶囊的颜色呢;胶囊体目前只支持黑色和白色两种颜色 在app.josn window 加上 &quot;navigationBarTextStyle&quot;:&quot;white/black&quot;</p>
+<p>3、还要考虑加返回按钮和返回首页的按钮，适配不同的机型</p>
+<p><strong>先说下两种配置方法：</strong></p>
+<p>①全局配置navigationStyle：</p>
+<ul>
+<li>调试基础库&gt;=1.9.0</li>
+<li>微信客户端&gt;=6.6.0</li>
+</ul>
+<p><strong>app.json</strong></p>
+<pre><code><code>{
+  &quot;usingComponents&quot;: {
+    &quot;navigationBar&quot;: &quot;/components/navigationBar/navigationBar&quot;
+  },
+  &quot;window&quot;: {
+    &quot;navigationStyle&quot;: &quot;custom&quot;
+  } 
+}</code></pre>
+<p>②单页面配置navigationStyle</p>
+<ul>
+<li>调试基础库&gt;=2.4.3</li>
+<li>微信客户端版本&gt;=7.0.0</li>
+</ul>
+<p><strong>自定义的页面.json</strong></p>
+<pre><code><code>{
+  &quot;window&quot;: {
+    &quot;navigationStyle&quot;: &quot;default&quot;
+  } 
+}
+{
+  &quot;navigationStyle&quot;: &quot;custom&quot;,
+  &quot;usingComponents&quot;: {
+    &quot;navigationBar&quot;: &quot;/components/navigationBar/navigationBar&quot;
+  }
+}</code></pre>
+<blockquote>
+<p><strong>两者的区别就是，全局配置放在app.json文件里，单页面配置放在自定义页面配置文件里。</strong></p>
+</blockquote>
+<p><strong>二、实现的步骤</strong></p>
+<p><strong>以下说下几个要点：</strong></p>
+<p>1、自定义导航栏文本，是否显示返回，是否显示返回首页,导航栏高度</p>
+<p>2、statusBarHeight，用来获取手机状态栏的高度，这个需要在全局app.js中的onLaunch，调用wx.getSystemInfo获取，navigationBarHeight+默认的高度，这个是设定整个导航栏的高度，</p>
+<p>3、还有注意的，在写样式距离和大小时建议都用px，因小程序右边的胶囊也是用的px，不是rpx。</p>
+<p>4、因为自定义导航栏每个页面都要写，所以把导航栏封装了公共组件，这样只需要在每个页面引入即可。</p>
+<p><strong>如下是封装的导航栏组件：</strong></p>
+<p>wxml</p>
+<pre class="html"><code>&lt;view class=&quot;navbar&quot; style=&quot;{{&#39;height: &#39; + navigationBarHeight}}&quot;&gt;
+  &lt;view style=&quot;{{&#39;height: &#39; + statusBarHeight}}&quot;&gt;&lt;/view&gt;
+  &lt;view class=&#39;title-container&#39;&gt;
+    &lt;view class=&#39;capsule&#39; wx:if=&quot;{{ back || home }}&quot;&gt;
+      &lt;view bindtap=&#39;back&#39; wx:if=&quot;{{back}}&quot;&gt;
+        &lt;image src=&#39;/images/back.png&#39;&gt;&lt;/image&gt;         
+      &lt;/view&gt;
+      &lt;view bindtap=&#39;backHome&#39; wx:if=&quot;{{home}}&quot;&gt;
+        &lt;image src=&#39;/images/home.png&#39;&gt;&lt;/image&gt;
+      &lt;/view&gt;
+    &lt;/view&gt;
+    &lt;view class=&#39;title&#39;&gt;{{text}}&lt;/view&gt;
+  &lt;/view&gt;
+&lt;/view&gt;
+&lt;view style=&quot;{{&#39;height: &#39; + navigationBarHeight}};background: white;&quot;&gt;&lt;/view&gt;</code></pre>
+<blockquote>
+<p><strong>这里有个需注意的问题，就是一般会出现自定义导航栏，下拉页面，导航栏也随着会下拉，这种问题是因为设置fixed后页面元素整体上移了navigationBarHeight，所以在此组件里设置一个空白view元素占用最上面的navigationBarHeight这块高度</strong></p>
+</blockquote>
+<p>wxss</p>
+<pre class="css"><code>.navbar {
+  width: 100%;
+  background-color: #1797eb;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 999;
+}
+.title-container {
+  height: 40px;
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+.capsule {
+  margin-left: 10px;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid #fff;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+}
+.capsule &gt; view {
+  width: 45px;
+  height: 60%;
+  position: relative;
+.capsule &gt; view:nth-child(2) {
+  border-left: 1px solid #fff;  
+}
+.capsule image {
+  width: 50%;
+  height: 100%;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%,-50%);
+}
+.title {
+  color: white;
+  position: absolute;
+  top: 6px;
+  left: 104px;
+  right: 104px;
+  height: 30px;
+  line-height: 30px;
+  font-size: 14px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}</code></pre>
+<p>js</p>
+<pre class="javascript"><code>const app = getApp()
+
+Component({
+
+  properties: {
+    text: {
+      type: String,
+      value: &#39;Wechat&#39;
+    },
+    back: {
+      type: Boolean,
+      value: false
+    },
+    home: {
+      type: Boolean,
+      value: false
+    }
+  },
+  data: {
+    statusBarHeight: app.globalData.statusBarHeight + &#39;px&#39;,
+    navigationBarHeight: (app.globalData.statusBarHeight + 44) + &#39;px&#39;
+  },
+
+  methods: {
+    backHome: function () {
+      let pages = getCurrentPages()
+      wx.navigateBack({
+        delta: pages.length
+      })
+    },
+    back: function () {
+      wx.navigateBack({
+        delta: 1
+      })
+    }
+  }
+})</code></pre>
+<p>json</p>
+<pre><code><code>{
+  &quot;component&quot;: true,
+  &quot;usingComponents&quot;: {}
+}</code></pre>
+<blockquote>
+<p>最终还需要考虑下版本兼容的问题，毕竟还有一些用户，微信版本并没有更新到最新版本。</p>
+<p>首先可以在app.js里面获取下当前用户的微信版本，做下版本比较，如果小于这个版本，设置个全局变量，也可以在组件写个方法，在不同的页面打开显示不同的顶部导航栏，或者可以控制是否显示导航栏，这里就不详细说了。</p>
+<p>亲自试了下，在低于7.0版本的微信中，如果采用单页面自定义导航栏，会出现两个导航栏，这时候通过判断版本号不要再渲染自定义的导航栏组件了，在页面的配置文件里写上title名，还有相应的背景色，这样就会显示自带的导航栏了。</p>
+</blockquote>
+<h3 id="总结">总结</h3>
+<p>小程序开发是有些坑的地方，从不支持自定义导航栏，到支持全局自定义导航栏，再到现在的支持单页面配置，可以看出在慢慢完善。还有底部tabbar，可自己选择配置的太少了，虽然也支持自定义，但是发现自定义写的底部导航组件体验并不好，每次打开页面都会重新渲染底部的按钮，如果全部写成在一个页面里的tab切换，虽然按钮每次不用重新加载了，但是业务多肯定不行，写到一个单页面里东西也太多了。 希望微信能够多添加或放开一些功能，让开发者更好的服务于产品，给用户更好的体验。</p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

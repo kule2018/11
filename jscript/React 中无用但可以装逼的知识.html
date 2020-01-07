@@ -1,0 +1,188 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修React 中无用但可以装逼的知识' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>React 中无用但可以装逼的知识</center></div><div class='banquan'>原文出处:本文由博客园博主陈陈jg提供。<br/>
+原文连接:https://www.cnblogs.com/chenjg/p/10709277.html</div><br>
+    <p>最近看了<a href="https://mobile.twitter.com/dan_abramov">Dan Abramov</a>的一些<a href="https://overreacted.io/">博客</a>，学到了一些React的一些有趣的知识。决定结合自己的理解总结下。这些内容可能对你实际开发并没有什么帮助，不过这可以让你了解到更多React底层实现的内容以及为什么要怎样实现。可以让你跟别人有更多的谈资，当然，也可以在某些场合装一下逼。那么接下来直接进入正文。</p>
+<h2 id="react如何区分类组件和函数组件">React如何区分类组件和函数组件</h2>
+<p>我们可以考虑从几种方式：</p>
+<h3 id="统一使用new方法来生成实例">统一使用new方法来生成实例</h3>
+<p>问题：</p>
+<ul>
+<li><p>对于函数组件而言，这样会让它们生成一个多余的<code>this</code>作为对象实例。</p></li>
+<li><p>对于箭头函数而言，会报错。因为箭头函数并没有<code>this</code>,它的<code>this</code>是取自于定义这个箭头函数所在环境的<code>this</code></p>
+<pre><code><code>const fun = () =&gt; console.log(2);
+new fun(); // Uncaught TypeError: fun is not a constructor</code></pre></li>
+<li><p>使用<code>new</code>会妨碍函数组件返回原始类型(string、number等)。</p>
+<p>我们都知道，使用new操作符后，只有当函数返回非<code>null</code> 和非<code>undefined</code>的对象的时候，返回值才会生效。否则new操作符的返回值都会是对象。关于<code>new</code>操作符详细的内容可以点击<a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/new">这里</a></p>
+<pre><code><code>function Greeting() {
+  return &#39;Hello&#39;;
+}
+
+// 并不会返回字符串
+new Gretting(); // Gretting {}</code></pre></li>
+</ul>
+<p>综上所述，这个方法不可行。</p>
+<h3 id="通过instanceof来判断">通过instanceof来判断</h3>
+<p>不知道你有没有察觉，我们写<code>React</code>的类组件的时候，我们都需要通过<code>extends React.Component</code>的方式来写。那么，我们是否可以通过以下方式来判断呢？</p>
+<pre><code><code>class A extends React.Component {
+}
+
+A.prototype instanceOf React.Component; // true</code></pre>
+<p>通过这种方式，我们确实可以区分类组件和函数组件，可是也存在一些问题：</p>
+<ul>
+<li><p>箭头函数没有<code>prototyoe</code></p>
+<p>这个问题其实好解决，如下</p>
+<pre><code><code>function getType(Component) {
+  if (Component.prototyoe &amp;&amp; Component.prototype instance React.Component) {
+    return &#39;class&#39;;
+  }
+
+  return &#39;function&#39;;
+}</code></pre></li>
+<li><p>对于一些项目(虽然很少)可能存在着多个React副本，并且我们目前要检查的组件它继承的React.Component是来自于另一个React副本的，这就会出现问题。这个问题的话就没办法解决了。因此这种方式也存在问题。</p></li>
+</ul>
+<h3 id="通过为react.component增加一个特别的标记">通过为React.Component增加一个特别的标记</h3>
+<p>写过<code>React</code>的类组件的人都知道，我们每一个类组件都是要继承于<code>React.Component</code>的。因此，如果我们在<code>React.Component</code>增加一个标记<code>isReactComponent</code>，这样通过继承的方式，我们就可以根据这个标记来判断是不是类组件了。</p>
+<pre><code><code>// React 内部
+class Component {}
+Component.prototype.isReactComponent = {};
+
+// 检查
+class Greeting extends Component {};
+console.log(Greeting.prototype.isReactComponent);</code></pre>
+<p><strong>事实上，<a href="https://github.com/facebook/react/blob/769b1f270e1251d9dbdce0fcbd9e92e502d059b8/packages/react-reconciler/src/ReactFiber.js#L297-L300">React</a>目前就是通过这种方式来进行检查的</strong>。如果你没有<code>extends React.Component</code>，React不会在原型上找到<code>isReactComponent</code>，因此不会把组件当做类组件来处理。</p>
+<h2 id="react-elements为什么要有一个typeof属性">React Elements为什么要有一个$typeof属性</h2>
+<p>假如我们的jsx长这个样子：</p>
+<pre class="jsx"><code>&lt;Button type=&quot;primary&quot;&gt;点击&lt;/Button&gt;</code></pre>
+<p>实际上，在经过babel后，它会变成下面这段代码：</p>
+<pre><code><code>React.createElement(
+  /* type */ &#39;Button&#39;,
+  /* props */ { type: &#39;primary&#39; },
+  /* children */ &#39;点击&#39;
+)</code></pre>
+<p>之后，这个函数执行结果会返回一个对象，这个对象我们称为<code>React Element</code>。它是一个用来描述我们将要渲染的页面结构的一个不可变对象。想了解更多与<code>React Component</code>,<code>Elements</code>和<code>Inastances</code>的可以<a href="https://reactjs.org/blog/2015/12/18/react-components-elements-and-instances.html">点击这里</a>。</p>
+<pre><code><code>// React Element
+{
+  type: &#39;Button&#39;,
+  props: {
+    type: &#39;primary&#39;,
+    children: &#39;点击&#39;,
+  },
+  key: null,
+  ref: null,
+  $$typeof: Symbol.for(&#39;react.element&#39;), // 为什么有这个东西
+}</code></pre>
+<p>对于React开发者来说，上面这些属性大部分都是比较常见的。可是为什么混进了一个奇怪的<code>$$typeof</code>？？它是干嘛的呢？它的值为什么是一个<code>Symbol</code>呢？</p>
+<p>这个属性的引入，其实要从一个安全漏洞说起。</p>
+<p>假如我们要显示一个变量，如果你使用纯js来写的话，可能是这样：</p>
+<pre><code><code>const messageEl = document.getElementById(&#39;message&#39;);
+messageEl.innerHTML = `&lt;div&gt;${message}&lt;/div&gt;`;</code></pre>
+<p>这一段代码，对于熟悉或者了解过XSS攻击的人来说，一看就知道会有问题，<strong>存在着XSS攻击</strong>。如果<code>message</code>是用户可以控制的变量(比如说是用户输入的评论)的话，那么用户就可以进行攻击了。比如用户可以构造下面的代码来进行攻击:</p>
+<pre><code><code>message = &#39;&lt;img onerror=&quot;alert(2)&quot; src=&quot;&quot; /&gt;&#39;;</code></pre>
+<p>如果我们明确知道，我们只想单纯的渲染文本，不想把它当成html来渲染的话，那么我们可以通过textContent来避免这个问题。</p>
+<pre><code><code>const messageEl = document.getElementById(&#39;message&#39;);
+messageEl.textContent = `&lt;div&gt;${message}&lt;/div&gt;`;</code></pre>
+<p>而对于React而言的话，想要实现相同的效果，只需要:</p>
+<pre class="jsx"><code>&lt;div&gt;{message}&lt;/div&gt;</code></pre>
+<p>即使message里面含有<code>img</code>、<code>script</code>类似的标签，它们最终也不会以实际上的标签显示。React会对渲染的内容进行转译，比如说上面的攻击代码会被转译为:</p>
+<pre><code><code>message = &#39;&lt;img onerror=&quot;alert(2)&quot; src=&quot;&quot;/&gt;&#39;;
+// 转译为
+message = &#39;&amp;lt;img onerror=&quot;alert(2)&quot; src=&quot;&quot;/&amp;gt;&#39;</code></pre>
+<p>因此，这样就可以避免大部分场景下的XSS攻击了。</p>
+<p>当然，React也提供了另一种方式来将用户输入的内容当成html来渲染:</p>
+<pre class="jsx"><code>&lt;div dangerouslySetInnerHTML={{ __html: message }}&gt;&lt;/div&gt;</code></pre>
+<p>前面说了这么多，那么跟<code>$$typeof</code>又有什么关系呢？别急，重点来了。</p>
+<p>对于下面这种写法，我们一般都知道，message可以传基本类型、自定义组件和jsx片段。</p>
+<pre class="jsx"><code>&lt;div&gt;{message}&lt;/div&gt;</code></pre>
+<p>可是，其实我们还可以直接传React Element。比如，我们可以直接这样写</p>
+<pre class="jsx"><code>class App extends React.Component {
+  render() {
+    const message = {
+      type: &quot;div&quot;,
+      props: {
+        dangerouslySetInnerHTML: {
+          __html: `&lt;h1&gt;Arbitrary HTML&lt;/h1&gt;
+            &lt;img onerror=&quot;alert(2)&quot; src=&quot;&quot; /&gt;
+            &lt;a href=&#39;http://danlec.com&#39;&gt;link&lt;/a&gt;`
+        }
+      },
+      key: null,
+      ref: null,
+      $$typeof: Symbol.for(&quot;react.element&quot;)
+    };
+    return &lt;&gt;{message}&lt;/&gt;;
+  }
+}</code></pre>
+<p>这样在运行的时候，就会弹出一个alert框了。<a href="https://codesandbox.io/s/1rjnq88rlj">查看demo</a>。那么，这样会有什么风险呢？</p>
+<p>考虑一个场景，比如一个博客网站的评论信息<code>message</code>是由用户提供的，并且支持传入JSON。那么如果用户直接将上文的message发送给后台保存。之后，通过下面这种方式展示的话，用户就可以进行XSS攻击了。</p>
+<pre class="jsx"><code>&lt;div&gt;{message}&lt;/div&gt;</code></pre>
+<p>假设如果没有$$typeof属性的话，这种攻击确实可行。因为其他的属性都是可序列化的。</p>
+<pre><code><code>const message = {
+  type: &quot;div&quot;,
+  props: {
+    dangerouslySetInnerHTML: {
+      __html: `&lt;h1&gt;Arbitrary HTML&lt;/h1&gt;
+&lt;img onerror=&quot;alert(2)&quot; src=&quot;&quot; /&gt;
+&lt;a href=&#39;http://danlec.com&#39;&gt;link&lt;/a&gt;`
+    }
+  },
+  key: null,
+  ref: null,
+};
+
+JSON.stringify(message);</code></pre>
+<p>事实上，React 0.13当时就存在着这个漏洞。之后，React 0.14就修复了这个问题，修复方式就是通过引入$$typeof属性，并且用Symbol来作为它的值。</p>
+<pre><code><code>// 引入 $$typeof
+const message = {
+  type: &quot;div&quot;,
+  props: {
+    dangerouslySetInnerHTML: {
+      __html: `&lt;h1&gt;Arbitrary HTML&lt;/h1&gt;
+&lt;img onerror=&quot;alert(2)&quot; src=&quot;&quot; /&gt;
+&lt;a href=&#39;http://danlec.com&#39;&gt;link&lt;/a&gt;`
+    }
+  },
+  key: null,
+  ref: null,
+  $$typeof: Symbol.for(&quot;react.element&quot;)
+};
+
+JSON.stringify(message); // Symbol无法被序列化</code></pre>
+<p>这是一个有效的方法，因为JSON是不支持<code>Symbol</code>类型的。所以，即使用户提交了如上的<code>message</code>信息，到最后服务端也不会保存$$typeof属性。而在渲染的时候，React 会检测是否有<code>$$typeof</code>属性。如果没有这个属性，则拒绝处理该元素。</p>
+<p>那么如果浏览器不支持<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Symbol#Browser_compatibility"><code>Symbol</code></a>怎么办？</p>
+<p>是的，那这种保护方案就没用了。React 依然会加上$$typeof字段，并且将其值设置为<code>0xeac7</code>。(为什么是这个数字呢，因为这个数字看起来有点像<code>React</code>)。</p>
+<p>想查看具体的攻击流程，可以查看<a href="http://danlec.com/blog/xss-via-a-spoofed-react-element">这篇博客</a>。</p>
+<h2 id="总结">总结</h2>
+<ul>
+<li><code>React</code>会给<code>React.Component.prototype</code>增加一个<code>isReactElement</code>标志。这样，<code>React</code>就可以在渲染的时候判断当前渲染的组件是类组件还是函数组件。</li>
+<li><code>React Element</code>是一个用于描述要渲染的页面结构的一个不可变对象。<code>React</code>函数组件和类组件执行到最后，其实都是生成一个React Elements树。之后再由实际的渲染层(react-dom、react-native)根据这个<code>React Elements</code>树渲染为实际的页面。</li>
+<li><code>&lt;div&gt;{message}&lt;/div&gt;</code>这种方式不仅可以传原型类型、jsx和组件，还可以直接传React Element对象。</li>
+<li><code>$$typeof</code>的出现就是为了防止服务端允许储存JSON而引起的XSS攻击。可是对于不支持<code>Symbol</code>的浏览器，这个问题依然存在。</li>
+</ul>
+<p>本文地址在-&gt;<a href="https://github.com/chenjigeng/blog/issues/2">本人博客地址</a>, 欢迎给个 start 或 follow。</p>
+<h2 id="参考资料">参考资料</h2>
+<p><a href="https://overreacted.io/why-do-react-elements-have-typeof-property/">Why Do React Elements Have a $$typeof Property?</a></p>
+<p><a href="https://overreacted.io/how-does-react-tell-a-class-from-a-function/">How Does React Tell a Class from a Function?</a></p>
+<p><a href="http://danlec.com/blog/xss-via-a-spoofed-react-element">XSS via a spoofed React element</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

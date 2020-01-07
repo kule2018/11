@@ -1,0 +1,174 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack4 css modules' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack4 css modules</center></div><div class='banquan'>原文出处:本文由博客园博主郭佬提供。<br/>
+原文连接:https://www.cnblogs.com/guolao/p/11830098.html</div><br>
+    <p><a href="https://github.com/imguolao/webpack4-demo/tree/master/demo_6">demo 代码点此</a>，webpack4 中通过 <a href="https://www.npmjs.com/package/css-loader">css-loader</a> 开启 css 模块化, 开始前先做点准备工作。</p>
+<p><strong>不了解 css 模块化的，可以前往查看<a href="https://github.com/css-modules/css-modules">github_css_modules</a>.</strong></p>
+<h2 id="准备工作">##准备工作</h2>
+<p>安装 webpack：</p>
+<pre><code><code>npm init -y
+npm i -D webpack webpack-cli css-loader</code></pre>
+<p>创建 webpack.config.js 进行配置：</p>
+<pre class="js"><code>const path = require(&#39;path&#39;);
+const MiniCssExtractPlugin = require(&#39;mini-css-extract-plugin&#39;);
+const HtmlWebpackPlugin = require(&#39;html-webpack-plugin&#39;);
+
+module.exports = {
+  entry: {
+    main: &#39;./src/index.js&#39;
+  },
+  module: {
+    rules: [
+      // 不在 node_modules 中的 css，开启 css modules
+      {
+        test: /\.css$/,
+        exclude: /node_modules/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          {
+            loader: &#39;css-loader&#39;,
+            options: {
+              /* 以前版本是通过 true 开启，相关配置接着写
+                modules: true
+                localIdentName: &#39;[name]__[local]--[hash:base64:5]&#39;
+                */
+              // 现在是给 modules 一个 options 对象开启
+              modules: {
+                // 重新生成的 css 类名
+                localIdentName: &#39;[name]__[local]--[hash:base64:5]&#39;
+              }
+            }
+          }
+        ]
+      },
+       // 在 node_modules 中的 css，不开启
+      {
+        test: /\.css$/,
+        include: /node_modules/,
+        use: [
+          MiniCssExtractPlugin.loader, &#39;css-loader&#39;]
+      }
+    ]
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: path.resolve(__dirname, &#39;./src/index.html&#39;),
+      filename: &#39;index.html&#39;
+    }),
+    new MiniCssExtractPlugin({
+      filename: &#39;[name].[hash].css&#39;
+    })
+  ],
+  output: {
+    filename: &#39;[name].[hash].bundle.js&#39;,
+    path: path.resolve(__dirname, &#39;./dist&#39;)
+  }
+}</code></pre>
+<p>更多 css-loader 的配置建议前往 <a href="https://github.com/webpack-contrib/css-loader">github_css-loader</a> 查看，因为版本更新后，配置可能会有变。</p>
+<h2 id="编写-css">## 编写 css</h2>
+<p>配置完 webpack，写 css 时要使用相关语法，因为是通过 webpack 打包时进行编译，重新生成新的 css 类名来防止全局变量名污染的。</p>
+<p><strong>注意： css modules 只针对类、Id选择器生效，不会对标签选择器进行模块化。 </strong></p>
+<pre class="css"><code>/* 全局样式 */
+:global(.header) {
+  color: #696969;
+  background-color: #fff;
+}
+
+:global .main {
+  color: #363636;
+  background-color: #fff;
+}
+
+/* less 等预处理语言可以这样写 */
+/* :global {
+  .footer {
+    color: #303030;
+    background-color: #fff;
+  }
+} */
+
+
+/* 局部样式 */
+:local(.header) {
+  color: red;
+  background-color: #c2b1b1;
+}
+
+:local(.main) {
+  color: yellow;
+  background-color: rgb(136, 96, 96);
+}
+
+:local(.footer) {
+  color: blue;
+  background-color: #929292;
+}</code></pre>
+<p>编译后的 css 代码：</p>
+<pre class="css"><code>/* 全局样式 */
+.header {
+  color: #696969;
+  background-color: #fff;
+}
+
+.main {
+  color: #363636;
+  background-color: #fff;
+}
+
+/* less 等预处理语言可以这样写 */
+/* :global {
+  .footer {
+    color: #303030;
+    background-color: #fff;
+  }
+} */
+
+
+/* 局部样式 */
+.index__header--1JD7j {
+  color: red;
+  background-color: #c2b1b1;
+}
+
+.index__main--1j9-Y {
+  color: yellow;
+  background-color: rgb(136, 96, 96);
+}
+
+.index__footer--gJKjp {
+  color: blue;
+  background-color: #929292;
+}</code></pre>
+<h2 id="使用">## 使用</h2>
+<p>因为 css 类名是重新编译后的，所以使用时不能直接使用原 css 类名，要通过 import 语法使用。</p>
+<pre class="js"><code>import styles from &#39;./index.css&#39;;
+
+export const Header = () =&gt; {
+  return `
+    &lt;h1 class=${styles.header}&gt;header&lt;/h1&gt;
+  `
+}</code></pre>
+<p>在 html 里面是这样的：</p>
+<pre class="html"><code>&lt;h1 class=&quot;index__header--1JD7j&quot;&gt;header&lt;/h1&gt;</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

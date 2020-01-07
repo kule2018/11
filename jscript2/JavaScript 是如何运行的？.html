@@ -1,0 +1,139 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript 是如何运行的？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript 是如何运行的？</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/how-does-javascript-execute-1.html</div><br>
+    <p><strong>摘要：</strong> 理解JS执行原理。</p>
+<ul>
+<li>原文：<a href="https://segmentfault.com/a/1190000020438413">JavaScript 是如何运行的？</a></li>
+<li>作者：<a href="https://segmentfault.com/u/hengg">hengg</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<h2 id="什么是javascript">什么是JavaScript？</h2>
+<p>我们来确认一下JavaScript的定义：JavaScript 是一门解释型的动态语言。</p>
+<p>解释型语言是相对于编译型语言存在的，源代码不是直接编译为目标代码，而是转成中间代码，再由解释器对中间代码进行解释运行。</p>
+<p>主流编程语言有编译型（如 C++）、解释型（如 JavaScript）、和半解释半编译（如 Java）这几大类型。</p>
+<h3 id="代码是怎么运行的">代码是怎么运行的？</h3>
+<p>首先我们来了解一下代码是怎么运行的。</p>
+<p>我们知道，代码是由CPU执行的，而目前的CPU并不能直接执行诸如<code>if…else</code>之类的语句，它只能执行二进制指令。但是二进制指令对人类实在是太不友好了：我们很难快速准确的判断一个二进制指令<code>1000010010101001</code>代表什么？所以科学家们发明汇编语言。</p>
+<h4 id="汇编语言">汇编语言</h4>
+<p>汇编语言实际上就是二进制指令的助记符。</p>
+<p>假设<code>10101010</code>代表读取内存操作，内存地址是<code>10101111</code>，寄存器地址是<code>11111010</code>，那么完整的操作<code>101010101010111111111010</code>就代表读取某个内存地址的值并装载到寄存器，而汇编语言并没有改变这种操作方式，它只是二进制指令的映射：</p>
+<pre><code><code>LD：10101010 
+id:10101111
+R:11111010</code></pre>
+<p>这样上述指令就可以表达为<code>LD id R</code> ，大大增强了代码的可读性。</p>
+<p>但是这样还不够友好，CPU只能执行三地址表达式，和人的思考方式、语言模式相距甚远。所以伟大的科学家们又发明了高级语言。</p>
+<h4 id="高级语言">高级语言</h4>
+<blockquote>
+<p>“代码是写给人看的，不是写给机器看的，只是顺便计算机可以执行而已。”</p>
+</blockquote>
+<p>高级语言之所以称之为“高级”，就是因为它更加符合我们的思维和阅读习惯。<code>if…else</code>这种语句看起来要比<code>1010101010</code>舒服的多了。但是计算机并不能直接执行高级语言，所以还需要把高级语言转化为汇编语言/机器指令才能执行。这个过程就是编译。</p>
+<h3 id="javascript-需要编译吗">JavaScript 需要编译吗？</h3>
+<p>JavaScript毫无疑问是高级语言，所以它肯定是需要编译后才能执行。但为什么我们又称之为解释型语言呢？它和编译型语言、半解释半编译型语言又有什么区别呢？我们先从编译说起。</p>
+<h4 id="编译">编译</h4>
+<p>之前我们已经了解编译的概念，下面我们来聊聊平台：同样一份C++代码在Windows上会编译成.obj文件，而在Linux上则生成.o文件，两者不能通用。这是因为一个可执行文件除了代码外还需要操作系统 API、内存、线程、进程等系统资源，而不同的操作系统其实现也不尽相同。比如我们熟悉的I/O多路复用（事件驱动的灵魂），在Windows上的实现方案是IOCP方案，在Linux上是epoll。所以针对不同的平台，编译型语言需要分别编译，甚至需要分别编写，而且生成的可执行文件其格式并不相同。</p>
+<h4 id="跨平台">跨平台</h4>
+<p>Java在此之上更进一步，它通过引入字节码实现了跨平台运行：无论是在什么操作系统上.java文件编译出的都是.class文件（这就是字节码文件，一种中间形态的目标代码）。然后Java对不同的系统提供不同的Java虚拟机用于解释执行字节码文件。解释执行并不生成目标代码，但其最终还是要转为汇编/二进制指令来给计算机执行的。</p>
+<p>假如我们自己完全独立的新写一个简单的操作系统，那么它能不能运行Java呢？很显然是不能的，因为并没有这个系统相应的JVM。所以Java的跨平台、任何其他语言的跨平台，都是有局限性的。</p>
+<p>Java采用半解释半编译的好处就是大大提升了开发效率，然而相应的则降低了代码的执行效率，毕竟虚拟机是有性能损失的。</p>
+<h4 id="解释执行">解释执行</h4>
+<p>JavaScript则更进一步。它是完全的解释执行，或者叫做即时编译。它不会有中间代码生成，也不会有目标代码生成。这个过程通常由宿主环境（如浏览器、Node.js）包办。</p>
+<h3 id="编译过程">编译过程</h3>
+<p>现在我们确认了，即使是解释执行的语言，也是需要编译的。那么代码是如何编译的呢？我们来简单了解一下。</p>
+<h4 id="词法分析">词法分析</h4>
+<p>词法分析会把语句分解成词法单元，即Token。</p>
+<pre class="javascript"><code>function square(n){
+    return n*n;
+}</code></pre>
+<p>这个函数会被词法分析器识别为<code>function</code>，<code>square</code>，<code>(</code>，<code>n</code>，<code>)</code>，<code>{</code>，<code>return</code>，，<code>n</code> ,<code>*</code>，<code>n</code> ，<code>}</code>并且给它们加上标注，代表这是一个变量还是一个操作。</p>
+<h4 id="语法分析">语法分析</h4>
+<p>这个过程会把Token转化成抽象语法树（AST）：</p>
+<pre class="json"><code>{
+    type:&#39;function&#39;,
+    id:{
+        type:&#39;id&#39;
+        name:&#39;square&#39;
+    },
+    params:[
+        {
+            type:&#39;id&#39;,
+            name:&#39;n&#39;
+        }
+    ]
+    ...
+}</code></pre>
+<h4 id="优化及代码生成">优化及代码生成</h4>
+<p>在这一步编译器会做一些优化工作，比如删除多余运算、删除未用赋值、合并部分变量等等操作，最后生成目标代码。</p>
+<p>由于即时编译型语言的编译通常发生在运行前几微秒，所以编译器来不及做太多的优化工作。这也是相比编译型语言，早期JavaScript性能孱弱的原因之一。不过就现在而言，益于 V8 引擎（相比早期的JavaScript的引擎转换成字节码或解释执行，Node.js可以用 V8 提供的 JS2C 工具将 JavaScript 转译为 C++代码），JavaScript 和其他语言性能上的差距已经不足为道了。</p>
+<h4 id="链接及装载">链接及装载</h4>
+<p>目标代码基本不能独立运行。应用程序一般都会由多个部分（模块）组成 ，比如C++中一个简单的输出就要引入标准库 <code>iostream</code>：</p>
+<pre class="c++"><code>#include &lt;iostream&gt;
+using namespace std;
+int main(){    
+    cout &lt;&lt; &quot;Happy Hacking!\n&quot;;    
+    return 0;
+}</code></pre>
+<p>编译器需要把多份目标代码（库）链接起来才能生成可执行文件。至此，我们简单的了解了编译过程。但实际上编译比我们所讲的要复杂得多，在此就不在展开了。</p>
+<h3 id="什么是动态语言动态类型">什么是动态语言，动态类型？</h3>
+<p>我们还知道，JavaScript是动态语言。那么什么是动态语言？</p>
+<p>通常来说，这是指在运行时代码可以根据某些条件改变自身结构的语言。比如JavaScript在运行时新的函数、对象、甚至代码都可以被引进（eval）；又比如Objective-C，它也可以在运行时修改对象，但它不能动态创建类，也没有 eval 方法。那Objective-C算是动态语言吗？所以我认为，动态语言是个程度的问题，我们不必在这个概念上太过纠结，可以更多的关注其应用。APP中常用的热更新功能就是基于动态语言特性而得以实现的。</p>
+<p>JavaScript又是一门动态类型的语言，动态类型又是什么？动态类型的定义倒是很明确：数据类型不是在编译阶段确定，而是在运行时确定。</p>
+<p>那么 TypeScript 是什么类型的语言呢？它有静态类型检查，它是静态语言吗？实际上它只是 JavaScript 的一个方言。TypeScript 最终还是要转译为 JavaScript 才能执行（tsc），就如同我们使用babel 把 ES6 代码转译为 ES5 一样。这个过程严格上来说不是编译。</p>
+<p>TypeScript 最大的优势就是静态类型检查和类型推断，这是 JavaScript 严重缺失的能力。但实际上如果我们忽略IDE 给的报错提示强行运行 TS 代码，也还是有几率能够成功跑起来的。</p>
+<h3 id="错误">错误</h3>
+<p>刚刚我们提到报错，不妨再扩展说一说错误。通常来说错误分为以下几种：</p>
+<ul>
+<li>编译时错误</li>
+<li>链接时错误</li>
+<li>运行时错误</li>
+</ul>
+<p>是不是和编译过程能够严格对应起来？</p>
+<h4 id="编译时错误">编译时错误</h4>
+<p>编译时错误分为：</p>
+<ul>
+<li><p>语法错误</p>
+<pre class="javascript"><code>var str =&#39;s ;</code></pre>
+<p>这就是典型的语法错误，这种代码无法生成AST，在词法分析阶段就会报错。通常我们这么写代码，IDE 就会报错。这是IDE的优化工作，和词法分析相关。</p></li>
+<li><p>类型错误</p>
+<p>编译器会检查我们声明的变量和函数的类型，JavaScript中我们非常熟悉的<code>Type Error:undefined is not object</code>就是此类错误。</p></li>
+</ul>
+<h4 id="链接时错误">链接时错误</h4>
+<p>在链接阶段发生的异常。这种情况 JavaScript 中比较少见，在编译型语言中比较常见。</p>
+<h4 id="运行时错误">运行时错误</h4>
+<p>这是最难排查的错误了，举例来说：</p>
+<pre class="cpp"><code>int divider(int a,int b){
+    return a/b;
+}</code></pre>
+<p>上面的代码在编辑编译、链接阶段都没问题，也能够正常的生成可执行文件。但是一旦如此使用<code>divider(1,0)</code>就会报错了，这就是典型的运行时错误。通常来说运行时错误都是程序不够健壮导致的。</p>
+<h4 id="javascript中最常见的十个错误">JavaScript中最常见的十个错误：</h4>
+<p>下图是某错误处理平台收集统计的JavaScript Top10 错误，其中7个TypeError，1个 ReferenceError：</p>
+<p><img src="./images/JavaScript 是如何运行的？0.png" /></p>
+<p>显然这 8 种问题，我们都能用 TypeScript 在编码早期及时应对。</p>
+<h3 id="结语">结语</h3>
+<p>现在我们已经了解JavaScript是如何运行的。但是了解这些能够帮我们写出更好的代码吗？</p>
+<p>答案是肯定的。且不说TypeScript能够帮助我们完善类型检查和类型推断，JavaScript的作用域、this也是和编译过程强相关的；而目前主流的小程序框架都能够支持一套代码、多个平台，相信读完本文后，你大致也了解了这些技术背后的原理。Happy Hacking！</p>
+<p><strong>顺便给大家推荐一下<a href="https://www.fundebug.com/?utm_source=hengg">Fundebug</a>，很好用的BUG监控工具~</strong></p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了20亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

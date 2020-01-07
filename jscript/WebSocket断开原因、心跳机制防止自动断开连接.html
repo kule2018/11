@@ -1,0 +1,245 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修WebSocket断开原因、心跳机制防止自动断开连接' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>WebSocket断开原因、心跳机制防止自动断开连接</center></div><div class='banquan'>原文出处:本文由博客园博主Jade_g提供。<br/>
+原文连接:https://www.cnblogs.com/gxp69/p/11736749.html</div><br>
+    <h2>1、断开原因</h2>
+<p>WebSocket断开的原因有很多，最好在WebSocket断开时，将错误打印出来。</p>
+<div class="cnblogs_code">
+<pre><code>ws.onclose = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+  console.log(</span>'websocket 断开: ' + e.code + ' ' + e.reason + ' ' +<span style="color: #000000;"> e.wasClean)
+  console.log(e)
+}</span></pre>
+</div>
+<p><strong>错误状态码：</strong></p>
+<p>WebSocket断开时，会触发<code>CloseEvent</code>, CloseEvent会在连接关闭时发送给使用 WebSockets 的客户端. 它在 WebSocket 对象的 onclose 事件监听器中使用。CloseEvent的code字段表示了WebSocket断开的原因。可以从该字段中分析断开的原因。</p>
+<p>CloseEvent有三个字段需要注意, 通过分析这三个字段，一般就可以找到断开原因</p>
+<ul>
+<li><code>CloseEvent.code</code>: code是错误码，是整数类型</li>
+<li><code>CloseEvent.reason</code>: reason是断开原因，是字符串</li>
+<li><code>CloseEvent.wasClean</code>: wasClean表示是否正常断开，是布尔值。一般异常断开时，该值为false</li>
+</ul>
+<table style="height: 793px; width: 894px;">
+<thead>
+<tr><th>状态码</th><th>名称</th><th>描述</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>0&ndash;999</td>
+<td>&nbsp;</td>
+<td>保留段, 未使用.</td>
+</tr>
+<tr>
+<td>1000</td>
+<td>CLOSE_NORMAL</td>
+<td>正常关闭; 无论为何目的而创建, 该链接都已成功完成任务.</td>
+</tr>
+<tr>
+<td>1001</td>
+<td>CLOSE_GOING_AWAY</td>
+<td>终端离开, 可能因为服务端错误, 也可能因为浏览器正从打开连接的页面跳转离开.</td>
+</tr>
+<tr>
+<td>1002</td>
+<td>CLOSE_PROTOCOL_ERROR</td>
+<td>由于协议错误而中断连接.</td>
+</tr>
+<tr>
+<td>1003</td>
+<td>CLOSE_UNSUPPORTED</td>
+<td>由于接收到不允许的数据类型而断开连接 (如仅接收文本数据的终端接收到了二进制数据).</td>
+</tr>
+<tr>
+<td>1004</td>
+<td>&nbsp;</td>
+<td><code>保留</code>. 其意义可能会在未来定义.</td>
+</tr>
+<tr>
+<td>1005</td>
+<td>CLOSE_NO_STATUS</td>
+<td><code>保留</code>. 表示没有收到预期的状态码.</td>
+</tr>
+<tr>
+<td><code>1006</code></td>
+<td>CLOSE_ABNORMAL</td>
+<td><code>保留</code>. 用于期望收到状态码时连接非正常关闭 (也就是说, 没有发送关闭帧).</td>
+</tr>
+<tr>
+<td>1007</td>
+<td>Unsupported Data</td>
+<td>由于收到了格式不符的数据而断开连接 (如文本消息中包含了非 UTF-8 数据).</td>
+</tr>
+<tr>
+<td>1008</td>
+<td>Policy Violation</td>
+<td>由于收到不符合约定的数据而断开连接. 这是一个通用状态码, 用于不适合使用 1003 和 1009 状态码的场景.</td>
+</tr>
+<tr>
+<td>1009</td>
+<td>CLOSE_TOO_LARGE</td>
+<td>由于收到过大的数据帧而断开连接.</td>
+</tr>
+<tr>
+<td>1010</td>
+<td>Missing Extension</td>
+<td>客户端期望服务器商定一个或多个拓展, 但服务器没有处理, 因此客户端断开连接.</td>
+</tr>
+<tr>
+<td>1011</td>
+<td>Internal Error</td>
+<td>客户端由于遇到没有预料的情况阻止其完成请求, 因此服务端断开连接.</td>
+</tr>
+<tr>
+<td>1012</td>
+<td>Service Restart</td>
+<td>服务器由于重启而断开连接.</td>
+</tr>
+<tr>
+<td>1013</td>
+<td>Try Again Later</td>
+<td>服务器由于临时原因断开连接, 如服务器过载因此断开一部分客户端连接.</td>
+</tr>
+<tr>
+<td>1014</td>
+<td>&nbsp;</td>
+<td>由 WebSocket标准保留以便未来使用.</td>
+</tr>
+<tr>
+<td>1015</td>
+<td>TLS Handshake</td>
+<td>保留. 表示连接由于无法完成 TLS 握手而关闭 (例如无法验证服务器证书).</td>
+</tr>
+<tr>
+<td>1016&ndash;1999</td>
+<td>&nbsp;</td>
+<td>由 WebSocket标准保留以便未来使用.</td>
+</tr>
+<tr>
+<td>2000&ndash;2999</td>
+<td>&nbsp;</td>
+<td>由 WebSocket拓展保留使用.</td>
+</tr>
+<tr>
+<td>3000&ndash;3999</td>
+<td>&nbsp;</td>
+<td>可以由库或框架使用.? 不应由应用使用. 可以在 IANA 注册, 先到先得.</td>
+</tr>
+<tr>
+<td>4000&ndash;4999</td>
+<td>&nbsp;</td>
+<td>可以由应用使用.</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<h2>2、加入心跳</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> lockReconnect = <span style="color: #0000ff;">false</span>;  <span style="color: #008000;">//</span><span style="color: #008000;">避免ws重复连接</span>
+<span style="color: #0000ff;">var</span> ws = <span style="color: #0000ff;">null</span>;          <span style="color: #008000;">//</span><span style="color: #008000;"> 判断当前浏览器是否支持WebSocket</span>
+<span style="color: #0000ff;">var</span> wsUrl =<span style="color: #000000;"> serverConfig.socketUrl;
+createWebSocket(wsUrl);   </span><span style="color: #008000;">//</span><span style="color: #008000;">连接ws</span>
+
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> createWebSocket(url) {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">if</span>('WebSocket' <span style="color: #0000ff;">in</span><span style="color: #000000;"> window){
+            ws </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> WebSocket(url);
+        }
+        initEventHandle();
+    }</span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(e){
+        reconnect(url);
+        console.log(e);
+    }     
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> initEventHandle() {
+    ws.onclose </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        reconnect(wsUrl);
+        console.log(</span>"llws连接关闭!"+<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().toLocaleString());
+    };
+    ws.onerror </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        reconnect(wsUrl);
+        console.log(</span>"llws连接错误!"<span style="color: #000000;">);
+    };
+    ws.onopen </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        heartCheck.reset().start();      </span><span style="color: #008000;">//</span><span style="color: #008000;">心跳检测重置</span>
+        console.log("llws连接成功!"+<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().toLocaleString());
+    };
+    ws.onmessage </span>= <span style="color: #0000ff;">function</span> (event) {    <span style="color: #008000;">//</span><span style="color: #008000;">如果获取到消息，心跳检测重置</span>
+        heartCheck.reset().start();      <span style="color: #008000;">//</span><span style="color: #008000;">拿到任何消息都说明当前连接是正常的</span>
+        console.log("llws收到消息啦:" +<span style="color: #000000;">event.data);
+        </span><span style="color: #0000ff;">if</span>(event.data!='pong'<span style="color: #000000;">){
+            let data </span>=<span style="color: #000000;"> JSON.parse(event.data);
+        }
+    };
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。</span>
+window.onbeforeunload = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    ws.close();
+}  
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> reconnect(url) {
+    </span><span style="color: #0000ff;">if</span>(lockReconnect) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    lockReconnect </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    setTimeout(</span><span style="color: #0000ff;">function</span> () {     <span style="color: #008000;">//</span><span style="color: #008000;">没连接上会一直重连，设置延迟避免请求过多</span>
+<span style="color: #000000;">        createWebSocket(url);
+        lockReconnect </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }, </span>2000<span style="color: #000000;">);
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">心跳检测</span>
+<span style="color: #0000ff;">var</span> heartCheck =<span style="color: #000000;"> {
+    timeout: 1</span>000,        <span style="color: #008000;">//1</span><span style="color: #008000;">分钟发一次心跳</span>
+    timeoutObj: <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+    serverTimeoutObj: </span><span style="color: #0000ff;">null</span><span style="color: #000000;">,
+    reset: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        clearTimeout(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.timeoutObj);
+        clearTimeout(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.serverTimeoutObj);
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    },
+    start: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">var</span> self = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.timeoutObj = setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">这里发送一个心跳，后端收到后，返回一个心跳消息，</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">onmessage拿到返回的心跳就说明连接正常</span>
+            ws.send("ping"<span style="color: #000000;">);
+            console.log(</span>"ping!"<span style="color: #000000;">)
+            self.serverTimeoutObj </span>= setTimeout(<span style="color: #0000ff;">function</span>(){<span style="color: #008000;">//</span><span style="color: #008000;">如果超过一定时间还没重置，说明后端主动断开了</span>
+                ws.close();     <span style="color: #008000;">//</span><span style="color: #008000;">如果onclose会执行reconnect，我们执行ws.close()就行了.如果直接执行reconnect 会触发onclose导致重连两次</span>
+<span style="color: #000000;">            }, self.timeout)
+        }, </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.timeout)
+    }
+}
+                    </span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>    <span style="color: #008000;">//</span><span style="color: #008000;"> 收到客户端消息后调用的方法 </span>
+<span style="color: #000000;">    @OnMessage  
+    </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">void</span><span style="color: #000000;"> onMessage(String message, Session session) {  
+        </span><span style="color: #0000ff;">if</span>(message.equals("ping"<span style="color: #000000;">)){
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        。。。。
+        }
+   }</span></pre>
+</div>
+<p>系统发现websocket每隔1分钟自动断开连接，搜了很多博客都说设置一下nginx的<br />proxy_read_timeout<br />但是这个时间过长会影响服务器性能，采取心跳包的方式每隔1分钟客户端自动发送ping消息给服务端，服务端需要返回pong。即可解决问题。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

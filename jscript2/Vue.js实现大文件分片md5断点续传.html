@@ -1,0 +1,203 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue.js实现大文件分片md5断点续传' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue.js实现大文件分片md5断点续传</center></div><div class='banquan'>原文出处:本文由博客园博主天然呆☆☆提供。<br/>
+原文连接:https://www.cnblogs.com/wpshan/p/11119627.html</div><br>
+    <h1 id="">背景</h1>
+<p>根据部门的业务需求，需要在网络状态不良的情况下上传很大的文件（1G+）。<br />其中会遇到的问题：<br />1，文件过大，超出服务端的请求大小限制；<br />2，请求时间过长，请求超时；<br />3，传输中断，必须重新上传导致前功尽弃。<br />解决方案实现思路，拿到文件，保存文件唯一性标识，切割文件、分片上传、文件MD5验证、断点续传、手动重试上传。</p>
+<h1 id="">前言</h1>
+<p>鉴于过往有使用过webupload文件上传组件的经验，于是此次采用的是Plupload作为替换。Plupload是一款由著名的web编辑器TinyMCE团队开发的上传组件，简单易用且功能强大。</p>
+<p>Plupload有以下功能和特点</p>
+<ol>
+<li>拥有多种上传方式：HTML5、flash、silverlight以及传统的<code>&lt;input type=&rdquo;file&rdquo; /&gt;</code>。Plupload会自动侦测当前的环境，选择最合适的上传方式，并且会优先使用HTML5的方式。所以你完全不用去操心当前的浏览器支持哪些上传方式，Plupload会自动为你选择最合适的方式。</li>
+<li>支持以拖拽的方式来选取要上传的文件</li>
+<li>支持在前端压缩图片，即在图片文件还未上传之前就对它进行压缩</li>
+<li>可以直接读取原生的文件数据，这样的好处就是例如可以在图片文件还未上传之前就能把它显示在页面上预览</li>
+<li>支持把大文件切割成小片进行上传，因为有些浏览器对很大的文件比如几G的一些文件无法上传。</li>
+
+</ol>
+<h1 id="">环境</h1>
+<ul>
+<li>vue2.x</li>
+<li>webpack3.x</li>
+<li>axios</li>
+
+</ul>
+<h1 id="">代码</h1>
+<p>npm安装plupload，文件引入组件，</p>
+<div class="cnblogs_Highlighter">
+<pre><code>&lt;uploader browse_button="upload_area"
+                :max_retries="3"
+                :url="action"
+                :headers="headers"
+                chunk_size="10MB"
+                drop_element="upload_area"
+                @disableBrowse="!loading"
+                :BeforeUpload="beforeUpload"
+                :ChunkUploaded="chunkUploaded"
+                :FilesAdded="filesAdded"
+                :StateChanged="stateChanged"
+                @inputUploader="inputUploader" /&gt; 
+</pre>
+</div>
+<p>　　</p>
+<p>初始化方法filesAdded(),每次上传前清空队列的其他文件，保证上传的一致性。其次对文件类型进行判断过滤fileType(),文件进入时进行总md5一次fileMd5()，然后进入文件分片chunkCheckStatus(),每个分片都要进行md5并与后台进行校验fileMd5()，确保文件在中断后继续上传的准确性。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>filesAdded (up, files) {
+      // 删除上传队列中其他文件，只保留最近上传的文件
+      let fileLen = files.length, that = this
+      if (fileLen &gt; 1) {
+        files = files.splice(0, fileLen - 1)// 清空上传队列
+      }
+      files.forEach((f) =&gt; {
+        f.status = -1
+        that.dataForm.file = f
+        that.fileType(f.getNative())
+        if (that.loading) {
+          that.computeStatus = true
+          that.progress = 0
+          // 文件分片
+          let chunkSize = 2097152, // Read in chunks of 2MB
+            chunks = Math.ceil(f.size / chunkSize)
+          that.fileMd5(f.getNative(), (e, md5) =&gt; {
+            that.dataForm.md5 = md5
+            if (that.loading == true) {
+              that.count = 0
+              that.chunkCheckStatus(md5, that.dataForm.fileName, (uploader, dataList) =&gt; {
+                that.uploading = uploader
+                if (that.uploading == true) {
+                  for (let chunk = 1; chunk &lt;= chunks; chunk++) {
+                    that.fileChunkFile(f.getNative(), chunk, (e, chunkFile) =&gt; {
+                      that.fileMd5(chunkFile, (e, blockMd5) =&gt; {
+                        that.PostFile(up, chunkFile, chunk, chunks, md5, blockMd5)
+                      })
+                    })
+                  }
+                } else {
+                  // 去重
+                  that.progress = 0
+                  for (let chunk = 1; chunk &lt;= chunks; chunk++) {
+                    let status = 0
+                    dataList.some((item) =&gt; {
+                      if (item.chunk == chunk) {
+                        status = 1
+                        return false
+                      }
+                    })
+                    if (status == 0) {
+                      that.fileChunkFile(f.getNative(), chunk, (e, chunkFile) =&gt; {
+                        that.fileMd5(chunkFile, (e, blockMd5) =&gt; {
+                          that.PostFile(up, chunkFile, chunk, chunks, md5, blockMd5)
+                        })
+                      })
+                    }
+                  }
+                }
+              })
+            }
+          })
+        }
+      })
+    }
+</pre>
+</div>
+<p>　　</p>
+<p>文件md5方法,这里使用了SparkMD5，<code>import SparkMD5 from 'spark-md5'</code></p>
+<div class="cnblogs_Highlighter">
+<pre><code>fileMd5 (file, callback) {
+      let that = this
+      var blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
+        file = file,
+        chunkSize = 2097152, // Read in chunks of 2MB
+        chunks = Math.ceil(file.size / chunkSize),
+        currentChunk = 0,
+        spark = new SparkMD5.ArrayBuffer(),
+        fileReader = new FileReader()
+      fileReader.onload = function (e) {
+        console.log('read chunk nr', currentChunk + 1, 'of', chunks)
+        spark.append(e.target.result) // Append array buffer
+        currentChunk++
+        if (currentChunk &lt; chunks) {
+          loadNext()
+        } else {
+          let blockMd5 = ''
+          blockMd5 = spark.end()
+          callback(null, blockMd5)
+        }
+      }
+      fileReader.onerror = function () {
+        callback('oops, something went wrong.')
+      }
+      function loadNext () {
+        var start = currentChunk * chunkSize,
+          end = ((start + chunkSize) &gt;= file.size) ? file.size : start + chunkSize
+        fileReader.readAsArrayBuffer(blobSlice.call(file, start, end))
+      }
+      loadNext()
+    }
+</pre>
+</div>
+<p>　　</p>
+<p>文件分片上传方法,验证总分片信息后，把每个分片进行md5加密并上传校验，这里有写进度条相关的控制，不一一展示</p>
+<div class="cnblogs_Highlighter">
+<pre><code>chunkCheckStatus (md5, fileName, callback) {
+      this.$http({
+        url: this.$http.adornUrl('/biz/upload/getFileBlockStatus'),
+        method: 'get',
+        params: this.$http.adornParams({
+          md5: md5,
+          fileName: fileName
+        })
+      }).then(({ data }) =&gt; {
+        if (data &amp;&amp; data.code === 0) {
+          if (data.list != null) {
+            this.uploading = false
+            this.chunkCheckData = []
+            data.list.map((item, index) =&gt; {
+              if (item.isUpload == true) {
+                this.count++
+                this.chunkCheckData.push(item)
+              }
+            })
+            callback(this.uploading, this.chunkCheckData)
+            return
+          }
+          this.uploading = true
+          callback(this.uploading)
+        } else {
+          this.$message.error(data.msg)
+          this.loading = false
+          this.computeStatus = false
+          return false
+        }
+      })
+    }
+</pre>
+</div>
+<p>　　</p>
+<h1 id="">总结</h1>
+<p><img src="./images/Vue.js实现大文件分片md5断点续传0.png" alt="4095867158-5ac2049c8e1d6_articlex" /><br />上图可以清晰的说明文件加密上传的传输流程，在文件上传加密及Content-Type格式需要与后台协商一致,通常有base64、multipart/form-data两种类型，要清晰了解分片算法及md5,自定义上传文件异步代码，除此之外，可拖拽上传文件、进度条控制等可更好的丰富文件上传体验。</p>
+<h1 id="">注意</h1>
+<p>功能在某些旧版浏览器中不起作用。</p>
+<h1 id="">参考</h1>
+<p><a href="https://www.plupload.com/">https://www.plupload.com/</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

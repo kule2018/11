@@ -1,0 +1,146 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-AST(2)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-AST(2)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/11115324.html</div><br>
+    <p>　　先声明一下，这种长系列的大块头博客只能保证尽可能的深入到每一行源码，有些代码我不乐意深究就写个注释说明一下作用。另外，由于本地整理的比较好，博客就随心写了。</p>
+<p>　　整个Compile过程目前只看到asmjs之前，简单的过了几遍，大部分方法没有点进去看，实在是太复杂了。上一篇的结尾指出了AST的入口，也就是命名空间parsing的一个公共方法，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">bool</span> ParseProgram(ParseInfo* info, Isolate*<span style="color: #000000;"> isolate) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 生成一个Parser实例
+   * 调用内部方法启动转换
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Parser parser(info);
+  FunctionLiteral</span>* result =<span style="color: #000000;"> nullptr;
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 转换AST后将结果赋值给ParseInfo的literal_
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  result </span>=<span style="color: #000000;"> parser.ParseProgram(isolate, info);
+  info</span>-&gt;<span style="color: #000000;">set_literal(result);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #0000ff;">return</span> (result !=<span style="color: #000000;"> nullptr);
+}</span></pre>
+</div>
+<p>　　所需要关心的核心代码就是这些，非常简单，Parser对象的初始化属性非常多，这里就不列出来了。</p>
+<p>　　接下来进入第二个核心方法，即ParseProgram。</p>
+<div class="cnblogs_code">
+<pre><code>FunctionLiteral* Parser::ParseProgram(Isolate* isolate, ParseInfo*<span style="color: #000000;"> info) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * scanner_为Parser类的一个私有属性
+   * 这里仅仅进行初始化
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  scanner_.Initialize();
+  FunctionLiteral</span>* result =<span style="color: #000000;"> DoParseProgram(isolate, info);
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+}</span></pre>
+</div>
+<p>　　同样，所需要关心代码只有两行，其中第一步则是启动了scanner的初始化，第二步则是开始全面解析。</p>
+<p>　　Scanner包含scanner、scanner-character-strams两个部分，其中stream则是经过初步处理的源String，必须转换后才能进行解析。处理的过程在之前省略的代码中，这里稍微给出大概的转换流程。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">bool</span> ParseProgram(ParseInfo* info, Isolate*<span style="color: #000000;"> isolate) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 1、info-&gt;script()返回的是字符串的描述信息 source是Local&lt;String&gt;类型的源字符串
+   * 2、ScannerStream是scanner-character-streams头文件的类 内部方法均为静态类型 可以直接调用
+   * 3、返回的具体类型根据String类型不同而不同 但是由于均继承于Utf16CharacterStream 所以直接用父类接
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Handle</span>&lt;String&gt; source(String::cast(info-&gt;script()-&gt;<span style="color: #000000;">source()), isolate);
+  std::unique_ptr</span>&lt;Utf16CharacterStream&gt;<span style="color: #000000;"> stream(ScannerStream::For(isolate, source));
+  info</span>-&gt;<span style="color: #000000;">set_character_stream(std::move(stream));
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">}
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 有四种特殊的String类型 分别new不同的子类
+ * ScannerStream::For(isolate, data, 0, data-&gt;length());
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+Utf16CharacterStream</span>* ScannerStream::For(Isolate* isolate, Handle&lt;String&gt; data, <span style="color: #0000ff;">int</span> start_pos, <span style="color: #0000ff;">int</span><span style="color: #000000;"> end_pos) {
+  size_t start_offset </span>= <span style="color: #800080;">0</span><span style="color: #000000;">;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #0000ff;">if</span> (data-&gt;<span style="color: #000000;">IsSeqOneByteString()) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> BufferedCharacterStream&lt;OnHeapStream&gt;<span style="color: #000000;">(
+        static_cast</span>&lt;size_t&gt;(start_pos), Handle&lt;SeqOneByteString&gt;<span style="color: #000000;">::cast(data),
+        start_offset, static_cast</span>&lt;size_t&gt;<span style="color: #000000;">(end_pos));
+  }
+}</span></pre>
+</div>
+<p>　　常规的字符串一般都是OneByteString，这里就不细讲了。最后返回一个特殊Stream类，其属性记录字符串的长度、当前的解析进度、解析的开始与结束标记等等。</p>
+<p>　　将字符串转换后，就可以利用Scanner来进行逐步解析，在此之前，需要对Scanner类有一个简单的了解，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * Scanner类
+ * 跟Utf16CharacterStream一个文件
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> V8_EXPORT_PRIVATE Scanner {
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回next_的token类型</span>
+    Token::Value peek() <span style="color: #0000ff;">const</span> { <span style="color: #0000ff;">return</span><span style="color: #000000;"> next().token; }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回current_的位置信息</span>
+    <span style="color: #0000ff;">const</span> Location&amp; location() <span style="color: #0000ff;">const</span> { <span style="color: #0000ff;">return</span><span style="color: #000000;"> current().location; }
+  </span><span style="color: #0000ff;">private</span><span style="color: #000000;">:
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当前字符的Unicode编码 -1表示结尾(typedef int32_t uc32)</span>
+<span style="color: #000000;">    uc32 c0_;</span><span style="color: #000000;">
+    TokenDesc</span>* current_;    <span style="color: #008000;">//</span><span style="color: #008000;"> desc for current token (as returned by Next())</span>
+    TokenDesc* next_;       <span style="color: #008000;">//</span><span style="color: #008000;"> desc for next token (one token look-ahead)</span>
+    TokenDesc* next_next_;  <span style="color: #008000;">//</span><span style="color: #008000;"> desc for the token after next (after PeakAhead())
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从Handle&lt;String&gt;转换后的类型 负责执行解析的实际类</span>
+    Utf16CharacterStream* <span style="color: #0000ff;">const</span><span style="color: #000000;"> source_;
+}</span></pre>
+</div>
+<p>　　选取了一些比较简单的属性和方法，Scanner内部有三个游标属性负责遍历字符串，分别是current_、next_、next_next_，字面意思理解就行了。source_则是之前说的转换Stream类，所有的解析实际上都是调用这个属性的方法。而两个结构体TokenDesc、Location也非常重要，一个负责词法描述，一个负责记录词法位置信息，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 词法结构体
+ * 每一个TokenDesc代表单独一段词法
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">struct</span><span style="color: #000000;"> TokenDesc {
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 词法所在位置
+   * 该结构体比较简单 就不展开了 两个值代表起始、结束位置
+   * 例如sample中 "'Hello' + ' World'" 'Hello'会被解析为TOKEN::STRING location为{0, 7}
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Location location </span>= {<span style="color: #800080;">0</span>, <span style="color: #800080;">0</span><span style="color: #000000;">};
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 字符串词法相关
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  LiteralBuffer literal_chars;
+  LiteralBuffer raw_literal_chars;
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 词法的枚举类型
+   * 例如 '(' 是 TOKEN::LPAREN '===' 是 TOKEN::EQ_STRICT
+   * 所有类型可见token.h
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Token::Value token </span>=<span style="color: #000000;"> Token::UNINITIALIZED;
+  MessageTemplate invalid_template_escape_message </span>=<span style="color: #000000;"> MessageTemplate::kNone;
+  Location invalid_template_escape_location;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 小整数</span>
+  uint32_t smi_value_ = <span style="color: #800080;">0</span><span style="color: #000000;">;
+  </span><span style="color: #0000ff;">bool</span> after_line_terminator = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　通过这个结构体和一些方法，就能完整的将源字符串逐步转换为抽象语法树。但是实际转换过程非常复杂，分支极多，后面再继续探究。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

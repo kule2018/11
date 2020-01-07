@@ -1,0 +1,169 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端错误监控' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端错误监控</center></div><div class='banquan'>原文出处:本文由博客园博主Cynthia-milk提供。<br/>
+原文连接:https://www.cnblogs.com/cythia/p/11093231.html</div><br>
+    <h2>为什么要做前端错误监控?</h2>
+<p>1. 为了保证产品的质量</p>
+<p>2. 有些问题只存在于线上特定的环境</p>
+<p>3. 后端错误有监控,前端错误没有监控</p>
+<h2>前端错误的分类</h2>
+<p>前端错误分为两类: <span style="background-color: #ffff00;">即时运行错误</span>和<span style="background-color: #ffff00;">资源加载错误</span></p>
+<h3>即使运行错误的捕获方式</h3>
+<p>即时运行错误的捕获方式分为两类</p>
+<ol>
+<li>try...catch</li>
+<li>window.onerror</li>
+</ol>
+<h4>try...catch</h4>
+<p>通过try...catch我们能够知道出错的信息,并且也有堆栈信息可以知道在哪个文件第几行第几列发生错误</p>
+<p><img src="./images/前端错误监控0.png" alt="" /></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+           // 代码段</span><span style="color: #000000;">
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (err) {
+            console.log(err.message)
+        }</span></pre>
+</div>
+<p><span style="background-color: #ffff00;">缺点</span>:</p>
+<ol>
+<li>没法捕捉try,catch块，当前代码块有语法错误，JS解释器压根都不会执行当前这个代码块，所以也就没办法被catch住；</li>
+<li>没法捕捉到全局的错误事件，也即是只有try,catch的块里边运行出错才会被你捕捉到，这里的块你要理解成一个函数块</li>
+</ol>
+<p>关于第一个缺点，我们没有任何解决办法，但是一般语法阶段我们是能在开发阶段/或者用工具检测到的，于是乎它就被忽略了</p>
+<p>第二个缺点应该怎么理解呢? try...catch只能捕捉到当前执行流里边的运行错误,对于异步回调来说,是不属于这个try...catch块的</p>
+<h4>window.onerror</h4>
+<p>全局捕获。window.onerror一样可以拿到出错的信息以及文件名、行号、列号等信息,还可以在window.onerror最后return true让浏览器不输出错误信息到控制台</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">
+         * @param msg{String}：错误消息
+         * @param url{String}：引发错误的脚本的URL
+         * @param line{Number}：发生错误的代码行
+         * @param colunm{Number}：发生错误的代码列
+         * @param error{object}：错误对象
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+
+        window.onerror </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (msg, url, line, colunm, error) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回 true 则错误消息不显示在控制台，返回 false，则错误消息将会展示在控制台</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }</span></pre>
+</div>
+<p>最后window.onerror的实现方法</p>
+<div class="cnblogs_code">
+<pre><code>window.onerror = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (msg, url, line, col, error) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">没有URL不上报！上报也不知道错误</span>
+            <span style="color: #0000ff;">if</span> (msg != "Script error." &amp;&amp; !<span style="color: #000000;">url) {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+            
+            setTimeout(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                </span><span style="color: #0000ff;">var</span> data =<span style="color: #000000;"> {};
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">不一定所有浏览器都支持col参数</span>
+                col = col || (window.event &amp;&amp; window.event.errorCharacter) || 0<span style="color: #000000;">;
+
+                data.url </span>=<span style="color: #000000;"> url;
+                data.line </span>=<span style="color: #000000;"> line;
+                data.col </span>=<span style="color: #000000;"> col;
+                </span><span style="color: #0000ff;">if</span> (!!error &amp;&amp; !!<span style="color: #000000;">error.stack) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果浏览器有堆栈信息</span>
+                    <span style="color: #008000;">//</span><span style="color: #008000;">直接使用</span>
+                    data.msg =<span style="color: #000000;"> error.stack.toString();
+                } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (!!<span style="color: #000000;">arguments.callee) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">尝试通过callee拿堆栈信息</span>
+                    <span style="color: #0000ff;">var</span> ext =<span style="color: #000000;"> [];
+                    </span><span style="color: #0000ff;">var</span> f =<span style="color: #000000;"> arguments.callee.caller,
+                        c </span>= 3<span style="color: #000000;">;
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">这里只拿三层堆栈信息</span>
+                    <span style="color: #0000ff;">while</span> (f &amp;&amp; (--c &gt; 0<span style="color: #000000;">)) {
+                        ext.push(f.toString());
+                        </span><span style="color: #0000ff;">if</span> (f ===<span style="color: #000000;"> f.caller) {
+                            </span><span style="color: #0000ff;">break</span>; <span style="color: #008000;">//</span><span style="color: #008000;">如果有环</span>
+<span style="color: #000000;">                        }
+                        f </span>=<span style="color: #000000;"> f.caller;
+                    }
+                    ext </span>= ext.join(","<span style="color: #000000;">);
+                    data.msg </span>=<span style="color: #000000;"> ext;
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">把data上报到后台！</span>
+<span style="color: #000000;">                console.log(data)
+            }, </span>0<span style="color: #000000;">);
+            
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        };</span></pre>
+</div>
+<h3>资源加载错误</h3>
+<h4>object.onerror</h4>
+<p>img、script标签都可以添加onerror事件,当资源请求失败的时候,都会触发该事件</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">var</span> img = document.getElementById('img'<span style="color: #000000;">);
+        img.onerror</span>=<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            console.log(</span>"出错啦"<span style="color: #000000;">);
+        }</span></pre>
+</div>
+<p>&nbsp;</p>
+<h4>performance.getEntries()</h4>
+<p>performance是h5的新特性之一,使用该方法能获取到当前页面已经加载到的资源,返回的是一个数组对象。下面给出一个例子</p>
+<p>获取页面中没有成功加载的图片资源?</p>
+<p>步骤一:通过performance.getEntries()获取已经加载了的图片资源</p>
+<div class="cnblogs_code">
+<pre><code>let arr =<span style="color: #000000;"> [],
+            reg </span>= (/\.jpg$|\.jpeg$|.png$|\.gif$/<span style="color: #000000;">i);
+        performance.getEntries().forEach(item </span>=&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (reg.test(item.name)) {
+               arr.push(item.name)
+            }
+        })</span></pre>
+</div>
+<p>步骤二:获取页面中所有的img标签</p>
+<div class="cnblogs_code">
+<pre><code>let imgList=document.getElementByTagname('img')</pre>
+</div>
+<p>步骤三:利用获取到的img的长度减去已经加载到的长度,如果大于0的部分,就是加载失败的</p>
+<div class="cnblogs_code">
+<pre><code>let arr =<span style="color: #000000;"> [],
+        imgList</span>=<span style="color: #0000ff;">null</span><span style="color: #000000;">,
+        num</span>=0<span style="color: #000000;">,
+            reg </span>= (/\.jpg$|\.jpeg$|.png$|\.gif$/<span style="color: #000000;">i);
+        performance.getEntries().forEach(item </span>=&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (reg.test(item.name)) {
+               arr.push(item.name)
+            }
+        })
+        imgList</span>=document.getElementsByTagName('img'<span style="color: #000000;">);
+        num</span>=imgList.length-arr.length;</pre>
+</div>
+<h4>Error事件捕获</h4>
+<p>资源加载错误，虽然会阻止冒泡，但是不会阻止捕获。true:捕获，false:冒泡</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> window.addEventListener第三个参数是true的时候是捕获的过程,false是冒泡的过程 </span>
+window.addEventListener('error',<span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+        console.log(</span>"捕获"<span style="color: #000000;">,e)
+    },</span><span style="color: #0000ff;">true</span>)</pre>
+</div>
+<p>&nbsp;</p>
+<h4>跨域的JS文件异常捕获</h4>
+<p>为了提升web性能,大部分web产品都有CDN部署,将资源部署到不同的域名上,但是我们都知道浏览器是有同源策略的,当加载不同域名的脚本发生错误时,语法错误的细节不会报告,仅返回"Script error",针对这种问题,可以在服务器上设置"Access-Control-Allow-Origin:*",在请求资源的script标签上加上crossorigin属性即可</p>
+<div class="cnblogs_code">
+<pre><code> &lt;script src="xxxx/js/store.js" crossorigin&gt;&lt;/script&gt;</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

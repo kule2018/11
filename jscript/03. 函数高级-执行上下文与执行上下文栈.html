@@ -1,0 +1,156 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修03. 函数高级-执行上下文与执行上下文栈' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>03. 函数高级-执行上下文与执行上下文栈</center></div><div class='banquan'>原文出处:本文由博客园博主前端小匠大飞提供。<br/>
+原文连接:https://www.cnblogs.com/iflygofy/p/11090703.html</div><br>
+    <h2>01. 变量提升与函数提升</h2>
+<p>1. 变量声明提升<br />* 通过var定义(声明)的变量, 在定义语句之前就可以访问到<br />* 值: undefined<br />2. 函数声明提升<br />* 通过function声明的函数, 在之前就可以直接调用<br />* 值: 函数定义(对象)<br />3. 问题: 变量提升和函数提升是如何产生的?</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 面试题: 输出什么?</span>
+<span style="color: #0000ff;">var</span> a = 4
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> fn1() {
+    console.log(a)
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> fn2() {
+    console.log(a)
+    </span><span style="color: #0000ff;">var</span> a = 5<span style="color: #000000;">
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> fn3(a) {
+    console.log(a)
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> fn4(a) {
+    console.log(a)
+    </span><span style="color: #0000ff;">var</span> a = 5<span style="color: #000000;">
+}
+fn1()  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 4</span>
+fn1(1) <span style="color: #008000;">//</span><span style="color: #008000;"> 4</span>
+fn2()  <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+fn2(1) <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+fn3()  <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+fn3(1) <span style="color: #008000;">//</span><span style="color: #008000;"> 1</span>
+fn4()  <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+fn4(1) <span style="color: #008000;">//</span><span style="color: #008000;"> 1</span>
+
+<span style="color: #008000;">/*</span><span style="color: #008000;">变量提升</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+console.log(a1) </span><span style="color: #008000;">//</span><span style="color: #008000;">可以访问, 但值是undefined</span>
+<span style="color: #0000ff;">var</span> a1 = 3
+
+<span style="color: #008000;">/*</span><span style="color: #008000;">函数提升</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+a2() </span><span style="color: #008000;">//</span><span style="color: #008000;"> 可以直接调用</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> a2() {
+    console.log(</span>'a2()'<span style="color: #000000;">)
+}</span></pre>
+</div>
+<h2>02. 执行上下文</h2>
+<p>1. 代码分类(位置)<br />  * 全局代码<br />  * 函数代码<br />2. 全局执行上下文<br />  * 在执行全局代码前将window确定为全局执行上下文<br />  * 对全局数据进行预处理<br />    * var定义的全局变量==&gt;undefined, 添加为window的属性<br />    * function声明的全局函数==&gt;赋值(fun), 添加为window的方法<br />    * this==&gt;赋值(window)<br />  * 开始执行全局代码<br />3. 函数执行上下文<br />  * 在调用函数, 准备执行函数体之前, 创建对应的函数执行上下文对象<br />  * 对局部数据进行预处理<br />    * 形参变量==&gt;赋值(实参)==&gt;添加为执行上下文的属性<br />    * arguments==&gt;赋值(实参列表), 添加为执行上下文的属性<br />    * var定义的局部变量==&gt;undefined, 添加为执行上下文的属性<br />    * function声明的函数 ==&gt;赋值(fun), 添加为执行上下文的方法<br />    * this==&gt;赋值(调用函数的对象)<br />  * 开始执行函数体代码</p>
+<div class="cnblogs_code">
+<pre><code>console.log(a1)   <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+console.log(a2)   <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+console.log(a3)   <span style="color: #008000;">//</span><span style="color: #008000;"> fun</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> console.log(a4)   // error a4 is not defined</span>
+console.log(<span style="color: #0000ff;">this</span>) <span style="color: #008000;">//</span><span style="color: #008000;"> window</span>
+
+<span style="color: #0000ff;">var</span> a1 = 3
+<span style="color: #0000ff;">var</span> a2 = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'a2()'<span style="color: #000000;">)
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> a3() {
+    console.log(</span>'a3()'<span style="color: #000000;">)
+}
+a4 </span>= 4
+
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> fn(x, y) {
+    console.log(x, y)       </span><span style="color: #008000;">//</span><span style="color: #008000;"> undefined undefined</span>
+    console.log(b1)         <span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+    console.log(b2)         <span style="color: #008000;">//</span><span style="color: #008000;"> fun</span>
+    console.log(arguments)  <span style="color: #008000;">//</span><span style="color: #008000;"> arguments</span>
+    console.log(<span style="color: #0000ff;">this</span>)       <span style="color: #008000;">//</span><span style="color: #008000;"> window</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(b3)         // error b3 is not defined</span>
+    <span style="color: #0000ff;">var</span> b1 = 5
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> b2 () {}
+    b3 </span>= 6<span style="color: #000000;">
+}
+fn()</span></pre>
+</div>
+<h2>03. 执行上下文栈</h2>
+<p>1. 在全局代码执行前, JS引擎就会创建一个栈来存储管理所有的执行上下文对象<br />2. 在全局执行上下文(window)确定后, 将其添加到栈中(压栈)<br />3. 在函数执行上下文创建后, 将其添加到栈中(压栈)<br />4. 在当前函数执行完后,将栈顶的对象移除(出栈)<br />5. 当所有的代码执行完后, 栈中只剩下window</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">1. 进入全局执行上下文</span>
+<span style="color: #0000ff;">var</span> a = 10
+<span style="color: #0000ff;">var</span> bar = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (x) {
+    </span><span style="color: #0000ff;">var</span> b = 5<span style="color: #000000;">
+    foo(x </span>+ b)              <span style="color: #008000;">//</span><span style="color: #008000;">3. 进入foo执行上下文</span>
+<span style="color: #000000;">}
+</span><span style="color: #0000ff;">var</span> foo = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (y) {
+    </span><span style="color: #0000ff;">var</span> c = 5<span style="color: #000000;">
+    console.log(a </span>+ c +<span style="color: #000000;"> y)
+}
+bar(</span>10)                    <span style="color: #008000;">//</span><span style="color: #008000;">2. 进入bar函数执行上下文</span></pre>
+</div>
+<h2>04. 执行上下文栈2</h2>
+<p>1. 依次输出什么?<br />2. 整个过程中产生了几个执行上下文?</p>
+<div class="cnblogs_code">
+<pre><code>console.log('global begin: '+<span style="color: #000000;"> i) 
+</span><span style="color: #0000ff;">var</span> i = 1<span style="color: #000000;">
+foo(</span>1<span style="color: #000000;">);
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> foo(i) {
+    </span><span style="color: #0000ff;">if</span> (i == 4<span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+    console.log(</span>'foo() begin:' +<span style="color: #000000;"> i);  
+    foo(i </span>+ 1<span style="color: #000000;">);                       
+    console.log(</span>'foo() end:' +<span style="color: #000000;"> i);
+}
+console.log(</span>'global end: ' +<span style="color: #000000;"> i);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> global begin: undefined</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> foo() begin:1 </span><span style="color: #008000;">
+//</span><span style="color: #008000;"> foo() begin:2</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> foo() begin:3</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> foo() end:: 3</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> foo() end:: 2</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> foo() end:: 1</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> global end: 1</span></pre>
+</div>
+<h2>05. 面试题</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 测试题1: 先预处理变量, 后预处理函数</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> a() {}
+</span><span style="color: #0000ff;">var</span><span style="color: #000000;"> a;
+console.log(</span><span style="color: #0000ff;">typeof</span> a) <span style="color: #008000;">//</span><span style="color: #008000;"> function</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;"> 测试题2: 变量预处理, in操作符</span>
+<span style="color: #0000ff;">if</span> (!(b <span style="color: #0000ff;">in</span><span style="color: #000000;"> window)) {
+    </span><span style="color: #0000ff;">var</span> b = 1<span style="color: #000000;">;
+}
+console.log(b) </span><span style="color: #008000;">//</span><span style="color: #008000;"> undefined</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;"> 测试题3: 预处理, 顺序执行</span>
+<span style="color: #0000ff;">var</span> c = 1
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> c(c) {
+    console.log(c)
+    </span><span style="color: #0000ff;">var</span> c = 3<span style="color: #000000;">
+}
+c(</span>2) <span style="color: #008000;">//</span><span style="color: #008000;"> c is not a function</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

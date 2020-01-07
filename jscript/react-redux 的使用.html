@@ -1,0 +1,116 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修react-redux 的使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>react-redux 的使用</center></div><div class='banquan'>原文出处:本文由博客园博主pubdreamcc提供。<br/>
+原文连接:https://www.cnblogs.com/dreamcc/p/11151379.html</div><br>
+    <h1 id="前言">前言</h1>
+<p>最近在学 <code>React</code>，看到 <code>react-redux</code> 这里，刚开始觉得一脸懵逼，后面通过查阅相关资料和一些对源码的解释，总算有点头绪，今天在这里总结下。</p>
+<p>类似于 <code>Vue</code>，<code>React</code> 中组件之间的状态管理 第三方包为：<code>react-redux</code>。<code>react-redux</code> 其实是 <code>Redux</code>的官方<code>React</code>绑定库，它能够使你的<code>React</code>组件从<code>Redux</code> <code>store</code>中读取数据，并且向<code>store</code>分发<code>actions</code>以更新数据。</p>
+<p>值得一提的是 <code>redux</code> 其实是一个第三方 数据状态管理的库，它不仅仅可以和<code>react</code> 结合使用，你也可以把它应用到 <code>vue</code> 中 ， <code>react-redux</code> 其实是帮我们封装了 <code>redux</code> 连接 <code>react</code> 的一些操作，使用 <code>react-redux</code> 可以非常简单的在 <code>react</code> 中使用 <code>redux</code> 来管理我们应用的状态。</p>
+<h2 id="使用-redux-来管理-react-数据">使用 redux 来管理 react 数据</h2>
+<h3 id="开始之前先安装">开始之前先安装</h3>
+<pre><code><code>npm install redux react-redux --save</code></pre>
+<p>安装完这两个库之后，可以用 <code>redux</code> 来创建 <code>store</code> ， 利用 <code>react-redux</code> 获取 <code>store</code> 中的数据或者更新数据。</p>
+<p><code>react-redux</code> 提供了两个常用的 <code>api</code> ，一个是： <code>Provider</code>，一个是：<code>connect</code>。 组件之间共享的数据是 <code>Provider</code> 这个顶层组件通过 <code>props</code> 传递下去的，<strong>store必须作为参数放到Provider组件中去</strong>。而 <code>connect</code> 则提供了组件获取 store 中数据或者更新数据的接口。</p>
+<h3 id="创建-store">创建 store</h3>
+<p>了解一些基本的概念之后，我们现在开始来用。</p>
+<p>在外围顶层组件中引入 <code>redux</code> 和 <code>react-redux</code> 两个库。我们在做业务之前都需要将页面拆分成不同的组件，这里的外围组件通常指的是我们拆分后的所有组件的父组件。</p>
+<pre class="javascript"><code>import { createStore } from &#39;redux&#39;
+import { Provider } from &#39;react-redux&#39;</code></pre>
+<p>引入 <code>createStore</code> 来创建组件共享的数据，这个是 <code>redux</code> 中提供的一个方法，我们直接引入。</p>
+<pre class="javascript"><code>const themeReducer = (state, action) =&gt; {
+  if (!state) return {
+    themeColor: &#39;red&#39;
+  }
+  switch (action.type) {
+    case &#39;CHANGE_COLOR&#39;:
+      return { ...state, themeColor: action.themeColor }
+    default:
+      return state
+  }
+}
+
+const store = createStore(themeReducer)</code></pre>
+<p>上面的代码创建了一个 <code>{themeColor: 'red'}</code> 的 <code>store</code>，并且提供了修改颜色的方法，组件通过指定的 <code>action.type</code> 中的 <code>CHANGE_COLOR</code> 字段来修改主体颜色。代码中可以看出，我们传入非法的修改字段名，则返回原始的 <code>state</code>，即修改失败。</p>
+<h3 id="使用-store-中的-state">使用 store 中的 state</h3>
+<p>创建完数据之后，组件中怎样使用到全局的数据状态呢？请看下面：</p>
+<p>在需要使用数据的组件中引入 <code>react-redux</code></p>
+<pre><code><code>import { connect } from &#39;./react-redux&#39;</code></pre>
+<p>我们从 <code>react-redux</code> 中引入了 <code>connect</code> 这个方法。其实 <code>connect</code> 方法一共有4个参数，这里主要讲前两个。</p>
+<pre class="javascript"><code>connect(mapStateToProps, mapDispatchToProps)(MyComponent)</code></pre>
+<p><code>mapStateToProps</code> 字面含义是把state映射到props中去，意思就是把Redux中的数据映射到React中的props中去。</p>
+<p>也就是说你React想把Redux中的哪些数据拿过来用。</p>
+<pre class="javascript"><code>class Header extends Component {
+  static propTypes = {
+    themeColor: PropTypes.string
+  }
+
+  render () {
+    return (
+      &lt;h1 style={{ color: this.props.themeColor }}&gt;React.js 小书&lt;/h1&gt;
+    )
+  }
+}
+
+const mapStateToProps = (state) =&gt; {
+  return {
+    themeColor: state.themeColor
+  }
+}
+
+Header = connect(mapStateToProps)(Header)</code></pre>
+<p>上面代码是拿到 Redux <code>store</code> 中 <code>themeColor</code> 数据， 这是我们前面自己创建的数据，然后组件通过 <code>this.props.themeColor</code> 调用。</p>
+<p>那么这样就可以实现渲染，就是把Redux中的state变成React中的props。</p>
+<h3 id="修改-store-中-state">修改 store 中 state</h3>
+<p>现在的主题颜色是自己定义的红色，如果我们想在某个组件中修改这个全局的状态，比如修改为蓝色，该如何操作，这就涉及到修改 store 中 state。</p>
+<p>修改 Redux 中的 state ，需要用到前面 connect 中的第二个参数：<code>mapDispatchToProps</code>，通过上面的分析，相信这个函数也很好理解，就是把各种 <code>dispatch</code>也变成了 <code>props</code> 让你可以直接使用，进而修改 <code>store</code> 中的数据。</p>
+<pre class="javascript"><code>class SwitchColor extends Component {
+  handleChangeColor (color) {
+    this.props.changeColor(color)
+  }
+  render() {
+    return (
+      &lt;div&gt;
+        &lt;button style={{color: this.props.themeColor}} onClick={this.handleChangeColor.bind(this, &#39;blue&#39;)}&gt;blue&lt;/button&gt;
+        &lt;button style={{color: this.props.themeColor}} onClick={this.handleChangeColor.bind(this, &#39;red&#39;)}&gt;red&lt;/button&gt;
+      &lt;/div&gt;
+    )
+  }
+}
+const mapStateToProps = (state) =&gt; {
+  return {
+    themeColor: state.themeColor
+  }
+}
+const mapDispatchToProps = (dispatch) =&gt; {
+  return {
+    changeColor: (color) =&gt; {
+      dispatch({type: &#39;CHANGE_COLOR&#39;, themeColor: color})
+    }
+  }
+}
+SwitchColor = connect(mapStateToProps, mapDispatchToProps)(SwitchColor)</code></pre>
+<p>上面的代码实现了通过点击按钮来修改主题颜色，我们在 <code>mapDispatchToProps</code> 中调用了 <code>dispatch()</code> 来通知 Redux <code>store</code> 修改 数据，这里需要注意传入 <code>dispatch()</code> 的参数为一对象，其中必须有 <code>type</code> 属性来告诉 store 修改哪些数据。</p>
+<h2 id="说明">说明</h2>
+<p>本篇文章 出自于 我们 <code>GitHub</code> 仓库 <code>web-study</code> ，详情可见：<a href="https://github.com/pubdreamcc/web-study">戳这里</a>， 欢迎 <code>star</code>，一起交流学习前端。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

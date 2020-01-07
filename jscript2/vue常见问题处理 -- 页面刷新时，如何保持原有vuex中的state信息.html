@@ -1,0 +1,102 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue常见问题处理 -- 页面刷新时，如何保持原有vuex中的state信息' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue常见问题处理 -- 页面刷新时，如何保持原有vuex中的state信息</center></div><div class='banquan'>原文出处:本文由博客园博主累成一条狗提供。<br/>
+原文连接:https://www.cnblogs.com/l-y-h/p/11722007.html</div><br>
+    <h2>一、页面刷新时，如何保持原有vuex中的state信息</h2>
+<p>　　页面刷新后，原有的 vuex 中的 state 会发生改变，如果在页面刷新之前，可以将 state 信息保存，页面重新加载时，再将该值赋给 state，那么该问题即可解决。</p>
+<h3>1、localstorage</h3>
+<p>　　可以使用 localstorage 来保存信息。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">【在某组件中添加如下钩子函数。比如 App.vue中】
+created() {
+    //在页面加载时读取localStorage里的状态信息
+    if (localStorage.getItem("store") ) {
+        this.$store.replaceState(Object.assign({}, this.$store.state,JSON.parse(localStorage.getItem("store"))))
+    }
+
+    //在页面刷新时将vuex里的信息保存到localStorage里
+    window.addEventListener("beforeunload",()=&gt;{
+        localStorage.setItem("store",JSON.stringify(this.$store.state))
+    })
+}
+
+
+注：
+    this.$store.replaceState()  用于替换 store 的信息（状态合并）。
+    Object.assign(target, ...source)  将source的值 赋给 target，若有重复的数据，则覆盖。其中...表示可以多个source。
+    JSON.stringify()  用于将对象转为 JSON
+    JSON.parse()   用于将 JSON 转为对象</span></pre>
+</div>
+<p>注意：<br />　　若有两个组件，当调用 localstorage 的值，可能会出现问题。<br />　　如下图，Main.vue 中 每次刷新页面会 触发 localstorage 操作。<br />　　开始 localstorage 中没值，某用户通过 Login.vue 组件 进入 Main.vue 组件并刷新页面后，localStorage 会记录当前用户相关的 state 信息。<br />　　直接在浏览器中切换路径到Login.vue。当另外一个用户通过 Login.vue 并进入 Main.vue 时，此时获取的就是上一个用户的信息，这样肯定会出问题（我遇到的一个坑，大致意思就是这样）。</p>
+<p><img src="./images/vue常见问题处理 -- 页面刷新时，如何保持原有vuex中的state信息0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">一个暴力的解决思路，在Login.vue中 直接将上一个用户缓存的信息给删除。
+此时 localStorage 没有了上个用户的信息。
+【Login.vue】
+created() {
+    // 进入画面前，移除主页面保存的 state 信息
+    localStorage.removeItem("store")
+}
+
+然后只在Main组件刷新时 使用 localStorage 记录信息。
+【Main.vue】
+created() {
+    //在页面加载时读取localStorage里的状态信息
+    if (localStorage.getItem("store") ) {
+        this.$store.replaceState(Object.assign({}, this.$store.state,JSON.parse(localStorage.getItem("store"))))
+    }
+
+    //在页面刷新时将vuex里的信息保存到localStorage里
+    window.addEventListener("beforeunload",()=&gt;{
+        localStorage.setItem("store",JSON.stringify(this.$store.state))
+    })
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>2、sessionStorage</h3>
+<p>　　也可以使用 sessionStorage 来保存信息。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">【在某组件中添加如下钩子函数。比如 App.vue中】
+created() {
+    //在页面加载时读取sessionStorage里的状态信息
+    if (sessionStorage.getItem("store") ) {
+        this.$store.replaceState(Object.assign({}, this.$store.state,JSON.parse(sessionStorage.getItem("store"))))
+    }
+
+    //在页面刷新时将vuex里的信息保存到sessionStorage里
+    window.addEventListener("beforeunload",()=&gt;{
+        sessionStorage.setItem("store",JSON.stringify(this.$store.state))
+    })
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>3、localstorage 与 sessionStorage 的区别</h3>
+<p>（1）localstorage 与 sessionStorage 都是客户端用于存储数据的。<br />（2）localStorage是没有失效时间的，sessionStorage的声明周期是浏览器的生命周期。<br />（3）当浏览器关闭时，sessionStorage的数据将清空，而localStorage数据只要不通过代码特意的删除或手动删除，是永久保存的。<br />（4）若想清除localstorage 的数据。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">localStorage.removeItem(key)       清除一条数据
+localStorage.clear()               清除全部的数据</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,471 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修购物车案例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>购物车案例</center></div><div class='banquan'>原文出处:本文由博客园博主若水一方提供。<br/>
+原文连接:https://www.cnblogs.com/ruo-shui-yi-fang/p/11564124.html</div><br>
+    <p>学习前端以来，一直很好奇像京东，淘宝这种大型网站的购物车是怎么做到统一的，就去搜索了一些资料吧！大致的看了一下，自己实战了下，俗话说的好，读万卷书不如行万里路！购物车只是一个很小的案例，但也可以去动手做一做，感受下过程！积少成多！</p>
+<p>这案例主要是通过本地储存来实现的，我用了两种方法，一种是cookie，另一种是localStorage。cookie会跟随http发送给服务器，并且有时间限制，在没有设置时间时，默认过期时间是关闭浏览器就过期；localStorage是本地的，永久的，储存的数据也更大！这是cookie和localStorage的区别！</p>
+<p>！！！敲重点，我所写的都是基于原生，没有使用jQuery！</p>
+<p>就先用cookie来实现下效果吧！</p>
+<ol>
+<li>目前没有后端，那就先自己模拟下后端传输数据；准备一个json文件，里面存放的就是数据！类似下图这样！<img src="./images/购物车案例0.png" alt="" /></li>
+<li>引入之前封装好的ajax和cookie的js文件，也可引入jQuery，但jQuery没有提供cookie的方法，只有插件，网上下一个即可！<br />&nbsp; 下面是封装ajax的代码
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> ajax(options){
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">var</span> {type,url,success,data,error,timeout}=<span style="color: #000000;">options;
+</span><span style="color: #008080;"> 3</span>     data=data||<span style="color: #000000;">{};
+</span><span style="color: #008080;"> 4</span>     type=type||"get"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>     timeout=timeout||2000<span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">var</span> str=""<span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i <span style="color: #0000ff;">in</span><span style="color: #000000;"> data){
+</span><span style="color: #008080;"> 8</span>         str+=`${i}=${data[i]}&amp;<span style="color: #000000;">`;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">if</span>(type=="get"<span style="color: #000000;">){
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">var</span> d=<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date();
+</span><span style="color: #008080;">12</span>         url=url+"?"+str+"_yjyt="+<span style="color: #000000;">d.getTime();
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span>     <span style="color: #0000ff;">var</span> xhr=<span style="color: #0000ff;">new</span><span style="color: #000000;"> XMLHttpRequest();
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    xhr.open(type,url);
+</span><span style="color: #008080;">16</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(url);</span>
+<span style="color: #008080;">17</span>     xhr.onreadystatechange=<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">18</span>         <span style="color: #0000ff;">if</span>(xhr.readyState==4&amp;&amp;xhr.status==200<span style="color: #000000;">){
+</span><span style="color: #008080;">19</span>             success&amp;&amp;<span style="color: #000000;">success(xhr.responseText);
+</span><span style="color: #008080;">20</span>             error=<span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">21</span>         }<span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(xhr.readyState==4&amp;&amp;xhr.status!=200<span style="color: #000000;">){
+</span><span style="color: #008080;">22</span>             error&amp;&amp;<span style="color: #000000;">error(xhr.status);
+</span><span style="color: #008080;">23</span>             success=<span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">24</span>             error=<span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">27</span>     setTimeout(()=&gt;<span style="color: #000000;">{
+</span><span style="color: #008080;">28</span>         error&amp;&amp;<span style="color: #000000;">error(timeout);;
+</span><span style="color: #008080;">29</span>         success=<span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">    },timeout);
+</span><span style="color: #008080;">31</span>     <span style="color: #0000ff;">if</span>(type=="post"<span style="color: #000000;">){
+</span><span style="color: #008080;">32</span>         xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded"<span style="color: #000000;">);
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">        xhr.send(str);
+</span><span style="color: #008080;">34</span>     }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">        xhr.send();
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">37</span> }</pre>
+</div>
+<p>&nbsp;接下来的是cookie的代码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> setCookie(key, val, options) {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(options.expires);</span>
+<span style="color: #008080;"> 3</span>     options = options ||<span style="color: #000000;"> {};
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">var</span> path = ""<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (options.path) {
+</span><span style="color: #008080;"> 6</span>         path = ";path=" +<span style="color: #000000;"> options.path;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">var</span> expires = ""<span style="color: #000000;">;
+</span><span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (options.expires) {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">var</span> d = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date();
+</span><span style="color: #008080;">11</span>         d.setDate(d.getDate() +<span style="color: #000000;"> options.expires);
+</span><span style="color: #008080;">12</span>         expires = ";expires=" +<span style="color: #000000;"> d;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        console.log(expires);
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span>     document.cookie = key + "=" + val + path +<span style="color: #000000;"> expires;
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">17</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> getCookie(key) {
+</span><span style="color: #008080;">18</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> var arr=document.cookie;</span>
+<span style="color: #008080;">19</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(arr);</span>
+<span style="color: #008080;">20</span>     <span style="color: #0000ff;">var</span> arr = document.cookie.split(";"<span style="color: #000000;">);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">    console.log(arr);
+</span><span style="color: #008080;">22</span>     <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; arr.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">23</span>         <span style="color: #0000ff;">if</span> (arr[i].split("=")[0] ===<span style="color: #000000;"> key) {
+</span><span style="color: #008080;">24</span>             <span style="color: #0000ff;">return</span> arr[i].split("=")[1<span style="color: #000000;">];
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">27</span>     <span style="color: #0000ff;">return</span> ""<span style="color: #000000;">;
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">29</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> removeCookie(key, options) {
+</span><span style="color: #008080;">30</span>     options = options ||<span style="color: #000000;"> {};
+</span><span style="color: #008080;">31</span>     options.expires = -1<span style="color: #000000;">;
+</span><span style="color: #008080;">32</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(options);</span>
+<span style="color: #008080;">33</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(key);</span>
+<span style="color: #008080;">34</span>     setCookie(key, 23<span style="color: #000000;">, options);
+</span><span style="color: #008080;">35</span> }</pre>
+</div>
+</li>
+<li>接下来就是布局，简单点来，感受下就好，不好看可以自己后期通过css改，这都是写小问题哈，我只说关键的地方！布局简陋，可以自行发挥哦！<br />显示商品列表的布局
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span>     &lt;h2&gt;这是商品列表&lt;a href="car-local.html"&gt;去结算&lt;/a&gt;&lt;/h2&gt;
+<span style="color: #008080;">2</span>     &lt;div class="cont"&gt;
+<span style="color: #008080;">3</span>         &lt;p&gt;不好意思，卖完了！&lt;/p&gt;
+<span style="color: #008080;">4</span>     &lt;/div&gt;</pre>
+</div>
+<p>&nbsp;购物车的布局</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>     &lt;h2&gt;这是结算页&lt;a href="shop.html"&gt;继续购物&lt;/a&gt;&lt;/h2&gt;
+<span style="color: #008080;"> 2</span>     &lt;table border="1" rules="all" width="900" align="center"&gt;
+<span style="color: #008080;"> 3</span>         &lt;thead&gt;
+<span style="color: #008080;"> 4</span>             &lt;tr&gt;
+<span style="color: #008080;"> 5</span>                 &lt;th&gt;图片&lt;/th&gt;
+<span style="color: #008080;"> 6</span>                 &lt;th&gt;名字&lt;/th&gt;
+<span style="color: #008080;"> 7</span>                 &lt;th&gt;价格&lt;/th&gt;
+<span style="color: #008080;"> 8</span>                 &lt;th&gt;数量&lt;/th&gt;
+<span style="color: #008080;"> 9</span>                 &lt;th&gt;操作&lt;/th&gt;
+<span style="color: #008080;">10</span>             &lt;/tr&gt;
+<span style="color: #008080;">11</span>         &lt;/thead&gt;
+<span style="color: #008080;">12</span>         &lt;tbody&gt;&lt;/tbody&gt;
+<span style="color: #008080;">13</span>     &lt;/table&gt;</pre>
+</div>
+</li>
+<li>下面就到我们最关键得到部分了，我们先要获取到用户点击了那个商品的假如购物车，然后要获取数量，再保存进cookie里，然后拿到cookie中的数据渲染购物车的页面，这么一说感觉很简单是吧，来，上代码感受下！<br />先获取数据保存到cookie<br />
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;script src="js/ajax.js"&gt;&lt;/script&gt;
+<span style="color: #008080;"> 2</span> &lt;script src="js/cookie.js"&gt;&lt;/script&gt;
+<span style="color: #008080;"> 3</span> &lt;script&gt;
+<span style="color: #008080;"> 4</span> <span style="color: #000000;">    class Shop {
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">        constructor() {
+</span><span style="color: #008080;"> 6</span>             <span style="color: #0000ff;">this</span>.url = "http://localhost/test/shopping/data/goods.json"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">this</span>.cont = document.querySelector(".cont"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.init();
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addEvent();
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        init() {
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">            ajax({
+</span><span style="color: #008080;">13</span>                 url: <span style="color: #0000ff;">this</span><span style="color: #000000;">.url,
+</span><span style="color: #008080;">14</span>                 success: res =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">15</span>                     <span style="color: #0000ff;">this</span>.res =<span style="color: #000000;"> JSON.parse(res);
+</span><span style="color: #008080;">16</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.display()
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">        display() {
+</span><span style="color: #008080;">21</span>             <span style="color: #0000ff;">var</span> str = ""<span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.res.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">23</span>                 str += `&lt;div class="box" index="${this.res[i].goodsId}"&gt;
+<span style="color: #008080;">24</span>                             &lt;img src="${this.res[i].img}" alt=""&gt;
+<span style="color: #008080;">25</span>                             &lt;p&gt;${<span style="color: #0000ff;">this</span>.res[i].name}&lt;/p&gt;
+<span style="color: #008080;">26</span>                             &lt;span&gt;${<span style="color: #0000ff;">this</span>.res[i].price}&lt;/span&gt;
+<span style="color: #008080;">27</span>                             &lt;input type="button" value="加入购物车"&gt;
+<span style="color: #008080;">28</span>                         &lt;/div&gt;`;
+<span style="color: #008080;">29</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">30</span>             <span style="color: #0000ff;">this</span>.cont.innerHTML =<span style="color: #000000;"> str;
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        addEvent() {
+</span><span style="color: #008080;">33</span>             <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">34</span>             <span style="color: #0000ff;">this</span>.cont.addEventListener("click", <span style="color: #0000ff;">function</span><span style="color: #000000;"> (eve) {
+</span><span style="color: #008080;">35</span>                 <span style="color: #0000ff;">var</span> e = eve ||<span style="color: #000000;"> window.event;
+</span><span style="color: #008080;">36</span>                 <span style="color: #0000ff;">var</span> target = e.target ||<span style="color: #000000;"> e.srcElement;
+</span><span style="color: #008080;">37</span>                 <span style="color: #0000ff;">if</span> (target.type === "button"<span style="color: #000000;">) {
+</span><span style="color: #008080;">38</span>                     that.id = target.parentNode.getAttribute("index"<span style="color: #000000;">);
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">                    that.setcookie();
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">        setcookie() {
+</span><span style="color: #008080;">44</span>             <span style="color: #0000ff;">this</span>.goods = getCookie("goods") ? JSON.parse(getCookie("goods"<span style="color: #000000;">)) : [];
+</span><span style="color: #008080;">45</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.goods.length &lt; 1<span style="color: #000000;">) {
+</span><span style="color: #008080;">46</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.goods.push({
+</span><span style="color: #008080;">47</span>                     id: <span style="color: #0000ff;">this</span><span style="color: #000000;">.id,
+</span><span style="color: #008080;">48</span>                     num: 1
+<span style="color: #008080;">49</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">50</span>             } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">51</span>                 <span style="color: #0000ff;">var</span> onoff = 1<span style="color: #000000;">;
+</span><span style="color: #008080;">52</span>                 <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.goods.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">53</span>                     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.goods[i].id == <span style="color: #0000ff;">this</span><span style="color: #000000;">.id) {
+</span><span style="color: #008080;">54</span>                         <span style="color: #0000ff;">this</span>.goods[i].num++<span style="color: #000000;">;
+</span><span style="color: #008080;">55</span>                         onoff = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">58</span>                 <span style="color: #0000ff;">if</span> (onoff == 1<span style="color: #000000;">) {
+</span><span style="color: #008080;">59</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.goods.push({
+</span><span style="color: #008080;">60</span>                         id: <span style="color: #0000ff;">this</span><span style="color: #000000;">.id,
+</span><span style="color: #008080;">61</span>                         num: 1
+<span style="color: #008080;">62</span> <span style="color: #000000;">                    })
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">64</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">65</span>             setCookie("goods", JSON.stringify(<span style="color: #0000ff;">this</span><span style="color: #000000;">.goods));
+</span><span style="color: #008080;">66</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">68</span>     <span style="color: #0000ff;">new</span><span style="color: #000000;"> Shop;
+</span><span style="color: #008080;">69</span> &lt;/script&gt;</pre>
+</div>
+拿到cookie的数据渲染购物车
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;script src="js/ajax.js"&gt;&lt;/script&gt;
+<span style="color: #008080;"> 2</span> &lt;script src="js/cookie.js"&gt;&lt;/script&gt;
+<span style="color: #008080;"> 3</span> &lt;script&gt;
+<span style="color: #008080;"> 4</span> <span style="color: #000000;">    class Car {
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">        constructor() {
+</span><span style="color: #008080;"> 6</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 数据</span>
+<span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">this</span>.url = "http://localhost/test/shopping/data/goods.json"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">this</span>.tbody = document.querySelector("tbody"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.init();
+</span><span style="color: #008080;">10</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 绑定事件</span>
+<span style="color: #008080;">11</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addEvent();
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        addEvent() {
+</span><span style="color: #008080;">14</span>             <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">15</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 事件委托</span>
+<span style="color: #008080;">16</span>             <span style="color: #0000ff;">this</span>.tbody.addEventListener("click", <span style="color: #0000ff;">function</span><span style="color: #000000;"> (eve) {
+</span><span style="color: #008080;">17</span>                 <span style="color: #0000ff;">var</span> e = eve ||<span style="color: #000000;"> window.event;
+</span><span style="color: #008080;">18</span>                 <span style="color: #0000ff;">var</span> target = e.target ||<span style="color: #000000;"> e.srcElement;
+</span><span style="color: #008080;">19</span>                 <span style="color: #0000ff;">if</span> (target.tagName === "SPAN"<span style="color: #000000;">) {
+</span><span style="color: #008080;">20</span>                     that.id = target.parentNode.parentNode.getAttribute("index"<span style="color: #000000;">);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">                    target.parentNode.parentNode.remove();
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">                    that.removecookie();
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">25</span>             <span style="color: #0000ff;">this</span>.tbody.addEventListener("input", <span style="color: #0000ff;">function</span><span style="color: #000000;"> (eve) {
+</span><span style="color: #008080;">26</span>                 <span style="color: #0000ff;">var</span> e = eve ||<span style="color: #000000;"> window.event;
+</span><span style="color: #008080;">27</span>                 <span style="color: #0000ff;">var</span> target = e.target ||<span style="color: #000000;"> e.srcElement;
+</span><span style="color: #008080;">28</span>                 <span style="color: #0000ff;">if</span> (target.type === "number"<span style="color: #000000;">) {
+</span><span style="color: #008080;">29</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(target.value);</span>
+<span style="color: #008080;">30</span>                     that.id = target.parentNode.parentNode.getAttribute("index"<span style="color: #000000;">);
+</span><span style="color: #008080;">31</span>                     that.val =<span style="color: #000000;"> target.value;
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">                    that.updatecookie();
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">        updatecookie() {
+</span><span style="color: #008080;">37</span>             <span style="color: #0000ff;">var</span> i = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">38</span>             <span style="color: #0000ff;">var</span> onoff = <span style="color: #0000ff;">this</span>.goods.some((val, index) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">39</span>                 i =<span style="color: #000000;"> index;
+</span><span style="color: #008080;">40</span>                 <span style="color: #0000ff;">return</span> val.id == <span style="color: #0000ff;">this</span><span style="color: #000000;">.id;
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">42</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (onoff) {
+</span><span style="color: #008080;">43</span>                 <span style="color: #0000ff;">this</span>.goods[i].num = <span style="color: #0000ff;">this</span><span style="color: #000000;">.val;
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">45</span>             setCookie("goods", JSON.stringify(<span style="color: #0000ff;">this</span><span style="color: #000000;">.goods));
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">        removecookie() {
+</span><span style="color: #008080;">48</span>             <span style="color: #0000ff;">var</span> i = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">49</span>             <span style="color: #0000ff;">var</span> onoff = <span style="color: #0000ff;">this</span>.goods.some((val, index) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">50</span>                 i =<span style="color: #000000;"> index;
+</span><span style="color: #008080;">51</span>                 <span style="color: #0000ff;">return</span> val.id == <span style="color: #0000ff;">this</span><span style="color: #000000;">.id;
+</span><span style="color: #008080;">52</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">53</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (onoff) {
+</span><span style="color: #008080;">54</span>                 <span style="color: #0000ff;">this</span>.goods.splice(i, 1<span style="color: #000000;">);
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">56</span>             setCookie("goods", JSON.stringify(<span style="color: #0000ff;">this</span><span style="color: #000000;">.goods));
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">        init() {
+</span><span style="color: #008080;">59</span>             <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">60</span> <span style="color: #000000;">            ajax({
+</span><span style="color: #008080;">61</span>                 url: <span style="color: #0000ff;">this</span><span style="color: #000000;">.url,
+</span><span style="color: #008080;">62</span>                 success: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (res) {
+</span><span style="color: #008080;">63</span>                     that.res =<span style="color: #000000;"> JSON.parse(res);
+</span><span style="color: #008080;">64</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(that.res);</span>
+<span style="color: #008080;">65</span> <span style="color: #000000;">                    that.getcookie();
+</span><span style="color: #008080;">66</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">68</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">69</span> <span style="color: #000000;">        getcookie() {
+</span><span style="color: #008080;">70</span>             <span style="color: #0000ff;">this</span>.goods = getCookie("goods") ? JSON.parse(getCookie("goods"<span style="color: #000000;">)) : [];
+</span><span style="color: #008080;">71</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.goods);</span>
+<span style="color: #008080;">72</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.display();
+</span><span style="color: #008080;">73</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">74</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 渲染页面</span>
+<span style="color: #008080;">75</span> <span style="color: #000000;">        display() {
+</span><span style="color: #008080;">76</span>             <span style="color: #0000ff;">var</span> str = ""<span style="color: #000000;">;
+</span><span style="color: #008080;">77</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.res.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">78</span>                 <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> j = 0; j &lt; <span style="color: #0000ff;">this</span>.goods.length; j++<span style="color: #000000;">) {
+</span><span style="color: #008080;">79</span>                     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.res[i].goodsId == <span style="color: #0000ff;">this</span><span style="color: #000000;">.goods[j].id) {
+</span><span style="color: #008080;">80</span>                         str += `&lt;tr index="${this.goods[j].id}"&gt;
+<span style="color: #008080;">81</span>                                     &lt;td&gt;&lt;img src="${this.res[i].img}"&gt;&lt;/td&gt;
+<span style="color: #008080;">82</span>                                     &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].name}&lt;/td&gt;
+<span style="color: #008080;">83</span>                                     &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].price}&lt;/td&gt;
+<span style="color: #008080;">84</span>                                     &lt;td&gt;&lt;input type="number" value="${this.goods[j].num}" min=1 /&gt;&lt;/td&gt;
+<span style="color: #008080;">85</span>                                     &lt;td&gt;&lt;span&gt;删除&lt;/span&gt;&lt;/td&gt;
+<span style="color: #008080;">86</span>                                 &lt;/tr&gt;`;
+<span style="color: #008080;">87</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">88</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">89</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">90</span>             <span style="color: #0000ff;">this</span>.tbody.innerHTML =<span style="color: #000000;"> str;
+</span><span style="color: #008080;">91</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">92</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">93</span> 
+<span style="color: #008080;">94</span>     <span style="color: #0000ff;">new</span><span style="color: #000000;"> Car;
+</span><span style="color: #008080;">95</span> &lt;/script&gt;</pre>
+</div>
+</li>
+</ol>
+<p>&nbsp;以上就是cookie方法实现购物车的代码！下面我来说下用localStorage方法实现吧，其实布局什么都是一样的，只是把cookie改成localStorage就可以了。我就只放js的代码了哦</p>
+<p>商品列表的js</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">    class shop {
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        constructor() {
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">this</span>.cont = document.querySelector(".cont"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">this</span>.url = "http://localhost/test/shopping/data/goods.json"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.init();
+</span><span style="color: #008080;"> 6</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addEvent();
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        init() {
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">            ajax({
+</span><span style="color: #008080;">10</span>                 url: <span style="color: #0000ff;">this</span><span style="color: #000000;">.url,
+</span><span style="color: #008080;">11</span>                 success: (res) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">12</span>                     <span style="color: #0000ff;">this</span>.res =<span style="color: #000000;"> JSON.parse(res);
+</span><span style="color: #008080;">13</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.display();
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">        display() {
+</span><span style="color: #008080;">18</span>             <span style="color: #0000ff;">var</span> str = ""<span style="color: #000000;">;
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.res.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">20</span>                 str += `&lt;div class="box" index="${this.res[i].goodsId}"&gt;
+<span style="color: #008080;">21</span>                             &lt;img src="${this.res[i].img}" alt=""&gt;
+<span style="color: #008080;">22</span>                             &lt;p&gt;${<span style="color: #0000ff;">this</span>.res[i].name}&lt;/p&gt;
+<span style="color: #008080;">23</span>                             &lt;span&gt;${<span style="color: #0000ff;">this</span>.res[i].price}&lt;/span&gt;
+<span style="color: #008080;">24</span>                             &lt;input type="button" value="加入购物车"&gt;
+<span style="color: #008080;">25</span>                         &lt;/div&gt;`;
+<span style="color: #008080;">26</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">27</span>             <span style="color: #0000ff;">this</span>.cont.innerHTML =<span style="color: #000000;"> str;
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">        addEvent() {
+</span><span style="color: #008080;">30</span>             <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">31</span>             <span style="color: #0000ff;">this</span>.cont.addEventListener("click", <span style="color: #0000ff;">function</span><span style="color: #000000;"> (eve) {
+</span><span style="color: #008080;">32</span>                 <span style="color: #0000ff;">var</span> e = eve ||<span style="color: #000000;"> window.event;
+</span><span style="color: #008080;">33</span>                 <span style="color: #0000ff;">var</span> target = e.target ||<span style="color: #000000;"> e.srcElement;
+</span><span style="color: #008080;">34</span>                 <span style="color: #0000ff;">if</span> (target.type === "button"<span style="color: #000000;">) {
+</span><span style="color: #008080;">35</span>                     that.id = target.parentNode.getAttribute("index"<span style="color: #000000;">);
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">                    that.setStorage();
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">        setStorage() {
+</span><span style="color: #008080;">41</span>             <span style="color: #0000ff;">this</span>.goods = JSON.parse(localStorage.getItem("goods")) ||<span style="color: #000000;"> [];
+</span><span style="color: #008080;">42</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.goods.length);</span>
+<span style="color: #008080;">43</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.goods);</span>
+<span style="color: #008080;">44</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.goods.length &lt; 1<span style="color: #000000;">) {
+</span><span style="color: #008080;">45</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.goods.push({
+</span><span style="color: #008080;">46</span>                     id: <span style="color: #0000ff;">this</span><span style="color: #000000;">.id,
+</span><span style="color: #008080;">47</span>                     num: 1
+<span style="color: #008080;">48</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">49</span>             } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">50</span>                 <span style="color: #0000ff;">var</span> onoff = 1<span style="color: #000000;">;
+</span><span style="color: #008080;">51</span>                 <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.goods.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">52</span>                     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.id == <span style="color: #0000ff;">this</span><span style="color: #000000;">.goods[i].id) {
+</span><span style="color: #008080;">53</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.arr[i])</span>
+<span style="color: #008080;">54</span>                        <span style="color: #0000ff;">this</span>.goods[i].num++<span style="color: #000000;">;
+</span><span style="color: #008080;">55</span>                        onoff=0<span style="color: #000000;">;
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">57</span>                     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (onoff) {
+</span><span style="color: #008080;">58</span>                         <span style="color: #0000ff;">this</span><span style="color: #000000;">.goods.push({
+</span><span style="color: #008080;">59</span>                             id: <span style="color: #0000ff;">this</span><span style="color: #000000;">.id,
+</span><span style="color: #008080;">60</span>                             num: 1
+<span style="color: #008080;">61</span> <span style="color: #000000;">                        });
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">64</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">65</span>             localStorage.setItem("goods", JSON.stringify(<span style="color: #0000ff;">this</span><span style="color: #000000;">.goods));
+</span><span style="color: #008080;">66</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.goods.length);</span>
+<span style="color: #008080;">67</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> this.goods=localStorage.getItem("id");</span>
+<span style="color: #008080;">68</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.goods);</span>
+<span style="color: #008080;">69</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">70</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">71</span>     <span style="color: #0000ff;">new</span> shop;</pre>
+</div>
+<p>购物车的</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">    class Car {
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">        constructor() {
+</span><span style="color: #008080;"> 3</span>             <span style="color: #0000ff;">this</span>.tbody = document.querySelector("tbody"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 4</span>             <span style="color: #0000ff;">this</span>.url = "http://localhost/test/shopping/data/goods.json"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>             <span style="color: #0000ff;">this</span>.goods = JSON.parse(localStorage.getItem("goods"<span style="color: #000000;">));
+</span><span style="color: #008080;"> 6</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.goods);</span>
+<span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.init();
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addEvent();
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">        addEvent() {
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">this</span>.tbody.addEventListener("click", <span style="color: #0000ff;">function</span><span style="color: #000000;"> (eve) {
+</span><span style="color: #008080;">13</span>                 <span style="color: #0000ff;">var</span> e = eve ||<span style="color: #000000;"> window.event;
+</span><span style="color: #008080;">14</span>                 <span style="color: #0000ff;">var</span> target = e.target ||<span style="color: #000000;"> e.srcElement;
+</span><span style="color: #008080;">15</span>                 <span style="color: #0000ff;">if</span> (target.tagName === "SPAN"<span style="color: #000000;">) {
+</span><span style="color: #008080;">16</span>                     that.id = target.parentNode.parentNode.getAttribute("index"<span style="color: #000000;">);
+</span><span style="color: #008080;">17</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(that.id);</span>
+<span style="color: #008080;">18</span> <span style="color: #000000;">                    target.parentNode.parentNode.remove();
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">                    that.removeLocal();
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">22</span>             <span style="color: #0000ff;">this</span>.tbody.addEventListener("input",<span style="color: #0000ff;">function</span><span style="color: #000000;">(eve){
+</span><span style="color: #008080;">23</span>                 <span style="color: #0000ff;">var</span> e=eve||<span style="color: #000000;">window.event;
+</span><span style="color: #008080;">24</span>                 <span style="color: #0000ff;">var</span> target=e.target||<span style="color: #000000;">e.srcElement;
+</span><span style="color: #008080;">25</span>                 <span style="color: #0000ff;">if</span>(target.type==="number"<span style="color: #000000;">){
+</span><span style="color: #008080;">26</span>                     that.id = target.parentNode.parentNode.getAttribute("index"<span style="color: #000000;">);
+</span><span style="color: #008080;">27</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(that.id);</span>
+<span style="color: #008080;">28</span>                     that.val=<span style="color: #000000;">target.value;
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">                    that.updateLocal();
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">        updateLocal(){
+</span><span style="color: #008080;">34</span>             <span style="color: #0000ff;">var</span> i=0<span style="color: #000000;">;
+</span><span style="color: #008080;">35</span>             <span style="color: #0000ff;">var</span> onoff=<span style="color: #0000ff;">this</span>.goods.some((val,index)=&gt;<span style="color: #000000;">{
+</span><span style="color: #008080;">36</span>                 i=<span style="color: #000000;">index;
+</span><span style="color: #008080;">37</span>                 <span style="color: #0000ff;">return</span> val.id=<span style="color: #0000ff;">this</span><span style="color: #000000;">.id;
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">39</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;">(onoff){
+</span><span style="color: #008080;">40</span>                 <span style="color: #0000ff;">this</span>.goods[i].num=<span style="color: #0000ff;">this</span><span style="color: #000000;">.val;
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">42</span>             localStorage.setItem("goods",JSON.stringify(<span style="color: #0000ff;">this</span><span style="color: #000000;">.goods));
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">        removeLocal() {
+</span><span style="color: #008080;">45</span>             <span style="color: #0000ff;">var</span> i=0<span style="color: #000000;">;
+</span><span style="color: #008080;">46</span>             <span style="color: #0000ff;">var</span> onoff=<span style="color: #0000ff;">this</span>.goods.some((val,index)=&gt;<span style="color: #000000;">{
+</span><span style="color: #008080;">47</span>                 i=<span style="color: #000000;">index;
+</span><span style="color: #008080;">48</span>                 <span style="color: #0000ff;">return</span> val.id=<span style="color: #0000ff;">this</span><span style="color: #000000;">.id;
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">50</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;">(onoff){
+</span><span style="color: #008080;">51</span>                 <span style="color: #0000ff;">this</span>.goods.splice(i,1<span style="color: #000000;">);
+</span><span style="color: #008080;">52</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">53</span>             localStorage.setItem("goods",JSON.stringify(<span style="color: #0000ff;">this</span><span style="color: #000000;">.goods));
+</span><span style="color: #008080;">54</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">        init() {
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">            ajax({
+</span><span style="color: #008080;">57</span>                 url: <span style="color: #0000ff;">this</span><span style="color: #000000;">.url,
+</span><span style="color: #008080;">58</span>                 success: (res) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">59</span>                     <span style="color: #0000ff;">this</span>.res =<span style="color: #000000;"> JSON.parse(res);
+</span><span style="color: #008080;">60</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(this.res);</span>
+<span style="color: #008080;">61</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.display();
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">64</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">65</span> <span style="color: #000000;">        display() {
+</span><span style="color: #008080;">66</span>             <span style="color: #0000ff;">var</span> str = ""<span style="color: #000000;">;
+</span><span style="color: #008080;">67</span>             <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">this</span>.res.length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">68</span>                 <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> j = 0; j &lt; <span style="color: #0000ff;">this</span>.goods.length; j++<span style="color: #000000;">) {
+</span><span style="color: #008080;">69</span>                     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.res[i].goodsId === <span style="color: #0000ff;">this</span><span style="color: #000000;">.goods[j].id) {
+</span><span style="color: #008080;">70</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(1);</span>
+<span style="color: #008080;">71</span>                         str += `&lt;tr index="${this.goods[j].id}"&gt;
+<span style="color: #008080;">72</span>                                     &lt;td&gt;&lt;img src="${this.res[i].img}"&gt;&lt;/td&gt;
+<span style="color: #008080;">73</span>                                     &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].name}&lt;/td&gt;
+<span style="color: #008080;">74</span>                                     &lt;td&gt;${<span style="color: #0000ff;">this</span>.res[i].price}&lt;/td&gt;
+<span style="color: #008080;">75</span>                                     &lt;td&gt;&lt;input type="number" value="${this.goods[j].num}" min=1 /&gt;&lt;/td&gt;
+<span style="color: #008080;">76</span>                                     &lt;td&gt;&lt;span&gt;删除&lt;/span&gt;&lt;/td&gt;
+<span style="color: #008080;">77</span>                                 &lt;/tr&gt;`;
+<span style="color: #008080;">78</span> 
+<span style="color: #008080;">79</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">80</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">81</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">82</span>             <span style="color: #0000ff;">this</span>.tbody.innerHTML =<span style="color: #000000;"> str;
+</span><span style="color: #008080;">83</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">84</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">85</span>     <span style="color: #0000ff;">new</span> Car;</pre>
+</div>
+<p>上面是用localStorage的方法实现的购物车。</p>
+<p>以上是我用两种方法实现购物车的代码，效果上是没有区别的，cookie更为浪费性能一些，可以两种都试下。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

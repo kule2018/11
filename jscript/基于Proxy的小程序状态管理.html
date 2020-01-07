@@ -1,0 +1,105 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修基于Proxy的小程序状态管理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>基于Proxy的小程序状态管理</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/use-proxy-to-manage-wechat-miniprogram.html</div><br>
+    <p><strong>摘要：</strong> 小程序状态管理。</p>
+<ul>
+<li>作者：wwayne</li>
+<li>原文：<a href="https://segmentfault.com/a/1190000019474324">基于Proxy的小程序状态管理</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<p>微信小程序的市场在进一步的扩大，而背后的技术社区仍在摸索着最好的实践方案。我在帮助Nike，沃尔玛以及一些创业公司开发小程序后，依旧认为使用小程序原生框架是一个更高效，稳定的选择，而使用原生框架唯独缺少一个好的状态管理库，如果不引入状态管理则会让我们在模块化，项目结构以及单元测试上都有些捉襟见肘。</p>
+<p>目前相对比较稳健的做法是针对redux或者mobx做一个adaptor应用到小程序中，但这样需要自己想办法打包引入外部库，还要想怎么去写这个adaptor，总显得有些麻烦。于是我迸发出一个想法去写一个专用于小程序的状态管理库，它使用起来足够简单并且可以通过小程序自己的npm机制安装。</p>
+<p>目前我已经用这个开源库开发了两个电商小程序，在提高我开发效率的同时亦保证了程序的性能，所以接下来我想谈谈这背后的理念以启发更多开发者尝试新的解决方案。</p>
+<h3 id="基于proxy的状态管理实现">基于Proxy的状态管理实现</h3>
+<p>Proxy在小程序中已经得到了足够好的支持，目前并没有发现在任何iPhone或者Android上不能使用Proxy的情况。而基于Proxy的状态管理其实也就是订阅监听的模式，一方面监听数据的变化，另一方面将这些变化传达给订阅的小程序页面。</p>
+<p>举一个比较常见的例子，当一个用户从自己的主页进入用户编辑页面，然后更改了自己的用户名点击保存后，用户主页和用户编辑页上的用户名这时候都应该被更新。这背后的程序逻辑则是：更新这个行为将触发Proxy去通知状态管理库，然后状态管理库负责检查此时还在页面栈中的所有页面，更新订阅了用户名这个数据的页面，如下图：</p>
+<p><img src="./images/基于Proxy的小程序状态管理0.png" /></p>
+<h3 id="part1-监听数据变化">Part1: 监听数据变化</h3>
+<p>监听数据变化其实就是监听各个Store的属性变化，实现上就是在各个Store前面加了一层Proxy，用更直观的图片来表示就是这样：</p>
+<p><img src="./images/基于Proxy的小程序状态管理1.png" /></p>
+<p>当一个Store被观察以后，它的属性就都变成了Proxy实例，当这个属性值是Object或者Array的时候，它内部的值也会被包装成Proxy实例，这样无论多深层的数据变动都能被监听到。<br />
+而在Proxy的后面，Store的属性其实是被另一套数据(紫色部分)所维护，这套数据不负责监听，它就是纯数据，针对属性的任何变动最后都会应用到这套数据上来，它的作用是维护和返回最新的数据。</p>
+<p>实现细节： <a href="https://github.com/wwayne/minii/blob/master/src/api/observe.js">https://github.com/wwayne/min...</a></p>
+<h3 id="part2-页面数据绑定">Part2: 页面数据绑定</h3>
+<p>因为小程序每个页面的js都是向Page中传递一个对象，这就让我们有机会包装这个对象，从而实现：</p>
+<ol>
+<li>进入页面后，将页面保存在页面栈中</li>
+<li>将来自状态管理库的数据映射到这个页面的data上来</li>
+<li>页面退出时，将页面从页面栈中移除</li>
+</ol>
+<p>实现细节： <a href="https://github.com/wwayne/minii/blob/master/src/api/mapToData.js">https://github.com/wwayne/min...</a></p>
+<h3 id="part3-页面订阅更新">Part3： 页面订阅更新</h3>
+<p>当数据被监听到变化后，我们需要依次做两件事，先是找到所有存储在页面栈里的页面，然后根据各个页面订阅的数据来检查变化，如果有变化就通知这些页面，从而让它们去触发setData更新页面。</p>
+<p>实现细节：<a href="https://github.com/wwayne/minii/blob/master/src/core.js">https://github.com/wwayne/min...</a></p>
+<h3 id="使用状态管理的例子">使用状态管理的例子</h3>
+<p>有了状态管理库，现在我们就来实现一开始举例的更新用户信息的操作，我们的文件路径如下：</p>
+<pre><code><code>stores/
+  user.js
+pages/
+  userEdit/
+     index.js
+     index.wxml</code></pre>
+<p><strong>1. 首先我们创建一个Store保存用户的信息，并且监听它的变化：</strong></p>
+<pre class="javascript"><code>// stores/user.js
+import { observe } from &#39;minii&#39;
+
+Class UserStore {
+  constructor () {
+     this.name = &#39;bob&#39;
+  }
+
+  changeName (name) {
+     this.name = name
+  }
+}
+
+export default observe(new UserStore(), &#39;user&#39;)</code></pre>
+<p><strong>2. 接着在我们的小程序页面订阅Store的信息</strong></p>
+<pre class="javascript"><code>// pages/userEdit/index.js
+import { mapToData } from &#39;minii&#39;
+import userStore from &#39;../../stores/user&#39;
+
+const connect = mapToData(state =&gt; (({
+  myName: state.user.name
+}))
+Page(connect({
+  updateNameToJames () {
+    userStore. changeName(&#39;james&#39;)
+  }
+}))</code></pre>
+<p><strong>3. 完成，现在可以在页面中使用和更新数据了</strong></p>
+<pre class="html"><code>// pages/userEdit/index.wxml
+&lt;text&gt;{{ myName }}&lt;/text&gt;
+&lt;button bindtap=&quot;updateNameToJames&quot;&gt;update name to James&lt;/button&gt;</code></pre>
+<h3 id="最后">最后</h3>
+<p>小程序因为有体积的限制，所以我希望在代码量上也尽量做到轻量和便捷，所以目前这个状态管理库并没有太多很复杂的功能，在小程序打包后所占用的体积也不到1kb，颇有点够用就好的意思。</p>
+<p>我也已经用它开发了两款小程序，在经历了一段时间的用户使用后，我也更有信心说这个方案在小程序中是可行的。如果你有任何想法和建议，都欢迎告诉我。</p>
+<p>项目Github: <a href="https://github.com/wwayne/minii" class="uri">https://github.com/wwayne/minii</a></p>
+<hr />
+<h3 id="关于作者">关于作者</h3>
+<p>Hi, 我是wwayne，是一名居住在上海的独立软件工程师，我正在开发我的新产品 <a href="https://talk-to.kim/">talk-to-kim</a>, 你可以在<a href="https://github.com/wwayne">Github</a> 或者专栏 <a href="https://zhuanlan.zhihu.com/wwayne">一个人写代码</a>找到我</p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、荔枝FM、掌门1对1、核桃编程、微脉、青团社等众多品牌企业。欢迎免费试用！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

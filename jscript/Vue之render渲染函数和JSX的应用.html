@@ -1,0 +1,263 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue之render渲染函数和JSX的应用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue之render渲染函数和JSX的应用</center></div><div class='banquan'>原文出处:本文由博客园博主小提莫~提供。<br/>
+原文连接:https://www.cnblogs.com/jiajialove/p/11511705.html</div><br>
+    <h2 id="一.模板缺陷">一.模板缺陷</h2>
+<ul>
+<li>模板的最大特点是扩展难度大，不易扩展。可能会造成逻辑冗余</li>
+</ul>
+<pre><code><code>&lt;Level :type=&quot;1&quot;&gt;哈哈&lt;/Level&gt;
+&lt;Level :type=&quot;2&quot;&gt;哈哈&lt;/Level&gt;
+&lt;Level :type=&quot;3&quot;&gt;哈哈&lt;/Level&gt;</code></pre>
+<p>Level组件需要对不同的type产生不同的标签</p>
+<pre><code><code>&lt;template&gt;
+ &lt;h1 v-if=&quot;type==1&quot;&gt;
+  &lt;slot&gt;&lt;/slot&gt;
+ &lt;/h1&gt;
+ &lt;h2 v-else-if=&quot;type==2&quot;&gt;
+  &lt;slot&gt;&lt;/slot&gt;
+ &lt;/h2&gt;
+ &lt;h3 v-else-if=&quot;type==3&quot;&gt;
+  &lt;slot&gt;&lt;/slot&gt;
+ &lt;/h3&gt;
+&lt;/template&gt;
+&lt;script&gt;
+export default {
+ props: {
+  type: {
+   type: Number
+  }
+ }
+};
+&lt;/script&gt;</code></pre>
+<h2 id="二.函数式组件">二.函数式组件</h2>
+<ul>
+<li>函数式组件没有模板,只允许提供render函数</li>
+</ul>
+<pre class="javascript"><code>export default {
+ render(h) {
+  return h(&quot;h&quot; + this.type, {}, this.$slots.default);
+ },
+ props: {
+  type: {
+   type: Number
+  }
+ }
+};</code></pre>
+<blockquote>
+<p>复杂的逻辑变得非常简单</p>
+</blockquote>
+<h2 id="三.jsx应用">三.JSX应用</h2>
+<ul>
+<li>使用jsx会让代码看起来更加简洁易于读取</li>
+</ul>
+<pre class="javascript"><code>export default {
+ render(h) {
+  const tag = &quot;h&quot; + this.type;
+  return &lt;tag&gt;{this.$slots.default}&lt;/tag&gt;;
+ },
+ props: {
+  type: {
+   type: Number
+  }
+ }
+};</code></pre>
+<h2 id="四.render方法订制组件">四.render方法订制组件</h2>
+<ul>
+<li>编写List组件可以根据用户传入的数据自动循环列表</li>
+</ul>
+<pre><code><code>&lt;List :data=&quot;data&quot;&gt;&lt;/List&gt;
+&lt;script&gt;
+import List from &quot;./components/List&quot;;
+export default {
+ data() {
+  return { data: [&quot;苹果&quot;, &quot;香蕉&quot;, &quot;橘子&quot;] };
+ },
+ components: {
+  List
+ }
+};
+&lt;/script&gt;
+
+&lt;!-- List组件渲染列表 --&gt;
+&lt;template&gt;
+ &lt;div class=&quot;list&quot;&gt;
+  &lt;div v-for=&quot;(item,index) in data&quot; :key=&quot;index&quot;&gt;
+   &lt;li&gt;{{item}}&lt;/li&gt;
+  &lt;/div&gt;
+ &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+export default {
+ props: {
+  data: Array,
+  default: () =&gt; []
+ }
+};
+&lt;/script&gt;</code></pre>
+<p>通过render方法来订制组件,在父组件中传入render方法</p>
+<pre><code><code>&lt;List :data=&quot;data&quot; :render=&quot;render&quot;&gt;&lt;/List&gt;
+render(h, name) {
+   return &lt;span&gt;{name}&lt;/span&gt;;
+ }</code></pre>
+<p>我们需要createElement方法，就会想到可以编写个函数组件，将createElement方法传递出来</p>
+<pre><code><code>&lt;template&gt;
+ &lt;div class=&quot;list&quot;&gt;
+  &lt;div v-for=&quot;(item,index) in data&quot; :key=&quot;index&quot;&gt;
+   &lt;li v-if=&quot;!render&quot;&gt;{{item}}&lt;/li&gt;
+   &lt;!-- 将render方法传到函数组件中，将渲染项传入到组件中，在内部回调这个render方法 --&gt;
+   &lt;ListItem v-else :item=&quot;item&quot; :render=&quot;render&quot;&gt;&lt;/ListItem&gt;
+  &lt;/div&gt;
+ &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+import ListItem from &quot;./ListItem&quot;;
+export default {
+ components: {
+  ListItem
+ },
+ props: {
+  render: {
+   type: Function
+  },
+  data: Array,
+  default: () =&gt; []
+ }
+};
+&lt;/script&gt;</code></pre>
+<p>ListItem.vue调用最外层的render方法，将createElement和当前项传递出来</p>
+<pre><code><code>&lt;script&gt;
+export default {
+ props: {
+  render: {
+   type: Function
+  },
+  item: {}
+ },
+ render(h) {
+  return this.render(h, this.item);
+ }
+};
+&lt;/script&gt;</code></pre>
+<h2 id="五.scope-slot">五.scope-slot</h2>
+<ul>
+<li>使用v-slot 将内部值传即可</li>
+</ul>
+<pre><code><code>&lt;List :arr=&quot;arr&quot;&gt;
+    &lt;template v-slot=&quot;{item}&quot;&gt;
+        {{item}}
+    &lt;/template&gt;
+&lt;/List&gt;
+
+&lt;div v-for=&quot;(item,key) in arr&quot; :key=&quot;key&quot;&gt;
+    &lt;slot :item=&quot;item&quot;&gt;&lt;/slot&gt;
+&lt;/div&gt;</code></pre>
+<h2 id="六.编写可编辑表格">六.编写可编辑表格</h2>
+<ul>
+<li>基于iview使用jsx扩展成可编辑的表格</li>
+</ul>
+<pre><code><code>&lt;template&gt;
+&lt;div&gt;
+  &lt;Table :columns=&quot;columns&quot; :data=&quot;data&quot;&gt;&lt;/Table&gt;
+&lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+import Vue from &#39;vue&#39;;
+export default {
+  methods:{
+    render(h,{column,index,row}){
+      let value = row[column.key];
+      return &lt;div on-click={(e)=&gt;this.changeIndex(e,index)} &gt;
+      {this.index === index? 
+        &lt;i-input type=&quot;text&quot; value={value} on-input={(value)=&gt;{
+          this.handleChange(value,column,row)
+        }} onOn-enter={()=&gt;this.enter(row,index)}/&gt;:
+        &lt;span&gt;{value}&lt;/span&gt;
+      }
+      &lt;/div&gt;
+    },
+    enter(row,index){
+      this.data.splice(index,1,row);
+      this.index = -1;
+    },
+    handleChange(value,column,row){
+      row[column[&#39;key&#39;]]= value;
+    },
+    changeIndex(e,index){
+      this.index = index;
+      this.$nextTick(()=&gt;{
+        e.currentTarget.getElementsByTagName(&quot;input&quot;)[0].focus()
+      })
+    }
+  },
+  data() {
+    return {
+      index:-1,
+      columns: [
+        {
+          title: &#39;Name&#39;,
+          key: &#39;name&#39;,
+          render:this.render
+        },
+        {
+          title: &#39;Age&#39;,
+          key: &#39;age&#39;,
+        },
+        {
+          title: &#39;Address&#39;,
+          key: &#39;address&#39;,
+        },
+      ],
+      data: [
+        {
+          name: &#39;John Brown&#39;,
+          age: 18,
+          address: &#39;New York No. 1 Lake Park&#39;,
+          date: &#39;2016-10-03&#39;,
+        },
+        {
+          name: &#39;Jim Green&#39;,
+          age: 24,
+          address: &#39;London No. 1 Lake Park&#39;,
+          date: &#39;2016-10-01&#39;,
+        },
+        {
+          name: &#39;Joe Black&#39;,
+          age: 30,
+          address: &#39;Sydney No. 1 Lake Park&#39;,
+          date: &#39;2016-10-02&#39;,
+        },
+        {
+          name: &#39;Jon Snow&#39;,
+          age: 26,
+          address: &#39;Ottawa No. 2 Lake Park&#39;,
+          date: &#39;2016-10-04&#39;,
+        },
+      ],
+    };
+  },
+};
+&lt;/script&gt;
+</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

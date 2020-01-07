@@ -1,0 +1,114 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js原型链' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js原型链</center></div><div class='banquan'>原文出处:本文由博客园博主java小新人提供。<br/>
+原文连接:https://www.cnblogs.com/wyq1995/p/11103179.html</div><br>
+    <p>　　说实话js这门语言以前没有仔细研究过，现在研究起来感觉好麻烦，对于原型链这个说法我也是刚接触不久，就试着说说我的理解吧！</p>
+<p>　　关于上一篇我们说了js整个函数体系结构，想了解的可以<a href="https://www.cnblogs.com/wyq1995/p/11015784.html" target="_blank">点击这里</a>，这里随便找到一些对原型的小测试，你可以看看会不会，其中Person是一个构造函数，person1是构造函数的一个实例；</p>
+<p><code>　　person1.__proto__</code>&nbsp;是什么？//person1.__proto__ ==&nbsp;Person.prototype</p>
+<p><code>　　Person.__proto__</code>&nbsp;是什么？//<code>Person.__proto__</code>&nbsp; ==&nbsp;Function.prototype</p>
+<p><code>　　Person.prototype.__proto__</code>&nbsp;是什么？//Person.prototype.__proto__ == Object.prototype</p>
+<p><code>　　Object.__proto__</code>&nbsp;是什么？//Object.__proto__ ==&nbsp;Function.prototype</p>
+<p>　　<code>Object.prototype__proto__</code>&nbsp;是什么？//Object.prototype__proto__ == null</p>
+<p>知道了这些就差不多了，我们继续看；</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>1.特殊的Math和JSON</strong></span></p>
+<p>　　这两个内置对象有点不同，上次还没有注意看，因为其他的内置对象都是Function的实例，比如Date，Number等，举个例子：</p>
+<div class="cnblogs_code">
+<pre><code>Date <span style="color: #0000ff;">instanceof</span> Function <span style="color: #008000;">//</span><span style="color: #008000;">true</span>
+Date.constructor == Function <span style="color: #008000;">//</span><span style="color: #008000;">true</span>
+Date.__proto__ == Function.prototype <span style="color: #008000;">//</span><span style="color: #008000;">true</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>　　但是当我们用Math对象和JSON对象测试的时候确实false，其实可以把Math和JSON对象看作Object的实例：</p>
+<div class="cnblogs_code">
+<pre><code>//Math和JSON一样，这里以Math为例<br />Math <span style="color: #0000ff;">instanceof</span> Object <span style="color: #008000;">//</span><span style="color: #008000;">true</span>
+Math.constructor == Object <span style="color: #008000;">//</span><span style="color: #008000;">true</span>
+Math.__proto__ == Object.prototype <span style="color: #008000;">//</span><span style="color: #008000;">true</span></pre>
+</div>
+<p>　　这两个对象比较特殊，注意一下和其他的内置对象一定要分开！！！</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>2.继承</strong></span></p>
+<p>　　继承可以说是每一个面向对象语言肯定有的，因为符合我们现实的想法，子承父业嘛！如果你爸比较有钱，你继承了几个亿的家产肯定一生无忧；如果你爸是个普通人，那即使继承了家产也没有多少啊！还是要靠自己奋斗。</p>
+<p>　　在js中的继承也一个样，如果一个构造函数设计得很好，那么儿子等后代就会很舒服啊！继承的话，从Object开始，下图所示，你看Object中你觉得哪个部分最重要，应该被继承下去，当然是原型啊！所以说继承就是指的是原型中的所有东西都会被继承到后代中。。。。</p>
+<p><img src="./images/js原型链0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>　　我们可以验证一下：</p>
+<div class="cnblogs_code">
+<pre><code>Object.prototype.say = <span style="color: #0000ff;">function</span>(){alert("你好！"<span style="color: #000000;">)};
+</span><span style="color: #0000ff;">var</span> obj = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Object();
+obj.say();</span><span style="color: #008000;">//</span><span style="color: #008000;">页面会有弹窗&ldquo;你好！&ldquo;，说明在obj实例中调用的say方法其实就是调用的是Object中原型中的say方法</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;">还可以用另外一个方式，就是用Math或者JSON对象也会有同样的效果</span>
+Object.prototype.say = <span style="color: #0000ff;">function</span>(){alert("你好！"<span style="color: #000000;">)};
+Math.say();</span></pre>
+</div>
+<p>　　这个可能有点晦涩难懂，不要紧我们继续往下看！看了他们的调用机制就懂了；</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>3.js方法调用机制</strong></span></p>
+<p>　　简单测试一下,我就是分别在Object原型内外，构造函数Person原型内外，以及per实例中写了一些方法，可能很多人看着都头晕了。。。</p>
+<div class="cnblogs_code">
+<pre><code>Object.say = <span style="color: #0000ff;">function</span>(){alert("object----say"<span style="color: #000000;">)}
+Object.listen </span>= <span style="color: #0000ff;">function</span>(){alert("object----listen"<span style="color: #000000;">)}
+Object.prototype.say </span>= <span style="color: #0000ff;">function</span>(){alert("Object.prototype---say"<span style="color: #000000;">)};
+Object.prototype.listen </span>= <span style="color: #0000ff;">function</span>(){alert("Object.prototype---listen"<span style="color: #000000;">)};
+
+</span><span style="color: #0000ff;">var</span> Person = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Function();
+Person.say </span>= <span style="color: #0000ff;">function</span>(){alert("Person&gt;&gt;&gt;&gt;&gt;&gt;say"<span style="color: #000000;">)};
+Person.run </span>= <span style="color: #0000ff;">function</span>(){alert("Person&gt;&gt;&gt;&gt;&gt;&gt;run"<span style="color: #000000;">)};<br />Person.listen = function(){alert("Person&gt;&gt;&gt;&gt;&gt;&gt;listen")};
+Person.prototype.say </span>= <span style="color: #0000ff;">function</span>(){alert("Person.prototype&gt;&gt;&gt;&gt;&gt;&gt;say"<span style="color: #000000;">)};
+Person.prototype.run </span>= <span style="color: #0000ff;">function</span>(){alert("Person.prototype&gt;&gt;&gt;&gt;&gt;&gt;run"<span style="color: #000000;">)};
+
+</span><span style="color: #0000ff;">var</span> per = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person();
+per.say </span>= <span style="color: #0000ff;">function</span>(){alert("per+++++++say"<span style="color: #000000;">)};
+
+per.say();    </span><span style="color: #008000;">//</span><span style="color: #008000;">per+++++++say</span>
+per.listen();     <span style="color: #008000;">//</span><span style="color: #008000;">Object.prototype---listen</span>
+per.run();     <span style="color: #008000;">//</span><span style="color: #008000;">Person.prototype&gt;&gt;&gt;&gt;&gt;&gt;run</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;　　上面的太繁琐，没耐心看就算了，我就说说我得出的结论：原型外面的函数（也可以叫做方法）不会被继承，也就是说只要是在原型外面的函数只能自己用，不能给后代用；而对于原型里面的函数，对于后代来说是可见的，</p>
+<p>&nbsp;<img src="./images/js原型链1.png" alt="" width="864" height="573" /></p>
+<p>　　注意：图中我为了看起来简洁，省略了一点东西，就是那么__proto__属性，为什么实例能够找到它爸爸构造函数的原型呢？就是通过这个属性，而构造函数中也有一个__proto__属性，指向Object的原型，通过这个原型的话，我们的实例就能够慢慢往上找原型，一直可以找到Object的原型，这就是所谓的原型链。。。。</p>
+<p>　　所以根据这个特性，js一开始就在Object的原型中放置了一些常用的函数，所以自定义构造函数的实例一开始就可以调用一些方法，这些方法不是我们定义的，而是官方帮你先放到Object的原型中的，当然你也可以在实例或构造函数中弄个同样名字的函数，将官方那个给覆盖掉。。。。。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>4.js中方法类型</strong></span></p>
+<p>　　我js中的方法大概分为三种（对于js这样的语言来说，没有类的概念好不爽，我们就把构造函数看作类吧。。。。）：类方法，实例方法，原型方法　　</p>
+<p>　　那么这三种方法到底是干嘛的呢？我就随便举个例子：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> Person = <span style="color: #0000ff;">function</span><span style="color: #000000;">(name){
+            </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+            </span><span style="color: #008000;">this.say = function(){alert("say.....")};//实例方法</span>
+<span style="color: #000000;">        }
+Person.say </span>= <span style="color: #0000ff;">function</span>(){alert("Person say.....")}<span style="color: #008000;">//</span><span style="color: #008000;">类方法，只能通过构造函数名来调用</span>
+Person.prototype.say=<span style="color: #0000ff;">function</span>(){alert("prototype say.....")}<span style="color: #008000;">//</span><span style="color: #008000;">原型方法</span>
+
+<span style="color: #0000ff;">var</span> per = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Person();
+per.say();</span><span style="color: #008000;">//</span><span style="color: #008000;">调用实例方法,注意当实例方法和原型方法同名的时候优先调用实例方法，如果实例方法没有say方法，那就会调用原型中的say方法</span>
+Person.say();<span style="color: #008000;">//</span><span style="color: #008000;">调用类方法</span>
+Person.prototype.say();<span style="color: #008000;">//</span><span style="color: #008000;">调用原型方法</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><strong>5总结</strong></span></p>
+<p>　　怎么说呢？感觉js结构太糟糕了，看了好久才知道一个大概的轮廓，还有很多的东西没看到，比如我们知道原型其实是一个当前构造函数的实例，那么我们可不可以把其他对象的实例赋值过来呢？比如Student.prototype = new Person(),这样行吗？当然可以，这样的话可以让Student的实例访问Person的原型的方法，实现了继承。。。。</p>
+<p>　　哎，有机会再来啃js吧，还有好多东西要看。。。。由于看js没多久，有什么说得有误的地方欢迎指出！</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

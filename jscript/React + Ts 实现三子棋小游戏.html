@@ -1,0 +1,417 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修React + Ts 实现三子棋小游戏' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>React + Ts 实现三子棋小游戏</center></div><div class='banquan'>原文出处:本文由博客园博主初心，你好吗提供。<br/>
+原文连接:https://www.cnblogs.com/LHLVS/p/11511673.html</div><br>
+    <p><a href="http://honglinliu.com/myBlog/web/React/chess.html">在这里阅读效果更佳</a></p>
+<h1 id="还记得当年和同桌在草稿纸上下三子棋的时光吗">还记得当年和同桌在草稿纸上下三子棋的时光吗</h1>
+<p>今天我们就用代码来重温一下年少（假设你有react基础，没有也行，只要你会三大框架的任意一种，上手react不难）</p>
+<h2 id="游戏规则">游戏规则</h2>
+<ul>
+<li>双方各执一子，在九宫格内一方三子连成线则游戏结束</li>
+<li>九宫格下满未有三子连线则视为平局</li>
+</ul>
+<p><a href="http://honglinliu.com/demo/game/">你可以点击这里来体验最终效果，样式有点丑，请见谅</a></p>
+<h1 id="准备阶段">准备阶段</h1>
+<p>建议先全局安装typescript 和 create-react-app（<strong>安装过请忽略</strong>）</p>
+<pre><code><code>npm install typescript create-react-app -g</code></pre>
+<p>使用typescript初始化项目</p>
+<pre><code><code>create-react-app demo --typescript</code></pre>
+<p>初始化成功后ts环境已经配好了，不需要你手动加ts配置</br><br />
+此时就是tsx语法，我们就可以愉快的写ts了</br><br />
+src文件夹就是开发目录，所有代码都写在src文件夹下</br><br />
+我们使用sass来写样式,先安装sass</p>
+<pre><code><code>npm install node-sass --save</code></pre>
+<p>运行项目</p>
+<pre><code><code>npm run start</code></pre>
+<p>删掉初始化界面的一些代码</p>
+<h1 id="开发阶段">开发阶段</h1>
+<h2 id="组件化">组件化</h2>
+<p>开发一个项目其实就是开发组件</br><br />
+把一个项目拆分一个个小组件，方便后期维护以及复用</p>
+<ol>
+<li>棋子组件</li>
+<li>棋盘组件</li>
+<li>游戏规则组件</li>
+<li>游戏状态组件</li>
+</ol>
+<p>react中组件分为类组件和函数组件</br><br />
+需要管理状态的最好使用类组件</br><br />
+所以我们先把App改成类组件</p>
+<pre class="js{3}"><code>import React from &#39;react&#39;;
+import &#39;./App.css&#39;;
+class App extends React.Component{
+    render(): React.ReactElement&lt;any, string | React.JSXElementConstructor&lt;any&gt;&gt; | string | number | {} | React.ReactNodeArray | React.ReactPortal | boolean | null | undefined {
+        return (
+            &lt;div className=&quot;App&quot;&gt;
+            &lt;/div&gt;
+        );
+    }
+};
+
+export default App;</code></pre>
+<h2 id="开发棋子组件">开发棋子组件</h2>
+<p>在src下新建component文件夹，在component文件夹下新建ChessComp.tsx,ChessComp.css</br><br />
+以后我们的组件都放在component文件夹下</br><br />
+棋子组件我们使用函数组件，思考需要传入组件的属性的类型：</p>
+<ol>
+<li>type(棋子的类型)</li>
+<li>onClick(点击棋子触发的回调函数)</li>
+</ol>
+<p>棋子类型有三种（红子 ，黑子， 空），</br><br />
+为了约束棋子类型，我们使用一个枚举类型，</br><br />
+在src下新建types文件夹，专门放类型约束，</br><br />
+在types下新建enums.ts约束棋子类型</br></p>
+<pre class="js{1}"><code>export enum ChessType {
+    none,
+    red,
+    black
+}</code></pre>
+<p>并在棋子tsx中导入</br><br />
+传入tsx的所有属性用一个IProps接口约束</br></p>
+<pre class="js{1}"><code>interface IProps {
+    type: ChessType
+    onClick?: () =&gt; void
+}</code></pre>
+<p>全部tsx代码：</p>
+<pre class="js{1}"><code>import React from &#39;react&#39;;
+import {ChessType} from &quot;../types/enums&quot;;
+import &#39;./ChessComp.css&#39;;
+
+interface IProps {
+    type: ChessType
+    onClick?: () =&gt; void
+}
+function ChessComp ({type, onClick}: IProps) {
+    let chess = null;
+    switch (type) {
+        case ChessType.red:
+            chess = &lt;div className=&quot;red chess-item&quot;&gt;&lt;/div&gt;;
+        break;
+        case ChessType.black:
+            chess = &lt;div className=&quot;black chess-item&quot;&gt;&lt;/div&gt;;
+        break;
+        default:
+            chess = null;
+    }
+    return (
+        &lt;div className=&quot;chess&quot; onClick={() =&gt; {
+            if (type === ChessType.none &amp;&amp; onClick) {
+                onClick();
+            }
+        }}&gt;
+            {chess}
+        &lt;/div&gt;
+    )
+};
+export default ChessComp;</code></pre>
+<p>其中棋子只有为none类型时才能被点击<br />
+scss 代码：</br><br />
+棋子我们用背景颜色径向渐变来模拟</p>
+<pre class="js{1}"><code>$borderColor: #dddddd;
+$redChess: #ff4400;
+$blackChess: #282c34;
+.chess{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+    border: 2px solid $borderColor;
+    box-sizing: border-box;
+    cursor: pointer;
+    .chess-item{
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+    }
+    .red{
+        background: radial-gradient(#fff, $redChess);
+    }
+    .black{
+        background: radial-gradient(#fff, $blackChess);
+    }
+}</code></pre>
+<h2 id="开发棋盘组件">开发棋盘组件</h2>
+<p>同理在component文件夹下新建BoardComp.tsx,BoardComp.scss</br><br />
+棋盘组件我们需要传递三个参数：</br></p>
+<ol>
+<li>棋子的数组</li>
+<li>游戏是否结束</li>
+<li>点击事件函数</li>
+</ol>
+<p>循环数组渲染棋子， 并给游戏是否结束一个默认值<br />
+全部tsx代码：</p>
+<pre class="js{1}"><code>import React from &#39;react&#39;;
+import {ChessType} from &quot;../types/enums&quot;;
+import ChessComp from &quot;./ChessComp&quot;;
+import &quot;./BoardComp.scss&quot;;
+interface IProps {
+    chesses: ChessType[];
+    isGameOver?: boolean
+    onClick?: (index: number) =&gt; void
+}
+const BoardComp: React.FC&lt;IProps&gt; = function(props) {
+    // 类型断言
+    const isGameOver = props.isGameOver as boolean;
+    // 非空断言
+    // const isGameOver = props.isGameOver!;
+    const list = props.chesses.map((type, index) =&gt; {
+        return (
+            &lt;ChessComp
+                type={type}
+                key={index}
+            onClick={() =&gt; {
+                if (props.onClick &amp;&amp; !isGameOver) {
+                    props.onClick(index)
+                }
+            }}/&gt;
+        )
+    });
+    return (
+        &lt;div className=&quot;board&quot;&gt;
+            {list}
+        &lt;/div&gt;
+    )
+};
+BoardComp.defaultProps = {
+  isGameOver: false
+};
+export default BoardComp;</code></pre>
+<p>scss 代码：</br><br />
+使用flex布局</p>
+<pre class="scss{1}"><code>.board{
+    display: flex;
+    flex-wrap: wrap;
+    width: 150px;
+    height: 150px;
+}</code></pre>
+<h2 id="开发游戏规则组件">开发游戏规则组件</h2>
+<p>在component文件夹下新建Game.tsx,Game.scss</br><br />
+游戏规则组件不需要传参，我们使用类组件来管理状态</br><br />
+在types文件夹下的enums.ts里新增游戏状态的枚举类型</p>
+<pre class="js{1}"><code>export enum ChessType {
+    none,
+    red,
+    black
+}
+export enum GameStatus {
+    /**
+     * 游戏中
+     */
+    gaming,
+    /**
+     * 红方胜利
+     */
+    redWin,
+    /**
+     * 黑方胜利
+     */
+    blackWin,
+    /**
+     * 平局
+     */
+    equal,
+}</code></pre>
+<p>核心的代码就是如何判断游戏的状态，我的方法有点死，你们可以自己重构，</p>
+<pre class="js{1}"><code>import React from &#39;react&#39;;
+import {ChessType, GameStatus} from &quot;../types/enums&quot;;
+import BoardComp from &quot;./BoardComp&quot;;
+import GameStatusComp from &quot;./GameStatusComp&quot;;
+import &#39;./Game.scss&#39;;
+
+/**
+ * 棋子的数组
+ * 游戏状态
+ * 下一次下棋的类型
+ */
+interface Istate {
+    chesses: ChessType[],
+    gameStatus: GameStatus,
+    nextChess: ChessType.red | ChessType.black
+}
+class Game extends React.Component&lt;{}, Istate&gt; {
+    state: Istate = {
+        chesses: [],
+        gameStatus: GameStatus.gaming,
+        nextChess: ChessType.black
+    };
+
+    /**
+     * 组件挂载完初始化
+     */
+    componentDidMount(): void {
+        this.init();
+    }
+    /**
+     * 初始化9宫格
+     */
+    init() {
+        const arr: ChessType[] = [];
+        for (let i = 0; i &lt; 9; i ++) {
+            arr.push(ChessType.none)
+        }
+        this.setState({
+            chesses: arr,
+            gameStatus: GameStatus.gaming,
+            nextChess: ChessType.black
+        })
+    }
+
+    /**
+     * 处理点击事件，改变棋子状态和游戏状态
+     */
+    handleChessClick(index: number) {
+        const chesses: ChessType[] = [...this.state.chesses];
+        chesses[index] = this.state.nextChess;
+        this.setState(preState =&gt; ({
+            chesses,
+            nextChess: preState.nextChess === ChessType.black? ChessType.red : ChessType.black,
+            gameStatus: this.getStatus(chesses, index)
+        }))
+    }
+
+    /**
+     * 获取游戏状态
+     */
+    getStatus(chesses: ChessType[], index: number): GameStatus {
+        // 判断是否有一方胜利
+        const horMin = Math.floor(index/3) * 3;
+        const verMin = index % 3;
+        // 横向， 纵向， 斜向胜利
+        if ((chesses[horMin] === chesses[horMin + 1] &amp;&amp; chesses[horMin + 1] === chesses[horMin + 2]) ||
+            (chesses[verMin] === chesses[verMin + 3] &amp;&amp; chesses[verMin + 3] === chesses[verMin + 6]) ||
+            (chesses[0] === chesses[4] &amp;&amp; chesses[4] === chesses[8] &amp;&amp; chesses[0] !== ChessType.none) ||
+            ((chesses[2] === chesses[4] &amp;&amp; chesses[4] === chesses[6] &amp;&amp; chesses[2] !== ChessType.none))) {
+            return chesses[index] === ChessType.black ? GameStatus.blackWin : GameStatus.redWin;
+        }
+        // 平局
+        if (!chesses.includes(ChessType.none)) {
+            return GameStatus.equal;
+        }
+        // 游戏中
+        return GameStatus.gaming;
+    }
+    render(): React.ReactNode {
+        return &lt;div className=&quot;game&quot;&gt;
+            &lt;h1&gt;三子棋游戏&lt;/h1&gt;
+            &lt;GameStatusComp next={this.state.nextChess} status={this.state.gameStatus}/&gt;
+            &lt;BoardComp
+                chesses={this.state.chesses}
+                isGameOver={this.state.gameStatus !== GameStatus.gaming}
+                onClick={this.handleChessClick.bind(this)}/&gt;
+                &lt;button onClick={() =&gt; {
+                this.init()}
+                }&gt;重新开始&lt;/button&gt;
+        &lt;/div&gt;;
+    }
+}
+
+export default Game;</code></pre>
+<p>样式</p>
+<pre class="scss"><code>.game{
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+  top: 100px;
+  width: 250px;
+  height: 400px;
+  left: 50%;
+  transform: translateX(-50%);
+}</code></pre>
+<h2 id="开发显示游戏状态的组件">开发显示游戏状态的组件</h2>
+<p>这个组件用来显示状态，在component文件夹下新建GameStatus.tsx,GameStatus.scss</br><br />
+没什么好说的，直接上代码</p>
+<pre class="js{1}"><code>import React from &#39;react&#39;;
+import {ChessType, GameStatus} from &quot;../types/enums&quot;;
+import &#39;./GameStatus.scss&#39;;
+interface Iprops {
+    status: GameStatus
+    next: ChessType.red | ChessType.black
+}
+function GameStatusComp(props: Iprops) {
+    let content: JSX.Element;
+    if (props.status === GameStatus.gaming) {
+        if (props.next === ChessType.red) {
+            content = &lt;div className=&quot;next red&quot;&gt;红方落子&lt;/div&gt;
+        } else {
+            content = &lt;div className=&quot;next black&quot;&gt;黑方落子&lt;/div&gt;
+        }
+    } else {
+        if (props.status === GameStatus.redWin) {
+            content = &lt;div className=&quot;win red&quot;&gt;红方胜利&lt;/div&gt;
+        } else if (props.status === GameStatus.blackWin) {
+            content = &lt;div className=&quot;win black&quot;&gt;黑方胜利&lt;/div&gt;
+        } else {
+            content = &lt;div className=&quot;win equal&quot;&gt;平局&lt;/div&gt;
+        }
+    }
+    return (
+        &lt;div className=&quot;status&quot;&gt;
+            {content}
+        &lt;/div&gt;
+    )
+}
+
+export default GameStatusComp;</code></pre>
+<pre class="scss{1}"><code>.status {
+  width: 150px;
+  .next,.win{
+    font-size: 18px;
+  }
+  .win{
+    border: 2px solid;
+    border-radius: 5px;
+    width: 100%;
+    padding: 10px 0;
+  }
+  .equal{
+    background-color: antiquewhite;
+  }
+  .red{
+    color: #ff4400;
+  }
+  .black{
+    color: #282c34;
+  }
+}</code></pre>
+<h2 id="收尾">收尾</h2>
+<p>最后在app.tsx里调用game组件</p>
+<pre class="js{1}"><code>import React from &#39;react&#39;;
+import &#39;./App.scss&#39;;
+import Game from &quot;./component/Game&quot;;
+
+class App extends React.Component{
+    render(): React.ReactElement&lt;any, string | React.JSXElementConstructor&lt;any&gt;&gt; | string | number | {} | React.ReactNodeArray | React.ReactPortal | boolean | null | undefined {
+        return (
+            &lt;div className=&quot;App&quot;&gt;
+                &lt;Game/&gt;
+            &lt;/div&gt;
+        );
+    }
+};
+
+export default App;</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,223 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修DOM编程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>DOM编程</center></div><div class='banquan'>原文出处:本文由博客园博主zhangzhengsmiling提供。<br/>
+原文连接:https://www.cnblogs.com/zhangzhengsmiling/p/dom_programing.html</div><br>
+    <h2 class="md-end-block md-heading"><span class="md-plain">&nbsp;</span></h2>
+<p class="md-end-block md-p"><span class="md-plain">　　首先，需要明确JavaScript访问DOM性能的开销所在。在浏览器中。对于DOM和ECMAScript的支持一般是各自独立实现的，因此通过ECMAScript访问DOM自然而然就会产生较大的开销，而且对于DOM的访问越频繁，性能的开销越大。</span></p>
+<ol class="ol-list" start="">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">尽量将运算放在ECMAScript中进行，避免操作DOM进行迭代更新</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code> function addString = function (strArr) {
+     strArr.forEach(str =&gt; {
+         document.getElementById('id').innerHTML += str; // 读取DOM的属性，同时进行更新
+     })
+ }
+ // 当需要进行DOM节点更新是可能会不自觉的使用以上的方法进行更新（至少我可能会这样写的）
+ // 这种方法会带来额外的性能开销，因为在每一次循环遍历中，都访问了DOM中的innerHTML属性，同时又对其进行了更新操作，而当字符串的数量较大时，这个开销将会被放大
+ ​
+ ​
+ function addString2 = function (strArr) {
+     let string = '';
+     strArr.forEach(str =&gt; string += str)
+     document.getElementById('id').innerHTML += string;
+ }
+ // 第二种方式中，将字符串的拼接放在ECMAScript中完成，这样对于DOM的操作就只有一次读取和更新DOM的操作了，而这样正是避免了对DOM的迭代更新。</pre>
+</div>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">HTMLCollection与NodeList</span></p>
+<p class="md-end-block md-p"><span class="md-plain">在看这本书之前，我其实一直以为HTML集合类型与NodeList类型是一样的，而且原生获取DOM元素使用的夜一直是document.getElement...方法。</span></p>
+<p class="md-end-block md-p"><span class="md-plain">HTML集合</span></p>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">包含DOM节点引用的伪数组对象，不能直接使用forEach方法进行遍历</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">document.getElement...方法返回的是一个HTML集合对象</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">HTML集合会随着界面中的DOM元素进行实时更新的，与文档对象始终保留连接。</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code> const divs = document.getElementByTagName('div');
+ // divs --&gt; HTML集合
+ // 当删除界面中的某一个div标签时，divs中也会移除相对应的div元素
+ console.log(divs.length);
+ // 当需要访问divs.length属性时，由于HTML集合"不知道界面中的元素是否有删除或者增加"，为了返回"实时"的divs当前长度，需要对文档中的divs进行遍历。即使文档中的div元素没有任何更新，这一步依旧无法避免，因此就带来了额外的性能开销</pre>
+</div>
+<p class="md-end-block md-p"><span class="md-plain">由于HTMLCollection的实时更新而带来的一个意外的死循环</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code> let divs = document.getElementsByTagName('div');
+ for (let i = 0; i &lt; divs.length; i++) {
+     document.body.appendChild(document.createElement('div'));
+ }
+ // 你写这段的代码的本意可能想使界面中的div加倍，但最后的结果却是界面加载不出来
+ // 原因正是在于HTMLCollection的自动更新,当为body添加一个div标签时，此时会更新divs.length,而每一次通过divs.length获取到的是最新的（即更新之后的div的数目），因此循环永远也不会终止。</pre>
+</div>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">尽量避免在迭代过程中读取HTML集合的length属性，因为每次都要查询DOM以获取当前的集合长度，在循环中可以将HTMLCollection的length属性缓存避免其迭代更新</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">访问HTMLCollection的速度比访问数组慢得多，如有必要可以将HTMLCollection转化为数组</span></p>
+</li>
+</ul>
+<p class="md-end-block md-p"><span class="md-plain">NodeList</span></p>
+</li>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">首先，NodeList是一个<span style="text-decoration: line-through;"><span style="color: #ff0000; text-decoration: line-through;">数组类型</span></span>，可以直接使用forEach进行遍历</span></p>
+</li>
+</ul>
+<li style="list-style-type: none;">
+<p><span style="color: #ff0000;">**************************************************************************************************</span></p>
+</li>
+<li style="list-style-type: none;"><span>今天看《JavaScript高级程序设计》意外发现NodeList类型的对象是类数组，想起之前在博客中写过NodeList是一个数组对象，经过测试后发现，NodeList类型确实不是Array的实例，因此特来更正，长记性了</span></li>
+<li style="list-style-type: none;">
+<p>&nbsp;</p>
+<p><span>经过测试NodeList对象并不是Array的一个实例，只不过NodeList上确实部署了Iterator接口，因此能够使用forEach()进行遍</span><span>历</span></p>
+</li>
+<li style="list-style-type: none; text-align: right;"><span>修正时间：2019-05-06&nbsp;&nbsp;16:28:04</span></li>
+<li style="list-style-type: none;"><span style="color: #ff0000;">**************************************************************************************************</span></li>
+<li style="list-style-type: none;">
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">不同于HTMLCollection，NodeList类型不会随着界面DOM元素的更新而变化，因此访问效率会高于HTMLCollection</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">document.querySelector(),document.querySelectorAll()方法返回的是NodeList对象</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code> let divs = document.querySelectorAll('div');
+ for (let i = 0; i &lt; divs.length; i++) {
+     document.body.appendChild(document.createElement('div'));
+ }
+ // 由于NodeList不再进行实时更新因此，同样的代码不再产生死循环</pre>
+</div>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">当界面中需要用到大量组合查询时，querySelector()与querySelectorAll()方法会比较简单，可以支持CSS选择器</span></p>
+</li>
+</ul>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">重绘与重排</span></p>
+<p class="md-end-block md-p"><span class="md-plain">重排</span></p>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">发生时机：元素的几何和位置属性发生变化时，会触发界面重排</span></p>
+</li>
+</ul>
+<p class="md-end-block md-p"><span class="md-plain">重绘</span></p>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">界面发生了改变（包括元素的位置，几何形状，颜色等等属性），浏览器就会重新绘制界面</span></p>
+</li>
+</ul>
+<ol class="ol-list">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">防止在更新界面的过程中调用一下属性：</span></p>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">offsetTop, offsetLeft, offsetWidth, offsetHeight</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">scrollTop, scrollLeft, scrollWidth, scrollHeight</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">clientTop, clientLeft, clientWidth, clientHeight</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">getComputedStyle(), currentStyle() ---&gt; IE</span></p>
+</li>
+</ul>
+<p class="md-end-block md-p"><span class="md-plain">上述属性需要返回最新的布局信息，因此会触发立即更新，强制执行界面更新以返回正确的布局信息</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">防止在更新界面信息时读取界面信息，读取操作将会触发当前渲染队列的更新</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code> const div = document.getElementById('id');
+ div.style.backgroundColor = 'red';
+ div.style.backgroundColor = 'green';
+ div.style.backgroungColor = 'yellow';
+ ​
+ console.log(div.style.backgroundColor); // 在此时读取样式值，由于javascript解析的速度极快，因此div的背景颜色在很短的时间内被修改了两次，但界面的重绘只会发生一次，即由红色变为黄色
+ ​
+ div.style.backgroundColor = 'red';
+ div.style.backgroundColor = 'green';
+ ​
+ console.log(div.style.backgroundColor);
+ // 由于在此处JavaScript访问了div的backgroundColor属性，为了返回当前div的正确颜色，将会触发div元素的重绘，即从红色变为绿色的过程，增加了界面渲染的开销
+ // 当然，在此处获取backgroudColor属性是没有意义的，因为很快就会被覆盖，此处仅仅为了说明这样一个问题：不要在界面样式改变的过程中访问元素的属性值，这样将会触发界面的重绘，增加开销
+ div.style.backgroungColor = 'yellow';
+ ​
+ console.log(div.style.backgroundColor);</pre>
+</div>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">最小化重绘和重排</span></p>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">合并多次对DOM的修改，一次性处理掉，在DOM修改的过程中，避免读取元素的样式，可以通过修改csscText属性或者通过修改类名的方式来修改样式实现</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">批量更新DOM</span></p>
+<p class="md-end-block md-p"><span class="md-plain">当需要对DOM进行多次修改时（大于两次），此时可以采用一种通用的模式来更新DOM</span></p>
+<ol class="ol-list">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">使元素脱离文档流 ---&gt; 脱离时会触发界面重排和重绘</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">对元素进行多重更新</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">将元素带回文档流 ---&gt; 带回文档流时也需要进行重排和重绘</span></p>
+</li>
+</ol>
+<p class="md-end-block md-p md-focus"><span class="md-plain md-expand">使元素脱离文档流的三种方法：</span></p>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">隐藏元素，应用修改，重新显示</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">使用DocumentFragment</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">将元素拷贝到一个脱离文档流的节点中，修改DOM，然后替换回去</span></p>
+</li>
+</ul>
+<p class="md-end-block md-p"><span class="md-plain">hover伪类选择器将会降低页面的响应速度，不推荐大量使用</span></p>
+<p class="md-end-block md-p"><span class="md-plain">事件委托</span></p>
+<ul class="ul-list" data-mark="-">
+<li class="md-list-item">
+<p class="md-end-block md-p"><span class="md-plain">事件委托是基于事件冒泡（事件由源对象向父级逐级传递）原理</span></p>
+</li>
+<li class="md-list-item">
+<p class="md-end-block md-p md-focus"><span class="md-plain">绑定事件处理函数是需要代价的，因此需要尽量将大量的&ldquo;<span class="md-tag md-raw-inline">&lt;li&gt;<span class="md-tag md-raw-inline">&lt;/li&gt;<span class="md-plain">&rdquo;上的事件委托给父元素，然后通过时间源对象的判断对相应的DOM元素响应事件回调函数</span></span></span></span></p>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ol></li>
+</ol>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,361 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用JavaScript带你体验V8引擎解析字符串' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用JavaScript带你体验V8引擎解析字符串</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/11160712.html</div><br>
+    <p>AST模块其实要写的话，100篇都写不完，我将一些简单知识点翻译成JavaScript代码来进行讲解(v8内部的复杂性永远都能超出我的意料，现在看到万行的源码都已经没感觉了)，如果谁想看C++源码，就去翻我前面的流水账。</p>
+<p>代码地址：<a href="https://github.com/pflhm2005/V8record/blob/master/JS">https://github.com/pflhm2005/V8record/blob/master/JS</a></p>
+<p>先写几个结论。</p>
+<ol>
+<li>抽象语法树内部有严格的分类，比如继承于AstNode的语句Statement、表达式Expression、声明Declaration等等，当判定对应词法的类型，会有一个工厂类专门生成对应类型的描述类。</li>
+<li>v8内部有一个名为string_table_的hashmap缓存了所有字符串，转换抽象语法树时，每遇到一个字符串，会根据其特征换算为一个hash值，插入到hashmap中。在之后如果遇到了hash值一致的字符串，会优先从里面取出来进行比对，一致的话就不会生成新字符串类。</li>
+<li>抽象语法树解析的判定优先级依次为Declaration(let a = 1)、Statement(if(true) {})、Expression("a" + "b")，其中还有一个非常特殊的语法类型是goto，即label语法，我只能说尽量不要用这个东西，v8为其专门写了特殊的解析，非常复杂。</li>
+<li>每一个大类型(例如Statement)也会有非常详细的子类型，比如if、while、return等等，当前解析词法不匹配对应类型，会进行降级解析。</li>
+<li>缓存字符串时，会分为三种情况处理，长度为1的单字符、长度为2-10的且值小于2^32 - 2的纯数字字符串、其他字符串，仅仅影响生成hash值方式，纯数字字符串会转换成数值再计算hash。</li>
+</ol>
+<p>案例中，单个词法'Hello'属于原始字符串，由AstRawString类进行管理。而整个待编译字符串"'Hello' + ' World'"中，加号左右的空格会被忽略，解析后分为三段，即字符串、加号、字符串。由于这段代码以字符串开头，被判定为一个字面量(literal)，在依次解析后发现了加号与另外一个字符串后结束，所以被判定是一个'普通二元运算表达式'，在expression中的标记分别是normal、binary operation、literal。</p>
+<p>&nbsp;</p>
+<p>这里用JavaScript模拟一遍"'Hello + World'"的解析过程，完整的解析后面有人看再说。命名和逻辑尽量还原C++源码，有些类存在多层继承就不搞了，枚举用数组代替，部分地方的语法与调用可能会看起来有些奇怪，指针以及模版元那些就没办法了。</p>
+<p>首先我们需要两个映射表，如下。</p>
+<div class="cnblogs_code">
+<pre><code>const kMaxAscii = 127<span style="color: #000000;">;
+const UnicodeToAsciiMapping </span>=<span style="color: #000000;"> [];
+</span><span style="color: #0000ff;">for</span>(let i = 0;i &lt; kMaxAscii;i ++<span style="color: #000000;">) {
+  UnicodeToAsciiMapping.push(String.fromCharCode(i));
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 源码确实是一个超长的三元表达式
+ * Token是一个枚举 这里直接用字符串代替了
+ * 因为太多了 只保留几个看看
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+const TokenToAsciiMapping </span>= (c) =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">return</span> c === '(' ? 'Token::LPAREN'<span style="color: #000000;"> : 
+  c </span>== ')' ? 'Token::RPAREN'<span style="color: #000000;"> :
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...很多很多</span>
+  c == '"' ? 'Token::STRING'<span style="color: #000000;"> :
+  c </span>== '\'' ? 'Token::STRING'<span style="color: #000000;"> :
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...很多很多</span>
+  'Token::ILLEGAL'<span style="color: #000000;">
+};
+const UnicodeToToken </span>= UnicodeToAsciiMapping.map(v =&gt; TokenToAsciiMapping(v));</pre>
+</div>
+<p>一个map负责对Unicode与Ascii做映射，一个map负责对Unicode与Token类型的映射，这里v8利用数组下标来快速定位字符类型。</p>
+<p>v8内部是对字符串做逐字解析，我们需要一个Stream类来管理和处理，实现一下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Stream {
+  constructor(source_string) {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * buffer_不会在构造函数中初始化
+     * 但为了模拟v8这里暂时保存源字符串
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.source_string =<span style="color: #000000;"> source_string;
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 作为容器存储字符
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.buffer_ =<span style="color: #000000;"> [];
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 三个指针分别代表当前解析进度
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.buffer_start_ = 0
+    <span style="color: #0000ff;">this</span>.buffer_cursor_ = 0
+    <span style="color: #0000ff;">this</span>.buffer_end_ = 0<span style="color: #000000;">
+  }
+  ReadBlockChecked() {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.ReadBlock();
+  }
+  ReadBlock() {
+    </span><span style="color: #0000ff;">this</span>.buffer_ = <span style="color: #0000ff;">this</span>.source_string.split('').map(v =&gt;<span style="color: #000000;"> UnicodeToAsciiMapping.indexOf(v));
+    </span><span style="color: #0000ff;">this</span>.buffer_end_ = <span style="color: #0000ff;">this</span><span style="color: #000000;">.buffer_.length;
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 这里的返回与源码不同 涉及gc 不做展开
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.buffer_.length;
+  }
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 返回当前字符 并前进一格
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Advance() {
+    let tmp </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.peek();
+    </span><span style="color: #0000ff;">this</span>.buffer_cursor_++<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> tmp;
+  }
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 返回当前字符
+   * 同时会做初始化
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  peek() {
+    </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.buffer_cursor_ &lt; <span style="color: #0000ff;">this</span><span style="color: #000000;">.buffer_end_) {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.buffer_[<span style="color: #0000ff;">this</span><span style="color: #000000;">.buffer_cursor_];
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span><span style="color: #000000;">.ReadBlockChecked()) {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.buffer_[<span style="color: #0000ff;">this</span><span style="color: #000000;">.buffer_cursor_];
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+  }
+}</span></pre>
+</div>
+<p>有了这个类，就能对字符串逐字解析，但是还是需要一个机器来启动这个步骤，机器叫scanner。在实现扫描机器之前，我们还需要实现词法类，也就是如何描述单个词法。这个类在v8中叫TokenDesc，属于Ast中最基础的单元。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class TokenDesc {
+  constructor() {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 源码中是一个结构体
+     * 除了标记起始、结束位置还有若干方法
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.location =<span style="color: #000000;">  {
+      beg_pos: </span>0<span style="color: #000000;">,
+      end_pos: </span>0<span style="color: #000000;">,
+    };
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 负责管理字符串
+     * 还有一个名为raw_literal_chars的同类型属性负责储存源字符串
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.literal_chars = new LiteralBuffer()<span style="color: #000000;">;
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * Token类型
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.token = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 处理小整数
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.smi_value = 0<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">this</span>.after_line_terminator = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+  }
+}</span></pre>
+</div>
+<p>里面的属性基本上还原了v8源码，Location做了简化，另外literal_chars负责专门处理字符串，后面会给出实现。</p>
+<p>token则标记了该词法的类型，类型判断可见上面的第二个映射表，根据不同的类型有不同的case处理。</p>
+<p>smi_value则管理小整数类型的词法，可以去看jjc对于这个的介绍，我这里就不展开了。</p>
+<p>有了词法类，再来实现扫描器scanner。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Scanner {
+  constructor(source_string) {
+    </span><span style="color: #0000ff;">this</span>.source_ = <span style="color: #0000ff;">new</span><span style="color: #000000;"> stream(source_string);
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 当前字符的Unicode编码
+     * 如果为null代表解析完成
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.c0_ = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 其实v8有三个词法描述类
+     * token_storage_是一个数组 里面装着那个三个类 这里就不用了
+     * 为了方便就弄一个
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.TokenDesc = <span style="color: #0000ff;">new</span><span style="color: #000000;"> TokenDesc();
+    </span><span style="color: #0000ff;">this</span>.token_storage_ =<span style="color: #000000;"> [];
+  }
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 源码有current_、next_、next_next_三个标记 这里搞一个
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  next() {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.TokenDesc;
+  }
+  Initialize() {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.Init();
+    </span><span style="color: #0000ff;">this</span>.next().after_line_terminator = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.Scan();
+  }
+  Init() {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.Advance();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 后面会有一些词法描述类对token_storage_的映射 这里跳过</span>
+<span style="color: #000000;">  }
+  Advance() {
+    </span><span style="color: #0000ff;">this</span>.c0_ = <span style="color: #0000ff;">this</span><span style="color: #000000;">.source_.Advance();
+  }
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 这里有函数重载 JS就直接用默认参数模拟了
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Scan(next </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.TokenDesc) {
+    next.token </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.ScanSingleToken();
+    next.location.end_pos </span>= <span style="color: #0000ff;">this</span>.source_.buffer_cursor_ - 1<span style="color: #000000;">;
+  }
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 单个词法的解析
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  ScanSingleToken() {
+    let token </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">do</span><span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">this</span>.next().location.beg_pos = <span style="color: #0000ff;">this</span><span style="color: #000000;">.source_.buffer_cursor_;
+      </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.c0_ &lt;<span style="color: #000000;"> kMaxAscii) {
+        token </span>= UnicodeToToken[<span style="color: #0000ff;">this</span><span style="color: #000000;">.c0_];
+        </span><span style="color: #0000ff;">switch</span><span style="color: #000000;">(token) {
+          </span><span style="color: #0000ff;">case</span> 'Token::LPAREN'<span style="color: #000000;">:
+          </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+           * 有很多其他的case
+           * 因为只讲字符串
+           * 这里就不实现这个方法了
+           </span><span style="color: #008000;">*/</span>
+            <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.Select(token);
+          </span><span style="color: #0000ff;">case</span> 'Token::STRING'<span style="color: #000000;">:
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.ScanString();
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">        } 
+      }
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+       * 源码中这里处理一些特殊情况 不展开了
+       </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    } </span><span style="color: #0000ff;">while</span>(token === 'Token::WHITESPACE'<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+  }
+}</span></pre>
+</div>
+<p>这个类比较大，简化了不少地方，核心当然是解析。在源码中，对scanner类调用初始化的Initialize时就会对第一个词法进行解析，如同我重写的那个逻辑，最后对字符串的处理方法就是那个ScanString。</p>
+<p>在这里暂时没有将ScanString的实现给出来，主要是在这个方法关联着另外一个类，即之前TokenDesc类中的literal_chars。</p>
+<p>所以先把管理字符串的类实现，再来看对字符串的最终解析。</p>
+<div class="cnblogs_code">
+<pre><code>const Latin1_kMaxChar = 255<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> constexpr int kOneByteSize = kCharSize = sizeof(char);</span>
+const kOneByteSize = 1<span style="color: #000000;">;
+class LiteralBuffer {
+  constructor() {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 源码中是一个Vector容器
+     * 有对应扩容算法
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.backing_store_ =<span style="color: #000000;"> [];
+    </span><span style="color: #0000ff;">this</span>.position_ = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 当字符串中有字符的Unicode值大于255
+     * 判定为双字节类型 这里先不处理这种
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">this</span>.is_one_byte_ = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+  }
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 启动这个时默认字符串为单字节
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  start() {
+    </span><span style="color: #0000ff;">this</span>.position_ = 0<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">this</span>.is_one_byte_ = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+  }
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 只关心单字节字符 所以那两个方法不给出实现了
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  AddChar(code_unit) {
+    </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span><span style="color: #000000;">.is_one_byte_) {
+      </span><span style="color: #0000ff;">if</span>(code_unit &lt;=<span style="color: #000000;"> Latin1_kMaxChar) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.AddOneByteChar(code_unit);
+      }
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.ConvertToTwoByte();
+    }
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.AddTwoByteChar(code_unit);
+  }
+  AddOneByteChar(one_byte_char) {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 扩容算法简述就是以64为基准 每次扩容*4
+     * 当所需容器大于(1024 * 1024) / 3时 写死为2 * 1024 * 1024
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.position_ &gt;= <span style="color: #0000ff;">this</span>.backing_store_.length) <span style="color: #0000ff;">this</span><span style="color: #000000;">.ExpandBuffer();
+    </span><span style="color: #0000ff;">this</span>.backing_store_[<span style="color: #0000ff;">this</span>.position_] =<span style="color: #000000;"> one_byte_char;
+    </span><span style="color: #0000ff;">this</span>.position_ +=<span style="color: #000000;"> kOneByteSize;
+  }
+}</span></pre>
+</div>
+<p>其实这个类本身比较简单，只是用了一个容器来装字符，必要时进行扩容，单双字节不关心的话也就没什么了。</p>
+<p>有了这个类，就能对字符串进行完整的解析，来实现scanner类的ScanString方法吧。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Scanner {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">  ScanString() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 保存当前字符串的标记符号 ' 或 "</span>
+    let quote = <span style="color: #0000ff;">this</span><span style="color: #000000;">.c0_;
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.next().literal_chars.Start();
+    </span><span style="color: #0000ff;">while</span>(<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.AdvanceUntil();
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+       * 特殊符号直接前进一格
+       </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">while</span>(<span style="color: #0000ff;">this</span>.c0_ === '\\'<span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.Advance();
+      }
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+       * 遇到结束的标记代表解析结束
+       </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.c0_ ===<span style="color: #000000;"> quote) {
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.Advance();
+        </span><span style="color: #0000ff;">return</span> 'Token::STRING'<span style="color: #000000;">;
+      }
+      </span><span style="color: #0000ff;">this</span>.AddLiteralChar(<span style="color: #0000ff;">this</span><span style="color: #000000;">.c0_);
+    }
+  }
+  AddLiteralChar(c) {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.next().literal_chars.AddChar(c);
+  }
+}</span></pre>
+</div>
+<p>可以看到，除去那个AdvanceUntil方法，其实还是正常的逐字遍历字符，当遇到同一个标记时，就代表字符串解析结束。</p>
+<p>但是这个AdvanceUtil方法确实比较有意思，简述就是快速检测字符串的结尾位置并完成扫描，顺利的话跑完这个方法就结束了整个ScanString。其参数是一个函数，负责检查当前字符是否可能是字符串结束标志。C++源码中用的是匿名函数，看起来比较难受，这里用JS重写一遍，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Scanner {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 这里相对源码有改动
+   * 1、实际调用的是source_上的方法 并把返回值给了c0_
+   * 2、判断函数在这里写实现
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  AdvanceUntil() {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 这里需要实现std标准库中一个方法
+     * 实际上是三个参数 且前两个参数为迭代器 为了方便暂时就不完美实现了
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    const find_if </span>= (arr, start, end, callback) =&gt;<span style="color: #000000;"> {
+      let tarArr </span>=<span style="color: #000000;"> arr.slice(start, end);
+      let tarIdx </span>= tarArr.findIndex(v =&gt;<span style="color: #000000;"> callback(v));
+      </span><span style="color: #0000ff;">return</span> tarIdx === -1 ?<span style="color: #000000;"> end : tarIdx;
+    }
+    const callback </span>= (c0) =&gt;<span style="color: #000000;"> {
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+       * 代表当前字符可能是一个结束符 这里简化了判断 源码如下
+       * uint8_t char_flags = character_scan_flags[c0];
+       * if (MayTerminateString(char_flags)) return true;
+       </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">if</span>(["\'", "\""].includes(UnicodeToAsciiMapping[c0])) <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.AddLiteralChar(c0);
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 在字符串中寻找第一个字符结尾标记的位置
+     * 例如'、"等等
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    let next_cursor_pos </span>= find_if(<span style="color: #0000ff;">this</span>.source_.buffer_, <span style="color: #0000ff;">this</span>.source_.buffer_cursor_, <span style="color: #0000ff;">this</span><span style="color: #000000;">.source_.buffer_end_, callback);
+    </span><span style="color: #0000ff;">if</span>(next_cursor_pos === <span style="color: #0000ff;">this</span><span style="color: #000000;">.source_.buffer_end_) {
+      </span><span style="color: #0000ff;">this</span>.source_.buffer_cursor_ = <span style="color: #0000ff;">this</span><span style="color: #000000;">.source_.buffer_end_;
+      </span><span style="color: #0000ff;">this</span>.c0_ = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">this</span>.source_.buffer_cursor_ = next_cursor_pos + 1<span style="color: #000000;">;
+      </span><span style="color: #0000ff;">this</span>.c0_ = <span style="color: #0000ff;">this</span><span style="color: #000000;">.source_.buffer_[next_cursor_pos + 1];
+    }
+  }
+}</span></pre>
+</div>
+<p>这里其实也对字符串进行了遍历，但只是粗糙的扫描，在一般情况下，这个方法走完字符串就遍历完毕，但是偶尔也会有特殊情况，比如说"ab'c'd"、"abc\"d"。当遇到特殊情况，这里只能将前面的字符add后，交给外部继续处理。</p>
+<p>里面其实还有一个映射表，叫character_scan_flag，也是对单个字符的类型判定，属于一种可能性分类。比如遍历到一个字符z，这里就会给一个标记kCannotBeKeyword，代表这个词法不可能是一个关键词，在某些情况可以快速跳过一些流程。同理，在遇到'、"字符时，会被判断可能是一个字符串的结尾标记，这里就用上了。这个映射表比较复杂，前面我就没搞出来。</p>
+<p>至此，一个字符串的词法就算是解析完了，最后会返回一个类型的Token::STRING的标记，作为词法描述类型。当然，这个单独的词法实际上没有任何意义，单独拿出来会被忽略。但是如果与运算符ADD和另外一个字符串连起来，会进化成一个二元运算表达式，这些东西都是后面的事了。</p>
+<p>给一个测试结果，执行的时候要注释掉一些方法，因为没有给实现。</p>
+<div class="cnblogs_code">
+<pre><code>let scanner = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Scanner(source_code);
+scanner.Initialize();
+console.log(scanner)</span></pre>
+</div>
+<p>结果如图.</p>
+<p><img src="./images/用JavaScript带你体验V8引擎解析字符串0.png" alt="" /></p>
+<p>其中TokenDesc会被包装成更高层的类最后进入抽象语法树，这些是后话了。字符串的存储方式、hash表等等后面有空再说吧。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

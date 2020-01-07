@@ -1,0 +1,94 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ES6入门系列   -----    Reflect' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ES6入门系列   -----    Reflect</center></div><div class='banquan'>原文出处:本文由博客园博主初心，你好吗提供。<br/>
+原文连接:https://www.cnblogs.com/LHLVS/p/11023963.html</div><br>
+    <p>　　Reflect&nbsp; &nbsp;是ES6 为了操作对象而提供的新的API, 目的是：</p>
+<ol>
+<li>将Object 上一些明显属于语言内部的方法，比如 Object.defineProperty&nbsp; 放到 Reflect对象上</li>
+</ol>
+<p>现阶段某些方法同时在Object&nbsp; ,&nbsp; Reflect 上部署，&nbsp; 未来的新方法将只在Reflect对象上部署，也就是说</p>
+<p>从Reflect对象上可以获得语言内部的方法。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;2. 修改某些Object 方法的返回结果，让其变得更合理。</p>
+<p>　　&nbsp; 3.让Object的操作都变成函数行为。某些Object操作是命令式，比如name in obj&nbsp; &nbsp;和&nbsp;&nbsp;</p>
+<p>delete obj[name],&nbsp; &nbsp; 而Reflect.has(obj, name)&nbsp; 和&nbsp; Reflect.deleteProperty(obj, name)&nbsp; 让它们变成了函数行为。</p>
+<p>　　 4.Reflect 对象的方法与Proxy 对象的方法一一对应， 只要是Proxy 对象上的方法， 就能在Reflect 对象上找到对应的方法。这就使Proxy对象可以方便地调用对应Reflect的方法来完成默认行为，作为修改行为的基础。无论Proxy怎么修改默认行为，我们总可以在Reflect上获取默认行为。</p>
+<p>&nbsp; &nbsp; &nbsp; 看个例子：</p>
+<p>　　</p>
+<div class="cnblogs_code">
+<pre><code>const des =<span style="color: #000000;"> {
+    name: </span>'liu'<span style="color: #000000;">,
+    age: </span>18<span style="color: #000000;">
+};
+const newDes </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Proxy(des, {
+    set: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (target, name, value, receiver) {
+        let res </span>=<span style="color: #000000;"> Reflect.set(target, name, value, receiver);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 额外行为</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> (res) {
+            console.log(res)
+            Reflect.set(target, </span>'age', 80<span style="color: #000000;">, receiver);
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> res
+    }
+});
+console.log(newDes);
+newDes.name </span>= 'xxxx'<span style="color: #000000;">;
+console.log(newDes);</span></pre>
+</div>
+<p>我们对&nbsp; 对象des&nbsp; 的set 方法&nbsp; 做了一层拦截， 每当newDes 设置值的时候，我们先用</p>
+<p>Reflect.set（） 保证默认行为， 默认行为成功后 再执行我们的额外行为，也就是把age 变成80.</p>
+<p>看下执行结果：</p>
+<p><img src="./images/ES6入门系列   -----    Reflect0.png" alt="" /></p>
+<p>OK ， 默认行为name设置成功， 额外行为age也设置成功，</p>
+<p>我们还可以代理对象内部的其他方法：</p>
+<div class="cnblogs_code">
+<pre><code>const des =<span style="color: #000000;"> {
+    name: </span>'liu'<span style="color: #000000;">,
+    age: </span>18<span style="color: #000000;">
+};
+const newDes </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Proxy(des, {
+    set(target, name, value, receiver) {
+        let res </span>=<span style="color: #000000;"> Reflect.set(target, name, value, receiver);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 额外行为</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> (res) {
+            console.log(res);
+            Reflect.set(target, </span>'age', 80<span style="color: #000000;">, receiver);
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> res
+    },
+    deleteProperty(target, p) {
+        console.log(</span>'delete ' +<span style="color: #000000;"> p);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Reflect.deleteProperty(target, p);
+    },
+    get(target, p, receiver) {
+        console.log(</span>'get ' +<span style="color: #000000;"> p);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Reflect.get(target, p, receiver);
+    }
+});
+const name </span>=<span style="color: #000000;"> newDes.name;
+</span><span style="color: #0000ff;">delete</span> newDes.age;</pre>
+</div>
+<p>拦截对象的get方法 和 delete 指令</p>
+<p>结果：</p>
+<p><img src="./images/ES6入门系列   -----    Reflect1.png" alt="" /></p>
+<p>拦截成功。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

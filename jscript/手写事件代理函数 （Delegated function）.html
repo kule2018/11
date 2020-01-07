@@ -1,0 +1,100 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修手写事件代理函数 （Delegated function）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>手写事件代理函数 （Delegated function）</center></div><div class='banquan'>原文出处:本文由博客园博主初心，你好吗提供。<br/>
+原文连接:https://www.cnblogs.com/LHLVS/p/10712952.html</div><br>
+    <p>&lsquo;手写 &rsquo; 这个词 ，面试是不是听过无数遍呢 !</p>
+<p>今天我们来手写一个这样的事件委托函数 =》</p>
+<p>function（ parent， selector， type ,&nbsp; handle)&nbsp; {}</p>
+<p>你需要传递的参数分别是：</p>
+<p>parent： 事件绑定的父级</p>
+<p>selector： 选择器，</p>
+<p>type:&nbsp; 事件类型</p>
+<p>handle： 事件处理函数</p>
+<p>&nbsp;</p>
+<p>写之前 先了解一下事件委托的概念：&nbsp; &nbsp; &nbsp;</p>
+<p>　　　　它是通过事件冒泡机制，</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;即子元素上触发的事件会冒泡到父级上， 即父级也会触发该类型的事件，</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;通过父级触发的事件拿到事件源对象e.target&nbsp; 就可以 知道 真正触发事件的元素是什么。</p>
+<p>&nbsp;</p>
+<p>举个例子， 一个ul 下面有 1000 个&nbsp; li&nbsp; &nbsp;， 我们 要给&nbsp; li&nbsp; 绑定&nbsp; 点击事件 ， 如果给每个li都绑定一个</p>
+<p>点击事件&nbsp; 会&nbsp; 大量占用 内存&nbsp; &nbsp;， 不利于性能优化， 这种情况下 我们 只需要在ul上绑定一个点击事件，</p>
+<p>通过class 或者 id 来识别每个li ,&nbsp; 这样就大大减少了事件注册， 而且 再 有新增的li时 我们也无需再去注册点击事件</p>
+<p>&nbsp;</p>
+<p>我们来写个小demo</p>
+<p>HTML：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;ul id="parent"&gt;
+    &lt;li&gt;1&lt;/li&gt;
+    &lt;li&gt;2&lt;/li&gt;
+    &lt;li&gt;3&lt;/li&gt;
+&lt;/ul&gt;</pre>
+</div>
+<p>css:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">.active{
+    background</span>-<span style="color: #000000;">color: green;
+}</span></pre>
+</div>
+<p>js:</p>
+<div class="cnblogs_code">
+<pre><code>const parent = document.getElementById('parent'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> changeColor() {</span></pre>
+<pre><code>　　if (this.classList.contains('active')) {<br />    　　this.classList.remove('active')<br />　　} else {<br />    　　this.classList.add('active');<br />　　}</pre>
+<pre><code><span style="color: #000000;"> } <br /><br /></span><span style="color: #0000ff;">function</span><span style="color: #000000;"> delegate(parent, selector, type, handle) { } <br />delegate(parent, </span>'li', 'click',changeColor);</pre>
+</div>
+<p>我们要实现点哪个li&nbsp; , 哪个li就变成原谅色, 再次点击取消。并 做 浏览器的兼容</p>
+<p>我们开始写 delegate函数：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> matchSelector(target, selector) {
+    </span><span style="color: #0000ff;">if</span> (selector.match(/^#/g)) { <span style="color: #008000;">//</span><span style="color: #008000;"> 匹配以#开头的字符串</span>
+        <span style="color: #0000ff;">return</span> target.id === selector.slice(1); <span style="color: #008000;">//</span><span style="color: #008000;"> 截取#后面的字符串</span>
+<span style="color: #000000;">    }
+    </span><span style="color: #0000ff;">if</span> (selector.match(/^\./g)) {  <span style="color: #008000;">//</span><span style="color: #008000;"> . 要转义，匹配以点开头的字符转</span>
+        <span style="color: #0000ff;">return</span> target.classList.contains(selector.slice(1<span style="color: #000000;">))
+    }
+    </span><span style="color: #0000ff;">return</span> target.nodeName.toLowerCase() ===  selector; <span style="color: #008000;">//</span><span style="color: #008000;"> 匹配标签</span>
+<span style="color: #000000;">}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> delegate(parent, selector, type, handle) {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (parent.addEventListener) {
+        parent.addEventListener(type, eventFn, </span><span style="color: #0000ff;">false</span><span style="color: #000000;">)
+    } </span><span style="color: #0000ff;">else</span> {   <span style="color: #008000;">//</span><span style="color: #008000;"> 兼容老IE</span>
+        parent.attachEvent('on' +<span style="color: #000000;"> type, handle)
+    }
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> eventFn(e) {
+        const event </span>= e ||<span style="color: #000000;"> window.event;
+        const target </span>= event.target || event.srcElement;<span style="color: #008000;">//</span><span style="color: #008000;"> 兼容老IE</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> (matchSelector(target, selector)) {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (handle) {
+                handle.call(target, e); // <span style="color: #008000;">让handle执行时的this指向target</span>
+            }
+        }
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;效果：<img src="./images/手写事件代理函数 （Delegated function）0.png" alt="" width="710" height="228" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　　　　　　　　　　</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,68 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一个开源组件 bug 引发的分析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一个开源组件 bug 引发的分析</center></div><div class='banquan'>原文出处:本文由博客园博主苏进取提供。<br/>
+原文连接:https://www.cnblogs.com/sujinqu/p/11809353.html</div><br>
+    <p>这是一个悲伤的故事。某日清晨，距离版本转测还剩一天，切图仔的我正按照计划有条不紊的画页面。当我点击一个下拉弹框组件中分页组件页数过多而出现的向后 5 页省略号时，悲剧开始了，弹框被收回了。情景再现<br />
+<img src="./images/一个开源组件 bug 引发的分析0.png" alt="file" /></p>
+<h2 id="问题">问题</h2>
+<p>问题的表象很简单，使用的是组件库的下拉弹窗组件，在组件中使用到了分页组件，当点击分页组件的向后 5 页快速跳转时，弹窗被收回了。我们的预期是能够继续操作的，只有点击弹框外部时，弹窗才会被收回。</p>
+<h2 id="分析">分析</h2>
+<p>发现这个问题我做了如下分析：</p>
+<ol>
+<li><p>确定这是一个问题<br />
+再次重复操作问题，确定问题出现的条件，能够在特定条件下复现的问题才是问题。我稳定的复现了问题条件是：分页组件出现向前跳转 5 页或向后跳转 5 页，点击到不会再出现向前跳转 5 页或向后跳转 5 页这样的快速跳转后，弹框会被收回。</p></li>
+<li><p>确定是自己组件配置使用问题还是组件本身 bug<br />
+我在组件的文档中并没有看到有关这个问题的特别说明。接着我又在官方提供的代码运行环境中，写了一个使用的 demo（实际项目中的代码复杂度较高，可能存在被其他样式等因素影响而产生问题，使用功能单一的 demo 有助于我们快速确定问题范围，且官方运行环境一般使用的是其最新的组件版本），发现与我在项目中使用存在同样问题。到这里可以排除是组件配置使用，组件库版本不是最新，及项目环境影响导致的问题。</p></li>
+<li><p>在组件库的开源项目中查询 issue<br />
+在 issue 中搜索关键字查询是否有相关 issue，如果运气好找到相关问题，一般会有相关的讨论，就算没有具体的解决措施也能让你明白问题大概在哪里。我运气比较差，没有找到相关问题的 issue，所以只能自己提一个 issue 了。有时间有耐心等待维护人解决你提的 issue，问题分析到这里就可以结束了。</p></li>
+<li>查看组件源码<br />
+显然我的时间很紧急，问题必须尽快解决，且我也想确定一下问题具体在哪里，看自己能否解决。很快我找到的相关组件的源码，经过定位发现，弹框下拉组件中使用了 v-click-outside 指令，用来触发点击指令之外的元素收起弹框。<br />
+进一步深入源码，发现 v-click-outside 组件的原理，是在 document 组件上注册了一个 click 监听事件，当有点击事件发生，监听函数会判断，点击事件发生的元素，是否包含在使用指令的元素中。如果是监听函数返回，否则触发指令绑定的事件（在弹框组件中就是隐藏弹框）。代码片段如下</li>
+</ol>
+<pre><code><code>    // el 表示指令绑定的元素，event为点击事件
+    const isClickOutside = event.target !== el &amp;&amp; !el.contains(event.target)
+
+    if (!isClickOutside) {
+            return
+    }
+
+    if (middleware(event, el)) {
+            handler(event, el)
+    }</code></pre>
+<ol>
+<li>断点调试<br />
+经过上面的步骤过后，我还没有发现问题的所在，所以只能打断点进行代码调试了。经过调试发现问题出在 el.contains(event.target) 这一段，分页组件中的向前 5 页元素，点击触发后就被 v-if 指令从页面中移除了。所以运行到这一句时，el 中是不包含向前 5 页元素的。也就是说这里向前 5 页元素被错误的判断为不在 el 元素中，指令绑定的弹框收起函数被触发，弹框被收回了。</li>
+</ol>
+<h2 id="解决问题">解决问题</h2>
+<p>问题已经找出，现在问题是怎么解决，因为问题是出在组件中，但是我们又不能直接修改组件库代码，直接修改项目依赖代码，不利于代码维护，也治标不治本。最好是能在项目代码中添加代码解决这个问题。</p>
+<p>开始时走了一些弯路，想着用伪元素去覆盖，被点击的元素，试图去混淆 e.target，让 el.contains(event.target) 为true。这样确实取得了一些成效，但是在页数更多了以后依然有问题，而且我也不是很清楚这样用伪元素遮挡可以让事件触发元素不是本来元素的原理是什么。更重要的一点是，写这篇文章的时候我完全回忆不出当时我为什么会想到这个方案，可能是灵感吧，解决问题真的很需要灵感。</p>
+<p>在使用了弯路解决办法暂时解决问题后，我开始思考更彻底的解决方案。归根结底问题是出在了 v-click-outside 指令上，如果我够找到一种正确的判断方式，让被删除的元素也可以被判断为在指令注册元素中，那么问题将得到彻底解决。经过不断的尝试与思考，我发现将点击事件注册在捕获阶段触发时，得到的指令绑定元素中依然有应该被删除的点击元素。到这里问题基本就明朗了，彻底的解决方案也就出现了。</p>
+<p>由于组件引入的 v-click-outside 指令是局部注册在下拉弹框组件上的，所以我使用了 vue 的extends 继承了组件的弹框下拉组件。在继承的组件中重新注册了指令 v-click-outside，该指令注册在 document 上的点击事件是捕获阶段触发的。</p>
+<p>由于是继承覆盖组件库中的组件，所以组件库升级不会带来太大的影响，同时也不用重新写一个组件，减少了工作量。到这里问题就得到了彻底的解决。</p>
+<h2 id="输出-v-click-out-包">输出 v-click-out 包</h2>
+<p>解决完问题之后，我在 npm 上搜索了一些 click-outside 相关的包，发现这些包中注册在 document 上的点击事件，普遍是在冒泡阶段触发的，也就是说都存在文中我所遇到的问题。于是经过几天业余时间的努力，我开源了一个基于 vue 的 click-outside 指令开源项目<a href="https://github.com/helloprogh/catch-click-outside">catch-click-outside</a>（不要脸求star）</p>
+<h2 id="一点思考">一点思考</h2>
+<p>在之前的工作中，我也解决了不少问题，这次之所以会记录解决过程，一个是因为这个问题我产生了一些输出，可能对别人会有些微的帮助。另一个比较重要的原因是，在解决问题过程中走了一些弯路，也遇到了一些坎，但是这些问题都在不停的思考与事件中逐渐清晰，然后被解决，我觉得这个过程很值得记录。文字功底有限，这个解决过程记录的平淡无奇，谨以此作为备忘。</p>
+<h3 id="转载请注明出处">转载请注明出处！</h3>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

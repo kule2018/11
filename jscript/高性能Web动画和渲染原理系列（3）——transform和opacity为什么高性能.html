@@ -1,0 +1,55 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修高性能Web动画和渲染原理系列（3）——transform和opacity为什么高性能' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>高性能Web动画和渲染原理系列（3）——transform和opacity为什么高性能</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11741892.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-opacity动画为什么性能好">一. opacity动画为什么性能好</a></li>
+        <li><a href="#二.-transform动画为什么性能好">二. transform动画为什么性能好</a></li>
+        <li><a href="#三.小结">三.小结</a></li>
+        </ul>
+    </div>
+</div>
+<blockquote>
+<p>示例代码托管在：<a href="http://www.github.com/dashnowords/blogs" class="uri">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<p><img src="./images/高性能Web动画和渲染原理系列（3）——transform和opacity为什么高性能0.png" /></p>
+<p>关于<code>opacity</code>和<code>transform</code>的动画性能的话题，机会总是会涉及到<strong>“合成层”</strong>或者<strong>“硬件加速”</strong>的概念，理解起来让人觉得非常混乱，最近研究渲染相关的知识后，希望将这几个概念逐步梳理清楚。</p>
+<h2 id="一.-opacity动画为什么性能好">一. opacity动画为什么性能好</h2>
+<p><code>opacity</code>单词意思为透明度，直观视觉效果就是颜色变淡了，但最终显示的颜色其实仍然可以用<strong>RGB</strong>三个通道来表示，从数值运算的角度来看，它实际上表示了<strong>它采用一般混合策略和其他颜色进行混合时的比例</strong>，也就是：</p>
+<p><img src="./images/高性能Web动画和渲染原理系列（3）——transform和opacity为什么高性能1.png" /></p>
+<p>例如在网页默认的白底色上<code>rgba(255,255,255)</code>显示一个包含透明度的<code>rgba(218,89,97,0.8)</code>颜色， 那么颜色的<strong>RGB</strong>分量都按照上述公式进行计算就得到<code>rgb(225,122,128)</code>,用取色器拾取一下渲染出来的点，结果和上述理论是一致的：</p>
+<p><img src="./images/高性能Web动画和渲染原理系列（3）——transform和opacity为什么高性能2.png" /></p>
+<p>所以<code>opacity</code>这个属性本身就是用在重叠部分颜色处理的过程中使用的，对于分层的图原来说就可以看作是与图层内容无关的系数，因为合成过程中当前层中所有像素都需要经历上面的颜色混合公式，所以<code>opacity</code>的动画过程<strong>既不会影响布局，也不需要重绘。</strong>这样图层中保存的<strong>RGB</strong>像素数据的缓存在动画过程中也就不需要更新了，如果不使用<code>opacity</code>属性的话，每一帧对于变化部分都需要手动重计算<strong>RGB</strong>颜色值（这也就相当于是重绘了），因为这些区域的像素颜色一直都在变化，缓存也就没有意义。现在再来看看<code>opacity</code>的性能优势，就相对容易理解了。</p>
+<h2 id="二.-transform动画为什么性能好">二. transform动画为什么性能好</h2>
+<p><code>transform</code>的性能优势和<code>opacity</code>的原因是一致的，而不是因为有<strong>“硬件加速”</strong>的加持。<code>transform</code>属性支持的位移函数<code>translate( )</code>，缩放比例函数<code>scale( )</code>，斜切函数<code>skew( )</code>和旋转函数<code>rotate( )</code>都可以转换为线性映射的形式，也就是<code>matrix( )</code>表示的方式，简单来说就是所有<code>transform</code>实现的效果都可以对原坐标系中的点<code>[x,y]</code>按照如下的齐次矩阵进行计算得到变换后的点坐标<code>[x',y']</code>：</p>
+<p><img src="./images/高性能Web动画和渲染原理系列（3）——transform和opacity为什么高性能3.png" /></p>
+<p>齐次矩阵的系数是设定<code>transform</code>变换时传入的，是一个已知项，而使用三维的齐次矩阵是因为二维坐标的点在变换时会产生常数项（主要是平移变换），而如果以二维矩阵作为参数来计算时，以<code>x</code>坐标变换为例，结果的形式就是<code>x'=ax+by</code>，其中是没有常量的，所以只能采用一个三维齐次矩阵来表示，但计算中的第三个坐标实际上并不需要使用。更多的关于变换的数学原理，感兴趣的读者可以自行查阅资料。</p>
+<p>所以<code>transform</code>在动画过程中也<strong>不需要改变缓存的记录</strong>，而在图层合成时遍历当前层的点然后用上述公式来计算出对应的新坐标点就可以了，它也可以视作一种与图层内容无关的变换，图层中的元素首次生成的位图信息缓存可以被反复使用。比如一段平移动画，如果使用<code>绝对定位+改变left值</code>的方式来实现，就需要不断计算动画元素的布局并更新它的像素信息，但如果使用<code>translate</code>来实现，动画元素在文档流中的位置并不需要改变，无论后续平移到多远，都可以使用位图缓存中保存的初始位置信息，再加上变换矩阵的影响在层合并时计算出来，同样<strong>既不影响布局，也不需要重绘</strong>，这就是它高性能的原因。</p>
+<h2 id="三.小结">三.小结</h2>
+<p><code>opacity</code>和<code>transform</code>动画的高性能是由于其数学原理决定了可以使用缓存信息，而并不是因为它被<strong>硬件加速</strong>了。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

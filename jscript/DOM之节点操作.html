@@ -1,0 +1,161 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修DOM之节点操作' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>DOM之节点操作</center></div><div class='banquan'>原文出处:本文由博客园博主任风来去匆匆提供。<br/>
+原文连接:https://www.cnblogs.com/ruhaoren/p/11383679.html</div><br>
+    <p>　　DOM提供了很多实用的API，这些API让我们可以轻松的访问HTML文档。所谓API（应用程序接口），简单来说，就是让我们可以直接使用它访问程序的一些属性或方法，而不用了解程序内部的运作过程和原理。</p>
+<p>　　前面我们已经了解了DOM把HTML文档解析为节点树，实际上HTML节点树只是整个DOM树的一个分支，另一个分支则是XML。在详细介绍HTML DOM节点的操作之前，先来看一下完整的DOM树：</p>
+<p><span style="font-size: 16px;"><img src="./images/DOM之节点操作0.png" alt="" width="879" height="416" /></span></p>
+<p>　　网上没找到关于完整的DOM树的图，所以自己大致做了一个。准确说这个应该叫DOM继承树，因为很多我们常用的DOM对象的方法都绑定在Document和Element对象上。我们从HTML文档获取的DOM元素上使用的方法，其实大部分都继承自这俩。（上图Element的子分支写错了，应该是HTMLElement和XMLElement，之前的图不见了，懒得重新做，特此说明）</p>
+<p>&nbsp;</p>
+<p>　　这里放一段HTML代码供后面测试使用：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">2</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h1 </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="h1"</span><span style="color: #0000ff;">&gt;</span>h1<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">3</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h3 </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="h3"</span><span style="color: #0000ff;">&gt;</span>h3<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h3</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">4</span>     <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div name="div"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">5</span>         <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">6</span>             <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>span<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">span</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">7</span>         <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">8</span>     <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #008080;">9</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>    </pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>一 　　查找节点</strong></span></p>
+<p>&nbsp;</p>
+<p><strong>　　1，&nbsp; 元素(标签)查找</strong></p>
+<p>　　　　document代表整个文档。</p>
+<p>　　　　document.getElementById():通过标签ID属性查找元素。绑定在Document上所以<strong>只能使用document调用</strong>。</p>
+<p>　　　　document.getElementsByName()：通过标签name属性查找元素（所有的）。绑定在HTMLDocument上，<strong>只能使用document调用</strong>。</p>
+<p>　　　　.getElementsByTagName()：通过标签名查找元素（所有的）。Document和Element上均有绑定。</p>
+<p>　　　　.getElementsByClassName()：通过标签class属性查找元素（所有的）。Document和Element上均有绑定。</p>
+<p>　　　　<strong>.querySelector()：通过css方式查找元素。</strong>Document和Element上均有绑定。</p>
+<p><strong>　　　　.querySelectorAll()：通过css方式查找元素（所有的）</strong>。Document和Element上均有绑定。</p>
+<p>　　<strong>注意，最后两个虽然速度快，但它不是实时的查找元素，而是这一时刻的静态快照，如果这之后DOM结构发生改变，可能会产生预期之外的结果，所以使用的时候请务必小心。</strong><strong>　</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> h3 = document.getElementById("h3"<span style="color: #000000;">),
+</span><span style="color: #008080;">2</span>     h1 = document.getElementsByClassName("h1")[0<span style="color: #000000;">],
+</span><span style="color: #008080;">3</span>     div = document.getELementsByName("div")[0<span style="color: #000000;">],
+</span><span style="color: #008080;">4</span>     p = document.getElementsByTagName("p")[0<span style="color: #000000;">],
+</span><span style="color: #008080;">5</span>     span = p.getElementsByTagName("span")[0];</pre>
+</div>
+<p>　　　<strong>除了.getElementById和.querySeletor是获取单个元素外，其他方式都是获取一组元素，返回值都是类数组，所以访问需遵循数组访问方式。</strong></p>
+<p>　</p>
+<p>　　<strong>2，&nbsp; 节点树遍历（包含所有类型节点）</strong></p>
+<p>　　　　node.parentNode：获取节点的父节点。</p>
+<p>　　　　node.childNodes：获取节点的所有子节点。</p>
+<p>　　　　node.firstChild：获取节点的第一个子节点。</p>
+<p>　　　　node.lastChild：获取节点的最后一个节点。</p>
+<p>　　　　node.nextSibling：获取节点紧邻的下一个兄弟节点。</p>
+<p>　　　　node.previousSibling：获取节点紧邻的上一个兄弟节点。</p>
+<p>　　多数情况下我们都是访问元素节点，所以这里就不举例说明了。</p>
+<p>&nbsp;</p>
+<p><strong>　　3，&nbsp; 元素节点树遍历（只包含元素）</strong></p>
+<p>　　　　node.parentElement：获取节点的父元素节点。</p>
+<p>　　　　node.children：获取节点的所有子元素节点。</p>
+<p>　　　　node.firstElementChild：获取节点的第一个元素子节点。</p>
+<p>　　　　node.lastElementChild：获取节点的最后一个元素子节点。</p>
+<p>　　　　node.nextElementSibling：获取节点的紧邻的下一个兄弟元素。</p>
+<p>　　　　node.previousElementSibling：获取节点的紧邻的上一个兄弟元素。</p>
+<p>　　元素节点都有一个attributes属性，值是该元素节点的属性集合,诸如id，class，name等等，也是一个类数组。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> h3.parentElement;<span style="color: #008000;">//</span><span style="color: #008000;">body</span>
+<span style="color: #008080;">2</span> p.children[0];<span style="color: #008000;">//</span><span style="color: #008000;">span</span>
+<span style="color: #008080;">3</span> document.body.firstElementChild;<span style="color: #008000;">//</span><span style="color: #008000;">h1</span>
+<span style="color: #008080;">4</span> document.body.lastElementChild;<span style="color: #008000;">//</span><span style="color: #008000;">div</span>
+<span style="color: #008080;">5</span> h1.nextElementSibling;<span style="color: #008000;">//</span><span style="color: #008000;">h3</span>
+<span style="color: #008080;">6</span> div.previousElementSibling;<span style="color: #008000;">//</span><span style="color: #008000;">h3</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>二&nbsp;&nbsp;&nbsp;&nbsp; 创建节点</strong></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>1，创建</strong></p>
+<p>　　　　document.createElement();创建元素节点。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; document.createTextNode();创建文本节点。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; document.createComment();创建注释节点。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> document.createElement('button'<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span> document.createTextNode('我是文本'<span style="color: #000000;">)；
+</span><span style="color: #008080;">3</span> document.createComment('我是注释');</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>2，插入</strong></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; parentNode.appendChild();向父元素内部的最后一个位置插入节点。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; parentNode.insertBefore(a,b);向父元素内部b节点之前插入a节点。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> strong = document.createElement("strong"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">p.appendChild(strong);
+</span><span style="color: #008080;"> 3</span> console.log(p);<span style="color: #008000;">//</span><span style="color: #008000;">&lt;p&gt;&lt;span&gt;span&lt;/span&gt;&lt;strong&gt;&lt;/strong&gt;&lt;p&gt;</span>
+<span style="color: #008080;"> 4</span> <span style="color: #0000ff;">var</span> text = document.createTextNode("some text"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">div.insertBefore(text,p);
+</span><span style="color: #008080;"> 6</span> <span style="color: #008000;">/*</span>
+<span style="color: #008080;"> 7</span> <span style="color: #008000;">&lt;div&gt;
+</span><span style="color: #008080;"> 8</span> <span style="color: #008000;">    some text
+</span><span style="color: #008080;"> 9</span> <span style="color: #008000;">    &lt;p&gt;
+</span><span style="color: #008080;">10</span> <span style="color: #008000;">        &lt;span&gt;span&lt;/span&gt;
+</span><span style="color: #008080;">11</span> <span style="color: #008000;">        &lt;strong&gt;&lt;/strong&gt;
+</span><span style="color: #008080;">12</span> <span style="color: #008000;">    &lt;/p&gt;
+</span><span style="color: #008080;">13</span> <span style="color: #008000;">&lt;/div&gt;
+</span><span style="color: #008080;">14</span> <span style="color: #008000;">*/</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>三&nbsp;&nbsp;&nbsp;&nbsp; 删除节点</strong></span></p>
+<p>&nbsp;</p>
+<p>　　<strong>1，删除</strong></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; parentNode.removeChild()；父节点删除子节点，从页面剪切出来，有返回值。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; node.remove();节点自己，直接删除，无返回值。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> &lt;div&gt;
+<span style="color: #008080;">2</span>     &lt;p&gt;&lt;/p&gt;
+<span style="color: #008080;">3</span> &lt;/div&gt;
+<span style="color: #008080;">4</span> *********************************
+<span style="color: #008080;">5</span> <span style="color: #0000ff;">var</span> oDiv = document.getElementsByTagName('div')[0<span style="color: #000000;">],
+</span><span style="color: #008080;">6</span>       oP = document.getLEementsByTagName('p')[0<span style="color: #000000;">];
+</span><span style="color: #008080;">7</span> oDiv.removeChild(oP);<span style="color: #008000;">//</span><span style="color: #008000;">父删子</span>
+<span style="color: #008080;">8</span> <span style="color: #008000;">//</span><span style="color: #008000;">oP.remove();删自己</span></pre>
+</div>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;</p>
+<p>　　<strong>2，替换</strong></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; parentNode.replaceChild(new,old)；用new节点替换父元素内部old节点。用的很少。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> removedH1 =<span style="color: #000000;"> document.body.removeChild(h1);
+</span><span style="color: #008080;">2</span> console.log(removedH1);<span style="color: #008000;">//</span><span style="color: #008000;">&lt;h1 class="h1"&gt;h1&lt;/h1&gt;</span>
+<span style="color: #008080;">3</span> <span style="color: #0000ff;">var</span> removedH3 =<span style="color: #000000;"> h3.remove();
+</span><span style="color: #008080;">4</span> console.log(removedH3);<span style="color: #008000;">//</span><span style="color: #008000;">undefined</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>补充：元素节点的属性和方法</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 属性</p>
+<p>　　　　node.innerHTML;获取父节点内部的HTML结构。</p>
+<p>　　　　node.innerText/textContent；获取父节点内部的文本内容。</p>
+<p>　　方法</p>
+<p>　　　　node.setAttribute();设置元素的属性和值。</p>
+<p>　　　　node.getAttribute();获取元素的属性值。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> div.innerHtml;<span style="color: #008000;">//</span><span style="color: #008000;">&lt;div&gt;&lt;span&gt;span&lt;/span&gt;&lt;/div&gt;</span>
+<span style="color: #008080;">2</span> span.innerText;<span style="color: #008000;">//</span><span style="color: #008000;">"span"</span>
+<span style="color: #008080;">3</span> h1.getAttribute("class");<span style="color: #008000;">//</span><span style="color: #008000;">"h1"</span>
+<span style="color: #008080;">4</span> h1.setAttribute("id","idh1");<span style="color: #008000;">//</span><span style="color: #008000;">&lt;h1 class="h1" id = "idh1"&gt;&lt;/h1&gt;</span></pre>
+</div>
+<p>　　&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

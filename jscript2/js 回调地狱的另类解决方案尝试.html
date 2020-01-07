@@ -1,0 +1,126 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js 回调地狱的另类解决方案尝试' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js 回调地狱的另类解决方案尝试</center></div><div class='banquan'>原文出处:本文由博客园博主程序熊猫提供。<br/>
+原文连接:https://www.cnblogs.com/DeepinCoding/p/11995287.html</div><br>
+    <p>例如 通过学生获取学生所在学校信息，需要先查询学生所在班级，再通过班级查询所在学校信息。js代码类似写法如下:</p>
+<div class="cnblogs_Highlighter">
+<pre><code>function getStudentSchool(id) {
+    ajax.get("/Test/GetStudent", { "studentId": id }, function (student) {
+        if (student != null &amp;&amp; student.ClassId != null) {
+            ajax.get("/Test/GetClass", { "classId": student.ClassId }, function (studentClass) {
+                if (studentClass != null &amp;&amp; studentClass.SchoolId != null) {
+                    ajax.get("/Test/GetSchool", { "schoolId": studentClass.SchoolId }, function (school) {
+                        if (school != null) {
+                            console.log(school);
+                        }
+                    });
+                }
+            });
+        }
+    });
+}
+ 
+//调用入口方法
+window.&omicron;nl&omicron;ad= function(){
+	getStudentSchool(1);
+};
+</pre>
+</div>
+<p>　　写了个类通过设置相关业务信号量来绑定触发的方法，当信号变量改变时就会自动调用相应的方法，改进方法如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> AsynFlag() {
+    </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> <span style="color: #0000ff;">this</span>.setFlag != "function"<span style="color: #000000;">) {
+        AsynFlag.prototype.setFlag </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (obj, name, fun) {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (obj.hasOwnProperty(name)) {
+                obj[name </span>+ "_fun"] =<span style="color: #000000;"> fun;
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+            obj[name] </span>= 0<span style="color: #000000;">;
+            obj[name </span>+ "_"] = 0<span style="color: #000000;">;
+            Object.defineProperty(obj, name, {
+                get: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                    </span><span style="color: #0000ff;">return</span> obj[name + "_"<span style="color: #000000;">];
+                },
+                set: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (value) {
+                    </span><span style="color: #0000ff;">if</span> (value != obj[name + "_"<span style="color: #000000;">]) {
+                        obj[name </span>+ "_"] =<span style="color: #000000;"> value;
+                    }
+                    </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+                    {
+                        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+                    }
+                    </span><span style="color: #0000ff;">if</span> (obj[name + "_fun"] == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                        obj[name </span>+ "_fun"] =<span style="color: #000000;"> fun;
+                    }
+                    obj[name </span>+ "_fun"<span style="color: #000000;">]();
+                }
+            });
+        };
+    }
+}
+ 
+</span><span style="color: #0000ff;">var</span> param = { "studentId": 0, "classId": 0, "schoolId": 0<span style="color: #000000;"> };
+</span><span style="color: #0000ff;">var</span> s = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AsynFlag();
+</span><span style="color: #0000ff;">var</span> flag =<span style="color: #000000;"> {};
+ 
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> getStudent()
+{
+    ajax.get(</span>"/Test/GetStudent", { "studentId": param.studentId }, <span style="color: #0000ff;">function</span><span style="color: #000000;"> (student) {
+        </span><span style="color: #0000ff;">if</span> (student != <span style="color: #0000ff;">null</span> &amp;&amp; student.ClassId != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            param.classId </span>=<span style="color: #000000;"> student.ClassId;
+            s.setFlag(flag, </span>"canGetClass"<span style="color: #000000;">, getClass);
+            flag.canGetClass </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        } 
+    });
+}
+ 
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> getClass()
+{
+    ajax.get(</span>"/Test/GetClass", { "classId": param.ClassId }, <span style="color: #0000ff;">function</span><span style="color: #000000;"> (studentClass) {
+        </span><span style="color: #0000ff;">if</span> (studentClass != <span style="color: #0000ff;">null</span> &amp;&amp; studentClass.SchoolId != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            param.SchoolId  </span>=<span style="color: #000000;"> studentClass.SchoolId;
+            s.setFlag(flag, </span>"canGetSchool"<span style="color: #000000;">, getSchool);
+            flag.canGetSchool </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+    });
+}
+ 
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> getSchool()
+{
+    ajax.get(</span>"/Test/GetSchool", { "schoolId": param.SchoolId }, <span style="color: #0000ff;">function</span><span style="color: #000000;"> (school) {
+        </span><span style="color: #0000ff;">if</span> (school != <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            console.log(school);
+        }
+    });
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">调用入口方法</span>
+window.onload= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    param.studentId </span>=1<span style="color: #000000;">;
+    getStudent();
+};</span></pre>
+</div>
+<p>flag 是个信号量设置对象，s.setFlag(flag, "canGetClass", getClass); 设置flag拥有canGetClass属性，并且该属性绑定函数getClass,&nbsp; 当第一个ajax获得数据后设置信号并改变信号量触发绑定的getClass函数，flag对象中会自动创建canGetClass,</p>
+<p>canGetClass_, 两个属性和一个canGetClass_fun方法来实现当canGetClass改变时调用canGetClass_fun=getClass。</p>
+<p>以上代码实际测试可行。</p>
+<p>代码已上传github&nbsp;https://github.com/SaFaJim/AsynFlag<br />&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;<br />版权声明：本文为CSDN博主「皮皮虾大侠」的原创文章，遵循 CC 4.0 BY-SA 版权协议，转载请附上原文出处链接及本声明。<br />原文链接：https://blog.csdn.net/Asa_Jim/article/details/86648199</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

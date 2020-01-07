@@ -1,0 +1,77 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-AST(1)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-AST(1)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/11113303.html</div><br>
+    <p>　　没办法了，开坑吧，接下来的几篇会讲述JavaScript字符串源码在v8中转换成AST(抽象语法树)的过程。</p>
+<p>　　JS代码在V8的解析只有简单的几步，其中第一步就是将源字符串转换为抽象语法树，非常类似于vue中将html转换为VNODE的过程。该过程涉及的类并不多，均位于/src/parsing文件夹中，包括parsing、parser、scanner、token等等，先简单介绍一下各类的作用。</p>
+<ul>
+<li>Parser =&gt; 核心类，掌管了整个转换过程，内部包含scanner、parse-info等私有属性，产出抽象语法树</li>
+<li>Parsing =&gt; 这只是命名空间，全称为v8::interval::parsing，提供ParseProgram、ParseFunction、ParseAny作为parse的入口方法</li>
+<li>ParseInfo =&gt; 编译信息的描述类，包含大量配置参数与编译后的容器</li>
+<li>Scanner =&gt; 负责逐字解析解析源字符串的类，提供比较上层的API，初始化的Initialize方法会初始化所有变量并步进一格</li>
+<li>Scanner-character-streams =&gt; 所有源字符串都需要根据类型转换为该类，这个类提供解析的实际操作，诸如Peek(返回当前解析位置项)、Advance(解析过程前进一步)等等</li>
+<li>Token =&gt; 包含所有抽象语法树类型的枚举，例如关键词(const、if)、符号((、{)等等</li>
+</ul>
+<p>　　这些所有的类通过互相合作，最后产出一个类型为FunctionLiteral的结果，将其传入asm模块，生成底层代码。</p>
+<p>　　类型的继承关系树如下。</p>
+<p><img src="./images/深入V8引擎-AST(1)0.png" alt="" /></p>
+<p>　　其实发现这个过程还是挺痛苦的，因为从Compile一路看下来，发现直接就进了asm变成了汇编语言，可以说一切来的那么突然，我根本找不到突破点。当然，如果去掉一些无关的配置和CHECK，可以找到编译核心属性，比如说最后的AsmJs部分是这样调用的。</p>
+<div class="cnblogs_code">
+<pre><code>MaybeHandle&lt;SharedFunctionInfo&gt;<span style="color: #000000;"> GenerateUnoptimizedCodeForToplevel(
+    Isolate</span>* isolate, ParseInfo* parse_info, AccountingAllocator*<span style="color: #000000;"> allocator,
+    IsCompiledScope</span>*<span style="color: #000000;"> is_compiled_scope) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  std::vector&lt;FunctionLiteral*&gt;<span style="color: #000000;"> functions_to_compile;
+  functions_to_compile.push_back(parse_info</span>-&gt;<span style="color: #000000;">literal());
+
+  </span><span style="color: #0000ff;">while</span> (!<span style="color: #000000;">functions_to_compile.empty()) {
+    FunctionLiteral</span>* literal =<span style="color: #000000;"> functions_to_compile.back();
+    functions_to_compile.pop_back();
+    Handle</span>&lt;SharedFunctionInfo&gt; shared_info =<span style="color: #000000;">
+        Compiler::GetSharedFunctionInfo(literal, script, isolate);
+    </span><span style="color: #0000ff;">if</span> (shared_info-&gt;is_compiled()) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> (UseAsmWasm(literal, parse_info-&gt;<span style="color: #000000;">is_asm_wasm_broken())) {
+      std::unique_ptr</span>&lt;UnoptimizedCompilationJob&gt;<span style="color: #000000;"> asm_job(
+          AsmJs::NewCompilationJob(parse_info, literal, allocator));
+      </span><span style="color: #0000ff;">if</span> (asm_job-&gt;ExecuteJob() == CompilationJob::SUCCEEDED &amp;&amp;<span style="color: #000000;">
+        FinalizeUnoptimizedCompilationJob(asm_job.</span><span style="color: #0000ff;">get</span>(), shared_info, isolate) ==<span style="color: #000000;"> CompilationJob::SUCCEEDED) {
+        </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+      }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  <span style="color: #0000ff;">return</span><span style="color: #000000;"> top_level;
+}</span></pre>
+</div>
+<p>　　鬼一样的代码，只看最后返回的话，可以看出所有的调用都涉及那个literal。</p>
+<p>　　而这个literal是parse_info的一个属性，初始化时是NULL，在compile的某一步一定进行处理了，于是回头去翻了一遍整个编译过程。</p>
+<p><img src="./images/深入V8引擎-AST(1)1.png" alt="" /></p>
+<p>　　最后终于在CompileTopLevel找到了关键的一行代码。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">if</span> (parse_info-&gt;literal() == nullptr &amp;&amp; !<span style="color: #000000;">parsing::ParseProgram(parse_info, isolate)) {
+  </span><span style="color: #0000ff;">return</span> MaybeHandle&lt;SharedFunctionInfo&gt;<span style="color: #000000;">();
+}</span></pre>
+</div>
+<p>　　而这里，就是解析源代码成抽象语法树的地方，后面会从这里入手，边看边写吧。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

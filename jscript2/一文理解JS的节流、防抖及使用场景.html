@@ -1,0 +1,155 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一文理解JS的节流、防抖及使用场景' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一文理解JS的节流、防抖及使用场景</center></div><div class='banquan'>原文出处:本文由博客园博主JoeJoan提供。<br/>
+原文连接:https://www.cnblogs.com/Joe-and-Joan/p/10697161.html</div><br>
+    <h3 class="heading" data-id="heading-2">函数防抖(debounce)：在事件被触发n秒后再执行回调，如果在这n秒内又被触发，则重新计时。</h3>
+<p>看一个🌰（栗子）：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">模拟一段ajax请求</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> ajax(content) {
+  console.log(</span>'ajax request ' +<span style="color: #000000;"> content)
+}
+
+let inputa </span>= document.getElementById('unDebounce'<span style="color: #000000;">)
+
+inputa.addEventListener(</span>'keyup', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+    ajax(e.target.value)
+})</span></pre>
+</div>
+<p>看一下运行结果：</p>
+<p><img src="./images/一文理解JS的节流、防抖及使用场景0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;可以看到，我们只要按下键盘，就会触发这次ajax请求。不仅从资源上来说是很浪费的行为，而且实际应用中，用户也是输出完整的字符后，才会请求。下面我们优化一下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">模拟一段ajax请求</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> ajax(content) {
+  console.log(</span>'ajax request ' +<span style="color: #000000;"> content)
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> debounce(fun, delay) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> (args) {
+        let that </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">
+        let _args </span>=<span style="color: #000000;"> args
+        clearTimeout(fun.id)
+        fun.id </span>= setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+            fun.call(that, _args)
+        }, delay)
+    }
+}
+    
+let inputb </span>= document.getElementById('debounce'<span style="color: #000000;">)
+
+let debounceAjax </span>= debounce(ajax, 500<span style="color: #000000;">)
+
+inputb.addEventListener(</span>'keyup', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+        debounceAjax(e.target.value)
+    })</span></pre>
+</div>
+<p>看一下运行结果：</p>
+<p><img src="./images/一文理解JS的节流、防抖及使用场景1.png" alt="" /></p>
+<p>可以看到，我们加入了防抖以后，当你在频繁的输入时，并不会发送请求，只有当你在指定间隔内没有输入时，才会执行函数。如果停止输入但是在指定间隔内又输入，会重新触发计时。 再看一个🌰：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">    
+let biu </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'biu biu biu',<span style="color: #0000ff;">new</span> Date().Format('HH:mm:ss'<span style="color: #000000;">))
+}
+
+let boom </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'boom boom boom',<span style="color: #0000ff;">new</span> Date().Format('HH:mm:ss'<span style="color: #000000;">))
+}
+
+
+setInterval(debounce(biu,</span>500),1000<span style="color: #000000;">)
+setInterval(debounce(boom,</span>2000),1000)</pre>
+</div>
+<p>看一下运行结果：</p>
+<p><img src="./images/一文理解JS的节流、防抖及使用场景2.png" alt="" /></p>
+<p>这个🌰就很好的解释了，如果在时间间隔内执行函数，会重新触发计时。biu会在第一次1.5s执行后，每隔1s执行一次，而boom一次也不会执行。因为它的时间间隔是2s，而执行时间是1s，所以每次都会重新触发计时</p>
+<h3 class="heading" data-id="heading-4">函数节流(throttle):</h3>
+<h3 class="heading" data-id="heading-4">规定在一个单位时间内，只能触发一次函数。如果这个单位时间内触发多次函数，只有一次生效。</h3>
+<p>看一个🌰：</p>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #0000ff;">function</span><span style="color: #000000;"> throttle(fun, delay) {
+        let last, deferTimer
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> (args) {
+            let that </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">
+            let _args </span>=<span style="color: #000000;"> arguments
+            let now </span>= +<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date()
+            </span><span style="color: #0000ff;">if</span> (last &amp;&amp; now &lt; last +<span style="color: #000000;"> delay) {
+                clearTimeout(deferTimer)
+                deferTimer </span>= setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                    last </span>=<span style="color: #000000;"> now
+                    fun.apply(that, _args)
+                }, delay)
+            }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                last </span>=<span style="color: #000000;"> now
+                fun.apply(that,_args)
+            }
+        }
+    }
+
+    let throttleAjax </span>= throttle(ajax, 1000<span style="color: #000000;">)
+
+    let inputc </span>= document.getElementById('throttle'<span style="color: #000000;">)
+    inputc.addEventListener(</span>'keyup', <span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+        throttleAjax(e.target.value)
+    })</span></pre>
+</div>
+<p>看一下运行结果：</p>
+<p><img src="./images/一文理解JS的节流、防抖及使用场景3.png" alt="" /></p>
+<p>可以看到，我们在不断输入时，ajax会按照我们设定的时间，每1s执行一次。</p>
+<p>结合刚刚biubiubiu的🌰：</p>
+<div class="cnblogs_code">
+<pre><code>    let biubiu = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        console.log(</span>'biu biu biu', <span style="color: #0000ff;">new</span> Date().Format('HH:mm:ss'<span style="color: #000000;">))
+    }
+
+    setInterval(throttle(biubiu,</span>1000),10)</pre>
+</div>
+<p><img src="./images/一文理解JS的节流、防抖及使用场景4.png" alt="" /></p>
+<p>不管我们设定的执行时间间隔多小，总是1s内只执行一次。</p>
+<div>
+<div>
+<h1 class="heading" data-id="heading-6">总结</h1>
+<ul>
+<li>函数防抖和函数节流都是防止某一时间频繁触发，但是这两兄弟之间的原理却不一样。</li>
+<li>函数防抖是某一段时间内只执行一次，而函数节流是间隔时间执行。</li>
+</ul>
+<h3 class="heading" data-id="heading-7">结合应用场景</h3>
+<ul>
+<li>debounce
+<ul>
+<li>search搜索联想，用户在不断输入值时，用防抖来节约请求资源。</li>
+<li>window触发resize的时候，不断的调整浏览器窗口大小会不断的触发这个事件，用防抖来让其只触发一次</li>
+</ul>
+</li>
+<li>throttle
+<ul>
+<li>鼠标不断点击触发，mousedown(单位时间内只触发一次)</li>
+<li>监听滚动事件，比如是否滑到底部自动加载更多，用throttle来判断</li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

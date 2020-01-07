@@ -1,0 +1,280 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在React旧项目中安装并使用TypeScript的实践' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在React旧项目中安装并使用TypeScript的实践</center></div><div class='banquan'>原文出处:本文由博客园博主韩子卢提供。<br/>
+原文连接:https://www.cnblogs.com/vvjiang/p/11944912.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>本篇文章默认您大概了解什么是TypeScript，主要讲解如何在React旧项目中安装并使用TypeScript。</p>
+<p>写这个的目的主要是网上关于TypeScript这块的讲解虽然很多，但都是一些语法概念或者简单例子，真正改造一个React旧项目使用TypeScript的文章很少。</p>
+<p>所以在这里记录下改造一个React项目的实践。</p>
+<p>博客内容部分参照 <a href="https://www.tslang.cn/docs/handbook/react-&amp;-webpack.html">TypeScript中文网</a>，这个网站有官方文档的中文版。</p>
+<h2 id="安装typescript及相关库">安装TypeScript及相关库</h2>
+<p>对于集成了TypeScript的脚手架可以略过这一步，这里主要讲一下如何将TypeScript集成到一个React脚手架中。</p>
+<p>首先执行</p>
+<pre><code><code>npm install --save @types/react @types/react-dom</code></pre>
+<p>这一步主要是为了获取react和react-dom的声明文件，因为并不是所有的库都有TypeScript的声明文件，所以通过运行</p>
+<pre><code><code>npm install --save @types/库名字</code></pre>
+<p>的方式来获取TypeScript的声明文件。</p>
+<p>只有获取了声明文件，才能实现对这个库的类型检查。</p>
+<p>如果你使用了一些其它的没有声明文件的库，那么可能也需要这么做。</p>
+<p>然后运行命令：</p>
+<pre><code><code>npm install --save-dev typescript awesome-typescript-loader source-map-loader</code></pre>
+<p>这一步，我们安装了typescript、awesome-typescript-loader和source-map-loader。</p>
+<p><strong>awesome-typescript-loader</strong>可以让Webpack使用TypeScript的标准配置文件tsconfig.json编译TypeScript代码。</p>
+<p><strong>source-map-loader</strong>使用TypeScript输出的sourcemap文件来告诉webpack何时生成自己的sourcemaps,源码映射，方便调试。</p>
+<h2 id="添加typescript配置文件">添加TypeScript配置文件</h2>
+<p>在项目根目录下创建一个tsconfig.json文件，以下为内容示例：</p>
+<pre><code><code>{
+  &quot;compilerOptions&quot;: {
+    &quot;allowSyntheticDefaultImports&quot;: true, // 允许从没有设置默认导出的模块中默认导入。这并不影响代码的输出，仅为了类型检查。
+    &quot;outDir&quot;: &quot;./dist/&quot;, // 重定向输出目录
+    &quot;sourceMap&quot;: true, // 生成相应的 .map文件
+    &quot;noImplicitAny&quot;: true, // 在表达式和声明上有隐含的 any类型时报错。（默认为false，个人建议也为false，可以兼容之前的js代码，这里改为true是为了我自己检测哪些类型需要处理）
+    &quot;module&quot;: &quot;esnext&quot;, // 模块引入方式
+    &quot;target&quot;: &quot;es6&quot;, // 指定ECMAScript目标版本
+    &quot;moduleResolution&quot;: &quot;node&quot;, // 决定如何处理模块
+    &quot;lib&quot;: [
+      &quot;esnext&quot;,
+      &quot;dom&quot;
+    ], // 编译过程中需要引入的库文件的列表。
+    &quot;skipLibCheck&quot;: true, //忽略所有库中的声明文件（ *.d.ts）的类型检查。
+    &quot;jsx&quot;: &quot;react&quot; // 在 .tsx文件里支持JSX
+  },
+  &quot;include&quot;: [
+    &quot;./src/**/*&quot;, // 这个表示处理根目录的src目录下所有的.ts和.tsx文件，并不是所有文件
+  ]
+}</code></pre>
+<p><strong>skipLibCheck</strong>非常重要，并不是每个库都能通过typescript的检测。</p>
+<p><strong>moduleResolution</strong>设为node也很重要。如果不这么设置的话，找声明文件的时候typescript不会在node_modules这个文件夹中去找。</p>
+<p>更多配置文件信息可以参考：<a href="https://www.tslang.cn/docs/handbook/tsconfig-json.html">这里</a>。</p>
+<h2 id="配置webpack">配置webpack</h2>
+<p>这里列出一些TypeScript需要在webpack中使用的配置。</p>
+<p><strong>解析tsx文件的rule配置</strong></p>
+<p>示例如下：</p>
+<pre><code><code>module: {
+    rules: [
+      {
+        test: /\.jsx?$/,
+        exclude: /(node_modules)/,
+        use: {
+          loader: &#39;babel-loader&#39;,
+          options: {
+            presets: [&#39;react&#39;, &#39;env&#39;, &#39;stage-0&#39;, &#39;stage-3&#39;],
+            plugins: [
+              &#39;transform-decorators-legacy&#39;,
+              [&#39;import&#39;, { libraryName: &#39;antd&#39;, style: &#39;css&#39; }], // `style: true` 会加载 less 文件
+            ],
+          },
+        },
+      },
+      { test: /\.tsx?$/, loader: &quot;awesome-typescript-loader&quot; }
+      //...
+    ]
+    //...
+}</code></pre>
+<p>其实就只是多加了一行：</p>
+<pre><code><code>{ test: /\.tsx?$/, loader: &quot;awesome-typescript-loader&quot; }</code></pre>
+<p>注意这一行需要加在解析jsx的rule下面，因为rule的执行顺序是从下往上的，先解析tsx和ts再解析js和jsx。</p>
+<p>当然用</p>
+<pre><code><code>enforce: &#39;pre&#39;</code></pre>
+<p>调整过rule顺序的可以不用在意这一点。</p>
+<p><strong>解决使用css-moudule的问题</strong></p>
+<p>如果代码中使用了以下这种代码：</p>
+<pre><code><code>import styles from &#39;./index.css&#39;</code></pre>
+<p>那么很可能报下面的错：</p>
+<pre><code><code>Cannot find module &#39;./index.css&#39;</code></pre>
+<p>解决方法就是在根目录下新建文件一个叫declaration.d.ts的文件，内容为：</p>
+<pre><code><code>declare module &#39;*.css&#39; {
+  const content: any;
+  export default content;
+}</code></pre>
+<p>这行代码就是为所有的css文件进行声明。</p>
+<p>同时需要更改一下我们之前的tsconfig.json文件，将这个文件路径放在include中：</p>
+<pre><code><code>&quot;include&quot;: [
+  &quot;./src/**/*&quot;, 
+  &quot;./declaration.d.ts&quot;
+]</code></pre>
+<p>这个问题有通过安装一些库来解决的办法，但是会给每个css生成一个声明文件，感觉有点奇怪，我这里自己考虑了一下采用了上面这种方法。</p>
+<p><strong>用于省略后缀名的配置</strong></p>
+<p>如果你惯于在使用</p>
+<pre><code><code>import Chart from &#39;./Chart/index.jsx&#39;</code></pre>
+<p>时省略后缀，即：</p>
+<pre><code><code>import Chart from &#39;./Chart/index&#39;</code></pre>
+<p>那么在webpack的resolve中同样需要加入ts和tsx：</p>
+<pre><code><code>resolve: {
+  extensions: [&quot;.ts&quot;, &quot;.tsx&quot;, &quot;.js&quot;, &quot;.jsx&quot;]
+},</code></pre>
+<h2 id="引入ant-design">引入Ant Design</h2>
+<p>实际上这个东西Ant Design的官网上就有怎么在TypeScript中使用：<a href="https://ant.design/docs/react/use-in-typescript-cn">在 TypeScript 中使用</a>。</p>
+<p>那么为什么还是要列出来呢？</p>
+<p>因为这里要指出，对于已经安装了Ant Design的旧项目而言（一般都是配了按需加载的吧），在安装配置TypeScript时上面这个文档基本没有任何用处。</p>
+<p>在网上可以搜到的貌似都是文档中的方案，而实际上我们需要做的只是安装<strong>ts-import-plugin</strong>。</p>
+<pre><code><code>npm i ts-import-plugin --save-dev</code></pre>
+<p>然后结合之前的 <strong>awesome-typescript-loader</strong> ，在webpack中进行如下配置</p>
+<pre><code><code>const tsImportPluginFactory = require(&#39;ts-import-plugin&#39;)
+
+module.exports = {
+  // ...
+  module: {
+    rules: [
+      {
+        test: /\.tsx?$/,
+        loader: &quot;awesome-typescript-loader&quot;,
+        options: {
+          getCustomTransformers: () =&gt; ({
+            before: [tsImportPluginFactory([
+              {
+                libraryName: &#39;antd&#39;,
+                libraryDirectory: &#39;lib&#39;,
+                style: &#39;css&#39;
+              }
+            ])]
+          }),
+        },
+        exclude: /node_modules/
+      }
+    ]
+  },
+  // ...
+}</code></pre>
+<h2 id="配置完成修改前的准备">配置完成，修改前的准备</h2>
+<p>注意，直到这一步，实际上您的项目在编译过程中仍然没有用到TypeScript。</p>
+<p>因为我们这里只会用TypeScript处理.ts和.tsx后缀的文件，除非在配置中将allowJs设为true。</p>
+<p>在使用之前，默认您已经对TypeScript语法有了了解，不了解可以参考：<a href="https://www.tslang.cn/docs/handbook/typescript-in-5-minutes.html">5分钟上手TypeScript</a>。</p>
+<p>也就是说，经过了上面的这些步骤，您的原有代码在不改动后缀的情况下应该是可以继续用的。</p>
+<p>如果要使用TypeScript，那么新建tsx和ts文件，或者修改原有的文件后缀名即可。</p>
+<p>接下来会列出一些典型的修改示例。</p>
+<h2 id="函数式组件的修改示例含children">函数式组件的修改示例（含children）</h2>
+<pre><code><code>import React from &#39;react&#39;
+import styles from &#39;./index.css&#39;
+
+interface ComputeItemProps {
+  label: string;
+  children: React.ReactNode;
+}
+
+function ComputeItem({ label, children }: ComputeItemProps) {
+  return &lt;div className={styles[&#39;item&#39;]}&gt;
+    &lt;div className={styles[&#39;label&#39;]}&gt;{label}:&lt;/div&gt;
+    &lt;div className={styles[&#39;content&#39;]}&gt;{children}&lt;/div&gt;
+  &lt;/div&gt;
+}
+export default ComputeItem
+
+这个例子中语法都可以在TypeScript的官网查到，唯一需要注意的是children的类型是React.ReactNode。</code></pre>
+<h2 id="class组件修改示例含函数声明事件参数的定义">class组件修改示例(含函数声明，事件参数的定义)</h2>
+<pre><code><code>import React from &#39;react&#39;
+import styles from &#39;./index.css&#39;
+
+interface DataSourceItem {
+  dayOfGrowth: string;
+  netValueDate: string;
+}
+
+interface ComputeProps {
+  fundCode: string;
+  dataSource: DataSourceItem[];
+  onChange(value: Object): void;
+}
+
+export default class Compute extends React.Component&lt;ComputeProps, Object&gt; {
+  // 改变基金代码
+  handleChangeFundCode = (e: React.ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {
+    const fundCode = e.target.value
+    this.props.onChange({
+      fundCode
+    })
+
+  }  
+  render() {
+      //...
+    );
+  }
+}</code></pre>
+<p>这个例子展示如何声明class组件：</p>
+<pre><code><code>React.Component&lt;ComputeProps, Object&gt;</code></pre>
+<p>语法虽然看起来很怪，但是这就是TypeScript中的泛型，以前有过C#或者Java经验的应该很好理解。</p>
+<p>其中，第一个参数定义Props的类型，第二个参数定义State的类型。</p>
+<p>而react的事件参数类型应该如下定义：</p>
+<pre><code><code>React.ChangeEvent&lt;HTMLInputElement&gt;</code></pre>
+<p>这里同样使用了泛型，上面表示Input的Change事件类型。</p>
+<p>而组件的Prop上有函数类型的定义，这里就不单独列出来了。</p>
+<p>这几个例子算是比较典型的TypeScript与React结合的例子。</p>
+<h2 id="处理window上的变量">处理window上的变量</h2>
+<p>使用写在window上的全局变量会提示window上不存在这个属性。</p>
+<p>为了处理这点，可以在declaration.d.ts这个文件中定义变量：</p>
+<pre><code><code>// 定义window变量
+interface Window{
+  r:string[]
+}</code></pre>
+<p>其中r是变量名。</p>
+<h2 id="处理别名问题2019年12月2日更新">处理别名问题（2019年12月2日更新）</h2>
+<p>如果你的代码在webpack中定义了别名，即：</p>
+<pre><code><code>resolve: {
+  alias: {
+    common: path.resolve(__dirname, &#39;src/common&#39;),
+    modules: path.resolve(__dirname, &#39;src/modules&#39;),
+    store: path.resolve(__dirname, &#39;src/store&#39;),
+  }
+},</code></pre>
+<p>那么使用这种别名的时候：</p>
+<pre><code><code>import { PageReduxState } from &#39;store/reducers&#39;;</code></pre>
+<p>typescript会找不到相应模块。</p>
+<p>为了解决这个问题，需要在tsconfig.json中配置解析路径：</p>
+<pre><code><code>{
+  &quot;compilerOptions&quot;: {
+    // ...
+    // ts下别名的检测
+    &quot;baseUrl&quot;: &quot;./src&quot;,
+    &quot;paths&quot;: {
+      &quot;common/*&quot;: [&quot;common/*&quot;],
+      &quot;modules/*&quot;: [&quot;modules/*&quot;],
+      &quot;store/*&quot;: [&quot;store/*&quot;]
+    }
+  },
+  //...
+}</code></pre>
+<h2 id="typescript解析扩展运算符报错2019年12月13日更新">typescript解析扩展运算符报错（2019年12月13日更新）</h2>
+<p>报错提示如下：</p>
+<pre><code><code>ERROR in ./src/modules/pageMain/index.tsx 40:16
+Module parse failed: Unexpected token (40:16)
+You may need an appropriate loader to handle this file type.
+|         this.handleChange = (params) =&gt; {
+|             this.setState({
+&gt;                 ...this.state,
+|                 ...params
+|             }, this.getList);
+ @ ./src/route/index.js 28:9-35
+ @ ./src/app.js
+ @ multi babel-polyfill ./src/app.js       </code></pre>
+<p>解决方案：<br />
+尝试将tsconfig.json中</p>
+<pre><code><code>&quot;target&quot;: &quot;esnext&quot;</code></pre>
+<p>修改为</p>
+<pre><code><code>&quot;target&quot;: &quot;es6&quot;</code></pre>
+<p>即可。</p>
+<h2 id="总结">总结</h2>
+<p>本来还想再多写几个示例的，但是Dota2版本更新了，导致我不想继续写下去了，以后如果有时间再更新常用的示例吧。</p>
+<p>本篇文章只专注于在React旧项目中安装并集成TypeScript，尽可能做到不涉及TypeScript的具体语法与介绍，因为介绍这些东西就不是一篇博客能搞定的了。</p>
+<p>文章如有疏漏还请指正，希望能帮助到在TypeScript面前迟疑的你。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,129 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入理解ES6之——代理和反射（proxy）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入理解ES6之——代理和反射（proxy）</center></div><div class='banquan'>原文出处:本文由博客园博主寻找石头鱼提供。<br/>
+原文连接:https://www.cnblogs.com/xzsty/p/11357820.html</div><br>
+    <p>通过调用new proxy()你可以创建一个代理来替代另一个对象（被称为目标），这个代理对目标对象进行了虚拟，因此该代理与该目标对象表面上可以被当做同一个对象来对待。</p>
+<h2 id="创建一个简单的代理">创建一个简单的代理</h2>
+<p>当你使用Proxy构造器来创建一个代理时，需要传递两个参数：目标对象以及一个处理器，后者是定义了一个或多个陷阱函数的对象。如果未提供陷阱函数，代理会对所有操作采取默认行为。</p>
+<h2 id="使用set陷阱函数验证属性值">使用set陷阱函数验证属性值</h2>
+<pre><code><code>let target = {};
+var proxy = new Proxy(target, {
+    set(trapTarget, key, value, receiver) {
+        if (!trapTarget.hasOwnProperty(key)) {
+            if (isNaN(value)) {
+                throw new Error(&#39;Proxy must be a number&#39;);
+            }
+        }
+
+        return Reflect.set(trapTarget, key, value, receiver);
+    }
+})
+
+proxy.count = 1;
+
+console.log(proxy.count);
+console.log(target.count);
+
+try {
+    proxy.anthorName = &#39;cc&#39;;
+} catch (err) {
+    console.log(err.message);
+}</code></pre>
+<p>使用上述方法可以对添加给对象的属性值进行验证，如果值为非数字，就会抛出错误。</p>
+<h2 id="使用get陷阱函数进行对象外形验证">使用get陷阱函数进行对象外形验证</h2>
+<p>在js中，如果读取一个对象中不存在的属性时，会显示undefined，这对于排查问题很不利。使用代理进行对象外形验证就可以帮你从这个错误中拯救出来。</p>
+<pre><code><code>let proxy = new Proxy({}, {
+    get(trapTarget, key, receiver) {
+        if (!(key in receiver)) {
+            throw new Error(`property ${key} not exist`);
+        }
+        return Reflect.get(trapTarget, key, receiver);
+    }
+})
+
+proxy.name = &#39;cc&#39;;
+try {
+    console.log(proxy.age);
+} catch (error) {
+    console.log(error.message);
+}
+
+//输出结果
+property age not exist</code></pre>
+<p>上述代码对打印的对象属性进行验证，如果不存在则抛出一个错误。<a href="https://juejin.im/post/5be2fcd7f265da616d53aad0#heading-8">今日头条的一个面试题</a></p>
+<h2 id="使用has陷阱函数隐藏属性">使用has陷阱函数隐藏属性</h2>
+<p>in运算符用于判断指定对象中是否存在某个属性，如果对象的属性名与指定的字符串或符号值相匹配，那么in运算符应当返回true，无论该属性是对象自身的属性还是原型的属性。代理允许你使用has陷阱函数来解决这个问题</p>
+<p>has陷阱函数会在使用in运算符的情况下被调用，并且会被传入两个参数：</p>
+<ol>
+<li>trapTarget:需要读取属性的对象（即代理的目标对象）</li>
+<li>key：需要检查的属性的键（字符串类型或符号类型）Reflect.has()方法接收与之相同的参数并向in运算符返回默认相应结果</li>
+</ol>
+<pre><code><code>let target = {
+    name: &#39;cc&#39;,
+    age: 26,
+    sex: &#39;man&#39;
+}
+
+let proxy = new Proxy(target, {
+    has(trapTarget, key) {
+        if (trapTarget.hasOwnProperty(key)) {
+            return Reflect.has(trapTarget, key);
+        } else {
+            return false;
+        }
+    }
+})
+
+console.log(&#39;toString&#39; in proxy);
+console.log(&#39;name&#39; in proxy);
+console.log(&#39;age&#39; in proxy);</code></pre>
+<h2 id="使用deleteproperty陷阱函数避免属性被删除">使用deleteProperty陷阱函数避免属性被删除</h2>
+<p>delete运算符能从指定对象上删除一个属性，在删除成功时返回true，否则返回false</p>
+<p>deleteProperty陷阱函数会在使用delete运算符去删除对象属性时被调用，并且会被传入两个参数：</p>
+<ol>
+<li>trapTarget：需要删除属性的对象</li>
+<li>key：需要删除的属性的键</li>
+</ol>
+<p>Reflect.deleteProperty()方法也接受两个参数，并提供了deleteProperty陷阱函数的默认实现。</p>
+<pre><code><code>let target = {
+    name: &#39;target&#39;,
+    value: 42
+}
+
+let proxy = new Proxy(target, {
+    deleteProperty(trapTarg, ke) {
+        if (ke === &#39;value&#39;) {
+            return false;
+        } else {
+            return Reflect.deleteProperty(trapTarg, ke);
+        }
+    }
+})
+
+let result = delete proxy.value;
+let result1 = delete proxy.name;
+console.log(result);
+console.log(result1);</code></pre>
+<h2 id="我的博客即将同步至腾讯云社区邀请大家一同入驻httpscloud.tencent.comdevelopersupport-planinvite_code2n9b6sotx9wkc">我的博客即将同步至腾讯云+社区，邀请大家一同入驻：<a href="https://cloud.tencent.com/developer/support-plan?invite_code=2n9b6sotx9wkc" class="uri">https://cloud.tencent.com/developer/support-plan?invite_code=2n9b6sotx9wkc</a></h2>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

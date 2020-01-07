@@ -1,0 +1,177 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修quillJS 富文本编辑器源码分析系列1' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>quillJS 富文本编辑器源码分析系列1</center></div><div class='banquan'>原文出处:本文由博客园博主张茂提供。<br/>
+原文连接:https://www.cnblogs.com/zhangmao/p/10779746.html</div><br>
+    <p>quillJS 富文本编辑器目前是一款很火富文本编辑器，使用广泛，github 上面的 star 有 22,492，虽然说不以 star 论英雄，不过这可以说明它还是比较受欢迎的；</p>
+<p>它的特点是：轻量，易上手，易扩展，开源，所见即所得的一款现代编辑器，还有一点是它的实现思路和其他的编辑器有点不一样（会一步步分析），这就是为什么要记录和学习它的原因吧，还有就是为了补充这一块的知识，可以自己独立开发一款真正的编辑器，哈哈；</p>
+<p>这里用的版本是 1.3.6，先看一下 webpack 中的依赖的几个包：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> "<span style="color: #8b0000;">dependencies</span>": {
+<span style="color: #008080;">  2</span>   "<span style="color: #8b0000;">clone</span>": "<span style="color: #8b0000;">^2.1.1</span>",
+<span style="color: #008080;">  3</span>   "<span style="color: #8b0000;">deep-equal</span>": "<span style="color: #8b0000;">^1.0.1</span>",
+<span style="color: #008080;">  4</span>   "<span style="color: #8b0000;">eventemitter3</span>": "<span style="color: #8b0000;">^2.0.3</span>",
+<span style="color: #008080;">  5</span>   "<span style="color: #8b0000;">extend</span>": "<span style="color: #8b0000;">^3.0.1</span>",
+<span style="color: #008080;">  6</span>   "<span style="color: #8b0000;">parchment</span>": "<span style="color: #8b0000;">^1.1.4</span>",
+<span style="color: #008080;">  7</span>   "<span style="color: #8b0000;">quill-delta</span>": "<span style="color: #8b0000;">^3.6.2</span>"
+<span style="color: #008080;">  8</span> }
+<span style="color: #008080;">  9</span> </pre>
+</div>
+<p>这些包一看名字就知道是干啥的，后面会介绍这些包的功能，有两个包要特别说明一下：parchment，quill-delta，这两个包是quill基础依赖包，也是quill作者开发的，独立于quill之外的包，parchment定义了一套自己的规则，对各种HTML的操作的抽象，delta 是描述内容变化的一些抽象，在quill的源码中可以看到这两个包的使用是很多的，我们自定的扩展的话，也需要用到他们；</p>
+<p><strong>从根目录的 quill.js 文件入手，先来看下项目结构：</strong></p>
+<p>quill.js 第1行是引入了 Quill 这个类，这个是入口类，一直到40行，import 引入了一堆文件&hellip;先不去理会这些是什么，看下 Quill.register 这个方法，从字面上理解，这里是要注册一些东西，从42行开始，这里注册 key 对应的 value 就是上面 import 引入的内容，这些内容从 key 可以看出来，分成几大块：attributors，formats，modules，ui，这些是除核心功能之外的模块，属性，格式化，UI等功能，他们分别放在对应的文件夹下，core 目录是 quill 的核心类，所以，这些就是 quill 的源码功能的划分；</p>
+<p><img src="./images/quillJS 富文本编辑器源码分析系列10.png" alt="" /></p>
+<p>看下 core/quill.js 下的 register 方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #008000;">/**
+<span style="color: #008080;">  2</span>  * register 注册方法
+<span style="color: #008080;">  3</span>  * @param path
+<span style="color: #008080;">  4</span>  * @param target
+<span style="color: #008080;">  5</span>  * @param overwrite
+<span style="color: #008080;">  6</span>  */</span>
+<span style="color: #008080;">  7</span> <span style="color: #0000ff;">static</span> register(path, target, overwrite = <span style="color: #0000ff;">false</span>) {
+<span style="color: #008080;">  8</span>   <span style="color: #008000;">// 如果 path 不是字符串</span>
+<span style="color: #008080;">  9</span>   <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> path !== 'string') {
+<span style="color: #008080;"> 10</span>     <span style="color: #008000;">// 获取 attrName 或者 boltName</span>
+<span style="color: #008080;"> 11</span>     let <span style="color: #0000ff;">name</span> = path.attrName || path.blotName;
+<span style="color: #008080;"> 12</span>     <span style="color: #008000;">// 如果 name 是字符串</span>
+<span style="color: #008080;"> 13</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> <span style="color: #0000ff;">name</span> === 'string') {
+<span style="color: #008080;"> 14</span>       <span style="color: #008000;">// 继续调用 register 方法，并改为以 formats 开头</span>
+<span style="color: #008080;"> 15</span>       <span style="color: #0000ff;">this</span>.register('formats/' + <span style="color: #0000ff;">name</span>, path, target);
+<span style="color: #008080;"> 16</span>     } <span style="color: #0000ff;">else</span> {
+<span style="color: #008080;"> 17</span>       <span style="color: #008000;">// 循环执行 register 方法来注册对应的功能块</span>
+<span style="color: #008080;"> 18</span>       Object.keys(path).forEach((key) =&gt; {
+<span style="color: #008080;"> 19</span>         <span style="color: #0000ff;">this</span>.register(key, path[key], target);
+<span style="color: #008080;"> 20</span>       });
+<span style="color: #008080;"> 21</span>     }
+<span style="color: #008080;"> 22</span>   } <span style="color: #0000ff;">else</span> {
+<span style="color: #008080;"> 23</span>     <span style="color: #008000;">// 如果已经注册了这个模块，会打印警告原来的模块将会被重写</span>
+<span style="color: #008080;"> 24</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.imports[path] != <span style="color: #0000ff;">null</span> &amp;&amp; !overwrite) {
+<span style="color: #008080;"> 25</span>       debug.warn(`Overwriting ${path} <span style="color: #0000ff;">with</span>`, target);
+<span style="color: #008080;"> 26</span>     }
+<span style="color: #008080;"> 27</span> 
+<span style="color: #008080;"> 28</span>     <span style="color: #008000;">// 真实注册</span>
+<span style="color: #008080;"> 29</span>     <span style="color: #0000ff;">this</span>.imports[path] = target;
+<span style="color: #008080;"> 30</span> 
+<span style="color: #008080;"> 31</span>     <span style="color: #008000;">// 如果注册的 blots 或者是 formats，并且不是注册 blotName 为 abstract 的模块</span>
+<span style="color: #008080;"> 32</span>     <span style="color: #008000;">// 调用 Parchment.register，注册到 Parchment 下面</span>
+<span style="color: #008080;"> 33</span>     <span style="color: #0000ff;">if</span> ((path.startsWith('blots/') || path.startsWith('formats/')) &amp;&amp; target.blotName !== '<span style="color: #0000ff;">abstract</span>') {
+<span style="color: #008080;"> 34</span>       Parchment.register(target);
+<span style="color: #008080;"> 35</span> 
+<span style="color: #008080;"> 36</span>       <span style="color: #008000;">// 如果是 modules， 就调用传入 target的register方法</span>
+<span style="color: #008080;"> 37</span>     } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (path.startsWith('modules') &amp;&amp; <span style="color: #0000ff;">typeof</span> target.register === '<span style="color: #0000ff;">function</span>') {
+<span style="color: #008080;"> 38</span>       target.register();
+<span style="color: #008080;"> 39</span>     }
+<span style="color: #008080;"> 40</span>   }
+<span style="color: #008080;"> 41</span> }
+<span style="color: #008080;"> 42</span> </pre>
+</div>
+<p>这个方法的作用是绑定 attrName，blotName 到 imports 对象上，blots，formats 绑定到 Parchment 类上，modules 就调用目标类的 rigister 方法；</p>
+<p>imports 对象：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> Quill.imports = {
+<span style="color: #008080;">  2</span>   'delta'       : Delta,
+<span style="color: #008080;">  3</span>   'parchment'   : Parchment,
+<span style="color: #008080;">  4</span>   'core/module' : Module,
+<span style="color: #008080;">  5</span>   'core/theme'  : Theme,
+<span style="color: #008080;">  6</span>   <span style="color: #008000;">// 'formats/name': Class 我们注册的 class</span>
+<span style="color: #008080;">  7</span> };</pre>
+</div>
+<p>再来看下 Parchment 类的 register 方法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #008000;">// 这个方法要最先调用，来绑定到几个对应的对象上，后续的操作才能用相关的方法</span>
+<span style="color: #008080;">  2</span> <span style="color: #0000ff;">function</span> register() {
+<span style="color: #008080;">  3</span>   <span style="color: #0000ff;">var</span> Definitions = [];
+<span style="color: #008080;">  4</span>   <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; <span style="color: #0000ff;">arguments</span>.<span style="color: #0000ff;">length</span>; i++) {
+<span style="color: #008080;">  5</span>     Definitions[i] = <span style="color: #0000ff;">arguments</span>[i];
+<span style="color: #008080;">  6</span>   }
+<span style="color: #008080;">  7</span> 
+<span style="color: #008080;">  8</span>   <span style="color: #008000;">// 如果参数长度是 1</span>
+<span style="color: #008080;">  9</span>   <span style="color: #0000ff;">if</span> (Definitions.<span style="color: #0000ff;">length</span> &gt; 1) {
+<span style="color: #008080;"> 10</span>     <span style="color: #0000ff;">return</span> Definitions.map(<span style="color: #0000ff;">function</span> (d) {
+<span style="color: #008080;"> 11</span>       <span style="color: #0000ff;">return</span> register(d);
+<span style="color: #008080;"> 12</span>     });
+<span style="color: #008080;"> 13</span>   }
+<span style="color: #008080;"> 14</span> 
+<span style="color: #008080;"> 15</span>   <span style="color: #0000ff;">var</span> Definition = Definitions[0];
+<span style="color: #008080;"> 16</span> 
+<span style="color: #008080;"> 17</span>   <span style="color: #008000;">// 必须要有 blotName, attrName 并且都是字符串</span>
+<span style="color: #008080;"> 18</span>   <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> Definition.blotName !== 'string' &amp;&amp; <span style="color: #0000ff;">typeof</span> Definition.attrName !== 'string') {
+<span style="color: #008080;"> 19</span>     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ParchmentError('Invalid definition');
+<span style="color: #008080;"> 20</span>     <span style="color: #008000;">// 不能注册 blotName: 'abstract' 的 class</span>
+<span style="color: #008080;"> 21</span>   } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (Definition.blotName === '<span style="color: #0000ff;">abstract</span>') {
+<span style="color: #008080;"> 22</span>     <span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> ParchmentError('Cannot register <span style="color: #0000ff;">abstract</span> <span style="color: #0000ff;">class</span>');
+<span style="color: #008080;"> 23</span>   }
+<span style="color: #008080;"> 24</span> 
+<span style="color: #008080;"> 25</span>   <span style="color: #008000;">// 绑定到 types 对象下面</span>
+<span style="color: #008080;"> 26</span>   types[Definition.blotName || Definition.attrName] = Definition;
+<span style="color: #008080;"> 27</span> 
+<span style="color: #008080;"> 28</span>   <span style="color: #008000;">// 如果当前类有字符串 keyName, 绑定到 attributes 对象上，key是 keyName 的值</span>
+<span style="color: #008080;"> 29</span>   <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> Definition.keyName === 'string') {
+<span style="color: #008080;"> 30</span>     attributes[Definition.keyName] = Definition;
+<span style="color: #008080;"> 31</span>   } <span style="color: #0000ff;">else</span> {
+<span style="color: #008080;"> 32</span> 
+<span style="color: #008080;"> 33</span>     <span style="color: #008000;">// 如果当前类有 className 属性, 绑定到 classes 对象上，key 是 className 的值</span>
+<span style="color: #008080;"> 34</span>     <span style="color: #0000ff;">if</span> (Definition.className != <span style="color: #0000ff;">null</span>) {
+<span style="color: #008080;"> 35</span>       classes[Definition.className] = Definition;
+<span style="color: #008080;"> 36</span>     }
+<span style="color: #008080;"> 37</span> 
+<span style="color: #008080;"> 38</span>     <span style="color: #008000;">// 如果有 tagName 属性</span>
+<span style="color: #008080;"> 39</span>     <span style="color: #0000ff;">if</span> (Definition.tagName != <span style="color: #0000ff;">null</span>) {
+<span style="color: #008080;"> 40</span>       <span style="color: #008000;">// 当前类的 tagName 是数组，全部转换为大写的形式</span>
+<span style="color: #008080;"> 41</span>       <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">Array</span>.isArray(Definition.tagName)) {
+<span style="color: #008080;"> 42</span> 
+<span style="color: #008080;"> 43</span>         <span style="color: #008000;">// 转换为大写字母</span>
+<span style="color: #008080;"> 44</span>         Definition.tagName = Definition.tagName.map(<span style="color: #0000ff;">function</span> (tagName) {
+<span style="color: #008080;"> 45</span>           <span style="color: #0000ff;">return</span> tagName.toUpperCase();
+<span style="color: #008080;"> 46</span>         });
+<span style="color: #008080;"> 47</span>       } <span style="color: #0000ff;">else</span> {
+<span style="color: #008080;"> 48</span>         <span style="color: #008000;">// 转换单个的 tagName 为大写的形式</span>
+<span style="color: #008080;"> 49</span>         Definition.tagName = Definition.tagName.toUpperCase();
+<span style="color: #008080;"> 50</span>       }
+<span style="color: #008080;"> 51</span> 
+<span style="color: #008080;"> 52</span>       <span style="color: #008000;">// 转换为数组</span>
+<span style="color: #008080;"> 53</span>       <span style="color: #0000ff;">var</span> tagNames = <span style="color: #0000ff;">Array</span>.isArray(Definition.tagName) ? Definition.tagName : [Definition.tagName];
+<span style="color: #008080;"> 54</span> 
+<span style="color: #008080;"> 55</span>       <span style="color: #008000;">// 将当前类绑定到 tags 对象上，key 是当前类的 tagName 的值</span>
+<span style="color: #008080;"> 56</span>       tagNames.forEach(<span style="color: #0000ff;">function</span> (tag) {
+<span style="color: #008080;"> 57</span>         <span style="color: #0000ff;">if</span> (tags[tag] == <span style="color: #0000ff;">null</span> || Definition.className == <span style="color: #0000ff;">null</span>) {
+<span style="color: #008080;"> 58</span>           tags[tag] = Definition;
+<span style="color: #008080;"> 59</span>         }
+<span style="color: #008080;"> 60</span>       });
+<span style="color: #008080;"> 61</span>     }
+<span style="color: #008080;"> 62</span>   }
+<span style="color: #008080;"> 63</span> 
+<span style="color: #008080;"> 64</span>   <span style="color: #008000;">// 返回当前 class 定义</span>
+<span style="color: #008080;"> 65</span>   <span style="color: #0000ff;">return</span> Definition;
+<span style="color: #008080;"> 66</span> }</pre>
+</div>
+<p>下面是register方法将具体的模块绑定的对象：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #008000;">// 这几个对象是绑定注册具体模块用的</span>
+<span style="color: #008080;">  2</span> <span style="color: #0000ff;">var</span> attributes = {};
+<span style="color: #008080;">  3</span> <span style="color: #0000ff;">var</span> classes = {};
+<span style="color: #008080;">  4</span> <span style="color: #0000ff;">var</span> tags = {};
+<span style="color: #008080;">  5</span> <span style="color: #0000ff;">var</span> types = {};</pre>
+</div>
+<p>到这里，大致就知道quill是怎么处理模块，扩展等操作的注册了，需要注意的是：abstract 抽象类是不允许修改的，我们写的扩展是一个需要继承自quill内部的抽象类，从 quill 的源码也可以看出来，只有先调用注册方法，才能使用具体的功能，不然是没有任何作用的，下一步就分析一下quill注册的基础功能做了什么，根类是什么，又做了什么，后面再来看quill是如何一步一步创建完成的；</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,320 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[JS设计模式]：观察者模式(即发布-订阅者模式)（4）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[JS设计模式]：观察者模式(即发布-订阅者模式)（4）</center></div><div class='banquan'>原文出处:本文由博客园博主风雨后见彩虹提供。<br/>
+原文连接:https://www.cnblogs.com/moqiutao/p/11139165.html</div><br>
+    <h2>简介</h2>
+<p>观察者模式又叫发布---订阅模式，它定义了对象间的一种一对多的关系，让多个观察者对象同时监听某一个主题对象，当一个对象发生改变时，所有依赖于它的对象都将得到通知。</p>
+<p>举一个现实生活中的例子，例如小红在淘宝的一家店里看上了一双红色的鞋，小李也在这家店里面看上了一顶黑色的帽子，但是联系卖家时，卖家回答这两样都没货了。卖家告诉小红小李，要是喜欢的话，可以关注下店铺，到货了，我会给大家通知的。这就是一个典型的发布-订阅模式，卖家是发布者，买家是订阅者。当货来的时候，会依次通知小红、小李等买家，依次给他们发消息通知。</p>
+<h2>代码实现</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> goodsObj =<span style="color: #000000;"> {};
+goodsObj.list </span>= []; <span style="color: #008000;">//</span><span style="color: #008000;">存放订阅者</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;">订阅者</span>
+goodsObj.subscribe = <span style="color: #0000ff;">function</span><span style="color: #000000;">(key,fn){
+    </span><span style="color: #0000ff;">if</span>(!<span style="color: #0000ff;">this</span><span style="color: #000000;">.list[key]){
+        </span><span style="color: #0000ff;">this</span>.list[key] =<span style="color: #000000;"> [];
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">订阅的消息存放到缓存列表中</span>
+    <span style="color: #0000ff;">this</span><span style="color: #000000;">.list[key].push(fn);
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">取消订阅</span>
+goodsObj.unsubscribe = <span style="color: #0000ff;">function</span><span style="color: #000000;">(key,fn){
+    </span><span style="color: #0000ff;">var</span> fns = <span style="color: #0000ff;">this</span><span style="color: #000000;">.list[key];
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果key对应的消息没有订阅过的话，则返回</span>
+    <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">fns){ 
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果没有传入具体的回调函数,表示取消key对应消息的所有订阅</span>
+    <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">fn){
+        fns </span>&amp;&amp; (fns.length = 0<span style="color: #000000;">);
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = fns.length - 1; i &gt;= 0; i--<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">if</span>(fns[i] ===<span style="color: #000000;"> fn){
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">删除订阅者的回调函数</span>
+                fns.splice(i,1<span style="color: #000000;">); 
+            }
+        }
+    }
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">发布者</span>
+goodsObj.publish = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span> key =<span style="color: #000000;"> Array.prototype.shift.call(arguments);
+    </span><span style="color: #0000ff;">var</span> fns = <span style="color: #0000ff;">this</span><span style="color: #000000;">.list[key];
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果没有订阅过该key的消息,直接返回</span>
+    <span style="color: #0000ff;">if</span>(!fns || fns.length === 0<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0,fn; fn = fns[i++<span style="color: #000000;">];){
+        fn.apply(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">,arguments);
+    }
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">小红订阅了鞋</span>
+goodsObj.subscribe('shoes',fn1 = <span style="color: #0000ff;">function</span><span style="color: #000000;">(color){
+    console.log(</span>'订阅鞋的颜色：' + color + '到货了，可以拍了'<span style="color: #000000;">);
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">小李订阅了帽子</span>
+goodsObj.subscribe('cap',fn2 = <span style="color: #0000ff;">function</span><span style="color: #000000;">(size){
+    console.log(</span>'订阅帽子的尺寸：' + size  + '到货了，可以拍了'<span style="color: #000000;">);
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">发布</span>
+goodsObj.publish('shoes','red'<span style="color: #000000;">);
+goodsObj.publish(</span>'cap',40<span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">取消订阅</span>
+goodsObj.unsubscribe('shoes'<span style="color: #000000;">,fn1);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">发布消息,看是否能收到</span>
+goodsObj.publish('shoes','block');</pre>
+</div>
+<h2>&nbsp;优化取消订阅</h2>
+<p>为了优化取消订阅，在订阅的时候，给每个订阅者一个不同的标识，代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> goodsObj =<span style="color: #000000;"> {};
+goodsObj.list </span>= {}; <span style="color: #008000;">//</span><span style="color: #008000;">存放订阅者</span>
+<span style="color: #0000ff;">var</span> subuid = -1; <span style="color: #008000;">//</span><span style="color: #008000;">每个订阅者标识不一样</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;">订阅者</span>
+goodsObj.subscribe = <span style="color: #0000ff;">function</span><span style="color: #000000;">(key,fn){
+    </span><span style="color: #0000ff;">if</span>(!<span style="color: #0000ff;">this</span><span style="color: #000000;">.list[key]){
+        </span><span style="color: #0000ff;">this</span>.list[key] =<span style="color: #000000;"> [];
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">订阅的消息存放到缓存列表中</span>
+    <span style="color: #0000ff;">var</span> token= (++<span style="color: #000000;">subuid).toString();
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.list[key].push({
+        token:token,
+        fn:fn
+    });
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">取消订阅</span>
+goodsObj.unsubscribe = <span style="color: #0000ff;">function</span><span style="color: #000000;">(token){
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> m <span style="color: #0000ff;">in</span><span style="color: #000000;"> goodsObj.list){
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(goodsObj.list.hasOwnProperty(m)){
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0, j = goodsObj.list[m].length; i &lt; j; i++<span style="color: #000000;"> ){
+                </span><span style="color: #0000ff;">if</span>(goodsObj.list[m][i].token ==<span style="color: #000000;"> token){
+                    goodsObj.list[m].splice(i,</span>1<span style="color: #000000;">);
+                    </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                }
+            }
+        }
+    }
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">发布者</span>
+goodsObj.publish = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span> key =<span style="color: #000000;"> Array.prototype.shift.call(arguments);
+    </span><span style="color: #0000ff;">var</span> fns = <span style="color: #0000ff;">this</span><span style="color: #000000;">.list[key];
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果没有订阅过该key的消息,直接返回</span>
+    <span style="color: #0000ff;">if</span>(!fns || fns.length === 0<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0,obj; obj = fns[i++<span style="color: #000000;">];){
+        obj.fn.apply(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">,arguments);
+    }
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">小红订阅了鞋</span>
+<span style="color: #0000ff;">var</span> token1 = goodsObj.subscribe('shoes',<span style="color: #0000ff;">function</span><span style="color: #000000;">(color){
+    console.log(</span>'订阅鞋的颜色：' + color + '到货了，可以拍了'<span style="color: #000000;">);
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">小李订阅了帽子</span>
+goodsObj.subscribe('cap',<span style="color: #0000ff;">function</span><span style="color: #000000;">(size){
+    console.log(</span>'订阅帽子的尺寸：' + size  + '到货了，可以拍了'<span style="color: #000000;">);
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">发布</span>
+goodsObj.publish('shoes','red'<span style="color: #000000;">);
+goodsObj.publish(</span>'cap',40<span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">取消订阅</span>
+<span style="color: #000000;">goodsObj.unsubscribe(token1);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">发布消息,看是否能收到</span>
+goodsObj.publish('shoes','block');</pre>
+</div>
+<h2>封装全局发布订阅对象</h2>
+<p>封装一个全局的发布-订阅对象，代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> Event = (<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span> list = {}, <span style="color: #008000;">//</span><span style="color: #008000;">存放订阅者</span>
+<span style="color: #000000;">        subscribe,
+        unsubscribe,
+        publish,
+        subuid </span>= -1; <span style="color: #008000;">//</span><span style="color: #008000;">每个订阅者标识不一样</span>
+        
+        <span style="color: #008000;">//</span><span style="color: #008000;">订阅者</span>
+        subscribe = <span style="color: #0000ff;">function</span><span style="color: #000000;">(key,fn){
+            </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">list[key]){
+                list[key] </span>=<span style="color: #000000;"> [];
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">订阅的消息存放到缓存列表中</span>
+            <span style="color: #0000ff;">var</span> token= (++<span style="color: #000000;">subuid).toString();
+            list[key].push({
+                token:token,
+                fn:fn
+            });
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+        };
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">取消订阅</span>
+        unsubscribe = <span style="color: #0000ff;">function</span><span style="color: #000000;">(token){
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> m <span style="color: #0000ff;">in</span><span style="color: #000000;"> list){
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(list.hasOwnProperty(m)){
+                    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0, j = list[m].length; i &lt; j; i++<span style="color: #000000;"> ){
+                        </span><span style="color: #0000ff;">if</span>(list[m][i].token ==<span style="color: #000000;"> token){
+                            list[m].splice(i,</span>1<span style="color: #000000;">);
+                            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                        }
+                    }
+                }
+            }
+        };
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">发布者</span>
+        publish = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            </span><span style="color: #0000ff;">var</span> key =<span style="color: #000000;"> Array.prototype.shift.call(arguments);
+            </span><span style="color: #0000ff;">var</span> fns =<span style="color: #000000;"> list[key];
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">如果没有订阅过该key的消息,直接返回</span>
+            <span style="color: #0000ff;">if</span>(!fns || fns.length === 0<span style="color: #000000;">){
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0,obj; obj = fns[i++<span style="color: #000000;">];){
+                obj.fn.apply(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">,arguments);
+            }
+        };
+        
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+            publish:publish,
+            subscribe:subscribe,
+            unsubscribe:unsubscribe
+        }        
+})();
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">小红订阅了鞋</span>
+<span style="color: #0000ff;">var</span> token1 = Event.subscribe('shoes',<span style="color: #0000ff;">function</span><span style="color: #000000;">(color){
+    console.log(</span>'订阅鞋的颜色：' + color + '到货了，可以拍了'<span style="color: #000000;">);
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">小李订阅了帽子</span>
+Event.subscribe('cap',<span style="color: #0000ff;">function</span><span style="color: #000000;">(size){
+    console.log(</span>'订阅帽子的尺寸：' + size  + '到货了，可以拍了'<span style="color: #000000;">);
+});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">发布</span>
+Event.publish('shoes','red'<span style="color: #000000;">);
+Event.publish(</span>'cap',40<span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">取消订阅</span>
+<span style="color: #000000;">Event.unsubscribe(token1);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">发布消息,看是否能收到</span>
+Event.publish('shoes','block');</pre>
+</div>
+<h2><strong>实例</strong></h2>
+<p>我们使用上面封装的全局的发布-订阅对象来实现两个模块之间的通信问题；比如现在有一个页面有一个按钮，每次点击此按钮后，div中会显示此按钮被点击的总次数；如下代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="clickBtn"</span><span style="color: #0000ff;">&gt;</span>点击我计数<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="showCount"</span><span style="color: #0000ff;">&gt;</span>0<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>JS代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span> count = 0<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">发布(责处理点击操作、发布消息)</span>
+    document.getElementById('clickBtn').addEventListener('click',<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        Event.publish(</span>'add',count++<span style="color: #000000;">);
+    },</span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">订阅(负责监听add这个消息，并把点击的总次数显示到页面上来)</span>
+    Event.subscribe('add',<span style="color: #0000ff;">function</span><span style="color: #000000;">(curCount){
+        document.getElementById(</span>'showCount').innerHTML =<span style="color: #000000;"> curCount;
+    })
+})();</span></pre>
+</div>
+<p>订阅发布更精简代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> Event = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> listen,obj,remove,one,trigger,__this;
+    obj </span>=<span style="color: #000000;"> {};
+    __this </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    listen </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(key,eventfn){
+        </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> _ref,stack;
+        stack </span>= (_ref = obj[key]) != <span style="color: #0000ff;">null</span> ? _ref : obj[key] =<span style="color: #000000;"> [];
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> stack.push(eventfn);
+    };
+    one </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(key,eventfn){
+        remove(key);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> listen(key,eventfn);
+    };
+    remove </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(key){
+        </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> _ref;
+        </span><span style="color: #0000ff;">return</span> (_ref = obj[key]) != <span style="color: #0000ff;">null</span> ? _ref.length = 0 : <span style="color: #0000ff;">void</span> 0<span style="color: #000000;">;
+    };
+    trigger </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> fn,stack,_i,_len,_ref,key;
+        key </span>=<span style="color: #000000;"> Array.prototype.shift.call(arguments);
+        stack </span>= (_ref = obj[key]) != <span style="color: #0000ff;">null</span> ? _ref :obj[key] =<span style="color: #000000;"> [];
+        </span><span style="color: #0000ff;">for</span>(_i=0,_len=stack.length;_i&lt;_len;_i++<span style="color: #000000;">){
+            fn </span>=<span style="color: #000000;"> stack[_i];
+            </span><span style="color: #0000ff;">if</span>(fn.apply(__this,arguments) === <span style="color: #0000ff;">false</span><span style="color: #000000;">){
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+        }
+    }
+    
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+        listen:listen,
+        one:one,
+        remove:remove,
+        trigger:trigger
+    }
+}
+
+</span><span style="color: #0000ff;">var</span> addTv =<span style="color: #000000;"> Event();
+
+addTv.listen(</span>'play',<span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+    console.log(</span>'今天上午要播放的电影是：' +<span style="color: #000000;">data.name);
+});
+addTv.one(</span>'play',<span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+    console.log(</span>'只有我订阅的电影信息：' +<span style="color: #000000;">data.name);
+});
+addTv.trigger(</span>'play',{'name':'国产凌凌漆'<span style="color: #000000;">});
+
+addTv.remove(</span>'play'<span style="color: #000000;">);
+addTv.trigger(</span>'play',{'name':'国产凌凌漆22'});</pre>
+</div>
+<h2>&nbsp;参考</h2>
+<ul>
+<li><a href="https://www.cnblogs.com/tugenhua0707/p/5198407.html#_labe8" target="_blank">Javascript中理解发布--订阅模式</a></li>
+<li><a href="https://www.cnblogs.com/TomXu/archive/2012/03/02/2355128.html" target="_blank">深入理解JavaScript系列（32）：设计模式之观察者模式</a></li>
+<li><a href="http://www.alloyteam.com/2012/10/commonly-javascript-design-pattern-observer-mode/" target="_blank">【Javascript设计模式3】-观察者模式</a></li>
+</ul>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,235 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue+Webpack之 代码及打包优化' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue+Webpack之 代码及打包优化</center></div><div class='banquan'>原文出处:本文由博客园博主天然呆☆☆提供。<br/>
+原文连接:https://www.cnblogs.com/wpshan/p/12030009.html</div><br>
+    <p>本文重点介绍Vue单页面应用的优化手段：</p>
+<ul>
+<li>异步加载</li>
+<li>面切换时加loading特效</li>
+<li>点击延迟</li>
+<li>inline manifest</li>
+<li>逻辑代码优化</li>
+<li>依赖包体积优化</li>
+<li>cdn引用</li>
+</ul>
+<h2 id="vue">Vue代码优化</h2>
+<h3 id="">异步加载</h3>
+<p>所谓的异步加载组件，其实就是组件懒加载。可以理解为：当我需要使用组件的时候才进行加载。主要包含两部分：路由配置和子组件的调用。<br />所以在router文件夹下 index.js 做如下配置<br /><img src="./images/Vue+Webpack之 代码及打包优化0.png" alt="QQ--20190830170123" /></p>
+<h3 id="">组件优化</h3>
+<pre><code><code>由于是后台项目，所以选择element-ui框架进行后台系统搭建，所以对这个进行优化也可以减小体积，提高速度和减少加载时间，提高用户体验。
+</code></pre>
+<p>全局使用<br />全局引入和使用<br />import elementUI from 'element-ui'<br />Vue.use(elementUI)<br />这种方法对于只用少量element-ui组件的情况来说，很多组件都是多余的，会无形中加大加载时间和项目打包后的体积，所以使用下面这种按需引入的方法可以有效解决这个问题。</p>
+<p>按需引入</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">// 按需引入
+
+import {
+  Form,
+  Button,
+  Table,
+} from 'element-ui'
+
+// 按需使用
+Vue.use(Form)
+Vue.use(Button)
+Vue.use(Table)
+复制代码
+还要一些加载和消息提示等的组件，以下写法：
+
+// 按需引入
+import {
+  Loading,
+  Message,
+  MessageBox,
+  Notification,
+} from 'element-ui'
+ 
+// 按需使用
+Vue.use(Loading.directive)
+// 挂载到vue实例上面
+Vue.prototype.$loading = Loading.service
+Vue.prototype.$msgbox = MessageBox
+Vue.prototype.$confirm = MessageBox.confirm
+Vue.prototype.$alert = MessageBox.alert
+Vue.prototype.$prompt = MessageBox.prompt
+Vue.prototype.$message = Message
+Vue.prototype.$notify = Notification,
+使用通知组件可以，这么调用也可以，Notification(options),或者Notification.success(options)。
+</pre>
+</div>
+<p>　　</p>
+<h3 id="loading">页面切换时加loading特效</h3>
+<pre><code><code>页面的响应、渲染速度的影响原因多种多样。为了解决用户在首次进入应用或者页面切换的时等待的白屏时间较长时，可以使用vue-router提供的beforeEach()和afterEach()方法。所以使用loading进度条是一种比较明智的做法。使用nprogress。API可参考官方文档，使用方法如下(假设已经安装好了nprogress):
+</code></pre>
+<p>在router.js中使用import引入nprogress以及它的样式表，配置ngprocess。并在路由配置完成后，调用beforeEach() 和 afterEach方法</p>
+<pre><code><code>//路由配置前
+NProgress.configure({ showSpinner: false })
+ 
+//此处为路由配置列表，可参考上面的异步加载方式进行编写</code></pre>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">//路由配置后
+router.beforeEach(function (to, from, next) {
+  NProgress.start() //开始loading
+  const toIndex = history.getItem(to.path)
+  const fromIndex = history.getItem(from.path)
+ 
+  if (toIndex) {
+    if (!fromIndex || parseInt(toIndex, 10) &gt; parseInt(fromIndex, 10) || (toIndex === '0' &amp;&amp; fromIndex === '0')) {
+      store.commit('UPDATE_DIRECTION', {direction: 'forward'})
+    } else {
+      // 判断是否是ios左滑返回
+      if (!isPush &amp;&amp; (Date.now() - endTime) &lt; 377) {
+        store.commit('UPDATE_DIRECTION', {direction: ''})
+      } else {
+        store.commit('UPDATE_DIRECTION', { direction: 'reverse' })
+      }
+    }
+  } else {
+    ++historyCount
+    history.setItem('count', historyCount)
+    to.path !== '/' &amp;&amp; history.setItem(to.path, historyCount)
+    store.commit('UPDATE_DIRECTION', {direction: 'forward'})
+  }
+ 
+  if (/\/http/.test(to.path)) {
+    let url = to.path.split('http')[1]
+    window.location.href = `http${url}`
+  } else {
+    next()
+  }
+})
+ 
+router.afterEach(function (to) {
+  NProgress.done() //loading结束
+})
+</pre>
+</div>
+<p>　　</p>
+<h3 id="">点击延迟</h3>
+<p>安装fastclick后，在main.js中引入即可：</p>
+<pre><code><code>import FastClick from 'fastclick'
+FastClick.attach(document.body)
+</code></pre>
+<h3 id="inlinemanifest">inline manifest</h3>
+<p>manifest文件时路径配置和异步组件名字列表，这么做可以减少一个http请求。具体做法为，先在入口页面index.html中的head的最后一行加入代码</p>
+<pre><code><code>&lt;%=htmlWebpackPlugin.files.webpackManifest%&gt;
+</code></pre>
+<p>最后在webpack的公共配置文件(我的是webpack.base.conf.js)的vux-loader配置的 plugins 列表中加入inline-manifest插件：</p>
+<pre><code><code>module.exports = vuxLoader.merge(webpackConfig, {
+  plugins: ['inline-manifest', 'vux-ui', 'progress-bar', 'duplicate-style']
+})
+</code></pre>
+<h3 id="">逻辑代码优化</h3>
+<p>这部分的建议就是：①每个vue文件尽可能小(多使用组件，加强可复用性)；②vue指令中的v-show和v-if的使用：v-if耗性能更多，所以频繁切换的使用 v-show，不频繁切换的使用 v-if；③vue指令中的v-for搭配:key使用，确保唯一性；④样式表css务必加scoped以防止干扰&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;</p>
+<h2 id="webpack">webpack配置优化</h2>
+<h3 id="">依赖包体积优化</h3>
+<pre><code><code>众所周知，日常开发过程中，前端这块早就已经开始进行工程化和组件化开发了，所以免不了下载各种node包，使得打包后的体积也是非常的庞大，下面使用webpack的一个配置外部扩展就可以解决这类问题。
+</code></pre>
+<p>Gzip压缩和sourceMap优化</p>
+<pre><code><code>这个也是压缩文件的一个方法，线上服务器的nginx也开启gzip功能更好；取消资源地图，可以有效保护源码。
+</code></pre>
+<p>在webpack的build文件中，开启Gzip压缩功能和禁用资源地图。</p>
+<pre><code><code>module.exports = {
+  // ...
+  build: {
+    productionSourceMap: false,
+    productionGzip: true,
+  }
+}
+</code></pre>
+<p>这样做的话，打包以后就不会再有sourceMap文件了，也会多了几个以.js.gz后缀名的文件</p>
+<h2 id="cdn">cdn引用</h2>
+<pre><code><code>方法为：在webpack的公共配置文件（一般为webpack.base.conf.js）的resolve下有extensions选项。数组中加入不需要打包的组件，并且在入口的html中使用cdn的方式引入即可，此时会发现打包出来的vender包会变小很多.
+</code></pre>
+<h3 id="">具体步骤</h3>
+<p>以 vue， vue-router，element-ui为例</p>
+<p>步骤1 index.html cdn引入框架</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:html;gutter:true;">&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta charset="utf-8"&gt;
+    &lt;title&gt;demo-vue-project&lt;/title&gt;
+    &lt;link rel="stylesheet" href="https://cdn.bootcss.com/element-ui/2.0.8/theme-chalk/index.css"&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id="app"&gt;&lt;/div&gt;
+    &lt;!-- built files will be auto injected --&gt;
+    &lt;script src="https://cdn.bootcss.com/vue/2.5.13/vue.min.js"&gt;&lt;/script&gt;
+    &lt;script src="https://cdn.bootcss.com/vue-router/2.7.0/vue-router.min.js"&gt;&lt;/script&gt;
+    &lt;script src="https://cdn.bootcss.com/element-ui/2.0.7/index.js"&gt;&lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</pre>
+</div>
+<p>　　</p>
+<p>步骤2 修改 build/webpack.base.conf.js</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">module.exports = {
+  ...
+  externals: {
+    'vue': 'Vue',
+    'vue-router': 'VueRouter',
+    'element-ui': 'ELEMENT'
+  },
+  ...
+}
+</pre>
+</div>
+<p>　　</p>
+<p>步骤3 修改框架注册方式<br />修改 src/router/index.js</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">// import Vue from 'vue'
+import VueRouter from 'vue-router'
+// 注释掉
+// Vue.use(VueRouter)
+...
+</pre>
+</div>
+<p>　　</p>
+<p>修改 src/main.js</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">import Vue from 'vue'
+import App from './App'
+import router from './router'
+import ELEMENT from 'element-ui'
+// import 'element-ui/lib/theme-chalk/index.css'
+
+Vue.config.productionTip = false
+
+Vue.use(ELEMENT)
+Vue.prototype.$http = axios
+
+/* eslint-disable no-new */
+new Vue({
+  el: '#app',
+  store,
+  template: '&lt;App/&gt;',
+  components: { App }
+})
+</pre>
+</div>
+<p>　　</p>
+<h2 id="">总结</h2>
+<p>至此 vue-cli2.0中的打包配置，也有一些了解了。个人吐槽下webpack是真的复杂。观望和期待 vue-cli3.0+webpack4.0能来带不一样的体验。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

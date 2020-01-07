@@ -1,0 +1,1374 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[笔记]记录原开发工作在base命名空间下扩展的属性与方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[笔记]记录原开发工作在base命名空间下扩展的属性与方法</center></div><div class='banquan'>原文出处:本文由博客园博主风雨后见彩虹提供。<br/>
+原文连接:https://www.cnblogs.com/moqiutao/p/10757308.html</div><br>
+    <h3>前言</h3>
+<p>该笔记只是为了记录以前开发使用的方式。</p>
+<h3>处理命名空间namespace</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 处理命名空间
+ * @param {string} 空间名称，可多个 
+ * @return {object} 对象
+ </span><span style="color: #008000;">*/</span>    
+<span style="color: #0000ff;">var</span> namespace = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span> argus =<span style="color: #000000;"> arguments,
+            argusLen </span>=<span style="color: #000000;"> argus.length;
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i =0; i &lt; argusLen; i++<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">var</span> objs = argus[i].split('.'<span style="color: #000000;">),
+                objsLen </span>=<span style="color: #000000;"> objs.length,
+                obj </span>=<span style="color: #000000;"> window;
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> j = 0; j &lt; objsLen; j++<span style="color: #000000;">){
+                obj[objs[j]] </span>= obj[objs[j]] ||<span style="color: #000000;"> {};
+                obj </span>=<span style="color: #000000;"> obj[objs[j]];
+        }
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> obj;
+    
+}
+namespace(</span>"base");</pre>
+</div>
+<h3>&nbsp;extend及base命名下的常用方法</h3>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取对象类型
+     * @private 私有方法
+     * @param {object} object 对象
+     * @return {string} 类型
+     * 可判断类型：Boolean Number String Function Array Date RegExp Object
+     </span><span style="color: #008000;">*/</span>    
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> getParamType(obj){
+        </span><span style="color: #0000ff;">return</span> obj == <span style="color: #0000ff;">null</span> ?<span style="color: #000000;"> String(obj) : 
+            Object.prototype.toString.call(obj).replace(</span>/\[object\s+(\w+)\]/i,"$1") || "object"<span style="color: #000000;">;
+    };
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 为对象进行扩展属性和方法
+     * @param {object} object 对象
+     * @return {bool} 是/否
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">     
+    base.extend </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(destination, source) {
+        </span><span style="color: #0000ff;">if</span> (destination == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+            destination </span>=<span style="color: #000000;"> source;
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> property <span style="color: #0000ff;">in</span><span style="color: #000000;"> source){        
+                </span><span style="color: #0000ff;">if</span> ( getParamType(source[property]).toLowerCase() === "object" &amp;&amp;<span style="color: #000000;"> 
+                    getParamType(destination[property]).toLowerCase() </span>=== "object"<span style="color: #000000;"> ){
+                        extend(destination[property], source[property]);
+                    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+                        destination[property] </span>=<span style="color: #000000;"> source[property];
+                    }
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> destination;
+    }
+    
+    base.extendLess </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(destination, source) {
+        </span><span style="color: #0000ff;">var</span> newopt =<span style="color: #000000;"> source;
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i <span style="color: #0000ff;">in</span><span style="color: #000000;"> destination) {
+            </span><span style="color: #0000ff;">if</span> (isObject(source) &amp;&amp; <span style="color: #0000ff;">typeof</span>(source[i]) != 'undefined'<span style="color: #000000;">) {
+                destination[i] </span>=<span style="color: #000000;"> newopt[i]
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> destination
+    }
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 类式继承类
+     * @param {object} subClass 子类
+     * @param {object} superClass 基础类
+     * @return {undefined} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">    
+    base.extendClass </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(subClass,superClass){
+        </span><span style="color: #0000ff;">var</span> F = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){};
+        F.prototype </span>=<span style="color: #000000;"> superClass.prototype;
+        subClass.prototype </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> F();
+        subClass.prototype.constructor </span>=<span style="color: #000000;"> subClass;
+        subClass.superclass </span>=<span style="color: #000000;"> superClass.prototype;
+        </span><span style="color: #0000ff;">if</span> (superClass.prototype.constructor ==<span style="color: #000000;"> Object.prototype.constructor){
+            superClass.prototype.constructor </span>=<span style="color: #000000;"> superClass
+        }
+    }
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 原型继承类
+     * @param {object} object 基类
+     * @return {object} 生成的子类
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">     
+    base.cloneClass </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(object){        
+        </span><span style="color: #0000ff;">if</span>(!isObject(object)) <span style="color: #0000ff;">return</span><span style="color: #000000;"> object;
+        </span><span style="color: #0000ff;">if</span>(object == <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">return</span><span style="color: #000000;"> object;
+        </span><span style="color: #0000ff;">var</span> F = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Object();
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i <span style="color: #0000ff;">in</span><span style="color: #000000;"> object)
+            F[i] </span>=<span style="color: #000000;"> cloneClass(object[i]);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> F;         
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 绑定上下文
+     * @param {function,context} object
+     * @return {object}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">     
+    base.bind </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(fn,context){        
+         </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+             </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> fn.apply(context,arguments);
+         };        
+    }
+    
+    base.extend( base, {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 判断对象是否定义
+         * 其实只对对象中的元素判断有效，如是纯变量，此方法会无法调用，需要外面加try
+         * @param {object} object 对象
+         * @return {bool} 是/否
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        isUndefined : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(o){ 
+                 </span><span style="color: #0000ff;">return</span> o === undefined &amp;&amp; <span style="color: #0000ff;">typeof</span> o == "undefined"<span style="color: #000000;">;
+        },
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 判断对象是否数组
+         * @param {object} object 对象
+         * @return {bool} 是/否
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        isArray : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj) {
+            </span><span style="color: #0000ff;">return</span> getParamType(obj).toLowerCase() === "array"<span style="color: #000000;">;
+        },        
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 判断对象是否函数
+         * @param {object} object 对象
+         * @return {bool} 是/否
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        isFunction : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj){
+            </span><span style="color: #0000ff;">return</span> getParamType(obj).toLowerCase() === "function"<span style="color: #000000;">;
+        },        
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 判断对象是否对象
+         * @param {object} object 对象
+         * @return {bool} 是/否
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        isObject : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj) {
+            </span><span style="color: #0000ff;">return</span> getParamType(obj).toLowerCase() === "object"<span style="color: #000000;">;
+        },
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 判断对象是否数值
+         * @param {object} object 对象
+         * @return {bool} 是/否
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        isNumber : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj) {
+            </span><span style="color: #0000ff;">return</span> getParamType(obj).toLowerCase() === "number"<span style="color: #000000;">;
+        },
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 判断对象是否字符串
+         * @param {object} object 对象
+         * @return {bool} 是/否
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        isString : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj) {
+            </span><span style="color: #0000ff;">return</span> getParamType(obj).toLowerCase() === "string"<span style="color: #000000;">;
+        },
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 判断是否布尔值
+         * @param {object} object 对象
+         * @return {bool} 是/否
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        isBoolean : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj) {
+            </span><span style="color: #0000ff;">return</span> getParamType(obj).toLowerCase() === "boolean"<span style="color: #000000;">;
+        },
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 判断对象是否日期
+         * @param {object} object 对象
+         * @return {bool} 是/否
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        isDate : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj){
+            </span><span style="color: #0000ff;">return</span> getParamType(obj).toLowerCase() === "date"<span style="color: #000000;">;
+        },
+        
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 判断对象是否DOM元素
+         * @param {object} obj DOM对象
+         * @return {bool} 是/否
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        isDom : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj){
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">{
+                </span><span style="color: #0000ff;">return</span> obj &amp;&amp; <span style="color: #0000ff;">typeof</span> obj === "object" &amp;&amp; !isUndefined(obj.nodeType) &amp;&amp; obj.nodeType==1 &amp;&amp; !isUndefined(obj.nodeName) &amp;&amp; <span style="color: #0000ff;">typeof</span> obj.nodeName == "string"<span style="color: #000000;">;
+            }
+            </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(e){
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">console.log(e)</span>
+                <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+        },
+        
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 获取DOM对象的值
+         * @param {object} obj DOM对象
+         * @return {string} 取value或innerHTML
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        getDomVal : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj){
+            </span><span style="color: #0000ff;">return</span> obj.value ||<span style="color: #000000;"> obj.innerHTML;
+        },
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 索引序列
+         * @param {serial,function} 数组或对象集合
+         * @return {undefined}
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        forEach : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(haystack, callback) {
+            </span><span style="color: #0000ff;">var</span> i = 0<span style="color: #000000;">,
+                length </span>=<span style="color: #000000;"> haystack.length,
+                name;
+
+            </span><span style="color: #0000ff;">if</span> (length !==<span style="color: #000000;"> undefined) {
+                </span><span style="color: #0000ff;">for</span> (; i &lt;<span style="color: #000000;"> length;) {
+                    </span><span style="color: #0000ff;">if</span> (callback.call(haystack[i], i, haystack[i++]) === <span style="color: #0000ff;">false</span><span style="color: #000000;">) {
+                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                    }
+                }
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">for</span> (name <span style="color: #0000ff;">in</span><span style="color: #000000;"> haystack) {
+                    callback.call(haystack[name], name, haystack[name]);
+                }
+            }
+        },
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 获取dom对象
+         * @param {string|dom} dom的id或对象k
+         * @return {dom} 
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        g : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj){
+            </span><span style="color: #0000ff;">return</span> (<span style="color: #0000ff;">typeof</span> obj=='object')?<span style="color: #000000;">obj:document.getElementById(obj);
+        }
+    });
+    
+})();
+
+base.extend(window, base); </span></pre>
+</div>
+<h3>&nbsp;base下的DOM操作</h3>
+<div class="cnblogs_code">
+<pre><code>namespace("base.dom"<span style="color: #000000;">);
+(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #0000ff;">var</span> dom =<span style="color: #000000;"> base.dom;
+
+</span><span style="color: #0000ff;">var</span> userAgent =<span style="color: #000000;"> navigator.userAgent.toLowerCase();
+
+extend( dom, {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 判断浏览器类型
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    browser : {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 获取版本号
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        version: (userAgent.match( </span>/.+(?:rv|it|ra|ie)[\/: ]([\d.]+)/ ) || [0,'0'])[1<span style="color: #000000;">],
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否webkit浏览器
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        webkit: </span>/webkit/<span style="color: #000000;">.test( userAgent ),
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否opera浏览器
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        opera: </span>/opera/<span style="color: #000000;">.test( userAgent ),
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否IE浏览器
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        msie: </span>/msie/.test( userAgent ) &amp;&amp; !/opera/<span style="color: #000000;">.test( userAgent ),
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否mozilla浏览器
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        mozilla: </span>/mozilla/.test( userAgent ) &amp;&amp; !/(compatible|webkit)/<span style="color: #000000;">.test( userAgent ),
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否TT浏览器
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        tt: </span>/tencenttraveler/<span style="color: #000000;">.test( userAgent ),
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否chrome浏览器
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        chrome: </span>/chrome/<span style="color: #000000;">.test( userAgent ),
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否firefox浏览器
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        firefox: </span>/firefox/<span style="color: #000000;">.test( userAgent ),
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否safari浏览器
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        safari: </span>/safari/<span style="color: #000000;">.test( userAgent ),
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否gecko浏览器
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        gecko: </span>/gecko/<span style="color: #000000;">.test( userAgent ),
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 是否IE6
+         </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        ie6: </span><span style="color: #0000ff;">this</span>.msie &amp;&amp; <span style="color: #0000ff;">this</span>.version.substr(0,1) == '6'<span style="color: #000000;">
+    
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取dom对象
+     * @param {string|dom} dom的id或对象
+     * @return {dom} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    g : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(obj){
+        </span><span style="color: #0000ff;">return</span> (<span style="color: #0000ff;">typeof</span> obj=='object')?<span style="color: #000000;">obj:document.getElementById(obj);
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 判断DOM对象是否存在样式类名称
+     * @param {dom} element dom对象
+     * @param {string} className 样式名称
+     * @return {bool} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">     
+    hasClassName : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(element, className) {
+        </span><span style="color: #0000ff;">var</span> elementClassName =<span style="color: #000000;"> element.className;
+        </span><span style="color: #0000ff;">return</span> (elementClassName.length &gt; 0 &amp;&amp; (elementClassName == className ||
+      <span style="color: #0000ff;">new</span> RegExp("(^|\\s)" + className + "(\\s|$)"<span style="color: #000000;">).test(elementClassName)));
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 为DOM对象增加样式类名称
+     * @param {dom} element dom对象
+     * @param {string} className 样式名称
+     * @return {dom} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    addClassName : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(element, className) {
+        </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">base.hasClassName(element, className))
+            element.className </span>+= (element.className ? ' ' : '') +<span style="color: #000000;"> className;
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> element;
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 为DOM对象删除样式类名称
+     * @param {dom} element dom对象
+     * @param {string} className 样式名称
+     * @return {dom} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    removeClassName : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(element, className) {
+        element.className </span>=<span style="color: #000000;"> base.trim(element.className.replace(
+            </span><span style="color: #0000ff;">new</span> RegExp("(^|\\s+)" + className + "(\\s+|$)") , ' '<span style="color: #000000;">));
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> element;    
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 为dom对象设置样式
+     * @param {dom} ele dom对象
+     * @param {object} styles 样式对象 like:{width:100,height:100}
+     * @return undefined
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    setStyle: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(ele, styles){
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i <span style="color: #0000ff;">in</span><span style="color: #000000;"> styles) {
+            ele.style[i] </span>=<span style="color: #000000;"> styles[i];
+        }
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 为dom对象获取选定属性的样式
+     * @param {dom} ele dom对象
+     * @param {string} prop 属性名称
+     * @return 属性样式
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getStyle: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(el, prop){
+        </span><span style="color: #0000ff;">var</span> viewCSS = isFunction(document.defaultView) <span style="color: #008000;">//</span><span style="color: #008000;">(typeof document.defaultView == 'function') </span>
+            ?<span style="color: #000000;"> document.defaultView() 
+            : document.defaultView;
+        </span><span style="color: #0000ff;">if</span> (viewCSS &amp;&amp;<span style="color: #000000;"> viewCSS.getComputedStyle) {
+            </span><span style="color: #0000ff;">var</span> s = viewCSS.getComputedStyle(el, <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> s &amp;&amp;<span style="color: #000000;"> s.getPropertyValue(prop);
+        }
+        </span><span style="color: #0000ff;">return</span> (el.currentStyle &amp;&amp; (el.currentStyle[prop] || <span style="color: #0000ff;">null</span>) || <span style="color: #0000ff;">null</span><span style="color: #000000;">);
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取页面最大高度
+     * @return 属性样式
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getMaxH: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">return</span> (<span style="color: #0000ff;">this</span>.getPageHeight() &gt; <span style="color: #0000ff;">this</span>.getWinHeight() ? <span style="color: #0000ff;">this</span>.getPageHeight() : <span style="color: #0000ff;">this</span><span style="color: #000000;">.getWinHeight())
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取页面最大宽度
+     * @return 属性样式
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getMaxW: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">return</span> (<span style="color: #0000ff;">this</span>.getPageWidth() &gt; <span style="color: #0000ff;">this</span>.getWinWidth() ? <span style="color: #0000ff;">this</span>.getPageWidth() : <span style="color: #0000ff;">this</span><span style="color: #000000;">.getWinWidth())
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 网页内容高度
+     * @return {int} 网页内容高度
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getPageHeight: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">var</span> h = (window.innerHeight &amp;&amp; window.scrollMaxY) ? (window.innerHeight + window.scrollMaxY) : (document.body.scrollHeight &gt; document.body.offsetHeight ?<span style="color: #000000;"> document.body.scrollHeight : document.body.offsetHeight);
+        </span><span style="color: #0000ff;">return</span> h &gt; document.documentElement.scrollHeight ?<span style="color: #000000;"> h : document.documentElement.scrollHeight
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 网页内容宽度
+     * @return {int} 网页内容宽度
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getPageWidth: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">return</span> (window.innerWidth &amp;&amp; window.scrollMaxX) ? (window.innerWidth + window.scrollMaxX) : (document.body.scrollWidth &gt; document.body.offsetWidth ?<span style="color: #000000;"> document.body.scrollWidth : document.body.offsetWidth);
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 浏览器可视区域高度
+     * @return {int} 网可视区域高度
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getWinHeight: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">return</span> (window.innerHeight) ?<span style="color: #000000;"> window.innerHeight : 
+        (document.documentElement </span>&amp;&amp;<span style="color: #000000;"> document.documentElement.clientHeight) 
+        </span>?<span style="color: #000000;"> document.documentElement.clientHeight 
+        : document.body.offsetHeight
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 浏览器可视区域宽度
+     * @return {int} 网可视区域宽度
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getWinWidth: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">return</span> (window.innerWidth) ? window.innerWidth : (document.documentElement &amp;&amp; document.documentElement.clientWidth) ?<span style="color: #000000;"> document.documentElement.clientWidth : document.body.offsetWidth
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 设置dom透明度
+     * @param {dom} ele dom对象
+     * @param {int} level 透明度值（0-100的整数）
+     * @return {undefined} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">    
+    setOpacity: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(ele, level){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">level = Math.min(1,Math.max(level,0));</span>
+        <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.browser.msie &amp;&amp; (!document.documentMode || document.documentMode &lt; 9<span style="color: #000000;">)){
+            ele.style.filter </span>= 'Alpha(opacity=' + level + ')'<span style="color: #000000;">
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            ele.style.opacity </span>= level / 100<span style="color: #000000;">
+         }
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取页面中对象的绝对X位置
+     * @param {dom} e dom对象
+     * @return {int} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">    
+    getX: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+        </span><span style="color: #0000ff;">var</span> t =<span style="color: #000000;"> e.offsetLeft;
+        </span><span style="color: #0000ff;">while</span> (e = e.offsetParent) t +=<span style="color: #000000;"> e.offsetLeft;
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> t
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取页面中对象的绝对Y位置
+     * @param {dom} e dom对象
+     * @return {int} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">    
+    getY: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+        </span><span style="color: #0000ff;">var</span> t =<span style="color: #000000;"> e.offsetTop;
+        </span><span style="color: #0000ff;">while</span> (e = e.offsetParent) t +=<span style="color: #000000;"> e.offsetTop;
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> t
+    },
+    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取url中的参数值
+     * @param {string} pa 参数名称
+     * @return {string} 参数值
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">    
+    request: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(pa){ 
+        </span><span style="color: #0000ff;">var</span> url = window.location.href.replace(/#+.*$/, ''<span style="color: #000000;">),
+            params </span>= url.substring(url.indexOf("?")+1,url.length).split("&amp;"<span style="color: #000000;">),
+            param </span>=<span style="color: #000000;"> {} ;
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i=0; i&lt;params.length; i++<span style="color: #000000;">){  
+            </span><span style="color: #0000ff;">var</span> pos = params[i].indexOf('='),<span style="color: #008000;">//</span><span style="color: #008000;">查找name=value  </span>
+                key = params[i].substring(0<span style="color: #000000;">,pos),
+                val </span>= params[i].substring(pos+1);<span style="color: #008000;">//</span><span style="color: #008000;">提取value </span>
+            param[key] =<span style="color: #000000;"> val;
+        } 
+        </span><span style="color: #0000ff;">return</span> (<span style="color: #0000ff;">typeof</span>(param[pa])=="undefined") ? ""<span style="color: #000000;"> : param[pa];
+    } 
+})
+})();
+base.extend(base, base.dom);</span></pre>
+</div>
+<h3>base下的event事件</h3>
+<div class="cnblogs_code">
+<pre><code>namespace("base.event"<span style="color: #000000;">);
+
+(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #0000ff;">var</span> event =<span style="color: #000000;"> base.event;
+extend( event, {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 停止事件继续进行
+     * @param {event} e 事件
+     * @return {dom} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    preventDefault : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (e.preventDefault){
+            e.preventDefault();
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            e.returnValue </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 阻止事件冒泡传递
+     * @param {event} e 事件
+     * @return {dom} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    stopPropagation : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (e.stopPropagation){
+            e.stopPropagation();            
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            e.cancelBubble </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 为DOM对象增加事件
+     * @param {dom} element dom对象
+     * @param {string} type 事件名称
+     * @param {function} type 事件方法
+     * @return {undefined} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    addEvent : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(el, type, fn){
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (window.addEventListener){
+            el[</span>'e'+type+fn] =<span style="color: #000000;"> fn;
+            el[type</span>+fn] = <span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+                </span><span style="color: #0000ff;">var</span> _e = e ||<span style="color: #000000;"> window.event,
+                    _r </span>= el['e'+type+<span style="color: #000000;">fn](_e);
+                </span><span style="color: #0000ff;">if</span> (_r==<span style="color: #0000ff;">false</span><span style="color: #000000;">) {
+                    base.preventDefault(_e);
+                    base.stopPropagation(_e);
+                }                
+            }            
+            el.addEventListener(type, el[type</span>+fn], <span style="color: #0000ff;">false</span><span style="color: #000000;">);    
+        }
+        </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (window.attachEvent){
+            el[</span>'e'+type+fn] =<span style="color: #000000;"> fn;
+            el[type</span>+fn] = <span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+                </span><span style="color: #0000ff;">var</span> _r = el['e'+type+<span style="color: #000000;">fn](window.event);
+                </span><span style="color: #0000ff;">if</span> (_r==<span style="color: #0000ff;">false</span><span style="color: #000000;">) base.preventDefault(window.event);
+            }
+            el.attachEvent( </span>'on'+type, el[type+<span style="color: #000000;">fn] );
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            el[</span>'on' + type] =<span style="color: #000000;"> fn;
+        }
+    },    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 为DOM对象移除事件
+     * @param {dom} element dom对象
+     * @param {string} type 事件名称
+     * @param {function} type 事件方法
+     * @return {undefined} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    removeEvent : </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (el, type, fn){
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (window.removeEventListener){
+            el.removeEventListener(type, el[type</span>+fn], <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+            el[type</span>+fn] = <span style="color: #0000ff;">null</span><span style="color: #000000;">;    
+        }
+        </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (window.detachEvent){        
+            el.detachEvent( </span>'on'+type, el[type+<span style="color: #000000;">fn] );            
+            el[type</span>+fn] = <span style="color: #0000ff;">null</span><span style="color: #000000;">;            
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            el[</span>'on' + type] = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+    },
+    isReady : </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+    readyFn : [],
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * dom ready事件
+     * @param {dom} element dom对象
+     * @param {string} type 事件名称
+     * @param {function} type 事件方法
+     * @return {undefined} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    ready : </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (fn){    
+        bindReadyEvent();    
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> ( base.isReady ){
+            fn.call();
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isFunction(fn)){
+                base.readyFn.push(fn);
+            }
+        }
+    }
+});
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> bindReadyEvent(){
+    </span><span style="color: #0000ff;">if</span>(document.readyState === 'complete'<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ready();
+    }
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(document.addEventListener){
+        document.addEventListener(</span>"DOMContentLoaded", <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            document.removeEventListener(</span>"DOMContentLoaded", arguments.callee, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+            ready();
+        },</span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        window.addEventListener(</span>"load", ready, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+    }
+    </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;">(document.attachEvent){
+        document.attachEvent(</span>"onreadystatechange", <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            </span><span style="color: #0000ff;">if</span> (document.readyState === "complete"<span style="color: #000000;">){
+                document.detachEvent(</span>"onreadystatechange"<span style="color: #000000;">, arguments.callee);
+                ready();
+            }
+        });
+        window.attachEvent(</span>"onload"<span style="color: #000000;">,ready);
+        </span><span style="color: #0000ff;">if</span>(document.documentElement.doScroll &amp;&amp; window ==<span style="color: #000000;"> window.top){
+            </span><span style="color: #0000ff;">if</span>(base.isReady) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;">{
+                document.documentElement.doScroll(</span>"left"<span style="color: #000000;">);
+            }</span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(e){
+                setTimeout(arguments.callee, </span>0<span style="color: #000000;">);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            }
+            ready();
+        }
+    }
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> ready(){
+    </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">base.isReady){
+        </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">document.body){
+            </span><span style="color: #0000ff;">return</span> setTimeout(ready,13<span style="color: #000000;">);
+        }
+        base.isReady </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        
+        </span><span style="color: #0000ff;">if</span>(base.readyFn.length &gt;0<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">var</span> i=0<span style="color: #000000;">,fn;
+            </span><span style="color: #0000ff;">while</span>(fn = base.readyFn[i++<span style="color: #000000;">])
+                fn.call();
+            base.readyFn.length </span>= 0<span style="color: #000000;">;
+        }
+            
+    }
+}
+
+})();
+base.extend(base, base.event);</span></pre>
+</div>
+<h3>base下的array数组</h3>
+<div class="cnblogs_code">
+<pre><code>namespace("base.array"<span style="color: #000000;">);
+(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #0000ff;">var</span> array =<span style="color: #000000;"> base.array;
+extend( array, {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 判断数组内容个数
+     * @param {array} array 对象
+     * @return {int} 长度
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getLength : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(arr){
+        </span><span style="color: #0000ff;">var</span> l = 0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> key <span style="color: #0000ff;">in</span><span style="color: #000000;"> arr){
+            l </span>++<span style="color: #000000;">;
+        }    
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> l;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 复制数组
+     * @param {array} array 对象
+     * @return {array} 新数组对象
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    clone : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(arr){
+        </span><span style="color: #0000ff;">var</span> a =<span style="color: #000000;"> [];
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0; i&lt;arr.length; ++<span style="color: #000000;">i) {
+            a.push(arr[i]);
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> a;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 判断数组中是否存在这个值
+     * @param {array} arr 数组对象
+     * @param {object} value 对象
+     * @return {bool} 是/否
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    hasValue : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(arr, value){
+        </span><span style="color: #0000ff;">var</span> find = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span> (isArray(arr) ||<span style="color: #000000;"> isObject(arr))
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> key <span style="color: #0000ff;">in</span><span style="color: #000000;"> arr){
+                </span><span style="color: #0000ff;">if</span> (arr[key] == value) find = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> find;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 根据值获得数组中的key
+     * @param {array} arr 数组对象
+     * @param {object} value 对象
+     * @return {string} key
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getArrayKey : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(arr, value){
+        </span><span style="color: #0000ff;">var</span> findKey = -1<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span> (isArray(arr) ||<span style="color: #000000;"> isObject(arr))
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> key <span style="color: #0000ff;">in</span><span style="color: #000000;"> arr){
+                </span><span style="color: #0000ff;">if</span> (arr[key] == value) findKey =<span style="color: #000000;"> key;
+            }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> findKey;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 返回a1数组有a2没有的值
+     * @param {array} a1 数组对象
+     * @param {array} a2 数组对象
+     * @return {array} key
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    filter : </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (a1, a2) {
+        </span><span style="color: #0000ff;">var</span> res =<span style="color: #000000;"> [];
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;a1.length;i++<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">base.hasValue(a2, a1[i]))
+                res.push(a1[i]);
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> res;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 两个数组的值的交集
+     * @param {array} arr 数组
+     * @param {array} arr 数组
+     * @return {array} key
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    unique : </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (a1, a2) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> base.filter(a1,a2).concat(base.filter(a2,a1))
+    } 
+});
+})();
+base.extend(base, base.array); </span></pre>
+</div>
+<h3>base下的string字符串</h3>
+<div class="cnblogs_code">
+<pre><code>namespace("base.string"<span style="color: #000000;">);
+(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+
+</span><span style="color: #0000ff;">var</span> string =<span style="color: #000000;"> base.string;
+extend( string, {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 查找字符串的字节长度&lt;br/&gt;
+     * 中文算2 英文算1&lt;br/&gt;
+     * @param {string} str 字符串
+     * @return {int}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getByteLength : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">var</span> bytes=0,i=0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">for</span> (; i&lt;str.length; ++i,++<span style="color: #000000;">bytes) {
+            </span><span style="color: #0000ff;">if</span> ( str.charCodeAt(i) &gt; 255<span style="color: #000000;"> ) {
+                    </span>++<span style="color: #000000;">bytes;
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> bytes;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 查找有多少个双字节字符
+     * @param {string} str 字符串
+     * @return {int}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getDwordNum : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> string.getByteLength(str) -<span style="color: #000000;"> str.length;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 查找有多少个汉字字符
+     * @param {string} str 字符串
+     * @return {int}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getChineseNum : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> str.length - str.replace(/[\u4e00-\u9fa5]/g,""<span style="color: #000000;">).length;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 截取中文字符串&lt;br/&gt;
+     * 取iMaxBytes 或最后一个中文字符出现的地方替换字符&lt;br/&gt;
+     * @param {string} str 字符串
+     * @param {int} iMaxBytes 字符串
+     * @param {string} sSuffix 替补字符串
+     * @return {string}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    cutChinese : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str, iMaxBytes, sSuffix){
+        </span><span style="color: #0000ff;">if</span>(isNaN(iMaxBytes)) <span style="color: #0000ff;">return</span><span style="color: #000000;"> str;
+        </span><span style="color: #0000ff;">if</span>(string.getByteLength(str)&lt;=iMaxBytes) <span style="color: #0000ff;">return</span><span style="color: #000000;"> str;
+        </span><span style="color: #0000ff;">var</span> i=0, bytes=0<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">for</span> (; i&lt;str.length &amp;&amp; bytes&lt;iMaxBytes; ++i,++<span style="color: #000000;">bytes) {
+            </span><span style="color: #0000ff;">if</span> ( str.charCodeAt(i) &gt; 255<span style="color: #000000;"> ) {
+                    </span>++<span style="color: #000000;">bytes;
+            }
+        }
+        sSuffix </span>= sSuffix || ""<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">return</span> (bytes-iMaxBytes == 1 ? str.substr(0,i-1) : str.substr(0,i) ) +<span style="color: #000000;"> sSuffix;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 去掉字符串左边的非空字符
+     * @param {string} str 字符串
+     * @return {string}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    trimLeft : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> str.replace(/^\s+/,""<span style="color: #000000;">);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 去掉字符串右边的非空字符
+     * @param {string} str 字符串
+     * @return {string}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    trimRight : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> str.replace(/\s+$/,""<span style="color: #000000;">);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 去掉字符串左右两边的非空字符
+     * @param {string} str 字符串
+     * @return {string}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    trim : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> base.trimRight(base.trimLeft(str));
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 成对字符串替换
+     * @param {string} str 字符串
+     * @param {array} str 字符串&lt;br/&gt;
+          array包含两个 [0] 查找内容，[1] 替换内容&lt;br/&gt;
+          array可以出现多次&lt;br/&gt;
+     * @return {string}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    replacePairs : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">var</span> str = arguments[0<span style="color: #000000;">];
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i=1; i&lt;arguments.length; ++<span style="color: #000000;">i) {
+            </span><span style="color: #0000ff;">var</span> re = <span style="color: #0000ff;">new</span> RegExp(arguments[i][0], "g"<span style="color: #000000;">); 
+            str </span>= str.replace(re, arguments[i][1<span style="color: #000000;">]);
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> str;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 字符串替换为HTML编码形式
+     * @param {string} str 字符串
+     * @return {string}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    toHtml : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">var</span> CONVERT_ARRAY =<span style="color: #000000;">
+        [
+            [</span>"&amp;", "&amp;#38;"<span style="color: #000000;">],
+            [</span>" ", "&amp;#32;"<span style="color: #000000;">],
+            [</span>"'", "&amp;#39;"<span style="color: #000000;">], 
+            [</span>"\"", "&amp;#34;"<span style="color: #000000;">],
+            [</span>"/", "&amp;#47;"<span style="color: #000000;">],
+            [</span>"&lt;", "&amp;#60;"<span style="color: #000000;">],
+            [</span>"&gt;", "&amp;#62;"<span style="color: #000000;">],
+            [</span>"\\\\", "&amp;#92;"<span style="color: #000000;">],
+            [</span>"\n", "&lt;br /&gt;"<span style="color: #000000;">],
+            [</span>"\r", ""<span style="color: #000000;">]
+        ];
+        </span><span style="color: #0000ff;">return</span> base.replacePairs.apply(<span style="color: #0000ff;">this</span><span style="color: #000000;">, [str].concat(CONVERT_ARRAY));
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 校验邮箱地址
+     * @param {string} str 字符串
+     * @return {bool}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isMail : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> /^(?:[\w-]+\.?)*[\w-]+@(?:[\w-]+\.)+[\w]{2,3}$/<span style="color: #000000;">.test(str);    
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 校验普通电话、传真号码：可以&ldquo;+&rdquo;开头，除数字外，可含有&ldquo;-&rdquo;
+     * @param {string} str 字符串
+     * @return {bool}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isTel : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> /^[+]{0,1}(\d){1,3}[ ]?([-]?((\d)|[ ]){1,12})+$/<span style="color: #000000;">.test(str);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 校验手机号码：必须以数字开头
+     * @param {string} str 字符串
+     * @return {bool}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isMobile : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> /^1[34578]\d{9}$/<span style="color: #000000;">.test(str);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 校验邮政编码
+     * @param {string} str 字符串
+     * @return {bool}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isZipCode : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> /^(\d){6}$/<span style="color: #000000;">.test(str);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 是否身份证号码
+     * @param {string} str 字符串
+     * @return {bool}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isIDCard : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">var</span> C15ToC18 = <span style="color: #0000ff;">function</span><span style="color: #000000;">(c15) {
+            </span><span style="color: #0000ff;">var</span> cId=c15.substring(0,6)+"19"+c15.substring(6,15<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">var</span> strJiaoYan  =[  "1", "0", "X", "9", "8", "7", "6", "5", "4", "3", "2"<span style="color: #000000;">];
+            </span><span style="color: #0000ff;">var</span> intQuan =[7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2<span style="color: #000000;">];
+            </span><span style="color: #0000ff;">var</span> intTemp=0<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span>(i = 0; i &lt; cId.length ; i++<span style="color: #000000;">)
+            intTemp </span>+=  cId.substring(i, i + 1)  *<span style="color: #000000;"> intQuan[i];  
+            intTemp </span>%= 11<span style="color: #000000;">;
+            cId</span>+=<span style="color: #000000;">strJiaoYan[intTemp];
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> cId; 
+        }
+        </span><span style="color: #0000ff;">var</span> Is18IDCard = <span style="color: #0000ff;">function</span><span style="color: #000000;">(IDNum) {
+            </span><span style="color: #0000ff;">var</span> aCity={11:"北京",12:"天津",13:"河北",14:"山西",15:"内蒙古",21:"辽宁",22:"吉林",23:"黑龙江",31:"上海",32:"江苏",33:"浙江",34:"安徽",35:"福建",36:"江西",37:"山东",41:"河南",42:"湖北",43:"湖南",44:"广东",45:"广西",46:"海南",50:"重庆",51:"四川",52:"贵州",53:"云南",54:"西藏",61:"陕西",62:"甘肃",63:"青海",64:"宁夏",65:"新疆",71:"台湾",81:"香港",82:"澳门",91:"国外"<span style="color: #000000;">};
+        
+            </span><span style="color: #0000ff;">var</span> iSum=0, info="", sID=<span style="color: #000000;">IDNum;
+            </span><span style="color: #0000ff;">if</span>(!/^\d{17}(\d|x)$/<span style="color: #000000;">i.test(sID)) {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+            sID</span>=sID.replace(/x$/i,"a"<span style="color: #000000;">);
+        
+            </span><span style="color: #0000ff;">if</span>(aCity[parseInt(sID.substr(0,2))]==<span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            }
+            
+            </span><span style="color: #0000ff;">var</span> sBirthday=sID.substr(6,4)+"-"+Number(sID.substr(10,2))+"-"+Number(sID.substr(12,2<span style="color: #000000;">));
+            </span><span style="color: #0000ff;">var</span> d=<span style="color: #0000ff;">new</span> Date(sBirthday.replace(/-/g,"/"<span style="color: #000000;">))
+            
+            </span><span style="color: #0000ff;">if</span>(sBirthday!=(d.getFullYear()+"-"+ (d.getMonth()+1) + "-" + d.getDate()))<span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 17;i&gt;=0;i --) iSum += (Math.pow(2,i) % 11) * parseInt(sID.charAt(17 - i),11<span style="color: #000000;">)
+            
+            </span><span style="color: #0000ff;">if</span>(iSum%11!=1)<span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+        }
+        
+        </span><span style="color: #0000ff;">return</span> str.length==15 ?<span style="color: #000000;"> Is18IDCard(C15ToC18(str)) : Is18IDCard(str);
+    },    
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 是否全部是中文
+     * @param {string} str 字符串
+     * @return {bool}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isChinese : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> base.getChineseNum(str)==str.length ? <span style="color: #0000ff;">true</span> : <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 是否全部是英文
+     * @param {string} str 字符串
+     * @return {bool}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isEnglish : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> /^[A-Za-z]+$/<span style="color: #000000;">.test(str);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 是否链接地址
+     * @param {string} str 字符串
+     * @return {bool}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isURL : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> /^(https|http):\/\/[A-Za-z0-9-_]+\.[A-Za-z0-9]+[\/=\?%\-&amp;_~`@[\]\':+!]*([^&lt;&gt;\"\"])*$/<span style="color: #000000;">.test(str);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 是否数字字符串
+     * @param {string} str 字符串
+     * @return {bool}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isNumberString : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(str){
+        </span><span style="color: #0000ff;">return</span> /^\d+$/<span style="color: #000000;">.test(str);
+    }
+})
+})();
+base.extend(base, base.string); </span></pre>
+</div>
+<h3>base下的cookie操作</h3>
+<div class="cnblogs_code">
+<pre><code>namespace("base.cookie"<span style="color: #000000;">);
+
+(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #0000ff;">var</span> cookie =<span style="color: #000000;"> base.cookie;
+extend( cookie, {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 设置cookie
+     * @param {string} sName cookie名
+     * @param {string} sValue cookie值
+     * @param {int} iExpireSec 失效时间（秒）
+     * @param {string} sDomain 作用域
+     * @param {string} sPath 作用路径
+     * @param {bool} bSecure 是否加密
+     * @return {void}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    set : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(sName,sValue,iExpireSec,sDomain,sPath,bSecure){
+        </span><span style="color: #0000ff;">if</span>(sName==<span style="color: #000000;">undefined) {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span>(sValue==<span style="color: #000000;">undefined) {
+            sValue</span>=""<span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">var</span> oCookieArray = [sName+"="+<span style="color: #000000;">escape(sValue)];
+        </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">isNaN(iExpireSec)){
+            </span><span style="color: #0000ff;">var</span> oDate = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date();
+            oDate.setTime(oDate.getTime()</span>+iExpireSec*1000<span style="color: #000000;">);
+            iExpireSec</span>==0 ? '' : oCookieArray.push("expires=" +<span style="color: #000000;"> oDate.toGMTString()) ;
+        }
+        </span><span style="color: #0000ff;">if</span>(sDomain!=<span style="color: #000000;">undefined){
+            oCookieArray.push(</span>"domain="+<span style="color: #000000;">sDomain);
+        }
+        </span><span style="color: #0000ff;">if</span>(sPath!=<span style="color: #000000;">undefined){
+            oCookieArray.push(</span>"path="+<span style="color: #000000;">sPath);
+        }
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(bSecure){
+            oCookieArray.push(</span>"secure"<span style="color: #000000;">);
+        }
+        document.cookie</span>=oCookieArray.join("; "<span style="color: #000000;">);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取cookie
+     * @param {string} sName cookie名
+     * @param {string} sValue 默认值
+     * @return {string} cookie值
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    get : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(sName,sDefaultValue){
+        </span><span style="color: #0000ff;">var</span> sRE = "(?:; |^)" + sName + "=([^;]*);?"<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">var</span> oRE = <span style="color: #0000ff;">new</span><span style="color: #000000;"> RegExp(sRE);
+        
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (oRE.test(document.cookie)) {
+            </span><span style="color: #0000ff;">return</span> unescape(RegExp["$1"<span style="color: #000000;">]);
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">return</span> sDefaultValue||<span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取cookie
+     * @param {string} sName cookie名
+     * @param {string} sDomain 作用域
+     * @param {sPath} sPath 作用路径
+     * @return {void} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    clear : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(sName, sDomain, sPath){
+        </span><span style="color: #0000ff;">var</span> oDate = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date();
+        cookie.set(sName,</span>"", -oDate.getTime()/1000, sDomain, sPath);
+<span style="color: #000000;">    }    
+});
+})();
+base.extend(base, base.cookie); </span></pre>
+</div>
+<h3>base下的date日期操作</h3>
+<div class="cnblogs_code">
+<pre><code>namespace("base.date"<span style="color: #000000;">);
+(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #0000ff;">var</span> date =<span style="color: #000000;"> base.date;
+</span><span style="color: #0000ff;">var</span> _d = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date();
+extend( date, {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取日期
+     * @param {string} sep 分隔符 默认为-
+     * @return {string} yyyy-mm-dd
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    toDateString : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(nd){    
+        </span><span style="color: #0000ff;">var</span> a=<span style="color: #000000;">[],
+            dt </span>= isDate(nd) ?<span style="color: #000000;"> nd : _d;
+            m </span>= dt.getMonth()+1<span style="color: #000000;">,
+            d </span>=<span style="color: #000000;"> dt.getDate(),
+            sep </span>= arguments[1] ? arguments[1] : (isString(arguments[0]) ? arguments[0] : "-"<span style="color: #000000;">); 
+        a.push(dt.getFullYear());
+        a.push( m.toString().length </span>&lt; 2 ? "0" +<span style="color: #000000;"> m : m);
+        a.push( d.toString().length </span>&lt; 2 ? "0" +<span style="color: #000000;"> d : d);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> a.join(sep);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取日期和时间
+     * @param {string} sep 分隔符 默认为-
+     * @return {string} yyyy-mm-dd hh:ii:ss
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    toDateTimeString : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(nd){
+        </span><span style="color: #0000ff;">var</span> dt = isDate(nd) ?<span style="color: #000000;"> nd : _d,
+            h </span>=<span style="color: #000000;"> dt.getHours(),
+            i </span>=<span style="color: #000000;"> dt.getMinutes(),
+            s </span>=<span style="color: #000000;"> dt.getSeconds(),
+            a </span>=<span style="color: #000000;"> [];
+        a.push(h.toString().length </span>&lt; 2 ? "0" +<span style="color: #000000;"> h : h);
+        a.push(i.toString().length </span>&lt; 2 ? "0" +<span style="color: #000000;"> i : i);
+        a.push(s.toString().length </span>&lt; 2 ? "0" +<span style="color: #000000;"> s : s);
+        </span><span style="color: #0000ff;">return</span> date.toDateString.apply(<span style="color: #0000ff;">this</span>,arguments) + " " + a.join(":"<span style="color: #000000;">);
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 是否润年
+     * @param {int} year 年份
+     * @return {bool} 是/否
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isLeapYear : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(year) {
+        </span><span style="color: #0000ff;">return</span> (0 == year % 4 &amp;&amp; ((year % 100 != 0) || (year % 400 == 0<span style="color: #000000;">)))
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 获取服务器时间
+     * @return {date} Date
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    getSeverDateTime : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">var</span> xhr = window.ActiveXObject ? <span style="color: #0000ff;">new</span> ActiveXObject("Microsoft.XMLHTTP") : <span style="color: #0000ff;">new</span><span style="color: #000000;"> XMLHttpRequest();
+        xhr.open(</span>"HEAD", window.location.href, <span style="color: #0000ff;">false</span><span style="color: #000000;">);
+        xhr.send();    
+        </span><span style="color: #0000ff;">var</span> d= <span style="color: #0000ff;">new</span> Date(xhr.getResponseHeader("Date"<span style="color: #000000;">));
+        
+        
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> d;
+    }    
+});
+})();
+base.extend(base, base.date);</span></pre>
+</div>
+<h3>base下的number</h3>
+<div class="cnblogs_code">
+<pre><code>namespace("base.number"<span style="color: #000000;">);
+(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+
+</span><span style="color: #0000ff;">var</span> number =<span style="color: #000000;"> base.number;
+extend( number, {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 是否某一范围的整数
+     * @param {int} n 数值
+     * @param {int} iMin 范围低值
+     * @param {int} iMax 范围高值
+     * @return {bool} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isInt : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(n, iMin, iMax){
+        </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">isFinite(n)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span>(!/^[+-]?\d+$/<span style="color: #000000;">.test(n)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;   
+        }
+        </span><span style="color: #0000ff;">if</span>(iMin!=undefined &amp;&amp; parseInt(n)&lt;<span style="color: #000000;">parseInt(iMin)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span>(iMax!=undefined &amp;&amp; parseInt(n)&gt;<span style="color: #000000;">parseInt(iMax)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }    
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 是否某一范围浮点数
+     * @param {float} n 数值
+     * @param {float} fMin 范围低值
+     * @param {float} fMax 范围高值
+     * @return {bool} 
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    isFloat : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(n, fMin, fMax){
+        </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">isFinite(n)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span>(fMin!=undefined &amp;&amp; parseFloat(n)&lt;<span style="color: #000000;">parseFloat(fMin)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">if</span>(fMax!=undefined &amp;&amp; parseFloat(n)&gt;<span style="color: #000000;">parseFloat(fMax)) {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 取随机整数
+     * @param {int} n 整数
+     * @return {int} 0~n间的随机整数
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    randomInt : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(n){
+        </span><span style="color: #0000ff;">return</span> Math.floor(Math.random() *<span style="color: #000000;"> n);
+    }
+});
+})();
+base.extend(base,base.number);</span></pre>
+</div>
+<h3>base下的object对象</h3>
+<div class="cnblogs_code">
+<pre><code>namespace("base.object"<span style="color: #000000;">);
+
+(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+
+extend( base.object, {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 序列化JSON对象
+     * 对object转化为url参数字符串，各属性间以&amp;分隔，如a=1&amp;b=2&amp;c=3
+     * 对象属性为string 则进行encodeURIComponent编码
+     * 对象属性为bool 则以0代表false 1代表true
+     * 对象属性为对象，则会继续进行递归序列化
+     * 对象属性为function 则返回function.toString
+     * @param {object} jsonObj json对象
+     * @return {string}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    serialize : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(jsonObj){
+        </span><span style="color: #0000ff;">var</span> newJsonObj = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(jsonObj) == 'undefined' || <span style="color: #0000ff;">typeof</span>(jsonObj) == 'function'<span style="color: #000000;">) 
+            newJsonObj </span>= ''<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(jsonObj) == 'number'<span style="color: #000000;">) 
+            newJsonObj </span>=<span style="color: #000000;"> jsonObj.toString();            
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(jsonObj) == 'boolean'<span style="color: #000000;">) 
+            newJsonObj </span>= (jsonObj) ? '1' : '0'<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(jsonObj) == 'object'<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">if</span> (!jsonObj) newJsonObj = ''<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span> (jsonObj <span style="color: #0000ff;">instanceof</span> RegExp) newJsonObj =<span style="color: #000000;"> jsonObj.toString();
+        }
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(jsonObj) == 'string'<span style="color: #000000;">) 
+            newJsonObj </span>=<span style="color: #000000;"> jsonObj;        
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(newJsonObj) == 'string'<span style="color: #000000;">) 
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> encodeURIComponent(newJsonObj);
+            
+        </span><span style="color: #0000ff;">var</span> ret =<span style="color: #000000;"> [];
+        </span><span style="color: #0000ff;">if</span> (jsonObj <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Array) {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; jsonObj.length; i++<span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(jsonObj[i]) == 'undefined')     <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                ret.push(</span><span style="color: #0000ff;">typeof</span>(jsonObj[i]) == 'object' ? ''<span style="color: #000000;"> : base.serialize(jsonObj[i]))
+            }
+            </span><span style="color: #0000ff;">return</span> ret.join('|'<span style="color: #000000;">)
+        } 
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i <span style="color: #0000ff;">in</span><span style="color: #000000;"> jsonObj) {                
+                </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(jsonObj[i]) == 'undefined')     <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                newJsonObj </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(jsonObj[i]) == 'object'<span style="color: #000000;">) {
+                    </span><span style="color: #0000ff;">if</span> (jsonObj[i] <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Array) {
+                        newJsonObj </span>=<span style="color: #000000;"> jsonObj[i];
+                        ret.push(i </span>+ '=' +<span style="color: #000000;"> base.serialize(newJsonObj));
+                    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                        ret.push(i </span>+ '='<span style="color: #000000;">)
+                    }
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    newJsonObj </span>=<span style="color: #000000;"> jsonObj[i];
+                    ret.push(i </span>+ '=' +<span style="color: #000000;"> base.serialize(newJsonObj));
+                }
+            }
+            </span><span style="color: #0000ff;">return</span> ret.join('&amp;'<span style="color: #000000;">)
+        }
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 反序列化为JSON对象
+     * 对url参形形式的对象反序列化成为JSON对象
+     * 与serialize相对应
+     * @param {object} jsonObj json对象
+     * @return {string}
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    unSerialize : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(jsonStr, de){
+        de </span>= de || 0<span style="color: #000000;">;
+        jsonStr </span>=<span style="color: #000000;"> jsonStr.toString();
+        </span><span style="color: #0000ff;">if</span> (!jsonStr) <span style="color: #0000ff;">return</span><span style="color: #000000;"> {};
+        </span><span style="color: #0000ff;">var</span> retObj =<span style="color: #000000;"> {}, 
+            obj1Ret </span>= jsonStr.split('&amp;'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">if</span> (obj1Ret.length == 0) <span style="color: #0000ff;">return</span><span style="color: #000000;"> retObj
+        </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; obj1Ret.length; i++<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">if</span> (!obj1Ret[i]) <span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">var</span> ret2 = obj1Ret[i].split('='<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">if</span> (ret2.length &gt;= 2<span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">var</span> ret0 = obj1Ret[i].substr(0, obj1Ret[i].indexOf('='<span style="color: #000000;">)),
+                    ret1 </span>= obj1Ret[i].substr(obj1Ret[i].indexOf('=') + 1<span style="color: #000000;">);
+                </span><span style="color: #0000ff;">if</span> (!ret1) ret1 = ''<span style="color: #000000;">;
+                </span><span style="color: #0000ff;">if</span> (ret0) retObj[ret0] = de == 0?<span style="color: #000000;"> decodeURIComponent(ret1) : ret1;
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> retObj;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 对整个object进行utf8格式的url解码
+     * @param {object} newopt 解码对象
+     * @return {object} 已解码对象
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    decode : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(newopt) {
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(newopt) == 'string'<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> decodeURIComponent(newopt)
+            } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;">(e) {}
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> newopt
+        }
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span>(newopt) == 'object'<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">if</span> (newopt == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">
+            }
+            </span><span style="color: #0000ff;">if</span> (newopt <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Array) {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; newopt.length; i++<span style="color: #000000;">) {
+                    newopt[i] </span>=<span style="color: #000000;"> base.decode(newopt[i])
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> newopt
+            } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (newopt <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> RegExp) {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> newopt
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i <span style="color: #0000ff;">in</span><span style="color: #000000;"> newopt) {
+                    newopt[i] </span>=<span style="color: #000000;"> base.decode(newopt[i]);
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> newopt
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> newopt
+    }
+    
+});
+})();
+base.extend(base,base.object);</span></pre>
+</div>
+<h3>base下的XSS漏洞过滤</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">处理前端的XSS漏洞过滤
+* 通用过滤XSS
+* base.xss.filter("javascript:alert(document.cookie)");
+ *过滤微信昵称
+* base.xss.filterWxNickName('小&lt;script&gt;alert(document.cookie);&lt;/script&gt;丁&lt;span class=\"emoji emoji1f42f\"&gt;&lt;/span&gt;丁');
+</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+
+namespace(</span>"base.xss"<span style="color: #000000;">);
+(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #0000ff;">var</span> xss =<span style="color: #000000;"> base.xss;
+extend(xss,{
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 通用过滤，对所有涉及到XSS漏洞的敏感字符和符号进行过滤
+     * @param {oriStr} string 待过滤的原始字符串
+     * @return {string} 过滤后的字符串
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    filter:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(oriStr){
+        </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">oriStr){
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> oriStr;
+        }
+        </span><span style="color: #0000ff;">var</span> charCodes=['3c','3e','27','22','28','29','60',{format:'script{}',chr:'3a'}];<span style="color: #008000;">//</span><span style="color: #008000;">要转义字符的16进制ASCII码[1&lt;  2&gt;  3'  4"  5(  6)  7`]</span>
+        <span style="color: #0000ff;">var</span> xssChars=[],filterChars=[],tmpFormat='{}'<span style="color: #000000;">,tmpChr;
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;charCodes.length;i++<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">if</span>('string'==<span style="color: #0000ff;">typeof</span><span style="color: #000000;"> charCodes[i]){
+                tmpFormat</span>='{}'<span style="color: #000000;">;
+                tmpChr</span>=<span style="color: #000000;">charCodes[i];
+            }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+                tmpFormat</span>=<span style="color: #000000;">charCodes[i].format;
+                tmpChr</span>=<span style="color: #000000;">charCodes[i].chr
+            }
+            xssChars.push(tmpFormat.replace(</span>'{}','\\u00'+<span style="color: #000000;">tmpChr));
+            xssChars.push(tmpFormat.replace(</span>'{}','%'+tmpChr));<span style="color: #008000;">//</span><span style="color: #008000;">1次encode</span>
+            xssChars.push(tmpFormat.replace('{}','%25'+tmpChr));<span style="color: #008000;">//</span><span style="color: #008000;">2次encode</span>
+            filterChars.push(tmpFormat.replace('{}','&amp;#x'+tmpChr+';'<span style="color: #000000;">));
+            filterChars.push(tmpFormat.replace(</span>'{}','%26%23x'+tmpChr+'%3B'));<span style="color: #008000;">//</span><span style="color: #008000;">1次encode</span>
+            filterChars.push(tmpFormat.replace('{}','%2526%2523x' + tmpChr + '%253B'));<span style="color: #008000;">//</span><span style="color: #008000;">2次encode</span>
+<span style="color: #000000;">        }
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;xssChars.length;i++<span style="color: #000000;">){
+            oriStr</span>=oriStr.replace(<span style="color: #0000ff;">new</span> RegExp(xssChars[i],'gi'<span style="color: #000000;">),filterChars[i]);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">预防script:</span>
+        oriStr=oriStr.replace(/script[\u000d\u000a\u0020]+\:/i,'script&amp;#x3a;'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> oriStr;
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * [专门过滤]过滤微信昵称，过滤除emoji表情之外的所有字符
+     * @param {oriStr} string 待过滤的原始字符串
+     * @return {string} 过滤后的字符串
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    filterWxNickName:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(oriStr){
+        console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">);
+        </span><span style="color: #0000ff;">var</span> matchArr=oriStr.match(/\&lt;span\sclass\=\"emoji\semoji[0-9a-z]+\"\&gt;\&lt;\/span\&gt;/<span style="color: #000000;">g);
+        </span><span style="color: #0000ff;">var</span> oriTagStr="",filterTagStr=""<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">var</span> tag="{tag_"+(<span style="color: #0000ff;">new</span> Date()).getTime()+"}"<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">if</span>(!matchArr || !<span style="color: #000000;">matchArr.length){
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.filter(oriStr);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            oriTagStr</span>=oriStr.replace(/\&lt;span\sclass\=\"emoji\semoji[0-9a-z]+\"\&gt;\&lt;\/span\&gt;/<span style="color: #000000;">g,tag);
+            filterTagStr</span>=<span style="color: #0000ff;">this</span><span style="color: #000000;">.filter(oriTagStr);
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;matchArr.length;i++<span style="color: #000000;">){
+                filterTagStr</span>=<span style="color: #000000;">filterTagStr.replace(tag,matchArr[i]);
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> filterTagStr;
+        }
+    }
+});
+})();
+base.extend(base,base.xss);</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

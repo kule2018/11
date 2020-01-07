@@ -1,0 +1,67 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue源码中compiler部分逻辑梳理（内有彩蛋）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue源码中compiler部分逻辑梳理（内有彩蛋）</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11502736.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-简述">一. 简述</a></li>
+        <li><a href="#二.-编译流程">二. 编译流程</a></li>
+        <li><a href="#三.-彩蛋环节">三. 彩蛋环节</a></li>
+        </ul>
+    </div>
+</div>
+<blockquote>
+<p>示例代码托管在：<a href="http://www.github.com/dashnowords/blogs" class="uri">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<h2 id="一.-简述">一. 简述</h2>
+<p><code>compiler</code>模块Vue框架中用于模板编译的，它的作用就是将Vue中的组件模板转换成<code>render</code>函数，<code>render</code>函数在运行时可以生成虚拟节点<code>vnode</code>，它是Vue中虚拟DOM树的基本实现流程。完整版的Vue是包含<code>runtime</code>和<code>compiler</code>的，也就是说模板的编译过程可以在运行时进行，这无疑是一种性能负担。Vue官方也提供了独立的<code>runtime</code>版本，其中只包含运行时环境，把从<code>template</code>到<code>render</code>函数的生成部分放在构建时完成（利用<code>vue-templete-compiler</code>模块），以提高运行时的效率。</p>
+<p>由于跨平台需求，<code>compiler</code>模块的实现过程步骤稍多，不断地利用高阶函数来拆分整体逻辑，不是很容易阅读，本篇对该模块的基本流程进行一个梳理，再参考文末彩蛋推荐的电子书，就比较容易看懂了。</p>
+<h2 id="二.-编译流程">二. 编译流程</h2>
+<p>相关入口在实例挂载函数<code>$mount</code>的实现中:</p>
+<pre><code><code>Vue.prototype.$mount = function(){
+    const options = this.$options
+    //....
+     const { render, staticRenderFns } = compileToFunctions(template, {
+        shouldDecodeNewlines,
+        shouldDecodeNewlinesForHref,
+        delimiters: options.delimiters,
+        comments: options.comments
+      }, this)
+      options.render = render
+      options.staticRenderFns = staticRenderFns
+    //....
+    return mount.call(this, el, hydrating)
+}</code></pre>
+<p>可以看到实例挂载方法<code>$mount</code>的逻辑就是在调用<code>mount</code>方法前在实例的<code>$options</code>添加了额外的信息。此处调用的<code>compileToFunctions</code>方法经历的逻辑跳转了多层高阶函数，涉及文件也比较多，直接上图比较清楚：</p>
+<p>笔者将涉及函数简化为输入输出的形式：</p>
+<p><img src="./images/Vue源码中compiler部分逻辑梳理（内有彩蛋）0.png" /></p>
+<p>核心逻辑步骤如下所示：</p>
+<p><img src="./images/Vue源码中compiler部分逻辑梳理（内有彩蛋）1.png" /></p>
+<p>梳理完流程，整个编译流程的宏观流程也就相对清晰了，这里为了兼顾不同平台的方法差异，将有差异的部分提取为独立的模块，然后作为函数参数注入执行函数，这种通过高阶函数来组织代码的方式能提高核心逻辑的聚合程度，如果是普通的业务逻辑，很可能会是以扁平化串联调用的形式来编写方法的，笔者个人认为两种模式没有绝对的优劣对比，虽然高阶函数看起来更高级。</p>
+<h2 id="三.-彩蛋环节">三. 彩蛋环节</h2>
+<p>分享一本非常详细的讲述Vue核心原理的开源电子书<a href="https://ustbhuangyi.github.io/vue-analysis/">【Vue.js 技术揭秘】</a>。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,173 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于原型链，原来这么简单？—————终结__proto__和prototype的那些事' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于原型链，原来这么简单？—————终结__proto__和prototype的那些事</center></div><div class='banquan'>原文出处:本文由博客园博主Cober_kuang提供。<br/>
+原文连接:https://www.cnblogs.com/kbaoq/p/11354549.html</div><br>
+    <p>今天，一个技术群里小朋友提出一个问题:</p>
+<div class="cnblogs_code">
+<pre><code>Object.prototype.a = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'a'<span style="color: #000000;">)
+}
+
+Function.prototype.b </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'b'<span style="color: #000000;">)
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> F(){}
+</span><span style="color: #0000ff;">var</span> f = <span style="color: #0000ff;">new</span><span style="color: #000000;"> F();
+
+f.a();
+f.b();
+F.a();
+F.b();</span></pre>
+</div>
+<p>我默念心中的万能公式，答案一下就出来了：</p>
+<p>a;</p>
+<p>报错（f.b is not a function）；</p>
+<p>a；</p>
+<p>b；</p>
+<p>这下子出题人产生了疑惑，你是控制台敲出来的吧！</p>
+<p>但其实，原型链真的很简单。话不多说，开始表演！</p>
+<p>首先，我们简单介绍一下，实例化一个对象（new）到底做了什么？</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> Base() {
+    </span><span style="color: #0000ff;">this</span>.a = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        console.log(</span>'我是Base中的a'<span style="color: #000000;">)
+    }
+}
+
+Base.prototype.b </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'我是Base prototype上的b'<span style="color: #000000;">)
+}
+
+</span><span style="color: #0000ff;">var</span> obj = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Base();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 实际上做了以下几件事</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> var obj = {};</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> obj.__proto__ = Base.prototype;</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> Base.call(obj);</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> 第一行，我们创建了一个空对象obj</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> 第二行，我们将这个空对象的__proto__成员指向了Base函数对象prototype成员对象</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> 第三行，我们将Base函数中this上的成员赋值给obj</span></pre>
+</div>
+<p>这就去控制台检验一下:</p>
+<p><img src="./images/关于原型链，原来这么简单？—————终结__proto__和prototype的那些事0.png" alt="" /></p>
+<p>好，可以开始解题，回顾一下小朋友提出的问题：</p>
+<div class="cnblogs_code">
+<pre><code>Object.prototype.a = <span style="color: #0000ff;">function</span> () { console.log('a'<span style="color: #000000;">) }
+Function.prototype.b </span>= <span style="color: #0000ff;">function</span> () { console.log('b'<span style="color: #000000;">) }
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> F(){}
+</span><span style="color: #0000ff;">var</span> f = <span style="color: #0000ff;">new</span><span style="color: #000000;"> F();
+f.a();f.b();F.a();F.b();</span></pre>
+</div>
+<p>我们展开f的原型链：</p>
+<div class="cnblogs_code">
+<pre><code>f.__proto__ ===<span style="color: #000000;"> F.prototype;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 因为prototype本质也是对象，继承自Object，所以F.prototype.__proto__ === Object.prototype</span>
+f.__proto__.__proto__ ===<span style="color: #000000;"> Object.prototype;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 按上一条，会得出Object.prototype.__proto__ = Object.prototype，那样会永无止境，因此js中把Object.prototype.__proto_直接赋值成null</span>
+f.__proto__.__proto__.__proto__ === <span style="color: #0000ff;">null</span>;</pre>
+</div>
+<p>我们会发现，f的原型链中，根本没有Function.prototype什么事，所以答案出来了，f.a()输出a，f.b会报错；</p>
+<p>我们再展开F的原型链：</p>
+<div class="cnblogs_code">
+<pre><code>F.__proto__ ===<span style="color: #000000;"> Function.prototype;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 因为prototype本质也是对象，继承自Object，所以Function.prototype.__proto__ === Object.prototype</span>
+F.__proto__.__proto__ ===<span style="color: #000000;"> Object.prototype;
+
+f.__proto__.__proto__.__proto__ </span>=== <span style="color: #0000ff;">null</span>;</pre>
+</div>
+<p>OK，Function.prototype和Object.prototype都在原型链上，都会有输出，答案揭晓，F.a()输出a，F.b()输出b；</p>
+<p>前文我提到了万能公式，吃瓜群众表示，难道公式就是这个？当然不是，请听我细细道来；</p>
+<p>刚才的故事还没结束，我心血来潮回问了小朋友一个问题，就刚才你的条件Object.a();Object.b();Function.a();Function.b();会输出什么？</p>
+<p>小朋友答曰：a; b; a; b;</p>
+<p><span style="font-size: 14px;">不错不错，但他接了一句（他的1和4其实答错了，后续会告诉原因）：</span></p>
+<style><!--
+p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; line-height: 19.0px; font: 13.0px 'Helvetica Neue'; color: #000000}
+--></style>
+<p class="p1">1. Object.a();&nbsp; 直接prototype取值；</p>
+<p class="p1">2. Object是Function.prototype的实例，<span class="Apple-converted-space">可以继承b；</span></p>
+<p class="p1"><span class="Apple-converted-space">3. Function.__proto__ === Function.prototype；</span></p>
+<p class="p1"><span class="Apple-converted-space"><span class="Apple-converted-space">4. Function.b();直接prototype取值；</span></span></p>
+<p class="p1">&nbsp;</p>
+<p class="p1"><span class="Apple-converted-space" style="font-size: 14px;"><span class="Apple-converted-space">？？？Object.a第一步就直接到Object.prototype上找？这可能也是大家弄不清原型链的一大问题，话不多说，请摊开Object的原型链：</span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> Object是函数，继承自Function</span>
+Object.__proto__ ===<span style="color: #000000;"> Function.prototype;
+
+Object.__proto__.__proto__ </span>===<span style="color: #000000;"> Object.prototype;
+
+Object.__proto__.__proto__.__proto__ </span>=== <span style="color: #0000ff;">null</span>;</pre>
+</div>
+<p>因此，细心的朋友已经发现他的错误了，Object.a其实是访问到Object.__proto__.__proto__时才从Object.prototype上找到相应的a()；</p>
+<p>同样展开Function的原型链，就不再赘述了：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> Function自身也是个函数，因此继承自己</span>
+Function.__proto__ ===<span style="color: #000000;"> Function.prototype;
+
+Function.__proto__.__proto__ </span>===<span style="color: #000000;"> Object.prototype;
+
+Function.__proto__.__proto__.__proto__ </span>=== <span style="color: #0000ff;">null</span>;</pre>
+</div>
+<p>为了引导出万能公式，我再次发出了灵魂拷问：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 在刚才的前提下</span>
+<span style="color: #0000ff;">var</span> c = 1<span style="color: #000000;">;
+console.a();</span><span style="color: #008000;">//</span><span style="color: #008000;"> a</span>
+console.b();<span style="color: #008000;">//</span><span style="color: #008000;"> console.b is not a function</span>
+c.a();<span style="color: #008000;">//</span><span style="color: #008000;"> a</span>
+c.b();<span style="color: #008000;">//</span><span style="color: #008000;"> c.b is not a function</span>
+console.log.a();<span style="color: #008000;">//</span><span style="color: #008000;"> a</span>
+console.log.b();<span style="color: #008000;">//</span><span style="color: #008000;"> b</span></pre>
+</div>
+<p>这时，学会展开原型链的同学已经明白答案了，我就直接说出我的万能公式：</p>
+<p>在js中，万物皆对象，只要在Object.prototype上写的方法，万物都能访问到；而Function.prototype上的方法，只有能通过()方式调用的函数，才能访问到；</p>
+<p>因此我只需要查看这个对象可不可以通过函数()的形式调用，就能确定他是否能访问Function.prototype。再次回顾出题人的问题，f仅仅是个对象，f()是会报not is a function错误的，而F()是可以调用的函数，一下子得出 a 报错 a b的答案，学到了是不是感觉自己也棒棒哒~~~</p>
+<p>最终Cober老师还是给出了自己的杀手锏面试题，毕竟原型链还有另一层面试方法：</p>
+<div class="cnblogs_code">
+<pre><code>Object.prototype.a = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'我是Object中的a'<span style="color: #000000;">)
+}
+Object.prototype.b </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    console.log(</span>'我是Object中的b'<span style="color: #000000;">)
+}
+Function.prototype.a </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'我是Function中的a'<span style="color: #000000;">)
+}
+Function.prototype.b </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'我是Function中的b'<span style="color: #000000;">)
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> F(){
+    </span><span style="color: #0000ff;">this</span>.a = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        console.log(</span>'我是F中的a'<span style="color: #000000;">)
+    }
+}
+F.prototype.a </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    console.log(</span>'我是F的prototype中的a'<span style="color: #000000;">)
+}
+</span><span style="color: #0000ff;">var</span> f = <span style="color: #0000ff;">new</span><span style="color: #000000;"> F();
+f.a();f.b();F.a();F.b();Object.a();Object.b();Function.a();Function.b();</span></pre>
+</div>
+<p>（提示：原型链调用顺序是f.a -&gt; f.__proto__.a -&gt; f.__proto__.__proto__.a，直到访问到null）</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

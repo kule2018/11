@@ -1,0 +1,86 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack + vue 打包生成公共配置文件（域名）  方便动态修改' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack + vue 打包生成公共配置文件（域名）  方便动态修改</center></div><div class='banquan'>原文出处:本文由博客园博主Q_Qing提供。<br/>
+原文连接:https://www.cnblogs.com/Qqqing/p/11429536.html</div><br>
+    <p><span style="font-size: 16px; color: #ff6600;"><strong>需求原因</strong></span></p>
+<p>&nbsp;原来的项目中域名是打包到项目里面的，打包后不能动态配置，只能通过不同的指令打包来切换域名，每天都在测试域名和正式域名来回摩擦，后台大佬说你们可以生成一个配置文件这样就不用频繁打包了直接修改配置文件就好，于是就有了这篇文章。</p>
+<p>&nbsp;</p>
+<p><strong><span style="color: #ff6600;">第一步 安装插件</span></strong>&nbsp; &nbsp; &nbsp;&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>npm install --save-dev generate-asset-webpack-plugin</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong><span style="color: #ff6600;">第二步 新建配置文件</span></strong></p>
+<p>在项目的根目录下新建&nbsp;serverConfig.json&nbsp;以后会根据这个文件去生成打包的配置文件</p>
+<div class="cnblogs_code">
+<pre><code>{"ProdUrl":"http://text.com"}</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong><span style="color: #ff6600;">第三步 引入generate-asset-webpack-plugin</span></strong></p>
+<p><span style="color: #000000;"><strong>在build/webpack.prod.conf.js中添加</strong></span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<div>&nbsp;const GenerateAssetPlugin = require('generate-asset-webpack-plugin');</div>
+<pre><code>const serverConfig = require('../serverConfig.json')；<span style="color: #008000;">//</span><span style="color: #008000;">引入根目录下的配置文件</span>
+<span style="color: #000000;">
+
+const createJson </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> JSON.stringify(serverConfig);
+};<br />
+</span><span style="color: #008000;">//</span><span style="color: #008000;">plugins 中使用</span><span style="color: #000000;">
+  plugins: [
+</span><span style="color: #008000;">    //</span><span style="color: #008000;">打包时生成一个配置文件</span>
+    <span style="color: #0000ff;">new</span><span style="color: #000000;"> GenerateAssetPlugin({
+      filename: </span>'serverConfig.json'<span style="color: #000000;">,
+      fn: (compilation, cb) </span>=&gt;<span style="color: #000000;"> {
+          cb(</span><span style="color: #0000ff;">null</span><span style="color: #000000;">, createJson());
+      },
+  }),
+]</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><strong><span style="color: #ff6600;">第四步 使用配置文件中的内容</span></strong></p>
+<p><span style="color: #000000;">这里根据不同项目不同需求代码自行变换，我分享一下我的项目里的使用。在main.js&nbsp;中vue实例初始化之前将</span>baseURL存到本地</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>axios.get('serverConfig.json').then( e =&gt;<span style="color: #000000;"> {
+  let baseURL </span>=<span style="color: #000000;"> e.data.ProdUrl
+  localStorage.setItem(</span>"baseURL"<span style="color: #000000;">, baseURL);
+  </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+    el: </span>'#app'<span style="color: #000000;">,
+    router,
+    store,
+    i18n,
+    render: h </span>=&gt;<span style="color: #000000;"> h(App)
+  })
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>由于是使用axios获取，是异步方法，根据情况进行处理。、</p>
+<p>好了接下来就再也不用为了域名每天build了</p>
+<p>&nbsp;</p>
+<p>打包后的目录</p>
+<p><img src="./images/webpack + vue 打包生成公共配置文件（域名）  方便动态修改0.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,177 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js 设计模式——单例模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js 设计模式——单例模式</center></div><div class='banquan'>原文出处:本文由博客园博主妖色调提供。<br/>
+原文连接:https://www.cnblogs.com/loveyt/p/11413474.html</div><br>
+    <h1 id="单例模式">单例模式</h1>
+<blockquote>
+<p>保证一个类仅有一个实例，并提供一个访问它的全局访问点。</p>
+</blockquote>
+<p>单例模式是一种常用的模式，有一些对象我们往往只需要一个，比如线程池、全局缓存、浏览器中的 window 对象等。</p>
+<h2 id="javascript-中的单例模式">JavaScript 中的单例模式</h2>
+<h3 id="使用命名空间">1. 使用命名空间</h3>
+<p>在JavaScript里，实现单例的方式有很多种，其中最简单的一个方式是使用对象字面量的方法，其字面量里可以包含大量的属性和方法：</p>
+<pre><code><code>let people = {
+  name: &quot;Jack&quot;,
+  age: 18,
+  play() {
+    console.log(&#39;i like game&#39;);
+  }
+}</code></pre>
+<p>还可以动态地创建命名空间</p>
+<pre><code><code>// 定义对象
+var MyApp = {};
+// 对象的方法
+MyApp.namespace = function( name ){
+  // 将参数分割成数组
+  var parts = name.split( &#39;.&#39; );
+  // 定义变量
+  var current = MyApp;
+  // 创建对象里面的属性
+  for ( var i in parts ){
+    if ( !current[ parts[ i ] ] ){
+      current[ parts[ i ] ] = {};
+    }
+    current = current[ parts[ i ] ];
+  }
+};
+MyApp.namespace( &#39;event&#39; );
+MyApp.namespace( &#39;dom.style&#39; );
+
+/******************* 上面没看懂没关系 ***********************/
+// 上述代码等价于
+var MyApp = {
+  event: {},
+  dom: {
+    style: {}
+  } 
+};</code></pre>
+<h3 id="使用闭包封装私有变量">2. 使用闭包封装私有变量</h3>
+<pre><code><code>var user = (function(){ 
+  var __name = &#39;sven&#39;, 
+  __age = 29; 
+  return { 
+    getUserInfo: function(){ 
+      return __name + &#39;-&#39; + __age; 
+    } 
+  } 
+})();</code></pre>
+<p>我们用下划线来约定私有变量 <code>__name</code> 和 <code>__age</code> ，它们被封装在闭包产生的作用域中，外部是访问不到这两个变量的，这就避免了对全局的命令污染。</p>
+<hr />
+<h4 id="实现一个标准的单例模式">实现一个标准的单例模式</h4>
+<pre><code><code>var Singleton = function( name ){
+  this.name = name;
+  this.instance = null;
+};
+Singleton.prototype.getName = function(){
+  alert ( this.name );
+};
+Singleton.getInstance = function( name ){
+  if ( !this.instance ){
+    this.instance = new Singleton( name );
+  }
+  return this.instance;
+};
+var a = Singleton.getInstance( &#39;sven1&#39; );
+var b = Singleton.getInstance( &#39;sven2&#39; );
+alert ( a === b ); // true</code></pre>
+<p>我们通过 <code>Singleton.getInstance</code> 来获取 <code>Singleton</code> 类的唯一对象，这种方式相对简单，但有一个问题，就是增加了这个类的“不透明性”， <code>Singleton</code> 类的使用者必须知道这是一个单例类，跟以往通过 <code>new XXX</code> 的方式来获取对象不同，这里偏要使用 <code>Singleton.getInstance</code> 来获取对象。</p>
+<h4 id="透明的单例模式">透明的单例模式</h4>
+<pre><code><code>var CreateDiv = (function(){
+  var instance;
+  var CreateDiv = function( html ){
+    if ( instance ){
+      return instance;
+    }
+    this.html = html;
+    this.init();
+    return instance = this;
+  };
+  CreateDiv.prototype.init = function(){
+    var div = document.createElement( &#39;div&#39; );
+    div.innerHTML = this.html;
+    document.body.appendChild( div );
+  };
+  return CreateDiv;
+})();
+var a = new CreateDiv( &#39;sven1&#39; );
+var b = new CreateDiv( &#39;sven2&#39; );
+alert ( a === b ); // true</code></pre>
+<p>为了把 <code>instance</code> 封装起来，我们使用了自执行的匿名函数和闭包，并且让这个匿名函数返回<br />
+真正的 <code>Singleton</code> 构造方法，这增加了一些程序的复杂度</p>
+<h3 id="用代理实现单例模式">3. 用代理实现单例模式</h3>
+<pre><code><code>var CreateDiv = function( html ){
+  this.html = html;
+  this.init();
+};
+CreateDiv.prototype.init = function(){
+  var div = document.createElement( &#39;div&#39; );
+  div.innerHTML = this.html;
+  document.body.appendChild( div );
+};
+// 代理类 proxySingletonCreateDiv：
+var ProxySingletonCreateDiv = (function(){
+  var instance;
+  return function( html ){
+    if ( !instance ){
+      instance = new CreateDiv( html );
+    }
+    return instance;
+  }
+})();
+var a = new ProxySingletonCreateDiv( &#39;sven1&#39; );
+var b = new ProxySingletonCreateDiv( &#39;sven2&#39; );
+alert ( a === b );</code></pre>
+<p>通过引入代理类的方式，我们同样完成了一个单例模式的编写，跟之前不同的是，现在我们<br />
+把负责管理单例的逻辑移到了代理类 <code>proxySingletonCreateDiv</code> 中。这样一来，<code>CreateDiv</code> 就变成了一个普通的类，它跟 <code>proxySingletonCreateDiv</code> 组合起来可以达到单例模式的效果。</p>
+<h2 id="惰性单例">惰性单例</h2>
+<blockquote>
+<p>惰性单例指的是在需要的时候才创建对象实例。</p>
+</blockquote>
+<pre><code><code>var Singleton = (function () {
+  var instantiated;
+  function init() {
+    /*这里定义单例代码*/
+    return {
+      publicMethod: function () {
+      console.log(&#39;hello world&#39;);
+    },
+    publicProperty: &#39;test&#39;
+  };
+}
+
+return {
+  getInstance: function () {
+    if (!instantiated) {
+      instantiated = init();
+    }
+    return instantiated;
+  }
+};
+})();
+
+/*调用公有的方法来获取实例:*/
+Singleton.getInstance().publicMethod(); </code></pre>
+<p>通过以上方法我们就可以做到只有在使用的时候才初始化，从而达到节约资源的目的</p>
+<p>目前对于单例模式的理解就这么多，以后有了新的理解会继续更新的，溜了溜了(～￣▽￣)～</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

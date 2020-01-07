@@ -1,0 +1,115 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修web端百度地图API实现实时轨迹动态展现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>web端百度地图API实现实时轨迹动态展现</center></div><div class='banquan'>原文出处:本文由博客园博主QianTLL提供。<br/>
+原文连接:https://www.cnblogs.com/qiantao/p/11834780.html</div><br>
+    <p>最近在工作中遇到了一个百度地图api中的难题，恐怕有的程序员可能也遇到过。就是实时定位并显示轨迹，网上大部分都是通过创建polyline对象贴到地图上。当然，百度地图的画线就是这样实现的，但是好多人会发现，如果数据量超过四五千的话，浏览器可能就要卡了，后面可能就直接因为浏览器内存不足直接崩溃。按理讲面对这么少的数据，百度地图肯定会考虑到这一点，所以肯定有解决的方法。下面将介绍本人的方法供大家参考：</p>
+<p>1、数据准备</p>
+<p>这方便的数据我是ajax请求从后台获取的就不说了。画线的话我们就得用到百度地图api中的polyline类了，因为我们是实时定位，以前的历史路径是存在，但是我们不能每次都要new一个polyline对象贴到地图上，所以就需要用到polyline的setPath(path: Array&lt;<a class="link" href="http://lbsyun.baidu.com/cms/jsapi/reference/jsapi_reference_3_0.html#a1b0">Point</a>&gt;)，我们把整条路径的数据全部塞进去就可以了。这里我用一个json格式的数组保存每个历史路径的所有路径数据，后面就是来数据更新数组再找到地图上相应的polyline对象塞进去就可以了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> polylineArray = [];<span style="color: #008000;">//</span><span style="color: #008000;">此数组专门存储历史路径</span>
+<span style="color: #0000ff;">var</span> PolylineJson =<span style="color: #000000;"> {};
+PolylineJson[</span>"Id"] = Id;<span style="color: #008000;">//</span><span style="color: #008000;">存储相应的polyline对象</span>
+PolylineJson ["PathArray"] =<span style="color: #000000;"> polylineArray ;
+polylineArray.push(PolylineJson);</span></pre>
+</div>
+<p>备注：Polyline是个覆盖物对象，可以和其他对象一样自定义属性的，比如在声明以后设置polyline的id属性直接用polyline.id=content就可以了。再例如：polyline.name 或&nbsp;polyline.length等。覆盖物对象可以根据自己的需求自定义任何属性，取值的时候只需按这个字段取就可以了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> polyline = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BMap.Polyline([ startPoint, endPoint ], {
+        strokeColor : color,
+        strokeWeight : weight,
+        strokeOpacity : opacity,
+        strokeStyle : style </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实线solid或虚线dashed</span>
+<span style="color: #000000;">    });
+polyline.id </span>=<span style="color: #000000;"> Id;
+map.addOverlay(polyline);</span></pre>
+</div>
+<p>2、路径更新</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">if</span>(PolylineArray != ""<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; PolylineArray.length; i++<span style="color: #000000;">){
+                        </span><span style="color: #0000ff;">if</span>(PolylineArray[i].Id == Id){<span style="color: #008000;">//</span><span style="color: #008000;">此条路径存在</span>
+                            <span style="color: #0000ff;">var</span> PathArray =<span style="color: #000000;"> PolylineArray[i].PathArray;
+                            PathArray.push(endPoint);</span><span style="color: #008000;">//</span><span style="color: #008000;">更新数组中的数据</span>
+                            <span style="color: #0000ff;">var</span> allOverlay = map.getOverlays();<span style="color: #008000;">//</span><span style="color: #008000;"> 获取地图上的覆盖物</span>
+                            <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> j = 0; j &lt; allOverlay.length; j++<span style="color: #000000;">) {
+                                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 判断标注物是否是Polyline类型</span>
+                                <span style="color: #0000ff;">if</span> (allOverlay[j].toString() == "[object Polyline]"<span style="color: #000000;">) {
+                                    </span><span style="color: #0000ff;">if</span> (allOverlay[j].id ==<span style="color: #000000;"> Id) {
+                                        allOverlay[j].setPath(PathArray);
+                                        </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                                    }</span><span style="color: #0000ff;">else</span>{<span style="color: #008000;">//</span><span style="color: #008000;">数组中存在，但地图上不存在</span>
+                                        <span style="color: #0000ff;">if</span>(j == allOverlay.length - 1<span style="color: #000000;">){
+        　　　　　　　　　　　　　　　　　　　　　</span><span style="color: #0000ff;">var</span> polylineTemp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BMap.Polyline(PathArray, { 
+        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　 strokeColor : color, 
+        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　 strokeWeight : weight, 
+        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　 strokeOpacity : opacity, 
+        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　 strokeStyle : style </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实线solid或虚线dashed  </span>
+<span style="color: #000000;">        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　});
+                                            polylineTemp.id </span>= Id;<span style="color: #008000;">//</span><span style="color: #008000;">为这条路径赋值唯一的id</span>
+                                            map.addOverlay(polylineTemp); <span style="color: #008000;">//</span><span style="color: #008000;"> 添加折线到地图上</span>
+<span style="color: #000000;">                                        }
+                                    }
+                                }
+                            }
+                            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                        }</span><span style="color: #0000ff;">else</span>{<span style="color: #008000;">//</span><span style="color: #008000;">不存在</span>
+                            <span style="color: #0000ff;">if</span>(i == PolylineArray.length - 1<span style="color: #000000;">){
+                                </span><span style="color: #0000ff;">var</span> PathArray =<span style="color: #000000;"> [];
+                                PathArray.push(startPoint);
+                                PathArray.push(endPoint);
+                                </span><span style="color: #0000ff;">var</span> polylineTemp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BMap.Polyline(PathArray, { 
+        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　strokeColor : color, 
+        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　strokeWeight : weight, 
+        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　strokeOpacity : opacity, 
+        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　strokeStyle : style </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实线solid或虚线dashed  </span>
+<span style="color: #000000;">        　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　});
+                                polylineTemp.id </span>= Id;<span style="color: #008000;">//</span><span style="color: #008000;">为这条路径赋值唯一的id</span>
+                                map.addOverlay(polylineTemp); <span style="color: #008000;">//</span><span style="color: #008000;"> 添加折线到地图上</span>
+                                <span style="color: #0000ff;">var</span> PolylineJson =<span style="color: #000000;"> {};
+                                PolylineJson[</span>"Id"] =<span style="color: #000000;"> Id;
+                                PolylineJson[</span>"PathArray"] =<span style="color: #000000;"> PathArray;
+                                PolylineArray.push(Polyline);
+                                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                            }
+                        }
+                    }
+}</span><span style="color: #0000ff;">else</span>{<span style="color: #008000;">//</span><span style="color: #008000;">数组为空</span>
+            <span style="color: #0000ff;">var</span> PathArray =<span style="color: #000000;"> []; 
+            PathArray.push(startPoint); 
+            PathArray.push(endPoint);
+            </span><span style="color: #0000ff;">var</span> polylineTemp = <span style="color: #0000ff;">new</span><span style="color: #000000;"> BMap.Polyline(PathArray, { 
+　　　　　　　　　　　　　     strokeColor : color, 
+　　　　　　　　　　　　　     strokeWeight : weight, 
+　　　　　　　　　　　　　     strokeOpacity : opacity, 
+　　　　　　　　　　　　　　　　strokeStyle : style </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实线solid或虚线dashed  </span>
+<span style="color: #000000;">　　　　　　　　　　　   });
+            polylineTemp.id </span>= Id;<span style="color: #008000;">//</span><span style="color: #008000;">为这条路径赋值唯一的id</span>
+            map.addOverlay(polylineTemp); <span style="color: #008000;">//</span><span style="color: #008000;"> 添加折线到地图上</span>
+            <span style="color: #0000ff;">var</span> PolylineJson =<span style="color: #000000;"> {};
+            PolylineJson[</span>"Id"] =<span style="color: #000000;"> Id;
+            PolylineJson[</span>"PathArray"] =<span style="color: #000000;"> PathArray;
+            PolylineArray.push(Polyline);
+}</span></pre>
+</div>
+<p>备注：本方法在加载轻量级的数据还是可以的，不会使浏览器崩溃，如果每次实时定位加载许多路径数据，成百上千的那种，在加载的时候浏览器中地图卡一下是正常现象。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

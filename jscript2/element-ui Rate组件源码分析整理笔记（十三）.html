@@ -1,0 +1,398 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修element-ui Rate组件源码分析整理笔记（十三）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>element-ui Rate组件源码分析整理笔记（十三）</center></div><div class='banquan'>原文出处:本文由博客园博主kristy1993提供。<br/>
+原文连接:https://www.cnblogs.com/fangnianqin/p/11429457.html</div><br>
+    <p>Rate组件源码比较简单，有添加部分注释</p>
+<h3 id="main.vue"><font color="blue">main.vue</font></h3>
+<pre><code><code>&lt;template&gt;
+    &lt;!--valuenow当前的评分 valuetext当前显示的文本--&gt;
+  &lt;div
+    class=&quot;el-rate&quot;
+    @keydown=&quot;handleKey&quot;
+    role=&quot;slider&quot;
+    :aria-valuenow=&quot;currentValue&quot;
+    :aria-valuetext=&quot;text&quot;
+    aria-valuemin=&quot;0&quot;
+    :aria-valuemax=&quot;max&quot;
+    tabindex=&quot;0&quot;&gt;
+      &lt;!--包裹每个星的标签--&gt;
+    &lt;span
+      v-for=&quot;(item, key) in max&quot;
+      class=&quot;el-rate__item&quot;
+      @mousemove=&quot;setCurrentValue(item, $event)&quot;
+      @mouseleave=&quot;resetCurrentValue&quot;
+      @click=&quot;selectValue(item)&quot;
+      :style=&quot;{ cursor: rateDisabled ? &#39;auto&#39; : &#39;pointer&#39; }&quot;
+      :key=&quot;key&quot;&gt;
+        &lt;!--显示评星的标签--&gt;
+      &lt;i :class=&quot;[classes[item - 1], { &#39;hover&#39;: hoverIndex === item }]&quot;
+        class=&quot;el-rate__icon&quot;
+        :style=&quot;getIconStyle(item)&quot;&gt;
+          &lt;!--这里主要是当评分出现小数，显示左边高亮的半星--&gt;
+        &lt;i v-if=&quot;showDecimalIcon(item)&quot;
+          :class=&quot;decimalIconClass&quot;
+          :style=&quot;decimalStyle&quot;
+          class=&quot;el-rate__decimal&quot;&gt;
+        &lt;/i&gt;
+      &lt;/i&gt;
+    &lt;/span&gt;
+      &lt;!--showText是否显示辅助文字，若为真，则会从 texts 数组中选取当前分数对应的文字内容；showScore是否显示当前分数，show-score 和 show-text 不能同时为真--&gt;
+    &lt;span v-if=&quot;showText || showScore&quot; class=&quot;el-rate__text&quot; :style=&quot;{ color: textColor }&quot;&gt;{{ text }}&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+  import { hasClass } from &#39;element-ui/src/utils/dom&#39;;
+  import Migrating from &#39;element-ui/src/mixins/migrating&#39;;
+
+  export default {
+    name: &#39;ElRate&#39;,
+
+    mixins: [Migrating],
+    //provider/inject：简单的来说就是在父组件中通过provider来提供变量，然后在子组件中通过inject来注入变量。
+    inject: {
+      elForm: {
+        default: &#39;&#39;
+      }
+    },
+
+    data() {
+      return {
+        pointerAtLeftHalf: true,
+        currentValue: this.value,
+        hoverIndex: -1
+      };
+    },
+
+    props: {
+      value: {
+        type: Number,
+        default: 0
+      },
+      lowThreshold: { //低分和中等分数的界限值，值本身被划分在低分中
+        type: Number,
+        default: 2
+      },
+      highThreshold: { //高分和中等分数的界限值，值本身被划分在高分中
+        type: Number,
+        default: 4
+      },
+      max: { //最大分值
+        type: Number,
+        default: 5
+      },
+      colors: { //icon 的颜色数组，共有 3 个元素，为 3 个分段所对应的颜色
+        type: Array,
+        default() {
+          return [&#39;#F7BA2A&#39;, &#39;#F7BA2A&#39;, &#39;#F7BA2A&#39;];
+        }
+      },
+      voidColor: { //未选中 icon 的颜色
+        type: String,
+        default: &#39;#C6D1DE&#39;
+      },
+      disabledVoidColor: { //只读时未选中 icon 的颜色
+        type: String,
+        default: &#39;#EFF2F7&#39;
+      },
+      iconClasses: { //icon 的类名数组，共有 3 个元素，为 3 个分段所对应的类名
+        type: Array,
+        default() {
+          return [&#39;el-icon-star-on&#39;, &#39;el-icon-star-on&#39;, &#39;el-icon-star-on&#39;];
+        }
+      },
+      voidIconClass: { //未选中 icon 的类名
+        type: String,
+        default: &#39;el-icon-star-off&#39;
+      },
+      disabledVoidIconClass: { //只读时未选中 icon 的类名
+        type: String,
+        default: &#39;el-icon-star-on&#39;
+      },
+      disabled: { //是否为只读
+        type: Boolean,
+        default: false
+      },
+      allowHalf: { //是否允许半选
+        type: Boolean,
+        default: false
+      },
+      showText: { //是否显示辅助文字，若为真，则会从 texts 数组中选取当前分数对应的文字内容
+        type: Boolean,
+        default: false
+      },
+      showScore: { //是否显示当前分数，show-score 和 show-text 不能同时为真
+        type: Boolean,
+        default: false
+      },
+      textColor: { //辅助文字的颜色
+        type: String,
+        default: &#39;#1f2d3d&#39;
+      },
+      texts: {  //辅助文字数组
+        type: Array,
+        default() {
+          return [&#39;极差&#39;, &#39;失望&#39;, &#39;一般&#39;, &#39;满意&#39;, &#39;惊喜&#39;];
+        }
+      },
+      scoreTemplate: {  //分数显示模板
+        type: String,
+        default: &#39;{value}&#39;
+      }
+    },
+
+    computed: {
+      text() {
+        let result = &#39;&#39;;
+        //如果显示当前分数
+        if (this.showScore) {
+          //如果当前是只读状态，就显示v-model绑定的值，否则根据用户的评分显示值
+          result = this.scoreTemplate.replace(/\{\s*value\s*\}/, this.rateDisabled
+            ? this.value
+            : this.currentValue);
+        } else if (this.showText) { //如果显示辅助文字，则根据用户设置评分currentValue来显示texts数组中的文字
+          result = this.texts[Math.ceil(this.currentValue) - 1];
+        }
+        return result;
+      },
+      //高亮半星时添加的样式，颜色以及宽度
+      decimalStyle() {
+        let width = &#39;&#39;;
+        if (this.rateDisabled) {
+          //这里判断value的值是否含有小数，有小数的则这里宽度为50%，为整数的话为0%
+          width = `${ this.valueDecimal &lt; 50 ? 0 : 50 }%`;
+        }
+        if (this.allowHalf) {
+          width = &#39;50%&#39;;
+        }
+        return {
+          color: this.activeColor,
+          width
+        };
+      },
+
+      valueDecimal() {
+        return this.value * 100 - Math.floor(this.value) * 100;
+      },
+
+      decimalIconClass() {
+        return this.getValueFromMap(this.value, this.classMap);
+      },
+
+      voidClass() {
+        return this.rateDisabled ? this.classMap.disabledVoidClass : this.classMap.voidClass;
+      },
+      //根据currentValue的分所在的等级，返回对应的类名
+      activeClass() {
+        return this.getValueFromMap(this.currentValue, this.classMap);
+      },
+
+      colorMap() {
+        return {
+          lowColor: this.colors[0],
+          mediumColor: this.colors[1],
+          highColor: this.colors[2],
+          voidColor: this.voidColor,
+          disabledVoidColor: this.disabledVoidColor
+        };
+      },
+      //根据currentValue的分所在的等级，返回对应的颜色
+      activeColor() {
+        return this.getValueFromMap(this.currentValue, this.colorMap);
+      },
+      //这里主要是判断该星是选中还是未选中，分别加入选中和未选中icon类名
+      classes() {
+        let result = [];
+        let i = 0;
+        let threshold = this.currentValue;
+        if (this.allowHalf &amp;&amp; this.currentValue !== Math.floor(this.currentValue)) {
+          threshold--;
+        }
+        for (; i &lt; threshold; i++) {
+          result.push(this.activeClass);
+        }
+        for (; i &lt; this.max; i++) {
+          result.push(this.voidClass);
+        }
+        return result;
+      },
+
+      classMap() {
+        return {
+          lowClass: this.iconClasses[0],
+          mediumClass: this.iconClasses[1],
+          highClass: this.iconClasses[2],
+          voidClass: this.voidIconClass,
+          disabledVoidClass: this.disabledVoidIconClass
+        };
+      },
+
+      rateDisabled() {
+        //是否为只读，或者父组件el-form中disabled的属性值，disabled是否禁用该表单内的所有组件。若设置为 true，则表单内组件上的 disabled 属性不再生效
+        return this.disabled || (this.elForm || {}).disabled;
+      }
+    },
+
+    watch: {
+      value(val) {
+        this.currentValue = val;
+        this.pointerAtLeftHalf = this.value !== Math.floor(this.value);
+      }
+    },
+
+    methods: {
+      getMigratingConfig() {
+        return {
+          props: {
+            &#39;text-template&#39;: &#39;text-template is renamed to score-template.&#39;
+          }
+        };
+      },
+      //判断当前value在属于低分、中等分、高分中的哪个，根据不同等级返回不同的类名或者颜色
+      getValueFromMap(value, map) {
+        let result = &#39;&#39;;
+        if (value &lt;= this.lowThreshold) {
+          result = map.lowColor || map.lowClass;
+        } else if (value &gt;= this.highThreshold) {
+          result = map.highColor || map.highClass;
+        } else {
+          result = map.mediumColor || map.mediumClass;
+        }
+        return result;
+      },
+
+      showDecimalIcon(item) {
+        //如果当前value包含小数，并且item - 1 &lt; this.value &lt;item, showWhenDisabled为true
+        let showWhenDisabled = this.rateDisabled &amp;&amp; this.valueDecimal &gt; 0 &amp;&amp; item - 1 &lt; this.value &amp;&amp; item &gt; this.value;
+        //这里主要也是判断是否当前星是否应显示半星
+        let showWhenAllowHalf = this.allowHalf &amp;&amp;
+          this.pointerAtLeftHalf &amp;&amp;
+          item - 0.5 &lt;= this.currentValue &amp;&amp;
+          item &gt; this.currentValue;
+        return showWhenDisabled || showWhenAllowHalf;
+      },
+      //返回当前星图标的颜色
+      getIconStyle(item) {
+        //voidColor的值是根据是否只读来判断返回disabled-void-color或者void-color
+        const voidColor = this.rateDisabled ? this.colorMap.disabledVoidColor : this.colorMap.voidColor;
+        return {
+          //判断当前星是显示高亮的颜色还是未选中时的颜色
+          color: item &lt;= this.currentValue ? this.activeColor : voidColor
+        };
+      },
+       //点击时设置值
+      selectValue(value) {
+        if (this.rateDisabled) {
+          return;
+        }
+        //当可以显示半星时，这块传递的值为currentValue（鼠标移上去时会计算是否超过一半）
+        if (this.allowHalf &amp;&amp; this.pointerAtLeftHalf) {
+          this.$emit(&#39;input&#39;, this.currentValue);
+          this.$emit(&#39;change&#39;, this.currentValue);
+        } else { //当不显示半星直接返回value
+          this.$emit(&#39;input&#39;, value);
+          this.$emit(&#39;change&#39;, value);
+        }
+      },
+      //当按键按下时所调用的方法
+      handleKey(e) {
+        //如果组件被禁用则按键事件无效
+        if (this.rateDisabled) {
+          return;
+        }
+        let currentValue = this.currentValue;
+        const keyCode = e.keyCode;
+        //当按上下左右键的时候，允许半选则在currentValue加或减0.5，不允许则加或减1
+        if (keyCode === 38 || keyCode === 39) { // up / right
+          if (this.allowHalf) {
+            currentValue += 0.5;
+          } else {
+            currentValue += 1;
+          }
+          e.stopPropagation();
+          e.preventDefault();
+        } else if (keyCode === 37 || keyCode === 40) { // left /down
+          if (this.allowHalf) {
+            currentValue -= 0.5;
+          } else {
+            currentValue -= 1;
+          }
+          e.stopPropagation();
+          e.preventDefault();
+        }
+        currentValue = currentValue &lt; 0 ? 0 : currentValue;
+        currentValue = currentValue &gt; this.max ? this.max : currentValue;
+        //将currentValue通过input传递给子组件绑定的v-model值，触发change事件，子组件可以change在获取改变后的值
+        this.$emit(&#39;input&#39;, currentValue);
+        this.$emit(&#39;change&#39;, currentValue);
+      },
+      //鼠标移动时改变评星的值
+      setCurrentValue(value, event) {
+        if (this.rateDisabled) {
+          return;
+        }
+        /* istanbul ignore if */
+        if (this.allowHalf) {
+          let target = event.target;
+          //鼠标移动到包裹星星图标的span标签时，获取到显示星的icon标签
+          if (hasClass(target, &#39;el-rate__item&#39;)) {
+            target = target.querySelector(&#39;.el-rate__icon&#39;);
+          }
+          if (hasClass(target, &#39;el-rate__decimal&#39;)) {
+            target = target.parentNode;
+          }
+          //根据鼠标移到一颗星的左边一半以内的位置，则减去当前值的0.5，否则就是等于当前值
+          this.pointerAtLeftHalf = event.offsetX * 2 &lt;= target.clientWidth;
+          this.currentValue = this.pointerAtLeftHalf ? value - 0.5 : value;
+        } else {
+          //不允许半选时，鼠标移到那颗星就等于当前的值
+          this.currentValue = value;
+        }
+        //记录鼠标移动的位置
+        this.hoverIndex = value;
+      },
+      //鼠标移出时设置当前的值
+      resetCurrentValue() {
+        if (this.rateDisabled) {
+          return;
+        }
+        if (this.allowHalf) {
+          //如果当前的value是小数，pointerAtLeftHalf为true，如果是整数则为false,这里主要是为了点击时用来判断传哪个值
+          this.pointerAtLeftHalf = this.value !== Math.floor(this.value);
+        }
+        //鼠标移上去时currentValue会改变，移走时currentValue等于之前的value
+        this.currentValue = this.value;
+        this.hoverIndex = -1;
+      }
+    },
+
+    created() {
+      if (!this.value) {
+        this.$emit(&#39;input&#39;, 0);
+      }
+    }
+  };
+&lt;/script&gt;
+</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

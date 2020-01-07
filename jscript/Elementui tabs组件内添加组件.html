@@ -1,0 +1,162 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Elementui tabs组件内添加组件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Elementui tabs组件内添加组件</center></div><div class='banquan'>原文出处:本文由博客园博主老梁讲Java提供。<br/>
+原文连接:https://www.cnblogs.com/sky-chen/p/10975234.html</div><br>
+    <h1 id="elementui-tabs组件内添加组件">1. Elementui tabs组件内添加组件</h1>
+<h2 id="需求">1.1. 需求</h2>
+<ol>
+<li><p>今天的一个需求是在后台框架的基础上添加tab页，结果页面如下<br />
+<img src="./images/Elementui tabs组件内添加组件0.png" /></p></li>
+<li><p>原本上述红框内的内容是不存在的，直接点击左侧菜单栏进行页面跳转，现加了tab标签栏，实现快速的跳转</p></li>
+</ol>
+<h2 id="实现">1.2. 实现</h2>
+<ol>
+<li>具体要根据自己的route实现类进行筛选，核心vue如下</li>
+</ol>
+<pre><code><code>&lt;template&gt;
+  &lt;div&gt;
+    &lt;el-tabs v-model=&quot;TabsValue&quot; type=&quot;card&quot; closable @tab-remove=&quot;removeTab&quot;&gt;
+      &lt;el-tab-pane style=&quot;border-radius: 3px&quot; v-for=&quot;(item, index) in Tabs&quot; :key=&quot;item.name&quot; :label=&quot;item.title&quot; :name=&quot;item.name&quot;&gt;
+        &lt;tab-component style=&quot;border-radius: 3px;margin: -15px 10px 0px 10px;&quot; :index=&quot;index&quot; :name=&quot;index&quot;&gt;&lt;/tab-component&gt;
+      &lt;/el-tab-pane&gt;
+    &lt;/el-tabs&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  import Vue from &#39;vue&#39;
+  export default {
+    name: &#39;TabBar&#39;,
+    data(){
+      return {
+        uniqueOpened: true,
+        TabsValue: &#39;&#39;,
+        Tabs: [],
+        index:0,
+        tabComponent:{}
+      }
+    },
+    methods: {
+      addOneTab(menu) {
+        var exist = false;
+        for (var i = 0; i &lt; this.Tabs.length; i++) {
+          if (menu.name === this.Tabs[i].name) {
+            exist = true;
+            break
+          }
+        }
+        if (exist === true) {
+          this.TabsValue = menu.name;
+          return
+        }
+        this.Tabs.push({
+          title: menu.name,
+          name: menu.name,
+          content: menu.component
+        });
+        var _this = this;
+        this.tabComponent = Vue.component(&#39;tab-component&#39;, {
+          render: function (h) {
+            var comp = _this.Tabs[this.index].content;
+            return h(comp)
+          },
+          props: {
+            index: {
+              type: Number,
+              required: true
+            }
+          }
+        });
+        this.TabsValue = menu.name
+      },
+      addTab(e) {
+        let first = &quot;/&quot;+e.split(&quot;/&quot;)[1];
+        let two = e.split(&quot;/&quot;)[2];
+        let tempRoutes = this.$router.options.routes;
+        for (let i = 0; i &lt; tempRoutes.length; i++) {
+          let temp = tempRoutes[i];
+          if (temp.path === first) {
+            for (let j = 0; j &lt; temp.children.length; j++) {
+              let child = temp.children[j];
+              if (child.path === two) {
+                let menu = {};
+                menu.name = child.meta.title;
+                menu.component = child.component;
+                this.addOneTab(menu);
+              }
+            }
+          }
+        }
+      },
+      removeTab(targetName) {
+        let tabs = this.Tabs;
+        let activeName = this.TabsValue;
+        if (activeName === targetName) {
+          tabs.forEach((tab, index) =&gt; {
+            if (tab.name === targetName) {
+              let nextTab = tabs[index + 1] || tabs[index - 1];
+              if (nextTab) {
+                activeName = nextTab.name;
+              }
+            }
+          });
+        }
+        this.TabsValue = activeName;
+        this.Tabs = tabs.filter(tab =&gt; tab.name !== targetName);
+      }
+    }
+  }
+&lt;/script&gt;
+</code></pre>
+<ol>
+<li>上述是tab的实现，再就是菜单选择调用tab的addTab方法</li>
+</ol>
+<pre><code><code>&lt;el-menu @select=&quot;addTab&quot; mode=&quot;vertical&quot; unique-opened :default-active=&quot;$route.path&quot; :collapse=&quot;isCollapse&quot;
+         background-color=&quot;#304156&quot; text-color=&quot;#fff&quot; active-text-color=&quot;#409EFF&quot;&gt;
+  &lt;sidebar-item :routes=&quot;routes&quot;&gt;&lt;/sidebar-item&gt;
+&lt;/el-menu&gt;
+
+
+addTab(e) {
+  this.$refs.tabBar.addTab(e);
+}</code></pre>
+<ol>
+<li>上面代码会看着有点奇怪，因为<code>SideBar</code>，也就是上述的<code>el-menu</code>所在组件和<code>tab</code>是平级的，如下</li>
+<li></li>
+</ol>
+<pre><code><code>&lt;template&gt;
+  &lt;div class=&quot;app-wrapper&quot; :class=&quot;{hideSidebar:!sidebar.opened}&quot;&gt;
+    &lt;sidebar ref=&quot;sidebar&quot; @addTab=&quot;addTab&quot; class=&quot;sidebar-container&quot;&gt;&lt;/sidebar&gt;
+    &lt;div class=&quot;main-container&quot;&gt;
+      &lt;navbar&gt;&lt;/navbar&gt;
+      &lt;tab-bar ref=&quot;tabBar&quot;&gt;&lt;/tab-bar&gt;
+      &lt;app-main&gt;&lt;/app-main&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</code></pre>
+<p><code>siderBar</code>和<code>tab-bar</code>在同一个组件内，所以要实现参数传递，需要先emit提交事件，再在父组件传递给另一个子组件，这样链路就完整了，没看懂我的看下面的参考吧，我也是参考它的结合自己的代码实现</p>
+<h2 id="参考">1.3. 参考</h2>
+<ol>
+<li>参考自<a href="https://segmentfault.com/q/1010000009715346">该问答</a>陶通的回答</li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

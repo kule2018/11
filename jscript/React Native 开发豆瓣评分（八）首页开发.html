@@ -1,0 +1,384 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修React Native 开发豆瓣评分（八）首页开发' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>React Native 开发豆瓣评分（八）首页开发</center></div><div class='banquan'>原文出处:本文由博客园博主啤酒煮鸡蛋提供。<br/>
+原文连接:https://www.cnblogs.com/hl1223/p/11214488.html</div><br>
+    <p>首页完成效果展示：</p>
+<div style="text-align:center;">
+    <img src="./images/React Native 开发豆瓣评分（八）首页开发0.png" />
+</div>
+<h2 id="一开发占位图组件">一、开发占位图组件</h2>
+<p>在没有数据的时候使用占位图替代 items 的位置。</p>
+<p>在 components 目录里创建 moviesItemPlaceholder.js</p>
+<pre><code><code>import React, { Component } from &#39;react&#39;;
+import { View, StyleSheet } from &#39;react-native&#39;;
+import { px } from &#39;../utils/device&#39;;
+
+export default class MoviesItemPlaceholder extends Component {
+    render() {
+        const arr = [1, 2, 3, 4];
+        return (
+            &lt;View style={styles.page}&gt;
+                {arr.map((index) =&gt; (
+                    &lt;View style={styles.placeholder} key={index}&gt;
+                        &lt;View style={styles.img} /&gt;
+                        &lt;View style={styles.title} /&gt;
+                        &lt;View style={styles.rate} /&gt;
+                    &lt;/View&gt;
+                ))}
+            &lt;/View&gt;
+        )
+    }
+}
+
+const styles = StyleSheet.create({
+    page: {
+        flexDirection: &#39;row&#39;,
+        paddingLeft: px(30)
+    },
+    placeholder: {
+        width: px(160),
+        marginRight: px(16)
+    },
+    img: {
+        width: px(160),
+        height: px(224),
+        overflow: &#39;hidden&#39;,
+        borderRadius: px(8),
+        backgroundColor: &#39;#f8f8f8&#39;
+    },
+    title: {
+        marginTop: px(20),
+        backgroundColor: &#39;#f8f8f8&#39;,
+        height: px(30),
+        width: px(130),
+        overflow: &#39;hidden&#39;,
+        borderRadius: px(8)
+    },
+    rate: {
+        marginTop: px(16),
+        backgroundColor: &#39;#f8f8f8&#39;,
+        height: px(24),
+        width: px(130),
+        overflow: &#39;hidden&#39;,
+        borderRadius: px(8)
+    }
+});</code></pre>
+<h2 id="二首頁数据请求">二、首頁数据请求</h2>
+<p>使用 postman 之类的工具可以看到，首页接口返回的数据字段大致一样，数据均在 subject_collection_items 字段里，可以疯转一个方法量来请求数据。</p>
+<pre><code><code>var items = [&#39;showing&#39;, &#39;hot&#39;, &#39;tv&#39;, &#39;variety&#39;, &#39;book&#39;, &#39;music&#39;];
+items.forEach(type =&gt; {
+    this.getList(type);
+});
+getList = (type) =&gt; {
+    ajax(type, {
+      start: 0,
+      count: 9
+    }).then(value =&gt; {
+      let state = {}
+      state[type] = value.subject_collection_items;
+      this.setState(state);
+    })
+  }</code></pre>
+<h2 id="首页页面展示">首页页面展示</h2>
+<p>纵向滑动，使用 <strong>ScrollView</strong> 组件；横向滑动，使用 <strong>FlatList</strong> 组件，FlatList 组件的 ListEmptyComponent 表示没有数据时显示的组件，在这里放置占位图组件；</p>
+<pre><code><code>import React from &quot;react&quot;;
+import { View, Text, StatusBar, StyleSheet, ScrollView, FlatList, TouchableWithoutFeedback } from &quot;react-native&quot;;
+import { connect } from &#39;react-redux&#39;;
+import ajax from &quot;../utils/ajax&quot;;
+import Header from &#39;../components/header&#39;;
+import ItemsHeader from &#39;../components/itemsHeader&#39;;
+import MoviesItem from &#39;../components/moviesItem&#39;;
+import MoviesItemPlaceholder from &#39;../components/moviesItemPlaceholder&#39;;
+import Icon from &#39;react-native-vector-icons/AntDesign&#39;;
+import { px } from &quot;../utils/device&quot;;
+
+class Home extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      showing: [],
+      hot: [],
+      tv: [],
+      variety: [],
+      book: [],
+      music: [],
+    }
+    var items = [&#39;showing&#39;, &#39;hot&#39;, &#39;tv&#39;, &#39;variety&#39;, &#39;book&#39;, &#39;music&#39;];
+    items.forEach(type =&gt; {
+      this.getList(type);
+    });
+  }
+  getList = (type) =&gt; {
+    ajax(type, {
+      start: 0,
+      count: 9
+    }).then(value =&gt; {
+      let state = {}
+      state[type] = value.subject_collection_items;
+      this.setState(state);
+    })
+  }
+  render() {
+    const { dispatch, value, navigation } = this.props;
+    const { showing, hot, tv, variety, book, music } = this.state;
+    const sections = [
+      { title: &#39;影院热映&#39;, data: showing, type: &#39;showing&#39; },
+      { title: &#39;豆瓣热门&#39;, data: hot, type: &#39;hot&#39; },
+      { title: &#39;近期热门剧集&#39;, data: tv, type: &#39;tv&#39; },
+      { title: &#39;近期热门综艺节目&#39;, data: variety, type: &#39;variety&#39; },
+      { title: &#39;畅销图书&#39;, data: book, type: &#39;book&#39; },
+      { title: &#39;热门单曲榜&#39;, data: music, type: &#39;music&#39; }
+    ]
+    return (
+      &lt;View style={styles.page}&gt;
+        &lt;Header showBack={false} title=&#39;豆瓣评分&#39; backgroundColor=&#39;#00b600&#39; color=&#39;#fff&#39; /&gt;
+        &lt;ScrollView&gt;
+          &lt;View style={styles.search}&gt;
+            &lt;TouchableWithoutFeedback onPress={() =&gt; alert(&#39;search&#39;)}&gt;
+              &lt;View style={styles.searchView}&gt;
+                &lt;Icon name=&#39;search1&#39; size={px(30)} color=&#39;#ccc&#39; /&gt;
+                &lt;Text style={styles.searchText}&gt;搜索&lt;/Text&gt;
+              &lt;/View&gt;
+            &lt;/TouchableWithoutFeedback&gt;
+          &lt;/View&gt;
+          {sections.map((list, index) =&gt; (
+            &lt;View key={index} style={styles.list}&gt;
+              &lt;ItemsHeader title={list.title} onPress={() =&gt; navigation.push(&#39;List&#39;, { data: list })} /&gt;
+              &lt;FlatList
+                horizontal={true}
+                data={list.data}
+                keyExtractor={(item, index) =&gt; &#39;item&#39; + index}
+                ListEmptyComponent={() =&gt; &lt;MoviesItemPlaceholder /&gt;}
+                renderItem={({ item, index }) =&gt; (
+                  &lt;View style={{ marginRight: index !== showing.length - 1 ? px(16) : px(30), marginLeft: index === 0 ? px(30) : 0 }}&gt;
+                    &lt;MoviesItem data={item} /&gt;
+                  &lt;/View&gt;
+                )}
+              /&gt;
+            &lt;/View&gt;
+          ))}
+        &lt;/ScrollView&gt;
+      &lt;/View&gt;
+    );
+  }
+}
+
+const select = (store) =&gt; {
+  return {
+    value: store.num.value,
+  }
+}
+
+export default connect(select)(Home);
+
+const styles = StyleSheet.create({
+  page: {
+    flex: 1,
+    backgroundColor: &#39;#fff&#39;
+  },
+  search: {
+    backgroundColor: &#39;#00b600&#39;,
+    height: px(80),
+    alignItems: &#39;center&#39;,
+    justifyContent: &#39;center&#39;
+  },
+  searchView: {
+    height: px(50),
+    width: px(710),
+    borderRadius: px(8),
+    backgroundColor: &#39;#fff&#39;,
+    flexDirection: &#39;row&#39;,
+    justifyContent: &#39;center&#39;,
+    alignItems: &#39;center&#39;
+  },
+  searchText: {
+    fontSize: px(26),
+    color: &#39;#ccc&#39;,
+    marginLeft: px(6)
+  },
+  list: {
+    marginBottom: px(30)
+  }
+});</code></pre>
+<h2 id="四缓存列表数据">四、缓存列表数据</h2>
+<p>当处于弱网环境时，打开应用，可能会显示很久的占位图，此时我们可以将列表数据缓存至本地，每次进入应用先展示本地缓存的数据，然后请求数据，替换本地数据。</p>
+<p>此时，就可以使用 redux 了。</p>
+<h3 id="编译-reducer">编译 reducer</h3>
+<p>为了目录整清晰点（让 redux 相关的代码文件都存储于 store 目录下），将 src 目录下的 reducer 目录移动到 store 目录下，并在 reducer 目录创建 list.js。</p>
+<pre><code><code>const initList = {
+    showing: [],
+    hot: [],
+    tv: [],
+    variety: [],
+    book: [],
+    music: []
+}
+
+const setListState = (state = initList, action) =&gt; {
+    switch (action.type) {
+        case &#39;showing&#39;:
+            return {
+                ...state,
+                showing: action.data
+            }
+        case &#39;hot&#39;:
+            return {
+                ...state,
+                hot: action.data
+            }
+        case &#39;tv&#39;:
+            return {
+                ...state,
+                tv: action.data
+            }
+        case &#39;variety&#39;:
+            return {
+                ...state,
+                showing: action.data
+            }
+        case &#39;book&#39;:
+            return {
+                ...state,
+                book: action.data
+            }
+        case &#39;music&#39;:
+            return {
+                ...state,
+                music: action.data
+            }
+        default:
+            return state;
+    }
+}
+
+export default setListState;</code></pre>
+<p>在 reducer 的 index.js 中导入 setListState;</p>
+<pre><code><code>...
+import setListState from &#39;./list&#39;;
+...
+export default combineReducers({
+    ...
+    list: setListState
+    ...
+});</code></pre>
+<p>修改 store/index.js 的路径引入</p>
+<pre><code><code>import reducer from &#39;./reducer&#39;;</code></pre>
+<h3 id="编辑-action">编辑 action</h3>
+<p>将之前src下的 action 目录删除，在 store 目录下创建 action.js。</p>
+<pre><code><code>export function login(data) {
+    return {
+        type: &#39;login&#39;,
+        data
+    }
+}
+
+export function logout(data) {
+    return {
+        type: &#39;logout&#39;,
+        data
+    }
+}
+
+// set 首页列表数据
+export function setShowing(data) {
+    return {
+        type: &#39;showing&#39;,
+        data
+    }
+}
+export function setHot(data) {
+    return {
+        type: &#39;hot&#39;,
+        data
+    }
+}
+export function setTv(data) {
+    return {
+        type: &#39;tv&#39;,
+        data
+    }
+}
+export function setVariety(data) {
+    return {
+        type: &#39;variety&#39;,
+        data
+    }
+}
+export function setBook(data) {
+    return {
+        type: &#39;book&#39;,
+        data
+    }
+}
+export function setMusic(data) {
+    return {
+        type: &#39;music&#39;,
+        data
+    }
+}</code></pre>
+<h3 id="编辑首页">编辑首页</h3>
+<h4 id="导入修改-store-的方法">导入修改 store 的方法：</h4>
+<pre><code><code>import { setShowing, setHot, setTv, setVariety, setBook, setMusic } from &#39;../store/action&#39;;</code></pre>
+<h4 id="页面获取-store-存储的数据">页面获取 store 存储的数据：</h4>
+<pre><code><code>const select = (store) =&gt; {
+  return {
+    showing: store.list.showing,
+    hot: store.list.hot,
+    tv: store.list.tv,
+    variety: store.list.variety,
+    book: store.list.book,
+    music: store.list.music
+  }
+}
+export default connect(select)(Home);</code></pre>
+<h4 id="页面获取数据时改变-store-里的数据">页面获取数据时，改变 store 里的数据</h4>
+<p>由于需要 save 数据，所以前面创建的 getList 和传入的 items 需要做一些改变：</p>
+<pre><code><code>...
+var items = [
+    { type: &#39;showing&#39;, save: setShowing }, 
+    { type: &#39;hot&#39;, save: setHot },
+    { type: &#39;tv&#39;, save: setTv },
+    { type: &#39;variety&#39;, save: setVariety },
+    { type: &#39;book&#39;, save: setBook },
+    { type: &#39;music&#39;, save: setmusic },
+]
+items.forEach(item =&gt; {
+    this.getList(item);
+});
+...
+getList = (item) =&gt; {
+    ajax(item.type, {
+      start: 0,
+      count: 9
+    }).then(value =&gt; {
+      this.props.dispatch(item.save(value.subject_collection_items));
+    })
+  }</code></pre>
+<h4 id="修改-render-里的获取数据方式">修改 render 里的获取数据方式：</h4>
+<pre><code><code>render(){
+    const { dispatch, value, navigation, showing, hot, tv, variety, book, music } = this.props;
+    ...
+}</code></pre>
+<p>至此，首页算是开发完了。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

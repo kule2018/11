@@ -1,0 +1,267 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修现代前端库开发指南系列（二）：使用 webpack 构建一个库' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>现代前端库开发指南系列（二）：使用 webpack 构建一个库</center></div><div class='banquan'>原文出处:本文由博客园博主Array-Huang提供。<br/>
+原文连接:https://www.cnblogs.com/Array-Huang/p/12038684.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>在前文中，我说过本系列文章的受众是在现代前端体系下能够熟练编写业务代码的同学，因此本文在介绍 webpack 配置时，仅提及构建一个库所特有的配置，其余配置请参考 webpack 官方文档。</p>
+<h2 id="输出产物">输出产物</h2>
+<p>构建一个库与构建一个一般应用最大的不同点在于<strong>构建完成后输出的产物</strong>。</p>
+<p>一般应用构建完成后会输出：</p>
+<ul>
+<li>一个 html 文件</li>
+<li>一个 js 入口 chunk 、若干子 chunk</li>
+<li>若干 css 文件</li>
+<li>若干其它资源，如图片、字体文件等</li>
+</ul>
+<p>虽然输出的资源非常多，但实际上所有的依赖、加载关系都已经从 html 文件开始一层一层定下来了，换句话说，这个 html 文件实际上就是整个应用的入口。</p>
+<p>一个库构建完成后会输出：</p>
+<ul>
+<li>一个 CommonJS 格式的 js 文件</li>
+<li>一个未压缩的 UMD 格式的 js 文件</li>
+<li>一个已压缩的 UMD 格式的 js 文件</li>
+<li>可能包括若干的 css 文件</li>
+<li>可能包括若干的其它资源文件</li>
+</ul>
+<p>库的入口分别是上面罗列的 js 文件；你可能会奇怪，一个库怎么会有3个入口文件呢？莫急，且听我一一道来。</p>
+<h3 id="commonjs">CommonJS</h3>
+<p><strong>CommonJS</strong> 是 Node.js 推行的一种模块化规范，主要语法包括<code>module.exports</code>、<code>require()</code>等；而我们在使用 webpack 引入 npm 包时，实际上是处于 Node.js 环境，由此可知，这个 CommonJS 格式的入口 js 文件（<code>&lt;库名称&gt;.common.js</code>）是供其它应用在 Node.js 环境下引入 npm 包使用的。由于在引用 npm 包时一般不会过多考虑 npm 包的体积（在构建自己的应用时如有需要可自行压缩），且为了方便调试，因此该 js 入口文件是没有经过压缩的。</p>
+<h3 id="umd">UMD</h3>
+<p><strong>UMD</strong> 是一个模块化规范大杂烩，除了兼容 CommonJS 外，它还兼容 <strong>AMD</strong> 模块化规范，以及最传统的全局变量模式。</p>
+<p>这边稍微介绍一下 AMD 规范， AMD 全称 <em>Asyncchronous Module Definition</em> ，一般应用在浏览器端（这是与 CommonJS规范最大的不同点），最著名的 AMD 加载器是 <strong>RequireJS</strong> 。目前由于 webpack 的流行， AMD 这一模块化方案已逐渐退出市场。</p>
+<p><strong>全局变量模式</strong>就很好理解了，就是把库的入口挂载在一个全局变量（如<code>window.xxx</code>）上，页面上的任何位置都能随时取用，属于最传统的 js 插件加载方案。</p>
+<p>由上可知， UMD 格式的入口 js 文件，既可以用于引用 npm 包的场景（未压缩的版本，即<code>&lt;库名称&gt;.umd.js</code>），也可以直接用于浏览器端（已压缩的版本，即<code>&lt;库名称&gt;.umd.min.js</code>）。</p>
+<h3 id="如何构建不同模块化规范的库文件">如何构建不同模块化规范的库文件</h3>
+<p>目前， webpack 不支持同时生成多份入口 js 文件，因此需要分多次来进行构建。</p>
+<p>关键的 webpack 配置是：</p>
+<ul>
+<li>CommonJS：<code>output.libraryTarget: &quot;commonjs2&quot;</code></li>
+<li>UMD：<code>output.libraryTarget: &quot;umd&quot;</code></li>
+</ul>
+<p>对于 UMD ，我们还需要设置全局变量名称，即<code>output.library: &quot;LibraryName&quot;</code>。</p>
+<p>为了压缩构建出来的文件，最简单的方法是在 CLI 中调用 webpack 命令时带上 <strong>mode</strong> 参数，如<code>webpack --mode=production</code>；这是因为当 mode 的值为<code>production</code>时， webpack 会自动启用 <strong>UglifyJsPlugin</strong> 对源码进行压缩。</p>
+<h2 id="输出版本信息">输出版本信息</h2>
+<p>我在某公司工作时，该公司对第三方依赖抓得很紧，所有在项目里使用的第三方依赖都必须申请且审核通过后才可使用；且申请时是精确到具体版本的，未申请的软件版本也一概不允许使用。某些第三方依赖无论在文件内容上，还是在文件名称上，都没有体现出版本号，这就对我们识别这类第三方依赖产生障碍，这是我们开发自己的库时需要引以为戒的。</p>
+<p>在构建库时，我们完全可以利用 webpack 把库的信息直接输出到文件内容里，有了这“身份信息”，用户使用起来也会格外安心。</p>
+<p>输出库版本信息的方法是使用 <a href="https://www.webpackjs.com/plugins/banner-plugin/">webpack.BannerPlugin</a> ，最简单的使用方法如下：</p>
+<pre><code><code>const pgk = require(&#39;./package.json&#39;);
+const banner = `
+${pkg.name}
+${pkg.description}\n
+@version v${pkg.version}
+@homepage ${pkg.homepage}
+@repository ${pkg.repository.url}\n
+(c) 2019 Array-Huang
+Released under the MIT License.
+hash: [hash]
+`;
+
+/* webpack 配置 */
+{
+    // ...其它配置
+    plugins: [
+        // ...其它 plugin 配置
+        new webpack.BannerPlugin(banner);
+    ]
+}</code></pre>
+<p>最终生成出来的效果是：</p>
+<pre><code><code>/*!
+ * 
+ * vue-directive-window
+ * Vue.js directive that enhance your Modal Window, support drag, resize and maximize.
+ * 
+ * @version v0.7.5
+ * @homepage https://github.com/Array-Huang/vue-directive-window
+ * @repository git+https://github.com/Array-Huang/vue-directive-window.git
+ * 
+ * (c) 2019 Array-Huang
+ * Released under the MIT License.
+ * hash: dc6c11a1e50821f4444a
+ * 
+ */</code></pre>
+<h2 id="source-map">source map</h2>
+<p>如果库的用户是直接通过在浏览器里加载你的库来使用的话，那么提供一份 <strong>source map</strong> 文件是非常有必要的；这是因为你的库在经过 webpack 构建，甚至压缩后，与源代码已经大相径庭了，用户将难以在浏览器中进行调试；但如果你能为自己的库附上一份 source map ，浏览器开发者工具会调用 source map 来帮助解析，用户的调试体验会更接近于调试库的源码。</p>
+<p>相应的 webpack 配置为：</p>
+<pre><code><code>// webpack 配置
+{
+    // ...其它配置
+    devtool: &#39;cheap-module-source-map&#39;
+}</code></pre>
+<p>webpack 支持多种类型的 source map ，不同类型的 source map 在生成速度、支持功能（如 babel ）、调试位置偏移等问题上均有不同表现，我这边只做推荐：</p>
+<ul>
+<li>开发环境：<strong>cheap-module-eval-source-map</strong></li>
+<li>生产环境：<strong>cheap-module-source-map</strong></li>
+</ul>
+<p>关于其它类型的 source map ，请查看 webpack 官方文档的 <a href="https://www.webpackjs.com/configuration/devtool/">devtool</a> 章节。</p>
+<h2 id="排除第三方依赖">排除第三方依赖</h2>
+<p>与一般应用不一样，在开发库的时候，我们应尽量避免引入第三方库（构建过程中使用的工具链除外），因为这些第三方库会让我们写的库的大小猛增；很可能会出现这样的情况：我们自己写的小功能只有几百行代码的逻辑，构建出来的库却有几百k，那这样的库意义就不大了。</p>
+<p>但我们的确也很难避免使用第三方库，那该咋办呢？</p>
+<pre><code><code>// webpack 配置
+{
+    // ...其它配置
+    externals: {
+        lodash: {
+            commonjs: &#39;lodash&#39;,
+            commonjs2: &#39;lodash&#39;,
+            amd: &#39;lodash&#39;,
+            root: &#39;_&#39;
+        }
+    }
+}</code></pre>
+<p>使用上述配置后，我们构建出来的库中就不会包含配置中指定的第三方库（例子中为<code>lodash</code>）了，下面来一一详解：</p>
+<ul>
+<li><code>commonjs</code>和<code>commonjs2</code>项都是指明用户在 node.js 环境下使用当前库时，以 <strong>CommonJS</strong> 的方式来加载名为<code>lodash</code>的 npm 包。</li>
+<li><code>amd</code>项表示在浏览器中加载运行本库时，本库会试图以 <strong>AMD</strong> 的方式来加载名为<code>lodash</code>的 AMD 模块。</li>
+<li><code>root</code>项表示在浏览器中加载运行本库时，本库会试图取全局变量<code>window._</code>（通过<code>&lt;script&gt;</code>标签加载<code>lodash.js</code>时， lodash 会把自己注入到全局变量<code>window._</code>中）。</li>
+</ul>
+<h3 id="与一般应用不一样的-externals-配置">与一般应用不一样的 externals 配置</h3>
+<p>在一般应用中，你或许会看到这样的 externals 配置：</p>
+<pre><code><code>// webpack 配置
+{
+    // ...其它配置
+    externals: {
+        lodash: &#39;_&#39;
+    }
+}</code></pre>
+<p>这样的 externals 配置方式意味着：无论在什么环境，都要取<code>_</code>这个全局变量；如果当前是在一般应用且确定已经使用<code>&lt;script&gt;</code>来加载指定的第三方库（比如 <em>jQuery</em>、 <em>Vue</em> 等核心库，的确很常以这种方式来加载），当然大可直接这样用；但我们作为库的作者，应提供更宽松更灵活的使用方式。</p>
+<h2 id="完整的-webpack-配置示例">完整的 webpack 配置示例</h2>
+<p>由于构建不同模块化规范的库需要不同的 webpack 配置（其实也只是稍有不同）来进行多次构建，因此本文只针对<strong>构建 UMD 格式且已压缩</strong>这一场景来展示最简单的 webpack 配置示例；如果想知道如何更有效率地拼接 webpack 配置，请看 <a href="https://github.com/Array-Huang/micro-schema-validator">micro-schema-validator</a> 项目的 <a href="https://github.com/Array-Huang/micro-schema-validator/blob/master/webpack.config.js">webpack 配置文件</a>。</p>
+<pre><code><code>// webpack.config.js
+const webpack = require(&#39;webpack&#39;);
+const pkg = require(&#39;./package.json&#39;); // 把 package.json 作为信息源
+const banner = `
+${pkg.name}
+${pkg.description}\n
+@version v${pkg.version}
+@homepage ${pkg.homepage}
+@repository ${pkg.repository.url}\n
+(c) 2019 Array-Huang
+Released under the MIT License.
+hash: [hash]
+`;
+
+module.exports = {
+  entry: `${__dirname}/index.js`,
+  devtool: &#39;cheap-module-source-map&#39;,
+  output: {
+    path: `${__dirname}/dist`, // 定义输出的目录
+    filename: &#39;micro-schema-validator.min.js&#39;, // 定义输出文件名
+    library: &#39;MicroSchemaValidator&#39;, // 定义暴露到浏览器环境的全局变量名称
+    libraryTarget: &#39;umd&#39;, // 指定遵循的模块化规范
+  },
+  /* 排除第三方依赖 */
+  externals: {
+    lodash: {
+      commonjs: &#39;lodash&#39;,
+      commonjs2: &#39;lodash&#39;,
+      amd: &#39;lodash&#39;,
+      root: &#39;_&#39;
+    }
+  },
+  module: {
+    rules: [
+      {
+        test: /(\.jsx|\.js)$/,
+        loader: &#39;babel-loader&#39;,
+        exclude: /(node_modules|bower_components)/
+      },
+      {
+        test: /(\.jsx|\.js)$/,
+        loader: &#39;eslint-loader&#39;,
+        exclude: /(node_modules|bower_components)/
+      }
+    ]
+  },
+  plugins: [
+    new webpack.BannerPlugin(banner) // 输出项目信息
+  ]
+};</code></pre>
+<h2 id="利用-vue-cli-定制并管理-webpack-配置">利用 vue-cli 定制并管理 webpack 配置</h2>
+<p>对于 Vue 生态的库，如 Vue 组件、Vue 自定义指令等，可以使用 vue-cli （本文特指 vue-cli 3.0 后的版本）根据你的需求来定制 webpack 配置，可定制内容包括：</p>
+<ul>
+<li>是否启用 Babel</li>
+<li>是否接入 TypeScript 语法</li>
+<li>是否支持 PWA</li>
+<li>是否使用 Vue-Router 和 Vuex</li>
+<li>是否使用 CSS 预处理器，并可选择具体的 CSS 预处理器，包括 Sass / Less / Stylus</li>
+<li>是否使用 ESLint 和 Prettier</li>
+<li>是否接入单元测试和端对端测试(E2E)</li>
+</ul>
+<p>定制完成后， vue-cli 将生成一个种子项目，该项目可执行（包括本地开发和构建生产环境的包）但没有实际内容（实际内容不还得由你来写嘛哈哈）。与一般的脚手架工具相比， vue-cli 除了可以生成 webpack 配置外，还将持续对其进行管理和维护，如：</p>
+<ul>
+<li>提供一个统一的自定义配置的入口；过往，我们为了达到自定义配置的目的，往往会直接在脚手架工具生成出来的 webpack 配置上直接进行修改，这样会导致修改点非常分散，难以让自定义的 webpack 配置在其它项目复用；而使用 vue-cli 后，所有对 webpack 配置的修改点都被集中管理起来了，需要复用的话，直接把这自定义配置文件(vue.config.js)迁移到别的项目即可。</li>
+<li>提供持续更新 webpack 配置的机制；假如现在有一个开源库，我为了达到自己的目的，肆意在库源码上修改，那么当我需要升级该开源库的时候可就犯难了，因为这会把我之前做的修改都覆盖掉；同理可得，vue-cli 由于统一了自定义配置的入口，并且是在每次运行项目（运行项目也是通过执行 vue-cli 的命令而非 webpack）时动态渲染 webpack 配置的，因此项目的 webpack 配置可以随着 vue-cli 的升级而不断升级了。</li>
+<li>提供持续更新 webpack 工具链的机制；众所周知， webpack 工具链中包含了大量的第三方开源库，如 Babel 、ESLint 等，这些开源库也都是在不断更新当中，在这个过程中，必然会不断产生 Breaking Change ，所幸 vue-cli 通过自身升级——不断修改 webpack 配置来达到适配最新版第三方开源库的目的，而我们的项目也可以以极小的代价（升级 vue-cli 本身）来获取 webpack 工具链的不断更新。</li>
+</ul>
+<h3 id="vue-cli-自定义配置示例">vue-cli 自定义配置示例</h3>
+<p>摘自 <a href="https://github.com/Array-Huang/vue-directive-window">vue-directive-window</a> 项目的 <a href="https://github.com/Array-Huang/vue-directive-window/blob/master/vue.config.js">vue.config.js</a> 文件：</p>
+<pre><code><code>const webpack = require(&#39;webpack&#39;);
+const pkg = require(&#39;./package.json&#39;);
+
+const banner = `
+${pkg.name}
+${pkg.description}\n
+@version v${pkg.version}
+@homepage ${pkg.homepage}
+@repository ${pkg.repository.url}\n
+(c) 2019 Array-Huang
+Released under the MIT License.
+hash: [hash]
+`;
+
+module.exports = {
+  chainWebpack: config =&gt; {
+    config.output.libraryExport(&#39;default&#39;);
+    config.plugin(&#39;banner&#39;).use(webpack.BannerPlugin, [
+      {
+        banner,
+        entryOnly: true,
+      },
+    ]);
+  },
+};</code></pre>
+<p>看起来是不是比上文中最基础的 webpack 配置还要简洁呢？当项目的架构逐渐丰富起来后，这个差距将不断拉大。</p>
+<h2 id="实例项目代码介绍">实例项目代码介绍</h2>
+<p>在我的工作生涯中，我写的绝大部分库都是为公司的项目写的，很可惜无法带出来，但我会以我最近写的两个开源库：<a href="https://github.com/Array-Huang/javascript-library-boilerplate">javascript-library-boilerplate</a> 和 <a href="https://github.com/Array-Huang/vue-directive-window">vue-directive-window</a> 来作为实例项目代码来辅助介绍。</p>
+<h3 id="javascript-library-boilerplate">javascript-library-boilerplate</h3>
+<p><strong>javascript-library-boilerplate</strong> 是一个现代前端生态下快速构建 javascript 库的脚手架（或称种子项目，或称示例代码，看你理解了），本库支持 GitHub 的 repository templates 功能，你可以直接在项目首页点击 <strong>Use this template</strong> 来直接套用本脚手架的代码来创建你自己的 javascript 库。</p>
+<h3 id="vue-directive-window">vue-directive-window</h3>
+<p><strong>vue-directive-window</strong> 是一个可以快速让模态框(modal)支持类窗口操作的增强库；类窗口操作主要包括三大类：拖拽移动、拖拽调整窗口尺寸、窗口最大化； vue-directive-window 支持以 Vue 自定义指令或是一般 js 类的方式来调用。</p>
+<p>vue-directive-window 相对于 javascript-library-boilerplate 来说，更贴近 Vue 生态圈，如果你最近想为 Vue 生态圈添砖加瓦，不妨参考一下本项目。</p>
+<h2 id="实例项目代码介绍-1">实例项目代码介绍</h2>
+<p>我会以我最近写的两个开源库：<a href="https://github.com/Array-Huang/javascript-library-boilerplate">javascript-library-boilerplate</a> 和 <a href="https://github.com/Array-Huang/vue-directive-window">vue-directive-window</a> 来作为实例项目代码来辅助介绍。</p>
+<h3 id="javascript-library-boilerplate-1">javascript-library-boilerplate</h3>
+<p><strong>javascript-library-boilerplate</strong> 是一个现代前端生态下快速构建 javascript 库的脚手架（或称种子项目，或称示例代码，看你理解了），本库支持 GitHub 的 repository templates 功能，你可以直接在项目首页点击 <strong>Use this template</strong> 来直接套用本脚手架的代码来创建你自己的 javascript 库。</p>
+<h3 id="vue-directive-window-1">vue-directive-window</h3>
+<p><strong>vue-directive-window</strong> 是一个可以快速让模态框(modal)支持类窗口操作的增强库；类窗口操作主要包括三大类：拖拽移动、拖拽调整窗口尺寸、窗口最大化； vue-directive-window 支持以 Vue 自定义指令或是一般 js 类的方式来调用。</p>
+<p>vue-directive-window 相对于 javascript-library-boilerplate 来说，更贴近 Vue 生态圈，如果你最近想为 Vue 生态圈添砖加瓦，不妨参考一下本项目。</p>
+<h2 id="系列文章目录同步更新">系列文章目录（同步更新）</h2>
+<ul>
+<li><a href="https://github.com/Array-Huang/blog/issues/29">《现代前端库开发指南系列（一）：融入现代前端生态》</a></li>
+<li><a href="https://github.com/Array-Huang/blog/issues/30">《现代前端库开发指南系列（二）：使用 webpack 构建一个库》</a></li>
+<li><a href="https://github.com/Array-Huang/blog/issues/31">《现代前端库开发指南系列（三）：从说明文档看库的前世今生》</a></li>
+</ul>
+<blockquote>
+<p>想要阅读更多我的技术文章？请到我的 GitHub 博客 <a href="https://github.com/Array-Huang/blog">Array-Huang/blog</a> 来，如果对您有帮助的话请 Star&amp;Watch 走一波哈(〃^ω^)</p>
+</blockquote>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

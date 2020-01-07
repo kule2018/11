@@ -1,0 +1,748 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue实例化过程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue实例化过程</center></div><div class='banquan'>原文出处:本文由博客园博主Gerryli提供。<br/>
+原文连接:https://www.cnblogs.com/gerry2019/p/12001661.html</div><br>
+    <p>　　我们在用vue进行开发项目时，是否存在疑惑，new Vue(xxx)的过程中，究竟发生了什么？定义的数据，是如何绑定到视图上的？本篇主要介绍在实例化vue时，主要做了哪些事，文章比较长，主要篇幅内容为数据初始化和数据视图绑定过程。主要代码执行时序图如下所示：</p>
+<p>　　<img src="./images/vue实例化过程0.png" alt="" /></p>
+<p>&nbsp;　　在vue源码中，vue构造函数的定义是在/src/core/instance下，入口文件index.js中，定义了Vue的构造方法，具体代码如下所示：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> Vue (options) {
+  </span><span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp;
+    !(<span style="color: #0000ff;">this</span> <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Vue)
+  ) {
+    warn(</span>'Vue is a constructor and should be called with the `new` keyword'<span style="color: #000000;">)
+  }
+  </span><span style="color: #0000ff;">this</span><span style="color: #000000;">._init(options)
+}</span></pre>
+</div>
+<p>　　Vue的构造方法接收一个参数options,options即我们实例化时定义的包含el,data,components等属性的对象，实例化时实际只执行vue初始化时已经在构造方法原型上定义的_init方法，_init实际代码如下所示：</p>
+<div class="cnblogs_code">
+<pre><code> Vue.prototype._init = <span style="color: #0000ff;">function</span> (options?<span style="color: #000000;">: Object) {
+    const vm: Component </span>= <span style="color: #0000ff;">this</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> a uid</span>
+    vm._uid = uid++<span style="color: #000000;">
+    let startTag, endTag
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore if </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp; config.performance &amp;&amp;<span style="color: #000000;"> mark) {
+      startTag </span>= `vue-perf-<span style="color: #000000;">start:${vm._uid}`
+      endTag </span>= `vue-perf-<span style="color: #000000;">end:${vm._uid}`
+      mark(startTag)
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> a flag to avoid this being observed</span>
+    vm._isVue = <span style="color: #0000ff;">true</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> merge options</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 合并属性，判断初始化的是否是组件</span>
+    <span style="color: #0000ff;">if</span> (options &amp;&amp;<span style="color: #000000;"> options._isComponent) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> optimize internal component instantiation</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> since dynamic options merging is pretty slow, and none of the</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> internal component options needs special treatment.</span>
+<span style="color: #000000;">      initInternalComponent(vm, options)
+    } </span><span style="color: #0000ff;">else</span> { <span style="color: #008000;">//</span><span style="color: #008000;"> 合并vue属性</span>
+      vm.$options =<span style="color: #000000;"> mergeOptions(
+        resolveConstructorOptions(vm.constructor),
+        options </span>||<span style="color: #000000;"> {},
+        vm
+      )
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore else </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production'<span style="color: #000000;">) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化proxy拦截器</span>
+<span style="color: #000000;">      initProxy(vm)
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      vm._renderProxy </span>=<span style="color: #000000;"> vm
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> expose real self</span>
+    vm._self =<span style="color: #000000;"> vm
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化组件生命周期标志位</span>
+<span style="color: #000000;">    initLifecycle(vm)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化组件事件侦听</span>
+<span style="color: #000000;">    initEvents(vm)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化渲染方法</span>
+<span style="color: #000000;">    initRender(vm)
+    callHook(vm, </span>'beforeCreate'<span style="color: #000000;">)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化依赖注入内容，在初始化data、props之前</span>
+    initInjections(vm) <span style="color: #008000;">//</span><span style="color: #008000;"> resolve injections before data/props</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 初始化props/data/method/watch/methods</span>
+<span style="color: #000000;">    initState(vm)
+    initProvide(vm) </span><span style="color: #008000;">//</span><span style="color: #008000;"> resolve provide after data/props</span>
+    callHook(vm, 'created'<span style="color: #000000;">)
+
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore if </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp; config.performance &amp;&amp;<span style="color: #000000;"> mark) {
+      vm._name </span>= formatComponentName(vm, <span style="color: #0000ff;">false</span><span style="color: #000000;">)
+      mark(endTag)
+      measure(`vue ${vm._name} init`, startTag, endTag)
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 挂载元素</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (vm.$options.el) {
+      vm.$mount(vm.$options.el)
+    }
+  }</span></pre>
+</div>
+<p>　　从上述代码中，我们可以清晰的看到在vue的生命周期每个阶段具体做了什么事，比如：</p>
+<ol>
+<li>我们在beforeCreate中，是访问不到data数据的，mergeOptions是合并实例和mixins/extend上的数据，返回值vm.$options是合并后实例上的属性，data数据返回是一个function，因为属性data的合并策略是返回一个function，博文【<a title="mergeOptions" href="https://www.cnblogs.com/gerry2019/p/11889050.html" target="_blank">浅析vue混入（mixins）</a>】有具体的介绍。</li>
+<li>在created时，我们并不能访问DOM对象，因为此时模板文件还没有解析，还没有生成具体的DOM元素，在created之前，只是对组件中的数据进行了初始化，具体的解析template和生成vnode，到生成真实DOM挂载到页面上，在vm.$mount方法中一步步执行。</li>
+</ol>
+<p>　　用过vue的都知道，vue是数据驱动的一个框架，实现双向数据绑定是利用数据劫持，即Object.defineProperty的get和set，在get中进行依赖收集，set中进行派发更新。但是数据是如何初始化的呢？以data为例，我们来看下vue是如何进行数据初始化的。</p>
+<p>　　如上述代码，在beforeCreate后，会走进initState方法，initState中，会分别对props,methods,data和watch进行初始化，如下所示：</p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">function</span><span style="color: #000000;"> initState (vm: Component) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化组件的watcher列表</span>
+  vm._watchers =<span style="color: #000000;"> []
+  const opts </span>=<span style="color: #000000;"> vm.$options
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (opts.props) initProps(vm, opts.props)
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (opts.methods) initMethods(vm, opts.methods)
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (opts.data) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化data</span>
+<span style="color: #000000;">    initData(vm)
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    observe(vm._data </span>= {}, <span style="color: #0000ff;">true</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> asRootData </span><span style="color: #008000;">*/</span><span style="color: #000000;">)
+  }
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (opts.computed) initComputed(vm, opts.computed)
+  </span><span style="color: #0000ff;">if</span> (opts.watch &amp;&amp; opts.watch !==<span style="color: #000000;"> nativeWatch) {
+    initWatch(vm, opts.watch)
+  }
+}</span></pre>
+</div>
+<p>　　我们暂且值看initData，data在mergeOptions时，返回的是一个function，获取data数据，需要执行mergeOptions返回数据中的data方法，initData代码如下所示：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> initData (vm: Component) {
+  let data </span>=<span style="color: #000000;"> vm.$options.data
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取到组件上的data</span>
+  data = vm._data = <span style="color: #0000ff;">typeof</span> data === 'function'
+    ?<span style="color: #000000;"> getData(data, vm)
+    : data </span>||<span style="color: #000000;"> {}
+  </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isPlainObject(data)) {
+    data </span>=<span style="color: #000000;"> {}
+    process.env.NODE_ENV </span>!== 'production' &amp;&amp;<span style="color: #000000;"> warn(
+      </span>'data functions should return an object:\n' +
+      'https://vuejs.org/v2/guide/components.html#data-Must-Be-a-Function'<span style="color: #000000;">,
+      vm
+    )
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> proxy data on instance</span>
+  const keys =<span style="color: #000000;"> Object.keys(data)
+  const props </span>=<span style="color: #000000;"> vm.$options.props
+  const methods </span>=<span style="color: #000000;"> vm.$options.methods
+  let i </span>=<span style="color: #000000;"> keys.length
+  </span><span style="color: #0000ff;">while</span> (i--<span style="color: #000000;">) {
+    const key </span>=<span style="color: #000000;"> keys[i]
+    </span><span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production'<span style="color: #000000;">) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 属性名不能与方法名重复</span>
+      <span style="color: #0000ff;">if</span> (methods &amp;&amp;<span style="color: #000000;"> hasOwn(methods, key)) {
+        warn(
+          `Method </span>"${key}"<span style="color: #000000;"> has already been defined as a data property.`,
+          vm
+        )
+      }
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 属性名不能与state名称重复</span>
+    <span style="color: #0000ff;">if</span> (props &amp;&amp;<span style="color: #000000;"> hasOwn(props, key)) {
+      process.env.NODE_ENV </span>!== 'production' &amp;&amp;<span style="color: #000000;"> warn(
+        `The data property </span>"${key}" is already declared as a prop. ` +<span style="color: #000000;">
+        `Use prop </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> value instead.`,
+        vm
+      )
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (!isReserved(key)) { <span style="color: #008000;">//</span><span style="color: #008000;"> 验证key值的合法性</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> 将_data中的数据挂载到组件vm上,这样就可以通过this.xxx访问到组件上的数据</span>
+<span style="color: #000000;">      proxy(vm, `_data`, key)
+    }
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> observe data</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 响应式监听data是数据的变化</span>
+  observe(data, <span style="color: #0000ff;">true</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> asRootData </span><span style="color: #008000;">*/</span><span style="color: #000000;">)
+}</span></pre>
+</div>
+<p>　　getData代码如下所示：</p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">function</span><span style="color: #000000;"> getData (data: Function, vm: Component): any {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> #7573 disable dep collection when invoking data getters</span>
+<span style="color: #000000;">  pushTarget()
+  </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用在属性合并时，返回的data</span>
+    <span style="color: #0000ff;">return</span><span style="color: #000000;"> data.call(vm, vm)
+  } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+    handleError(e, vm, `data()`)
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {}
+  } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+    popTarget()
+  }
+}</span></pre>
+</div>
+<p>　　这里面有pushTarget/popTarget,这里主要是用于保证无论何时，执行的组件监听计算只有一个，这个具体后面再讨论。getData的返回值就是合并后的data对象，赋值到当前的实例属性。接下来有个while循环，里面主要做三件事，</p>
+<p>　　　　第一，判断我们声明的data变量的合法性，我们声明变量的名称一定不要与methods或者props中的属性名重复，这也是许多新手容易犯的错误</p>
+<p>　　　　第二，声明变量的时候，不要用以_或者$开头的变量，这些可能会导致声明变量和vue私有变量冲突</p>
+<p>　　　　第三，将data中的变量代理到vm（组件实例）上，按照this的指向性原理，data对象中的this应该指向data，而不应该指向vm，这里做了一层封装代理，具体代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 属性代理，从一个原对象中拿数据</span>
+export <span style="color: #0000ff;">function</span><span style="color: #000000;"> proxy (target: Object, sourceKey: string, key: string) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置对象属性的get/set,将data中的数据代理到组件对象vm上</span>
+  sharedPropertyDefinition.get = <span style="color: #0000ff;">function</span><span style="color: #000000;"> proxyGetter () {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">[sourceKey][key]
+  }
+  sharedPropertyDefinition.set </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> proxySetter (val) {
+    </span><span style="color: #0000ff;">this</span>[sourceKey][key] =<span style="color: #000000;"> val
+  }
+  Object.defineProperty(target, key, sharedPropertyDefinition)
+}</span></pre>
+</div>
+<p>　　接下来下一步所需要执行的内容就比较重要了，需要对data对象添加响应式侦听，调用observe方法，observe方法代码如下所示：</p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">function</span> observe (value: any, asRootData: ?<span style="color: #0000ff;">boolean</span>): Observer | <span style="color: #0000ff;">void</span><span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">if</span> (!isObject(value) || value <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> VNode) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+  }
+  let ob: Observer </span>| <span style="color: #0000ff;">void</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 存在__ob__属性的一般为观察者对象的实例</span>
+  <span style="color: #0000ff;">if</span> (hasOwn(value, '__ob__') &amp;&amp; value.__ob__ <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Observer) {
+    ob </span>=<span style="color: #000000;"> value.__ob__
+  } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ( <span style="color: #008000;">//</span><span style="color: #008000;"> Object.isExtensible 判断对象是否是可扩展的(可以添加新属性)</span>
+    shouldObserve &amp;&amp;
+    !isServerRendering() &amp;&amp;<span style="color: #000000;">
+    (Array.isArray(value) </span>|| isPlainObject(value)) &amp;&amp;<span style="color: #000000;">
+    Object.isExtensible(value) </span>&amp;&amp;
+    !<span style="color: #000000;">value._isVue
+  ) { </span><span style="color: #008000;">//</span><span style="color: #008000;"> 必须为数组 || 对象，才能实例化观察者对象</span>
+    ob = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Observer(value)
+  }
+  </span><span style="color: #0000ff;">if</span> (asRootData &amp;&amp;<span style="color: #000000;"> ob) {
+    ob.vmCount</span>++<span style="color: #000000;">
+  }
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ob
+}</span></pre>
+</div>
+<p>　　每一个响应式对象，都会有__ob__属性，这个是vue中在声明响应式属性时定义的，如果没有该属性，数据的变化就不会被监测到，其他的可以暂时忽略，初始化响应对象是实例化了Observe类，Observer类的具体实现如下所示：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">export class Observer {
+  value: any;
+  dep: Dep;
+  vmCount: number; </span><span style="color: #008000;">//</span><span style="color: #008000;"> number of vms that have this object as root $data</span>
+<span style="color: #000000;">
+  constructor (value: any) {
+    </span><span style="color: #0000ff;">this</span>.value =<span style="color: #000000;"> value
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实例化一个发布-订阅模型</span>
+    <span style="color: #0000ff;">this</span>.dep = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Dep()
+    </span><span style="color: #0000ff;">this</span>.vmCount = 0
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 给监听对象定义一个__ob__属性，属性值为this,指向当前实例</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 存在该属性的对象，就是响应式对象</span>
+    def(value, '__ob__', <span style="color: #0000ff;">this</span><span style="color: #000000;">)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数组类型</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (Array.isArray(value)) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存在原型 __proto__,重写数组原型上的方法</span>
+      <span style="color: #0000ff;">if</span><span style="color: #000000;"> (hasProto) {
+        protoAugment(value, arrayMethods)
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 不存在原型，则在数组中复制重写后的数组方法</span>
+<span style="color: #000000;">        copyAugment(value, arrayMethods, arrayKeys)
+      }
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 响应式监听数组的变化</span>
+      <span style="color: #0000ff;">this</span><span style="color: #000000;">.observeArray(value)
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果值的类型为Object,则响应式的声明对象属性</span>
+      <span style="color: #0000ff;">this</span><span style="color: #000000;">.walk(value)
+    }
+  }</span></pre>
+</div>
+<p>　　在实例化时，有两个分支，一个是数组，一个是对象，在实例化时，都会数据的中定义__ob__属性，值为当前观察者对象。我们先看对象的响应式声明方式，调用this.walk,具体代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">  walk (obj: Object) {
+    const keys </span>=<span style="color: #000000;"> Object.keys(obj)
+    </span><span style="color: #0000ff;">for</span> (let i = 0; i &lt; keys.length; i++<span style="color: #000000;">) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 响应式定义对象属性的get set</span>
+<span style="color: #000000;">      defineReactive(obj, keys[i])
+    }
+  }</span></pre>
+</div>
+<p>　　defineReactive是重点，添加对象属性的get/set,get和set中进行数据的劫持，实现代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">function</span><span style="color: #000000;"> defineReactive (
+  obj: Object,
+  key: string,
+  val: any,
+  customSetter</span>?: ?<span style="color: #000000;">Function,
+  shallow</span>?: <span style="color: #0000ff;">boolean</span><span style="color: #000000;">
+) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化一个发布-订阅模型，每个对象都包含一个dep实例</span>
+  const dep = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Dep()
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取属性描述符</span>
+  const property =<span style="color: #000000;"> Object.getOwnPropertyDescriptor(obj, key)
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 对象的属性应该是可扩展、可配置的</span>
+  <span style="color: #0000ff;">if</span> (property &amp;&amp; property.configurable === <span style="color: #0000ff;">false</span><span style="color: #000000;">) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> cater for pre-defined getter/setters</span>
+  const getter = property &amp;&amp;<span style="color: #000000;"> property.get
+  const setter </span>= property &amp;&amp;<span style="color: #000000;"> property.set
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理obj的值</span>
+  <span style="color: #0000ff;">if</span> ((!getter || setter) &amp;&amp; arguments.length === 2<span style="color: #000000;">) {
+    val </span>=<span style="color: #000000;"> obj[key]
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果val值存在Object，则需要侦听val值的变化</span>
+  let childOb = !shallow &amp;&amp;<span style="color: #000000;"> observe(val)
+  Object.defineProperty(obj, key, {
+    enumerable: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+    configurable: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+    get: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> reactiveGetter () {
+      const value </span>= getter ?<span style="color: #000000;"> getter.call(obj) : val
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 依赖收集 @todo</span>
+      <span style="color: #0000ff;">if</span><span style="color: #000000;"> (Dep.target) {
+        dep.depend()
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (childOb) {
+          childOb.dep.depend()
+          </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Array.isArray(value)) {
+            dependArray(value)
+          }
+        }
+      }
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value
+    },
+    set: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> reactiveSetter (newVal) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 派发更新 @todo</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> 获取到value数据</span>
+      const value = getter ?<span style="color: #000000;"> getter.call(obj) : val
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;"> eslint-disable no-self-compare </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">if</span> (newVal === value || (newVal !== newVal &amp;&amp; value !==<span style="color: #000000;"> value)) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+      }
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;"> eslint-enable no-self-compare </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp;<span style="color: #000000;"> customSetter) {
+        customSetter()
+      }
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> #7981: for accessor properties without setter</span>
+      <span style="color: #0000ff;">if</span> (getter &amp;&amp; !setter) <span style="color: #0000ff;">return</span>
+      <span style="color: #0000ff;">if</span><span style="color: #000000;"> (setter) {
+        setter.call(obj, newVal)
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        val </span>=<span style="color: #000000;"> newVal
+      }
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 重新更新下数据依赖</span>
+      childOb = !shallow &amp;&amp;<span style="color: #000000;"> observe(newVal)
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通知数据更新？？？@todo</span>
+<span style="color: #000000;">      dep.notify()
+    }
+  })
+}</span></pre>
+</div>
+<p>　　任何数据的读取，都会走到get方法中，数据的更新，都会走get/set，其中在set中，dep.notify会派发更新页面数据，具体实现技术细节，在后续文章中，会进行详细描述。至此，data初始化工作算是完成了，数据的响应式原理核心利用Dep和Watcher两个类，后面文章专门详细描述vue的响应式原理及Dep和Watcher对象充当的角色和作用，本篇不做详细描述。</p>
+<p>　　数据初始化完成后，接下来需要做的就是解析template和挂载dom,在src\platforms\web\entry-runtime-with-compiler.js中，定义了$mount方法，具体如下所示：</p>
+<div class="cnblogs_code">
+<pre><code>Vue.prototype.$mount = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (
+  el</span>?: string |<span style="color: #000000;"> Element,
+  hydrating</span>?: <span style="color: #0000ff;">boolean</span><span style="color: #000000;">
+): Component {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取或查询元素</span>
+  el = el &amp;&amp;<span style="color: #000000;"> query(el)
+
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore if </span><span style="color: #008000;">*/</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> vue 不允许直接挂载到body或页面文档上</span>
+  <span style="color: #0000ff;">if</span> (el === document.body || el ===<span style="color: #000000;"> document.documentElement) {
+    process.env.NODE_ENV </span>!== 'production' &amp;&amp;<span style="color: #000000;"> warn(
+      `Do not mount Vue to </span>&lt;html&gt; or &lt;body&gt; -<span style="color: #000000;"> mount to normal elements instead.`
+    )
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">
+  }
+
+  const options </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.$options
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> resolve template/el and convert to render function</span>
+  <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">options.render) {
+    let template </span>=<span style="color: #000000;"> options.template
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 存在template模板，解析vue模板文件</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (template) {
+      </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> template === 'string'<span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">if</span> (template.charAt(0) === '#'<span style="color: #000000;">) {
+          template </span>=<span style="color: #000000;"> idToTemplate(template)
+          </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore if </span><span style="color: #008000;">*/</span>
+          <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp; !<span style="color: #000000;">template) {
+            warn(
+              `Template element not found or is empty: ${options.template}`,
+              </span><span style="color: #0000ff;">this</span><span style="color: #000000;">
+            )
+          }
+        }
+      } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (template.nodeType) {
+        template </span>=<span style="color: #000000;"> template.innerHTML
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production'<span style="color: #000000;">) {
+          warn(</span>'invalid template option:' + template, <span style="color: #0000ff;">this</span><span style="color: #000000;">)
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">
+      }
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (el) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通过选择器获取元素内容</span>
+      template =<span style="color: #000000;"> getOuterHTML(el)
+    }
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (template) {
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore if </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp; config.performance &amp;&amp;<span style="color: #000000;"> mark) {
+        mark(</span>'compile'<span style="color: #000000;">)
+      }
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+       *  1.将temmplate解析ast tree
+       *  2.将ast tree转换成render语法字符串
+       *  3.生成render方法
+       </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+      const { render, staticRenderFns } </span>=<span style="color: #000000;"> compileToFunctions(template, {
+        outputSourceRange: process.env.NODE_ENV </span>!== 'production'<span style="color: #000000;">,
+        shouldDecodeNewlines,
+        shouldDecodeNewlinesForHref,
+        delimiters: options.delimiters,
+        comments: options.comments
+      }, </span><span style="color: #0000ff;">this</span><span style="color: #000000;">)
+      options.render </span>=<span style="color: #000000;"> render
+      options.staticRenderFns </span>=<span style="color: #000000;"> staticRenderFns
+
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore if </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp; config.performance &amp;&amp;<span style="color: #000000;"> mark) {
+        mark(</span>'compile end'<span style="color: #000000;">)
+        measure(`vue ${</span><span style="color: #0000ff;">this</span>._name} compile`, 'compile', 'compile end'<span style="color: #000000;">)
+      }
+    }
+  }
+  </span><span style="color: #0000ff;">return</span> mount.call(<span style="color: #0000ff;">this</span><span style="color: #000000;">, el, hydrating)
+}</span></pre>
+</div>
+<p>　　从上述方法中，我们能得到以下信息：</p>
+<p>　　　　1、不要将根元素放到body或者html上</p>
+<p>　　　　2、在vue中，可以在对象中定义template/render或者直接使用template、el表示元素选择器，用法比较灵活</p>
+<p>　　　　3、无论哪种写法，最终都会解析成render函数，调用compileToFunctions，会将template解析成render函数</p>
+<p>　　对template的解析步骤大致分为以下几步：</p>
+<p>　　　　1、将html文档片段解析成ast描述符</p>
+<p>　　　　2、将ast描述符解析成字符串</p>
+<p>　　　　3、生成render function</p>
+<p>　　如下图所示：</p>
+<p>　　template:</p>
+<p><img src="./images/vue实例化过程1.png" alt="" /></p>
+<p>&nbsp;　　ast:<img src="./images/vue实例化过程2.png" alt="" /></p>
+<p>&nbsp;　　function string<img src="./images/vue实例化过程3.png" alt="" /></p>
+<p>&nbsp;　　生成render函数：</p>
+<p><img src="./images/vue实例化过程4.png" alt="" /></p>
+<p>&nbsp;　　生成render函数，挂载到vm上后，会再次调用mount方法，这个mount方法不是entry-runtime-with-compiler.js复写的这个，是Vue原型上的方法在src\platforms\web\runtime\index.js中，里面会调用mountComponent方法，具体如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> public mount method</span>
+Vue.prototype.$mount = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (
+  el</span>?: string |<span style="color: #000000;"> Element,
+  hydrating</span>?: <span style="color: #0000ff;">boolean</span><span style="color: #000000;">
+): Component {
+  el </span>= el &amp;&amp; inBrowser ?<span style="color: #000000;"> query(el) : undefined
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 渲染组件</span>
+  <span style="color: #0000ff;">return</span> mountComponent(<span style="color: #0000ff;">this</span><span style="color: #000000;">, el, hydrating)
+}</span></pre>
+</div>
+<p>　　src\core\instance\lifecycle.js</p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">function</span><span style="color: #000000;"> mountComponent (
+  vm: Component,
+  el: </span>?<span style="color: #000000;">Element,
+  hydrating</span>?: <span style="color: #0000ff;">boolean</span><span style="color: #000000;">
+): Component {
+  vm.$el </span>=<span style="color: #000000;"> el
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果没有获取解析的render函数，则会抛出警告</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> render是解析模板文件生成的</span>
+  <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">vm.$options.render) {
+    vm.$options.render </span>=<span style="color: #000000;"> createEmptyVNode
+    </span><span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production'<span style="color: #000000;">) {
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore if </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">if</span> ((vm.$options.template &amp;&amp; vm.$options.template.charAt(0) !== '#') ||<span style="color: #000000;">
+        vm.$options.el </span>||<span style="color: #000000;"> el) {
+        warn(
+          </span>'You are using the runtime-only build of Vue where the template ' +
+          'compiler is not available. Either pre-compile the templates into ' +
+          'render functions, or use the compiler-included build.'<span style="color: #000000;">,
+          vm
+        )
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 没有获取到vue的模板文件</span>
+<span style="color: #000000;">        warn(
+          </span>'Failed to mount component: template or render function not defined.'<span style="color: #000000;">,
+          vm
+        )
+      }
+    }
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 执行beforeMount钩子</span>
+  callHook(vm, 'beforeMount'<span style="color: #000000;">)
+
+  let updateComponent
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore if </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp; config.performance &amp;&amp;<span style="color: #000000;"> mark) {
+    updateComponent </span>= () =&gt;<span style="color: #000000;"> {
+      const name </span>=<span style="color: #000000;"> vm._name
+      const id </span>=<span style="color: #000000;"> vm._uid
+      const startTag </span>= `vue-perf-<span style="color: #000000;">start:${id}`
+      const endTag </span>= `vue-perf-<span style="color: #000000;">end:${id}`
+
+      mark(startTag)
+      const vnode </span>=<span style="color: #000000;"> vm._render()
+      mark(endTag)
+      measure(`vue ${name} render`, startTag, endTag)
+
+      mark(startTag)
+      vm._update(vnode, hydrating)
+      mark(endTag)
+      measure(`vue ${name} patch`, startTag, endTag)
+    }
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    updateComponent </span>= () =&gt;<span style="color: #000000;"> {
+      vm._update(vm._render(), hydrating)
+    }
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> we set this to vm._watcher inside the watcher's constructor</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> since the watcher's initial patch may call $forceUpdate (e.g. inside child</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> component's mounted hook), which relies on vm._watcher being already defined</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 监听当前组件状态，当有数据变化时，更新组件</span>
+  <span style="color: #0000ff;">new</span><span style="color: #000000;"> Watcher(vm, updateComponent, noop, {
+    before () {
+      </span><span style="color: #0000ff;">if</span> (vm._isMounted &amp;&amp; !<span style="color: #000000;">vm._isDestroyed) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数据更新引发的组件更新</span>
+        callHook(vm, 'beforeUpdate'<span style="color: #000000;">)
+      }
+    }
+  }, </span><span style="color: #0000ff;">true</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> isRenderWatcher </span><span style="color: #008000;">*/</span><span style="color: #000000;">)
+  hydrating </span>= <span style="color: #0000ff;">false</span>
+
+  <span style="color: #008000;">//</span><span style="color: #008000;"> manually mounted instance, call mounted on self</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> mounted is called for render-created child components in its inserted hook</span>
+  <span style="color: #0000ff;">if</span> (vm.$vnode == <span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+    vm._isMounted </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">
+    callHook(vm, </span>'mounted'<span style="color: #000000;">)
+  }
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> vm
+}</span></pre>
+</div>
+<p>&nbsp;　　这个方法中主要流程是：</p>
+<p>　　　　1、调用了beforeMount钩子函数</p>
+<p>　　　　2、定义updateComponent方法，是渲染DOM的入口方法</p>
+<p>　　　　3、对vm添加监听，实例化一个watcher，然后调用updateComponent方法</p>
+<p>　　　　4、调用mounted声明周期钩子，至此组件实例化结束</p>
+<p>　　Watcher类如下所示：</p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> class Watcher {
+  vm: Component;
+  expression: string;
+  cb: Function;
+  id: number;
+  deep: </span><span style="color: #0000ff;">boolean</span><span style="color: #000000;">;
+  user: </span><span style="color: #0000ff;">boolean</span><span style="color: #000000;">;
+  lazy: </span><span style="color: #0000ff;">boolean</span><span style="color: #000000;">;
+  sync: </span><span style="color: #0000ff;">boolean</span><span style="color: #000000;">;
+  dirty: </span><span style="color: #0000ff;">boolean</span><span style="color: #000000;">;
+  active: </span><span style="color: #0000ff;">boolean</span><span style="color: #000000;">;
+  deps: Array</span>&lt;Dep&gt;<span style="color: #000000;">;
+  newDeps: Array</span>&lt;Dep&gt;<span style="color: #000000;">;
+  depIds: SimpleSet;
+  newDepIds: SimpleSet;
+  before: </span>?<span style="color: #000000;">Function;
+  getter: Function;
+  value: any;
+
+  constructor (
+    vm: Component,
+    expOrFn: string </span>|<span style="color: #000000;"> Function,
+    cb: Function,
+    options</span>?: ?<span style="color: #000000;">Object,
+    isRenderWatcher</span>?: <span style="color: #0000ff;">boolean</span><span style="color: #000000;">
+  ) {
+    </span><span style="color: #0000ff;">this</span>.vm =<span style="color: #000000;"> vm</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 是渲染的watcher @todo</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isRenderWatcher) {
+      vm._watcher </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将vm添加到组件的_watchers队列中</span>
+    vm._watchers.push(<span style="color: #0000ff;">this</span><span style="color: #000000;">)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> options</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (options) {
+      </span><span style="color: #0000ff;">this</span>.deep = !!<span style="color: #000000;">options.deep
+      </span><span style="color: #0000ff;">this</span>.user = !!<span style="color: #000000;">options.user
+      </span><span style="color: #0000ff;">this</span>.lazy = !!<span style="color: #000000;">options.lazy
+      </span><span style="color: #0000ff;">this</span>.sync = !!<span style="color: #000000;">options.sync
+      </span><span style="color: #0000ff;">this</span>.before =<span style="color: #000000;"> options.before
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">this</span>.deep = <span style="color: #0000ff;">this</span>.user = <span style="color: #0000ff;">this</span>.lazy = <span style="color: #0000ff;">this</span>.sync = <span style="color: #0000ff;">false</span><span style="color: #000000;">
+    }
+    </span><span style="color: #0000ff;">this</span>.cb =<span style="color: #000000;"> cb
+    </span><span style="color: #0000ff;">this</span>.id = ++uid <span style="color: #008000;">//</span><span style="color: #008000;"> uid for batching</span>
+    <span style="color: #0000ff;">this</span>.active = <span style="color: #0000ff;">true</span>
+    <span style="color: #0000ff;">this</span>.dirty = <span style="color: #0000ff;">this</span>.lazy <span style="color: #008000;">//</span><span style="color: #008000;"> for lazy watchers</span>
+    <span style="color: #0000ff;">this</span>.deps =<span style="color: #000000;"> []
+    </span><span style="color: #0000ff;">this</span>.newDeps =<span style="color: #000000;"> []
+    </span><span style="color: #0000ff;">this</span>.depIds = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Set()
+    </span><span style="color: #0000ff;">this</span>.newDepIds = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Set()
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> updateComponents</span>
+    <span style="color: #0000ff;">this</span>.expression = process.env.NODE_ENV !== 'production'
+      ?<span style="color: #000000;"> expOrFn.toString()
+      : </span>''
+    <span style="color: #008000;">//</span><span style="color: #008000;"> parse expression for getter</span>
+    <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> expOrFn === 'function'<span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">this</span>.getter =<span style="color: #000000;"> expOrFn
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">this</span>.getter =<span style="color: #000000;"> parsePath(expOrFn)
+      </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.getter) {
+        </span><span style="color: #0000ff;">this</span>.getter =<span style="color: #000000;"> noop
+        process.env.NODE_ENV </span>!== 'production' &amp;&amp;<span style="color: #000000;"> warn(
+          `Failed watching path: </span>"${expOrFn}" ` +
+          'Watcher only accepts simple dot-delimited paths. ' +
+          'For full control, use a function instead.'<span style="color: #000000;">,
+          vm
+        )
+      }
+    }
+    </span><span style="color: #0000ff;">this</span>.value = <span style="color: #0000ff;">this</span><span style="color: #000000;">.lazy
+      </span>?<span style="color: #000000;"> undefined
+      : </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.get()
+  }
+
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * Evaluate the getter, and re-collect dependencies.
+   * 执行更新组件的方法，先将当前要执行的watcher推入到执行队列中 @todo
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  get () {
+    pushTarget(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">)
+    let value
+    const vm </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.vm
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+      value </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.getter.call(vm, vm)
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+      </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.user) {
+        handleError(e, vm, `getter </span><span style="color: #0000ff;">for</span> watcher "${this.expression}"<span style="color: #000000;">`)
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> e
+      }
+    } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> "touch" every property so they are all tracked as</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> dependencies for deep watching</span>
+      <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span><span style="color: #000000;">.deep) {
+        traverse(value)
+      }
+      popTarget()
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.cleanupDeps()
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value
+  }</span></pre>
+</div>
+<p>　　看起来很长，其实主要就是调用在上述第二步声明的updateComponent方法，updateComponent方法主要执行在vue初始化时声明的_render,_update方法，其中，_render的作用主要是生成vnode,_update主要功能是调用__patch__，将vnode转换为真实DOM,并且更新到页面中，具体如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 定义vue 原型上的render方法</span>
+  Vue.prototype._render = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (): VNode {
+    const vm: Component </span>= <span style="color: #0000ff;">this</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> render函数来自于组件的option</span>
+    const { render, _parentVnode } =<span style="color: #000000;"> vm.$options
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (_parentVnode) {
+      vm.$scopedSlots </span>=<span style="color: #000000;"> normalizeScopedSlots(
+        _parentVnode.data.scopedSlots,
+        vm.$slots,
+        vm.$scopedSlots
+      )
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> set parent vnode. this allows render functions to have access</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> to the data on the placeholder node.</span>
+    vm.$vnode =<span style="color: #000000;"> _parentVnode
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> render self</span>
+<span style="color: #000000;">    let vnode
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> There's no need to maintain a stack because all render fns are called</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> separately from one another. Nested component's render fns are called</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> when parent component is patched.</span>
+      currentRenderingInstance =<span style="color: #000000;"> vm
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 调用render方法，自己的独特的render方法， 传入createElement参数，生成vNode</span>
+      vnode =<span style="color: #000000;"> render.call(vm._renderProxy, vm.$createElement)
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+      handleError(e, vm, `render`)
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> return error render result,</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> or previous vnode to prevent render error causing blank component</span>
+      <span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore else </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp;<span style="color: #000000;"> vm.$options.renderError) {
+        </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+          vnode </span>=<span style="color: #000000;"> vm.$options.renderError.call(vm._renderProxy, vm.$createElement, e)
+        } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+          handleError(e, vm, `renderError`)
+          vnode </span>=<span style="color: #000000;"> vm._vnode
+        }
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        vnode </span>=<span style="color: #000000;"> vm._vnode
+      }
+    } </span><span style="color: #0000ff;">finally</span><span style="color: #000000;"> {
+      currentRenderingInstance </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> if the returned array contains only a single node, allow it</span>
+    <span style="color: #0000ff;">if</span> (Array.isArray(vnode) &amp;&amp; vnode.length === 1<span style="color: #000000;">) {
+      vnode </span>= vnode[0<span style="color: #000000;">]
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> return empty vnode in case the render function errored out</span>
+    <span style="color: #0000ff;">if</span> (!(vnode <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> VNode)) {
+      </span><span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp;<span style="color: #000000;"> Array.isArray(vnode)) {
+        warn(
+          </span>'Multiple root nodes returned from render function. Render function ' +
+          'should return a single root node.'<span style="color: #000000;">,
+          vm
+        )
+      }
+      vnode </span>=<span style="color: #000000;"> createEmptyVNode()
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> set parent</span>
+    vnode.parent =<span style="color: #000000;"> _parentVnode
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> vnode
+  }</span></pre>
+</div>
+<p style="text-align: left;">　　_render返回值：　<img src="./images/vue实例化过程5.png" alt="" /></p>
+<p>&nbsp;　　_update:</p>
+<div class="cnblogs_code">
+<pre><code> Vue.prototype._update = <span style="color: #0000ff;">function</span> (vnode: VNode, hydrating?: <span style="color: #0000ff;">boolean</span><span style="color: #000000;">) {
+    const vm: Component </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">
+    const prevEl </span>=<span style="color: #000000;"> vm.$el
+    const prevVnode </span>=<span style="color: #000000;"> vm._vnode
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置当前激活的作用域</span>
+    const restoreActiveInstance =<span style="color: #000000;"> setActiveInstance(vm)
+    vm._vnode </span>=<span style="color: #000000;"> vnode
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Vue.prototype.__patch__ is injected in entry points</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> based on the rendering backend used.</span>
+    <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">prevVnode) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> initial render</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> 执行具体的挂载逻辑</span>
+      vm.$el = vm.__patch__(vm.$el, vnode, hydrating, <span style="color: #0000ff;">false</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> removeOnly </span><span style="color: #008000;">*/</span><span style="color: #000000;">)
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> updates</span>
+      vm.$el =<span style="color: #000000;"> vm.__patch__(prevVnode, vnode)
+    }
+    restoreActiveInstance()
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> update __vue__ reference</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (prevEl) {
+      prevEl.__vue__ </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">
+    }
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (vm.$el) {
+      vm.$el.__vue__ </span>=<span style="color: #000000;"> vm
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> if parent is an HOC, update its $el as well</span>
+    <span style="color: #0000ff;">if</span> (vm.$vnode &amp;&amp; vm.$parent &amp;&amp; vm.$vnode ===<span style="color: #000000;"> vm.$parent._vnode) {
+      vm.$parent.$el </span>=<span style="color: #000000;"> vm.$el
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> updated hook is called by the scheduler to ensure that children are</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> updated in a parent's updated hook.</span>
+  }</pre>
+</div>
+<p>　　在挂载DOM的过程中，是先添加新数据生成的节点，然后再移除老的节点。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,109 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Word Cloud (词云) - JavaScript' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Word Cloud (词云) - JavaScript</center></div><div class='banquan'>原文出处:本文由博客园博主yukiwu提供。<br/>
+原文连接:https://www.cnblogs.com/yukiwu/p/10968816.html</div><br>
+    <p><br/><br />
+在<a href="https://www.cnblogs.com/yukiwu/p/10967037.html">上一篇</a>中已经分享了用 Python 创建词云了。接下来继续总结其他创建词云的方法。</p>
+<p><br/></p>
+<h5 id="create-word-cloud-via-javascript">&gt;&gt; Create Word Cloud via JavaScript</h5>
+<hr/>
+<p>JavaScript 可以借助 <a href="https://d3js.org/">d3 函数库</a> 的 <a href="https://github.com/jasondavies/d3-cloud">d3-cloud 插件</a>来生成词云。</p>
+<p>1) 下载 d3, d3-cloud 及其相关文件，并在 HTML 文件中引用。</p>
+<pre><code><code>&lt;script src=&quot;dist/d3.v3.min.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;dist/d3.layout.cloud.js&quot;&gt;&lt;/script&gt;
+&lt;script src=&quot;dist/colorbrewer.v1.min.js&quot;&gt;&lt;/script&gt;</code></pre>
+<p>2) 准备文本。</p>
+<p>我们再次使用上次保存的 Word Cloud History.txt 的文本。</p>
+<p>3) 用 HTML 写一个简单的 Web Page，让我们可以做一些简单的交互，例如选择 *.txt 文件，点击生成图形，保存图形等等。</p>
+<pre><code><code>&lt;div role=&quot;main&quot;&gt;           
+    &lt;input type=&quot;file&quot; id=&quot;txtFile&quot; accept=&quot;.txt&quot; single&gt;                  
+
+    &lt;button id=&quot;btnCreate&quot;&gt;Create&lt;/button&gt;
+    &lt;button id=&quot;btnSave&quot; disabled&gt;Save&lt;/button&gt;
+          
+    &lt;div id=&quot;svgBox&quot;&gt;&lt;/div&gt;
+&lt;/div&gt;</code></pre>
+<p>完成后可以用浏览器打开这个 Web Page 看看。<br />
+<img src="./images/Word Cloud (词云) - JavaScript0.png" alt="Word Cloud Web Page" /></p>
+<p>4) 接下来我们就可以用 JavaScript 去实现这些控件的功能了。和 Python 不同，JavaScript 不能自动分词和设置停用词，所以我们需要</p>
+<p>4-a) 读取 *.txt 文件： <code>readTXTFile</code></p>
+<p>4-b) 分词：<code>generateWordList</code></p>
+<p>4-c) 重头戏，画 word cloud：<code>drawWordCloud</code>。根据 d3-cloud 给出的API设置字体颜色，字体大小，图形的大小等等。</p>
+<pre class="javascript"><code>    //Example for Step 3
+    var layout = d3.layout.cloud() //构造词云实例
+                .size([width, height])
+                .words(
+                    arrWord.map(function(d) {
+                        var index = arrWord.indexOf(d);
+                        return {text: d, size: arrWeight[index] * sizeFactor};
+                    })
+                )
+                .padding(5)
+                .rotate(function() { return ~~(Math.random() * 2) * 90; })
+                .font(fontFamily)
+                .fontSize(function(d) { return d.size; })
+                .spiral(&quot;rectangular&quot;)
+                .on(&quot;end&quot;, draw) //所有词语放置完成后运行 draw 函数
+                .start();</code></pre>
+<p>4-d). 保存图形：<code>saveSVGToPNG</code></p>
+<pre class="javascript"><code>    //Save svg as png file
+    var svg = document.querySelector(&quot;svg&quot;);
+    var svgData = new XMLSerializer().serializeToString(svg);
+    var svgSize = svg.getBoundingClientRect();
+    var canvas = document.createElement(&quot;canvas&quot;);
+    canvas.width = svgSize.width;
+    canvas.height = svgSize.height;
+    var ctx = canvas.getContext(&quot;2d&quot;);
+    var img = document.createElement(&quot;img&quot;);
+    img.setAttribute(&#39;crossOrigin&#39;, &#39;anonymous&#39;);
+    img.setAttribute(&quot;src&quot;, &quot;data:image/svg+xml;base64,&quot; + btoa(svgData));
+    img.onload = function() {
+        ctx.drawImage(img, 0, 0);
+        var imgDataURL = canvas.toDataURL(&quot;image/png&quot;);
+        console.log(canvas.toDataURL(&quot;image/png&quot;));
+        $(&quot;body&quot;).append(&quot;&lt;a id=&#39;hiddenLink&#39; href=&#39;&quot; + imgDataURL + &quot;&#39; style=&#39;display:none;&#39; download&gt;Download Pic&lt;/a&gt;&quot;);
+        $(&quot;#hiddenLink&quot;)[0].click();
+        $(&quot;#hiddenLink&quot;).remove();
+    };</code></pre>
+<p><img src="./images/Word Cloud (词云) - JavaScript1.png" alt="Word Cloud JavaScript" /></p>
+<p><br/></p>
+<h5 id="notes">&gt;&gt; Notes</h5>
+<hr/>
+<p>1) 这个例子还没有实现设置停用词的功能，所以图形中还包括了很多无意义的词语，例如 the, a, of, in 等等。如果你看完这篇博客后有兴趣继续玩玩，可以自己加个 function 实现这个功能。</p>
+<p>简单的方法就是设置两个 Object, 一个装词语，一个装停用词。现在词语中读取第一个词，并在停用词中查找。如果是停用词就丢掉，然后读取第二个词，如此类推。</p>
+<p>2) 到目前为止，将 svg 保存为其他图片格式 （如 *.png）只适用于 Chrome 浏览器和 FireFox 浏览器。曾经花了很多时间去搜索和研究都没有找到在 IE 怎样将 svg 保存成其他图片格式。如果有好心人知道，也和我分享一下吧。Thanks！</p>
+<p><br/></p>
+<h5 id="sample-code">&gt;&gt; Sample Code</h5>
+<hr/>
+<p><a href="https://wuyuki.github.io/assets/2019-01-26-word-cloud-2/WordCloudJS.zip">download here</a></p>
+<p><br/></p>
+<h5 id="related-blogs">&gt;&gt; Related Blogs</h5>
+<hr/>
+<ol>
+<li><a href="https://www.cnblogs.com/yukiwu/p/10967037.html">Word Cloud (词云) - Python</a></li>
+<li><a href="https://www.cnblogs.com/yukiwu/p/10969250.html">Word Cloud (词云) - R</a></li>
+<li><a href="https://www.cnblogs.com/yukiwu/p/10971998.html">Word Cloud (词云) - Matlab</a><br />
+<br/></li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,137 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修手动实现Promise' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>手动实现Promise</center></div><div class='banquan'>原文出处:本文由博客园博主Gerryli提供。<br/>
+原文连接:https://www.cnblogs.com/gerry2019/p/10721390.html</div><br>
+    <p>　　Promise对大家来说并不是很陌生，它是一个异步编程的解决方案，主要解决了前端回调地域问题。用阮老师的话说，它&ldquo;就是一个容器，里面保存着某个未来才会结束的事件（通常是一个异步操作）的结果&rdquo;。</p>
+<p>　　Promise有三种状态：<strong>pending</strong>(初始状态)、<strong>fulfilled</strong>(成功)、<strong>reject</strong>(失败)，初始状态pending只能变成fulfilled或者reject，这一过程是不可逆的，当状态发生改变时，会触发对应的回调方法。除此之外，也支持链式调用，then/catch会返回一个Promise，以供链式调用，盗用MDN上的一张图，Promise的执行流程如下图所示：</p>
+<p>　　<img src="./images/手动实现Promise0.png" alt="" /></p>
+<p>　　具体实现简单分为以下四步：</p>
+<p>　　　　1、定义一个执行器fn,自带两个参数的函数，resolve/reject，在实例化Promise时，调用执行器fn，传入参数reslove/reject，初始化回调事件队列taskList<br />　　　　2、在执行then方法时，判断是不是初始状态pending，如果是，则将then中fullfilled/reject的回调推进执行队列taskList中，then方法返回一个promise实例<br />　　　　3、实现链式回调中，用id来标识不同的promise实例<br />　　　　4、当触发了执行器中参数函数时，根据id来判断当前执行的回调方法</p>
+<p>　　实现代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span>  <span style="color: #008000;">//</span><span style="color: #008000;">公共变量，用于标识MyPromise实例</span>
+<span style="color: #008080;"> 2</span>         index = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span>         <span style="color: #008000;">//</span><span style="color: #008000;">promise接收一个回调函数fn,有两个参数，reslove,reject</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">function</span><span style="color: #000000;"> MyPromise(fn) {
+</span><span style="color: #008080;"> 5</span>             <span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span>             <span style="color: #008000;">//</span><span style="color: #008000;">promise的三种状态</span>
+<span style="color: #008080;"> 7</span>             <span style="color: #0000ff;">this</span>.RESOLVE = "fullfilled"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span>             <span style="color: #0000ff;">this</span>.PENDING = "pending"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 9</span>             <span style="color: #0000ff;">this</span>.REJECT = "reject"<span style="color: #000000;">;
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">this</span>.id = index++<span style="color: #000000;">;
+</span><span style="color: #008080;">11</span>             <span style="color: #008000;">//</span><span style="color: #008000;">初始默认状态为penddding</span>
+<span style="color: #008080;">12</span>             <span style="color: #0000ff;">this</span>.state = <span style="color: #0000ff;">this</span><span style="color: #000000;">.PENDING;
+</span><span style="color: #008080;">13</span>             <span style="color: #008000;">//</span><span style="color: #008000;">执行任务列表</span>
+<span style="color: #008080;">14</span>             <span style="color: #0000ff;">this</span>.taskList =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">15</span>             <span style="color: #008000;">//</span><span style="color: #008000;">最终执行的回调</span>
+<span style="color: #008080;">16</span>             <span style="color: #0000ff;">this</span>.finallyCallback = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">17</span>             <span style="color: #008000;">//</span><span style="color: #008000;">bind改变reslove/reject函数体内this的指向，确保指向MyPromise</span>
+<span style="color: #008080;">18</span>             fn.call(<span style="color: #0000ff;">this</span>, <span style="color: #0000ff;">this</span>.resolve.bind(<span style="color: #0000ff;">this</span>), <span style="color: #0000ff;">this</span>.reject.bind(<span style="color: #0000ff;">this</span><span style="color: #000000;">));
+</span><span style="color: #008080;">19</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">20</span> 
+<span style="color: #008080;">21</span>         MyPromise.prototype.resolve = <span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+</span><span style="color: #008080;">22</span>             <span style="color: #0000ff;">this</span>.state = <span style="color: #0000ff;">this</span><span style="color: #000000;">.RESOLVE;
+</span><span style="color: #008080;">23</span>             <span style="color: #008000;">//</span><span style="color: #008000;">2、状态变更时，执行完成的方法</span>
+<span style="color: #008080;">24</span>             <span style="color: #0000ff;">this</span>.taskList[<span style="color: #0000ff;">this</span>.id] &amp;&amp; <span style="color: #0000ff;">this</span>.handler(<span style="color: #0000ff;">this</span>.taskList[<span style="color: #0000ff;">this</span><span style="color: #000000;">.id], value);
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>         MyPromise.prototype.reject = <span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+</span><span style="color: #008080;">28</span>             <span style="color: #0000ff;">this</span>.state = <span style="color: #0000ff;">this</span><span style="color: #000000;">.REJECT;
+</span><span style="color: #008080;">29</span>             <span style="color: #008000;">//</span><span style="color: #008000;">2、状态变更时，执行完成的方法</span>
+<span style="color: #008080;">30</span>             <span style="color: #0000ff;">this</span>.taskList[<span style="color: #0000ff;">this</span>.id] &amp;&amp; <span style="color: #0000ff;">this</span>.handler(<span style="color: #0000ff;">this</span>.taskList[<span style="color: #0000ff;">this</span><span style="color: #000000;">.id], value);
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">32</span>         <span style="color: #008000;">//</span><span style="color: #008000;">执行任务回调</span>
+<span style="color: #008080;">33</span>         MyPromise.prototype.handler = <span style="color: #0000ff;">function</span><span style="color: #000000;">(task, value) {
+</span><span style="color: #008080;">34</span>             <span style="color: #0000ff;">var</span> result = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">35</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.state === <span style="color: #0000ff;">this</span><span style="color: #000000;">.RESOLVE) {
+</span><span style="color: #008080;">36</span>                 result =<span style="color: #000000;"> task.onFullFilled(value);
+</span><span style="color: #008080;">37</span>             } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.state === <span style="color: #0000ff;">this</span><span style="color: #000000;">.REJECT) {
+</span><span style="color: #008080;">38</span>                 result =<span style="color: #000000;"> task.onReject(value);
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">40</span>             <span style="color: #0000ff;">var</span> nextId = <span style="color: #0000ff;">this</span>.id + 1<span style="color: #000000;">;
+</span><span style="color: #008080;">41</span>             <span style="color: #008000;">//</span><span style="color: #008000;">需要判断返回值是不是MyPromise实例，如果是，将之前的任务队列赋值给新的MyPromise实例</span>
+<span style="color: #008080;">42</span>             <span style="color: #0000ff;">if</span> (result <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> MyPromise) {
+</span><span style="color: #008080;">43</span>                 result.id =<span style="color: #000000;"> nextId;
+</span><span style="color: #008080;">44</span>                 result.taskList = <span style="color: #0000ff;">this</span><span style="color: #000000;">.taskList;
+</span><span style="color: #008080;">45</span>                 result.finallyCallback = <span style="color: #0000ff;">this</span><span style="color: #000000;">.finallyCallback;
+</span><span style="color: #008080;">46</span>             } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">47</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">没有返回MyPromise实例</span>
+<span style="color: #008080;">48</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">如果有finally回调，则执行最终的回调</span>
+<span style="color: #008080;">49</span>                 <span style="color: #0000ff;">this</span>.finallyCallback &amp;&amp; <span style="color: #0000ff;">this</span><span style="color: #000000;">.finallyCallback();
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">52</span>         <span style="color: #008000;">//</span><span style="color: #008000;">onFullFilled：成功的回调，onReject：失败的回调</span>
+<span style="color: #008080;">53</span>         MyPromise.prototype.then = <span style="color: #0000ff;">function</span><span style="color: #000000;">(onFullFilled, onReject) {
+</span><span style="color: #008080;">54</span>             <span style="color: #0000ff;">var</span> _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">,
+</span><span style="color: #008080;">55</span>                 obj =<span style="color: #000000;"> {
+</span><span style="color: #008080;">56</span> <span style="color: #000000;">                    onFullFilled: onFullFilled,
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">                    onReject: onReject
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">                };
+</span><span style="color: #008080;">59</span>             <span style="color: #008000;">//</span><span style="color: #008000;">1、初始化时，将后续可能要执行的任务推送到执行任务队列中</span>
+<span style="color: #008080;">60</span>             <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.state === <span style="color: #0000ff;">this</span><span style="color: #000000;">.PENDING) {
+</span><span style="color: #008080;">61</span>                 <span style="color: #0000ff;">this</span><span style="color: #000000;">.taskList.push(obj);
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">63</span>             <span style="color: #008000;">//</span><span style="color: #008000;">返回一个promise，支持链式调用</span>
+<span style="color: #008080;">64</span>             <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">65</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;">66</span> 
+<span style="color: #008080;">67</span>         <span style="color: #008000;">//</span><span style="color: #008000;">最终执行的方法,不管MyPromise的状态如何</span>
+<span style="color: #008080;">68</span>         MyPromise.prototype.<span style="color: #0000ff;">finally</span> = <span style="color: #0000ff;">function</span><span style="color: #000000;">(callback) {
+</span><span style="color: #008080;">69</span>             <span style="color: #0000ff;">this</span>.finallyCallback =<span style="color: #000000;"> callback;
+</span><span style="color: #008080;">70</span>         };</pre>
+</div>
+<p>　　测试代码：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">var</span> cc = <span style="color: #0000ff;">new</span> MyPromise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(reslove, reject) {
+            setTimeout(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                reslove(</span>2<span style="color: #000000;">);
+            }, </span>500<span style="color: #000000;">);
+        });
+        </span><span style="color: #0000ff;">var</span> dd = <span style="color: #0000ff;">new</span> MyPromise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(reslove, reject) {
+            setTimeout(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                reject(</span>3<span style="color: #000000;">);
+            }, </span>500<span style="color: #000000;">);
+        });
+        cc.then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(num) {
+                console.log(num);
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> dd;
+            })
+            .then(
+                </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(cc) {
+                    console.log(cc);
+                },
+                </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+                    console.log(</span>5<span style="color: #000000;">);
+                }
+            )
+            .</span><span style="color: #0000ff;">finally</span>(<span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                console.log(</span>"Game Over"<span style="color: #000000;">);
+            });
+        console.log(</span>1);</pre>
+</div>
+<p>　　执行结果：</p>
+<p>　　<img src="./images/手动实现Promise1.png" alt="" /></p>
+<p>&nbsp;　　实现过程简单粗暴，如有问题，烦请指出，谢谢！</p>
+<div style="color: #abb2bf; font-family: Consolas, 'Courier New', monospace; font-weight: normal; font-size: 16px; line-height: 22px; white-space: pre;">&nbsp;</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,167 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【nodejs原理&amp;源码赏析（5）】net模块与通讯的实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【nodejs原理&amp;源码赏析（5）】net模块与通讯的实现</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/10976552.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-net模块简介">一. net模块简介</a></li>
+        <li><a href="#二.-client-server的通讯">二. Client-Server的通讯</a><ul>
+        <li><a href="#server的建立">2.1 server的建立</a></li>
+        <li><a href="#socket的建立">2.2 Socket的建立</a></li>
+        </ul></li>
+        <li><a href="#三.-ipc通讯">三. IPC通讯</a></li>
+        <li><a href="#四.-撸一个简易的cluster通讯模型">四. 撸一个简易的cluster通讯模型</a></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/【nodejs原理&amp;源码赏析（5）】net模块与通讯的实现0.png" /></p>
+<blockquote>
+<p>示例代码托管在：<a href="https://github.com/dashnowords/blogs/tree/master/Demo/nodejs/net_demo/net_demo">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<h2 id="一.-net模块简介">一. net模块简介</h2>
+<p><code>net</code>模块是<code>nodejs</code>通讯功能实现的基础，<code>nodejs</code>中最常用的功能就是作为WebServer使用，建立服务器时使用的<code>http.createServer</code>就是在<code>net.createServer</code>方法的基础上建立的。前端最熟悉的<code>http</code>协议属于应用层协议，应用层的内容想要发送出去，还需要将消息逐层下发，通过传输层（<code>tcp</code>,<code>udp</code>），网际层(<code>ip</code>)和更底层的网络接口后才能被传输出去。<code>net</code>模块就是对分层通讯模型的实现。</p>
+<p><code>net</code>模块中有两大主要抽象概念——<code>net.Server</code>和<code>net.Socket</code>。《deep-into-node》一书中对<code>Socket</code>概念进行了解释：</p>
+<blockquote>
+<p>Socket 是对 TCP/IP 协议族的一种封装，是应用层与TCP/IP协议族通信的中间软件抽象层。它把复杂的TCP/IP协议族隐藏在Socket接口后面，对用户来说，一组简单的接口就是全部，让Socket去组织数据，以符合指定的协议。</p>
+<p>Socket 还可以认为是一种网络间不同计算机上的进程通信的一种方法，利用三元组（ip地址，协议，端口）就可以唯一标识网络中的进程，网络中的进程通信可以利用这个标志与其它进程进行交互。</p>
+</blockquote>
+<p>简单地说，<code>net.Server</code>实例可以监听一个端口（用于实现客户端<code>TCP</code>连接通讯）或者地址（用于实现<code>IPC</code>跨进程通讯），<code>net.Socket</code>实例可以建立一个套接字实例，它可以用来和<code>server</code>建立连接，连接建立后，就可以实现通讯了。<strong>你可以将<code>socket</code>想象成手机，把<code>server</code>想象成基站</strong>，虽然不是很贴切，但可以降低理解难度。<code>net</code>相关API可以直接查看中文文档<a href="http://nodejs.cn/api/net.html">【net模块文档】</a>。</p>
+<h2 id="二.-client-server的通讯">二. Client-Server的通讯</h2>
+<h3 id="server的建立">2.1 server的建立</h3>
+<p><code>Server</code>类的定义非常精简，也很容易看懂：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（5）】net模块与通讯的实现1.png" /></p>
+<p>可以看到构造函数基本上只是初始化了一些属性，然后添加了对<code>connection</code>事件的响应。服务器是<code>net.Server</code>类的实例，通过<code>net.createServer([options][,onConnection] )</code>方法建立，如果传入一个函数，则这个函数会作为<code>connection</code>事件的回调函数，当一个<code>socket</code>实例连接到<code>server</code>时，<code>connection</code>事件就会触发，回调函数中的形参就指向了发起连接的<code>socket</code>实例。<code>server</code>实例并不能独立工作，作为网络服务器使用时需要需要调用<code>listen</code>方法来监听一个地址，示例如下：</p>
+<pre><code><code>const net = require(&#39;net&#39;);
+const { StringDecoder } = require(&#39;string_decoder&#39;);
+let decoder = new StringDecoder(&#39;utf8&#39;);
+
+let server = net.createServer(socket=&gt;{
+    console.log(&#39;接收连接&#39;);
+    socket.on(&#39;data&#39;,data=&gt;{
+        console.log(&#39;收到来自客户端的消息:&#39;,decoder.write(data));
+    });
+
+    socket.on(&#39;end&#39;,function(){
+       console.log(&#39;socket从客户端被关闭了&#39;);
+    });
+});
+
+server.listen(12315);</code></pre>
+<p>socket上以流的形式发送数据，所以需要调用<code>string_decoder</code>模块进行解码才能够看到内容，否则看到的就是原始的字节信息。上面的实例监听了12315端口。</p>
+<h3 id="socket的建立">2.2 Socket的建立</h3>
+<p>前文已经提及<code>Socket</code>是对<code>TCP/IP</code>协议族的一种封装。客户端通讯套接字是<code>net.Socket</code>的实例，通过调用实例方法<code>socket.connect(args)</code>来和服务器建立连接，作为客户端通讯套接字时需要监听端口号，建立连接后，客户端<code>server</code>通过<code>connection</code>事件的回调函数就可以拿到发起连接的<code>socket</code>实例，这样客户端和服务器就可以通讯了，其中一方通过<code>socket.write（）</code>方法写入数据，另一方注册的监听器<code>socket.on('data',onData)</code>回调函数就会收到信息。<code>socket</code>实例化示例如下:</p>
+<pre><code><code>const net = require(&#39;net&#39;);
+
+let socket = new net.Socket();
+socket.connect(12315);
+//连接服务器
+socket.on(&#39;connect&#39;,c=&gt;{
+    console.log(&#39;成功建立和12315的连接&#39;)
+    setTimeout(()=&gt;{
+        console.log(&#39;建立连接1s后发送消息&#39;);
+        socket.write(&#39;SN:1231512315&#39;,&#39;utf8&#39;,function(){
+            console.log(&#39;消息已发送&#39;);
+        });
+    },1000);
+});
+
+socket.on(&#39;data&#39;,function(resp){
+    console.log(&#39;收到服务器返回消息：&#39;,resp);
+});
+
+socket.on(&#39;end&#39;,function(){
+    console.log(&#39;socket从客户端被关闭了&#39;);
+})</code></pre>
+<p>客户端<code>connect</code>连接服务器的动作，就好比打电话前要先拨号一样，等接通以后，你说的话（也就是<code>socket.write( )</code>写入的data）才能被发送过去。<strong>【代码仓的示例DEMO】</strong>中提供了相对完整的示例,分别放在<code>server.js</code>和<code>client.js</code>中，你可以通过控制台打印的信息来观察每条语句执行的先后顺序，熟悉从通信建立到消息收到再到服务器关闭的整个过程，记得要先起服务器，后起客户端。</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（5）】net模块与通讯的实现2.png" /></p>
+<blockquote>
+<p>Tips：你可以使用postman向这个server发一个GET请求，看看是什么样子，对理解<code>http</code>和<code>tcp/ip</code>的关系有很大帮助，它非常直观，反正我是第一次见。</p>
+</blockquote>
+<h2 id="三.-ipc通讯">三. IPC通讯</h2>
+<p><code>IPC</code>通讯是指Inter Process Communication，也就是跨进程通讯，上一节在提到<code>cluster</code>时已经介绍过进程之间是资源隔离的，所以跨进程通讯也需要通过<code>net</code>模块来建立消息管道。它的用法比较简单，只需要将<code>server.listen( )</code>和<code>socket.connect( )</code>的参数从端口号换成地址字符串就可以了。示例代码如下：</p>
+<pre><code><code>const net = require(&#39;net&#39;);
+const cluster = require(&#39;cluster&#39;);
+const path = require(&#39;path&#39;);
+const { StringDecoder } = require(&#39;string_decoder&#39;);
+
+let serverForIPC;//作为子进程的server
+
+if (cluster.isMaster) {
+    //主进程执行逻辑
+    setupMaster();
+    cluster.fork();//生成子进程
+    cluster.fork();//生成另一个子进程
+} else {
+    //子进程执行逻辑
+    setupWorker();
+}
+
+//主进程逻辑
+function setupMaster() {
+    //作为Server监听子进程消息
+   let decoder = new StringDecoder(&#39;utf8&#39;);
+    //windows系统中要求的IPC通讯命名规则
+   let ipcPath = path.join(&#39;\\\\?\\pipe&#39;, process.cwd(), &#39;dashipc&#39;);
+   serverForIPC = net.createServer(socket=&gt;{
+        console.log(`[master]:子进程通过ipcServer连接到主进程`);
+        socket.on(&#39;data&#39;,data=&gt;{
+            console.log(&#39;[master]:收到来自子进程的消息:&#39;,decoder.write(data));
+        });
+   });
+   //IPC-server端监听指定地址
+   serverForIPC.listen(ipcPath);
+}
+
+//子进程逻辑
+function setupWorker() {
+    let ipcPath = path.join(&#39;\\\\?\\pipe&#39;, process.cwd(), &#39;dashipc&#39;);
+    let socket = new net.Socket();
+    //子进程的socket连接主进程中监听的地址
+    socket.connect(ipcPath,c=&gt;{
+        console.log(`[child-${process.pid}]:pid为${process.pid}的子进程已经连接到主进程`);
+        //过一秒后发个消息测试一下
+        setTimeout(()=&gt;{
+           socket.write(`${process.pid}的消息:SN1231512315`,&#39;utf8&#39;,function(){
+              console.log(`[child-${process.pid}]:消息已发送`);
+           });
+        },1000);
+    });
+}</code></pre>
+<p>需要注意尽管主进程和子进程运行的是同样的脚本，但执行的具体逻辑由<code>cluster.isMaster</code>进行了区分。当主进程的脚本运行时会建立一个<code>IPC</code>通讯管道的<code>server</code>端并监听指定地址，然后通过<code>cluster.fork</code>生成子进程，子进程会执行<code>setupWorker( )</code>方法的逻辑，新建一个<code>socket</code>实例并连接主进程监听的地址，这样跨进程通讯就建立了。示例代码放置在代码仓中的<code>ipc.js</code>中,运行结果如下：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（5）】net模块与通讯的实现3.png" /></p>
+<h2 id="四.-撸一个简易的cluster通讯模型">四. 撸一个简易的cluster通讯模型</h2>
+<p>既然客户端通讯和跨进程通讯都实现了，那么把它们连起来协调好，其实就可以复现<code>cluster</code>集群模块的功能了，虽然它不能等同于<code>cluster</code>的源码，cluster中跨进程通讯是直接可以使用的，不需要自己手动建立，但“造轮子”对于理解集群通讯机制非常有帮助。简易模型的基本方案如下，逻辑的顺序已经标记出来了，在前文的基础上实际上增加的只是调度相关的功能（也就是橙色背景的部分）：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（5）】net模块与通讯的实现4.png" /></p>
+<p>首先主线程和子线程之间建立IPC通讯，连接建立后，由子进程将自己的pid通过socket发给主进程，这样主进程就知道连接到IPCserver的socket是哪个子进程连过来的了，demo在内部构建了一个<code>type</code>属性为<code>internal_init</code>的消息来完成这个登记动作，然后启动一个接收客户端连接的Server，监听指定的端口。接下来到了第6步，客户端新建了socket连接到了主线程Client Server监听的端口，clientServer把它发过来的<code>socket</code>传给调度中心，调度中心根据一定规则（demo中直接就简单粗暴地轮换使用各个线程）决定将这个socket与哪个worker socket相匹配（所谓匹配就是指client socket发来的消息应该调用哪个worker socket的<code>write</code>方法来分发给对应的子进程），然后将这个客户端socket登记到匹配记录表中某条记录的client socket上，这样通讯通道就建立好了。</p>
+<p>当客户端调用<code>socket.write</code>来写入数据时，主线程就会收到这个数据，然后根据已经建立好的socket关系把这条消息write到子进程，子进程处理完后在消息体中增加一个<code>pid</code>属性标明这个消息是哪个进程处理的(这个标记也可以在主进程中添加，因为主进程中维护的有<code>pid</code>,<code>client socket</code>和<code>worker socket</code>的对应关系)，然后调用<code>socket.write</code>发回给主进程，主进程根据消息的<code>pid</code>属性在记录表中找到这个消息应该由哪个client socket来返回，找到后调用它的<code>end</code>方法将数据返回给客户端，这样就完成了一次请求分发。</p>
+<p>demo中提供了示例，<code>ipc_http.js</code>是简易集群模型的服务端，<code>ipc_http_client.js</code>是客户端，前后一共发送了3次请求，结果如下：</p>
+<p>服务端的日志：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（5）】net模块与通讯的实现5.png" /></p>
+<p>客户端的请求：</p>
+<p><img src="./images/【nodejs原理&amp;源码赏析（5）】net模块与通讯的实现6.png" /></p>
+<p>上面的示例仅仅是为了帮助理解网络通信和跨进程通信协作的原理，并不代表<code>cluster</code>的源码，但通信层面的原理是类似的，实际开发中跨进程通讯时不需要自己再构建IPC消息通道，因为子进程返回的<code>process</code>上就已经集成了跨进程通讯能力，理解这个简化的模型对阅读<code>cluster</code>模块的通讯原理能够提供很好的过渡。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

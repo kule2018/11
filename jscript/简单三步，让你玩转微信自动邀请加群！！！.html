@@ -1,0 +1,112 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修简单三步，让你玩转微信自动邀请加群！！！' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>简单三步，让你玩转微信自动邀请加群！！！</center></div><div class='banquan'>原文出处:本文由博客园博主lieone提供。<br/>
+原文连接:https://www.cnblogs.com/lieone/p/11675655.html</div><br>
+    <p><img src="./images/简单三步，让你玩转微信自动邀请加群！！！0.png" /></p>
+<h2 id="需求场景">1、需求场景</h2>
+<p>很多管理大量微信社群的小伙伴都有这样的场景，当微信群的人数达到100人之后，将不能在通过分享的群二维码加入群里，必须自主添加好友后，手动去邀请才能加用户拉入群众，如果有大量的用户加群，就只能一个一个手动的拉，想想心情就很美丽，手动哭泣。。。。</p>
+<h2 id="准备工作">2、准备工作</h2>
+<p>1、一台不关机的电脑 OR 一台服务器</p>
+<p>2、 安装以下相关依赖（有的不需要）</p>
+<pre><code><code>#coding=utf8
+import requests
+from requests import exceptions
+from urllib.request import urlopen
+from bs4 import BeautifulSoup
+from urllib.parse import urlencode
+from threading import Timer
+import re
+from wxpy import *
+import  schedule
+import  time
+import http
+import  json 
+import datetime
+import random
+import os
+import ctypes</code></pre>
+<p>3、一个能够在网页版微信登录的账号（重要）</p>
+<p>4、该微信创建群聊，并保存通讯录中（重要）</p>
+<h2 id="代码部分">3、代码部分</h2>
+<h3 id="注册机器人">3.1、注册机器人</h3>
+<pre><code><code>bot = Bot(cache_path=True,console_qr = 2)
+bot.enable_puid(&#39;wxpy_puid.pkl&#39;)
+rebot = bot.groups().search(&#39;Goodog&#39;) // 需要加入的群</code></pre>
+<h3 id="自动通过好友后发送的加群提示">3.2、自动通过好友后发送的加群提示</h3>
+<pre><code><code>allText = &#39;回复关键词加群： \n\n1、羊毛（加入羊毛优惠群）\n2、py（加入机器人体验群）\n3、互粉（加入公众号互粉群）\n4、更多群敬请期待\n\n -PS: 如果回复关键字无效，请耐心等待手工拉入。&#39;</code></pre>
+<h3 id="自动通过好友请求">3.3、自动通过好友请求</h3>
+<pre><code><code>@bot.register(msg_types=FRIENDS)
+def auto_audit_msg(msg):
+    new_friend = bot.accept_friend(msg.card)
+    new_friend.send(&#39;我是Goodog小助手，如果你也想拥有一个跟我一样功能的机器人请添加公众号【小夭同学】留言获取！&#39;)
+    new_friend.send_raw_msg(
+        raw_type=42,
+        raw_content=&#39;&lt;msg username=&quot;infopush&quot; nickname=&quot;小夭同学&quot;/&gt;&#39;
+    ) 
+    new_friend.send(allText)</code></pre>
+<h3 id="关键字回复发送加群邀请链接">3.4、关键字回复发送加群邀请链接</h3>
+<pre><code><code>@bot.register(Friend, msg_types=TEXT)
+def auto_add_msg(msg):
+    if &#39;py&#39; in msg.text.lower():
+        rebot[0].add_members(msg.sender, use_invitation=True)
+        msg.sender.send(&#39;如果加入py群失败，请等待人工邀请加入！！&#39;)</code></pre>
+<h3 id="邀请用户入群后发送群公告">3.5、邀请用户入群后发送群公告</h3>
+<pre><code><code>invite_compile = re.compile(r&#39;邀请&quot;(.*?)&quot;加入了群聊\s*$&#39;) // 判断是否为新用户入群</code></pre>
+<h4 id="新用户入群发送的公告">3.5.1、新用户入群发送的公告</h4>
+<pre><code><code>rebot_msg = &#39;&#39;&#39;@{atname}\u2005\u2005\u2005🌹🌹🌹欢迎加入群🌹🌹🌹\n
+⚡⚡⚡⚡ 此群禁止发广告，不然踢！！！\n
+💣💣💣 无法登录网页微信的问题，无有效解决办法。\n
+🙋🙋🙋 怎样提问：\n
+1. 不要问无意义的问题 🌡 
+2. 问问题前最好贴出截图。🧸 
+3. 描述清晰，信息充足。💎
+4. 如果想要源码请关注💡 【小夭同学】💡 回复【帮助】获取&#39;&#39;&#39;</code></pre>
+<h4 id="为加入的群进行注册以用来抓取群消息">3.5.2、为加入的群进行注册，以用来抓取群消息</h4>
+<pre><code><code>@bot.register(rebot, NOTE)  // NOTE 为系统通知
+def invite_group(msg):
+    &quot;&quot;&quot; 群通知处理 &quot;&quot;&quot;
+    text = msg.text # 通知的内容
+    member = msg.member.name # 消息发送者昵称
+    invite_names = invite_compile.findall(text)  # 判断是否是加入了新用户
+    if invite_names:  # 用于邀请
+        invite_name = invite_names[0]  # 加入者的昵称
+        if rebot_msg:
+            note = rebot_msg.format(atname=invite_name)
+            msg.sender.send(note)  # 向群里发送欢迎语句
+        return</code></pre>
+<h2 id="运行机器人">4、运行机器人</h2>
+<pre><code><code>while True:
+    schedule.run_pending()
+    time.sleep(1)</code></pre>
+<h2 id="git">5、Git</h2>
+<blockquote>
+<p>代码已上传 <a href="https://github.com/jiaopianjun/wepython/blob/master/invite.py">Github</a></p>
+</blockquote>
+<h2 id="如有想体验机器人可以添加微信wex_5201314或直接扫描下面二维码">6、如有想体验机器人可以添加微信【wex_5201314】或直接扫描下面二维码</h2>
+<p><img src="./images/简单三步，让你玩转微信自动邀请加群！！！1.png" alt="WechatIMG303.jpeg" /></p>
+<h2 id="欢迎关注我的公众号小夭同学">7、欢迎关注我的公众号【小夭同学】</h2>
+<p><img src="./images/简单三步，让你玩转微信自动邀请加群！！！2.png" alt="qrcode_for_gh_06f1f85b0c04_258 1.jpg" /></p>
+<h3 id="关注公众号-小夭同学">关注公众号 【小夭同学】</h3>
+<p><img src="./images/简单三步，让你玩转微信自动邀请加群！！！3.png" alt="公众号小夭同学" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

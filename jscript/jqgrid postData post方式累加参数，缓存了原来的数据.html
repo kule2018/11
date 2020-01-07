@@ -1,0 +1,59 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jqgrid postData post方式累加参数，缓存了原来的数据' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jqgrid postData post方式累加参数，缓存了原来的数据</center></div><div class='banquan'>原文出处:本文由博客园博主程先生哈提供。<br/>
+原文连接:https://www.cnblogs.com/daniao11417/p/10727281.html</div><br>
+    <p>　　今天做项目的时候发现一个问题，我们有一个筛选项，一个是VIP用户，一个是普通用户，还有一个是全部用户，首先看下我们的selection</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">select </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">=""</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="user_type"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">option </span><span style="color: #ff0000;">value</span><span style="color: #0000ff;">=""</span><span style="color: #0000ff;">&gt;</span>全部<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">option</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">option </span><span style="color: #ff0000;">value</span><span style="color: #0000ff;">="1"</span><span style="color: #0000ff;">&gt;</span>VIP<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">option</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">option </span><span style="color: #ff0000;">value</span><span style="color: #0000ff;">="2"</span><span style="color: #0000ff;">&gt;</span>普通<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">option</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">select</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>非常常用的一种格式，然后我们会做一个判断</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> jqgrid_post_data =<span style="color: #000000;"> {};//最终向jqgrid传输的json数据
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">if</span>($("#user_type"<span style="color: #000000;">).val()){ //如果有值的话，给json复制
+</span><span style="color: #008080;">3</span>      jqgrid_post_data["user_type"] = $("#user_type"<span style="color: #000000;">).val();
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">5</span> jQuery("#table_list_1").jqGrid("clearGridData"<span style="color: #000000;">);
+</span><span style="color: #008080;">6</span> $("#table_list_1").jqGrid('setGridParam'<span style="color: #000000;">, {  //重新请求参数
+</span><span style="color: #008080;">7</span> <span style="color: #000000;">        postData:jqgrid_post_data ,
+</span><span style="color: #008080;">8</span> <span style="color: #000000;">        page:this_page,
+</span><span style="color: #008080;">9</span> }).trigger("reloadGrid");</pre>
+</div>
+<p>但是这个我们发现了一个问题，就是在我们从vip和普通用户切换到全部数据之后，查询的还是上次的数据。</p>
+<p>　　比如说我查了一次VIP的用户数据，然后我切换到了全部用户，这个时候jqgrid还是查询的VIP的用户，但是我们打印 jqgrid_post_data 的时候，这个里面是没有user_type属性的。经过查找，发现了是jqgrid缓存了参数。结果办法分为两种，一种是比较简单的，当我们选择全部用户的时候，把user_type设置为空</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> jqgrid_post_data["user_type"] = '';</pre>
+</div>
+<p>　　第二种方法是看其他的博客了解到的，就是在reloadGrid之前，执行下面的函数，</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> postData = $('#jqGrid').jqGrid("getGridParam", "postData"<span style="color: #000000;">);
+</span><span style="color: #008080;">2</span>       $.each(postData, <span style="color: #0000ff;">function</span><span style="color: #000000;"> (k, v) {
+</span><span style="color: #008080;">3</span>             <span style="color: #0000ff;">delete</span><span style="color: #000000;"> postData[k];
+</span><span style="color: #008080;">4</span> });</pre>
+</div>
+<p>就是把原来的参数清理掉，然后在重新加载一遍数据。</p>
+<pre><code><span style="font-size: 15px;">&nbsp;<span style="font-family: 'Microsoft YaHei';">这两种办法，本人都是亲测过的，都是好用的。个人觉得，第二种比较通用，大家可以把第二种方法封装成函数，然后在jqgrid获取数据的时候，先调用这个函数。清理掉原来的数据，这样比较通用，比较简单。</span></span></pre>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

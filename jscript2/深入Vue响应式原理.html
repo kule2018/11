@@ -1,0 +1,292 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入Vue响应式原理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入Vue响应式原理</center></div><div class='banquan'>原文出处:本文由博客园博主杨君华提供。<br/>
+原文连接:https://www.cnblogs.com/yangjunhua/p/11374430.html</div><br>
+    <h1>深入Vue.js响应式原理</h1>
+<h2><a id="user-content-一创建一个vue应用" class="anchor" href="https://github.com/yjh30/fe-technology/blob/master/articles/vue-reactive-principle.md#%E4%B8%80%E5%88%9B%E5%BB%BA%E4%B8%80%E4%B8%AAvue%E5%BA%94%E7%94%A8"></a>一、创建一个Vue应用</h2>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+  data() {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      name: </span>'yjh'<span style="color: #000000;">,
+    };
+  },
+  router,
+  store,
+  render: h </span>=&gt;<span style="color: #000000;"> h(App),
+}).$mount(</span>'#app');</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<h2><a id="user-content-二实例化一个vue应用到底发生了什么" class="anchor" href="https://github.com/yjh30/fe-technology/blob/master/articles/vue-reactive-principle.md#%E4%BA%8C%E5%AE%9E%E4%BE%8B%E5%8C%96%E4%B8%80%E4%B8%AAvue%E5%BA%94%E7%94%A8%E5%88%B0%E5%BA%95%E5%8F%91%E7%94%9F%E4%BA%86%E4%BB%80%E4%B9%88"></a>二、实例化一个Vue应用到底发生了什么？</h2>
+<ol>
+<li>this._init()</li>
+<li>callHook(vm, 'beforeCreate')</li>
+<li>observe(vm._data)</li>
+</ol>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code>vm._data = vm.$options.data()</pre>
+</div>
+</div>
+<p><code>proxy(vm,&nbsp;</code>_data<code>, key) 代理到vm上访问</code></p>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> proxy(vm, _data, key)() {
+  Object.defineProperty(target, key, {
+    get() {
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> vm._data.key
+    },
+    set(val) {
+      vm._data.key </span>=<span style="color: #000000;"> val
+    }
+  })
+}</span></pre>
+</div>
+</div>
+<ol start="4">
+<li>callHook(vm, 'created')</li>
+<li>mountComponent（vm.$mount执行后执行mountComponent）</li>
+<li>callHook(vm, 'beforeMount')</li>
+<li>new Watcher(vm, updateComponent)</li>
+</ol>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code>const updateComponent = () =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建虚拟dom</span>
+  const vnode =<span style="color: #000000;"> vm._render()
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建虚拟dom的过程等同于如下代码行</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> const vnode = vm.$options.render.call(vm, vm.$createElement)</span>
+
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 更新$el</span>
+<span style="color: #000000;">  vm._update(vnode)
+}</span></pre>
+</div>
+</div>
+<ol start="8">
+<li>callHook(vm, 'mount')</li>
+</ol>
+<p>在以上发生的行为当中，第3步与第7步两者相辅相成；也是我们最需要关心的，弄清楚这两者，vue响应式原理就基本掌握了</p>
+<h2><a id="user-content-三如何追踪数据变化" class="anchor" href="https://github.com/yjh30/fe-technology/blob/master/articles/vue-reactive-principle.md#%E4%B8%89%E5%A6%82%E4%BD%95%E8%BF%BD%E8%B8%AA%E6%95%B0%E6%8D%AE%E5%8F%98%E5%8C%96"></a>三、如何追踪数据变化</h2>
+<p>我们都知道 数据发生变化视图也随之更新，那么首先我们得知道如何监听数据的变化</p>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Observer {
+  constructor(value) {
+    </span><span style="color: #0000ff;">this</span>.value =<span style="color: #000000;"> value
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.walk(value)
+  }
+
+  walk(obj) {
+    const keys </span>=<span style="color: #000000;"> Object.keys(obj)
+    </span><span style="color: #0000ff;">for</span> (let i = 0; i &lt; keys.length; i++<span style="color: #000000;">) {
+      defineReactive(obj, keys[i])
+    }
+  }
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> defineReactive(obj, key) {
+  Object.defineProperty(obj, key, {
+    get() {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数据被访问</span>
+      <span style="color: #0000ff;">return</span><span style="color: #000000;"> obj.key
+    },
+    set(val) {
+      </span><span style="color: #0000ff;">if</span> (val ===<span style="color: #000000;"> obj.key) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+      }
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数据更新了</span>
+      obj.key =<span style="color: #000000;"> val
+    }
+  })
+}</span></pre>
+</div>
+</div>
+<h2><a id="user-content-四定义一个发布订阅的dep类" class="anchor" href="https://github.com/yjh30/fe-technology/blob/master/articles/vue-reactive-principle.md#%E5%9B%9B%E5%AE%9A%E4%B9%89%E4%B8%80%E4%B8%AA%E5%8F%91%E5%B8%83%E8%AE%A2%E9%98%85%E7%9A%84dep%E7%B1%BB"></a>四、定义一个发布订阅的Dep类</h2>
+<p>当我们在创建虚拟dom的过程中，也就是执行vm.$createElement方法，可能会在多个地方使用到同一个数据字段(如：vm.name)，即多个订阅者订阅了name的更新，因此在Vue中定义了一个发布订阅的Dep类</p>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Dep {
+  constructor() {
+    </span><span style="color: #0000ff;">this</span>.subs =<span style="color: #000000;"> []
+  }
+
+  addSub(sub) {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.subs.push(sub)
+  }
+
+  depend() {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Dep.target) {
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.addSub(Dep.target)
+    }
+  }
+
+  notify() {
+    </span><span style="color: #0000ff;">this</span>.subs.forEach(sub =&gt;<span style="color: #000000;"> sub.update())
+  }
+
+  removeSub(sub) {
+    const i </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.subs.findIndex(sub)
+    </span><span style="color: #0000ff;">if</span> (i &gt; -1<span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">this</span>.subs.splice(i, 1<span style="color: #000000;">)
+    }
+  }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<h2><a id="user-content-五数据订阅者" class="anchor" href="https://github.com/yjh30/fe-technology/blob/master/articles/vue-reactive-principle.md#%E4%BA%94%E6%95%B0%E6%8D%AE%E8%AE%A2%E9%98%85%E8%80%85"></a>五、数据订阅者</h2>
+<p>订阅数据更新的到底是谁，我们先看看如下场景</p>
+<div class="highlight highlight-text-html-basic">
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">&lt;!--</span><span style="color: #008000;"> 场景1 </span><span style="color: #008000;">--&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>名字：{{ userInfo.name }}，全名：{{ fullName }}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+</div>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  data() {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      userInfo: {
+        name: </span>'junhua'<span style="color: #000000;">,
+      },
+    }
+  },
+  mounted() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 场景2</span>
+    <span style="color: #0000ff;">this</span>.$watch('name', (newVal, val) =&gt;<span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">    })
+  },
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 场景2</span>
+<span style="color: #000000;">  watch: {
+    name(newVal, val) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">    }
+  },
+  computed() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 场景3</span>
+<span style="color: #000000;">    fullName() {
+      </span><span style="color: #0000ff;">return</span> `yang${<span style="color: #0000ff;">this</span><span style="color: #000000;">.userInfo.name}`
+    }
+  }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<p>从上面示例代码看，订阅数据更新的场景有：</p>
+<ol>
+<li>模版插值 ：<code>new Watcher(vm, updateComponent)</code>数据发生变化，更新组件</li>
+<li>vm.$watch ： 监听单个数据做一些逻辑操作</li>
+<li>computed使用场景：计算属性</li>
+</ol>
+<p>因此数据订阅者包含一个参数expOrFn(<code>[Function|String]</code>),数据更新后需要执行的callback，如下：</p>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Watcher {
+  constructor(vm, expOrFn, cb) {
+    </span><span style="color: #0000ff;">this</span>.vm =<span style="color: #000000;"> vm
+      </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> expOrFn === 'function'<span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">this</span>.getter =<span style="color: #000000;"> expOrFn
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">this</span>.getter =<span style="color: #000000;"> parsePath(expOrFn)
+    }
+    </span><span style="color: #0000ff;">this</span>.cb = cb || () =&gt;<span style="color: #000000;"> {}
+    </span><span style="color: #0000ff;">this</span>.value = <span style="color: #0000ff;">this</span><span style="color: #000000;">.get()
+  }
+
+  get() {
+    Dep.target </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">
+    const value </span>= <span style="color: #0000ff;">this</span>.getter.call(<span style="color: #0000ff;">this</span>.vm, <span style="color: #0000ff;">this</span><span style="color: #000000;">.vm)
+    Dep.target </span>=<span style="color: #000000;"> undefined
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value
+  }
+
+  update() {
+    const val </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.value
+    const newVal </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.get()
+    </span><span style="color: #0000ff;">this</span>.cb.call(<span style="color: #0000ff;">this</span><span style="color: #000000;">.vm, newVal, val)
+  }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<h2><a id="user-content-六最终的观察者observer" class="anchor" href="https://github.com/yjh30/fe-technology/blob/master/articles/vue-reactive-principle.md#%E5%85%AD%E6%9C%80%E7%BB%88%E7%9A%84%E8%A7%82%E5%AF%9F%E8%80%85observer"></a>六、最终的观察者Observer</h2>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Observer {
+  constructor(value) {
+    </span><span style="color: #0000ff;">this</span>.value =<span style="color: #000000;"> value
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.walk(value)
+  }
+
+  walk(obj) {
+    const keys </span>=<span style="color: #000000;"> Object.keys(obj)
+    </span><span style="color: #0000ff;">for</span> (let i = 0; i &lt; keys.length; i++<span style="color: #000000;">) {
+      defineReactive(obj, keys[i],)
+    }
+  }
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> defineReactive(obj, key) {
+  const dep </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Dep()
+  Object.defineProperty(obj, key, {
+    get() {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 依赖收集，收集订阅者Watcher实例</span>
+<span style="color: #000000;">      dep.depend()
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数据被访问</span>
+      <span style="color: #0000ff;">return</span><span style="color: #000000;"> obj.key
+    },
+    set(val) {
+      </span><span style="color: #0000ff;">if</span> (val ===<span style="color: #000000;"> obj.key) {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+      }
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 数据更新了</span>
+      obj.key =<span style="color: #000000;"> val
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 通知订阅者Watcher实例更新</span>
+<span style="color: #000000;">      dep.notify()
+    }
+  })
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<h2><a id="user-content-七总结" class="anchor" href="https://github.com/yjh30/fe-technology/blob/master/articles/vue-reactive-principle.md#%E4%B8%83%E6%80%BB%E7%BB%93"></a>七、总结</h2>
+<p>我们再来回顾下实例化Vue应用的最重要的两点</p>
+<div class="highlight highlight-source-js">
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">observe(vm._data)
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> vm.$mount()</span>
+const componentUpdateWatcher = <span style="color: #0000ff;">new</span> Watcher(vm, updateComponent)</pre>
+</div>
+</div>
+<p>updateComponent在更新渲染组件时，会访问1或多个数据模版插值，当访问数据时，将通过getter拦截器把componentUpdateWatcher作为订阅者添加到多个依赖中，每当其中一个数据有更新，将执行setter函数，对应的依赖将会通知订阅者componentUpdateWatcher执行update，即执行updateComponent；至此Vue数据响应式目的已达到，再来看官网的这张图片就很好理解了</p>
+<p><a href="./images/深入Vue响应式原理0.png" rel="noopener noreferrer" target="_blank"><img src="./images/深入Vue响应式原理0.png" alt="" width="700" height="438" data-canonical-src="https://cn.vuejs.org/images/data.png" /></a></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><a href="https://github.com/yjh30/fe-technology/blob/master/articles/vue-reactive-principle.md">github地址</a>&nbsp; &nbsp;文章来源：<a href="http://www.cnblogs.com/yangjunhua/">博客园-杨君华</a>，转载请注明出处：<a href="http://www.cnblogs.com/yangjunhua/" target="_blank">杨君华</a></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,303 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[Vue 牛刀小试]：第十四章 - 编程式导航与实现组件与 Vue Router 之间的解耦' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[Vue 牛刀小试]：第十四章 - 编程式导航与实现组件与 Vue Router 之间的解耦</center></div><div class='banquan'>原文出处:本文由博客园博主墨墨墨墨小宇提供。<br/>
+原文连接:https://www.cnblogs.com/danvic712/p/11123480.html</div><br>
+    <h3 style="background-color: #169fe6; height: 38px; width: 100%; line-height: 2.2; color: #faffff;">&nbsp;一、前言</h3>
+<p>　　在上一章的学习中，通过举例说明，我们了解了 Vue Router 中命名路由、命名视图的使用方法，以及如何通过 query 查询参数传参，或者是采用 param 传参的方式实现路由间的参数传递。通过学习我们可以发现，在实现路由间的参数传递时，我们将 Vue Router 与我们的组件强耦合在一起，这无疑是不合适的，那么本章我们就来学习，如何实现组件和 Vue Router 之间的解耦。</p>
+<p>　　学习系列目录地址：<a href="https://www.cnblogs.com/danvic712/p/9549100.html" target="_black">https://www.cnblogs.com/danvic712/p/9549100.html</a></p>
+<p>　　仓储地址：<a href="https://github.com/Lanesra712/VueTrial/blob/master/chapter02-bronze/router/decoupling.html" target="_blank">https://github.com/Lanesra712/VueTrial/blob/master/chapter02-bronze/router/decoupling.html</a></p>
+<h3 style="background-color: #169fe6; height: 38px; width: 100%; line-height: 2.2; color: #faffff;">&nbsp;二、干货合集</h3>
+<h4><strong>　　1、编程式导航</strong></h4>
+<p>　　在使用 Vue Router 的时候，我们通常会通过 router-link 标签去生成跳转到指定路由的链接，但是在实际的前端开发中，我们更多的是通过 js 的方式进行跳转。就像我们很常见的一个交互需求，用户提交表单，提交成功后跳转到上一页面，提交失败则留在当前页。这时候如果我们还是通过 router-link 标签进行跳转就不合适了，我们需要通过 js 根据表单返回的状态进行动态的判断。</p>
+<p>　　在使用 Vue Router 时，我们已经将 Vue Router 的实例挂载到了 Vue 实例上，因此我们就可以借助 $router 的实例方法，通过编写 js 代码的方式实现路由间的跳转，而这种方式就是一种编程式的路由导航。</p>
+<p>　　在 Vue Router 中具有三种导航方法，分别为 push、replace 和 go。我们最常见的通过在页面上设置 router-link 标签进行路由地址间的跳转，就等同于执行了一次 push 方法。</p>
+<p>　　在这一小节的示例中，我将使用编程式导航实现通过点击不同的按钮实现路由间的跳转，最终实现的示意图如下所示。</p>
+<p><img src="./images/[Vue 牛刀小试]：第十四章 - 编程式导航与实现组件与 Vue Router 之间的解耦0.png" alt="" /></p>
+<p>　　在之前学习 Vue Router 的基础使用方法时，我们了解到，前端路由的实现方式，实际上就是对于浏览器的 history api 的操作。浏览器的 history 对象提供了对浏览器的会话历史的访问，它暴露了很多有用的方法和属性，允许我们在用户浏览历史中向前和向后跳转，同时从 HTML5 开始提供了对 history 栈中内容的操作。</p>
+<p>　　而 Vue Router 所提供的 push、replace 和 go 方法则完全可以对应到浏览器 history api 中所提供的 history.pushState、history.replaceState 和 history.go 方法。</p>
+<p>　　<strong>1.1、push</strong></p>
+<p>　　当我们需要跳转新页面时，我们就可以通过 push 方法将一条新的路由记录添加到浏览器的 history 栈中，通过 history 的自身特性，从而驱使浏览器进行页面的跳转。同时，因为在 history 会话历史中会一直保留着这个路由信息，所以当我们后退时还是可以退回到当前的页面。</p>
+<p>　　在 push 方法中，参数可以是一个字符串路径，或者是一个描述地址的对象，这里其实就等同于我们调用了 history.pushState 方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 字符串 =&gt; /first</span>
+<span style="color: #0000ff;">this</span>.$router.push('first'<span style="color: #000000;">)
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 对象 =&gt; /first</span>
+<span style="color: #0000ff;">this</span>.$router.push({ path: 'first'<span style="color: #000000;"> })
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 带查询参数 =&gt; /first?abc=123</span>
+<span style="color: #0000ff;">this</span>.$router.push({ path: 'first', query: { abc: '123' }})</pre>
+</div>
+<p><img src="./images/[Vue 牛刀小试]：第十四章 - 编程式导航与实现组件与 Vue Router 之间的解耦1.png" alt="" /></p>
+<p>　　这里需要注意，当我们传递的参数为一个对象并且当 path 与 params 共同使用时，对象中的 params 属性不会起任何的作用，我们需要采用命名路由的方式进行跳转，或者是直接使用带有参数的全路径。</p>
+<div class="cnblogs_code">
+<pre><code>const userId = '123'
+
+<span style="color: #008000;">//</span><span style="color: #008000;"> 使用命名路由 =&gt; /user/123</span>
+<span style="color: #0000ff;">this</span>.$router.push({ name: 'user'<span style="color: #000000;">, params: { userId }})
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 使用带有参数的全路径 =&gt; /user/123</span>
+<span style="color: #0000ff;">this</span>.$router.push({ path: `/user/<span style="color: #000000;">${userId}` })
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里的 params 不生效 =&gt; /user</span>
+<span style="color: #0000ff;">this</span>.$router.push({ path: '/user', params: { userId }}) </pre>
+</div>
+<p><strong>　　1.2、go</strong></p>
+<p>　　当我们使用 go 方法时，我们就可以在 history 记录中向前或者后退多少步，也就是说通过 go 方法你可以在已经存储的 history 路由历史中来回跳。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 在浏览器记录中前进一步，等同于 history.forward()</span>
+<span style="color: #0000ff;">this</span>.$router.go(1<span style="color: #000000;">)
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 后退一步记录，等同于 history.back()</span>
+<span style="color: #0000ff;">this</span>.$router.go(-1<span style="color: #000000;">)
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 前进 3 步记录</span>
+<span style="color: #0000ff;">this</span>.$router.go(3<span style="color: #000000;">)
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果 history 记录不够用，那就默默地失败呗</span>
+<span style="color: #0000ff;">this</span>.$router.go(-100<span style="color: #000000;">)
+</span><span style="color: #0000ff;">this</span>.$router.go(100)</pre>
+</div>
+<p><strong>　　1.3、replace</strong></p>
+<p>　　replace 方法同样可以达到实现路由跳转的目的，不过，从名字中你也可以看出，与使用 push 方法跳转不同是，当我们使用 replace 方法时，并不会往 history 栈中新增一条新的记录，而是会替换掉当前的记录，因此，你无法通过后退按钮再回到被替换前的页面。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">this</span><span style="color: #000000;">.$router.replace({
+    path: </span>'/special'<span style="color: #000000;">
+})</span></pre>
+</div>
+<p>　　通过编程式路由实现路由间切换的示例代码如下所示，你可以自己尝试一下，去熟悉如何通过 js 来实现路由地址间的切换。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="app"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="main"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="btn-toolbar"</span><span style="color: #ff0000;"> role</span><span style="color: #0000ff;">="toolbar"</span><span style="color: #ff0000;"> aria-label</span><span style="color: #0000ff;">="Toolbar with button groups"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="btn-group mr-2"</span><span style="color: #ff0000;"> role</span><span style="color: #0000ff;">="group"</span><span style="color: #ff0000;"> aria-label</span><span style="color: #0000ff;">="First group"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-secondary"</span><span style="color: #ff0000;"> @click</span><span style="color: #0000ff;">="goFirst"</span><span style="color: #0000ff;">&gt;</span>第一页<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-secondary"</span><span style="color: #ff0000;"> @click</span><span style="color: #0000ff;">="goSecond"</span><span style="color: #0000ff;">&gt;</span>第二页<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-secondary"</span><span style="color: #ff0000;"> @click</span><span style="color: #0000ff;">="goThird"</span><span style="color: #0000ff;">&gt;</span>第三页<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-secondary"</span><span style="color: #ff0000;"> @click</span><span style="color: #0000ff;">="goFourth"</span><span style="color: #0000ff;">&gt;</span>第四页<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="btn-group mr-2"</span><span style="color: #ff0000;"> role</span><span style="color: #0000ff;">="group"</span><span style="color: #ff0000;"> aria-label</span><span style="color: #0000ff;">="Second group"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-secondary"</span><span style="color: #ff0000;"> @click</span><span style="color: #0000ff;">="pre"</span><span style="color: #0000ff;">&gt;</span>后退<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-secondary"</span><span style="color: #ff0000;"> @click</span><span style="color: #0000ff;">="next"</span><span style="color: #0000ff;">&gt;</span>前进<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="btn-group mr-2"</span><span style="color: #ff0000;"> role</span><span style="color: #0000ff;">="group"</span><span style="color: #ff0000;"> aria-label</span><span style="color: #0000ff;">="Third group"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-secondary"</span><span style="color: #ff0000;"> @click</span><span style="color: #0000ff;">="replace"</span><span style="color: #0000ff;">&gt;</span>替换当前页为特殊页<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    const first </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;h3&gt;当前是第一页&lt;/h3&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const second </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;h3&gt;当前是第二页&lt;/h3&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const third </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;h3&gt;当前是第三页&lt;/h3&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const fourth </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;h3&gt;当前是第四页&lt;/h3&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const special </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;h3&gt;特殊页面&lt;/h3&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+
+    const router </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> VueRouter({
+        routes: [{
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/first</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            component: first
+        }, {
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/second</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            component: second
+        }, {
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/third</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            component: third
+        }, {
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/fourth</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            component: fourth
+        }, {
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/special</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            component: special
+        }]
+    })
+
+    const vm </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> Vue({
+        el: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#app</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        data: {},
+        methods: {
+            goFirst() {
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$router.push({
+                    path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/first</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+                })
+            },
+            goSecond() {
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$router.push({
+                    path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/second</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+                })
+            },
+            goThird() {
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$router.push({
+                    path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/third</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+                })
+            },
+            goFourth() {
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$router.push({
+                    path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/fourth</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+                })
+            },
+            next() {
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$router.go(</span><span style="background-color: #f5f5f5; color: #000000;">1</span><span style="background-color: #f5f5f5; color: #000000;">)
+            },
+            pre() {
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$router.go(</span><span style="background-color: #f5f5f5; color: #000000;">-</span><span style="background-color: #f5f5f5; color: #000000;">1</span><span style="background-color: #f5f5f5; color: #000000;">)
+            },
+            replace() {
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$router.replace({
+                    path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/special</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+                })
+            }
+        },
+        router: router
+    })
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><img src="./images/[Vue 牛刀小试]：第十四章 - 编程式导航与实现组件与 Vue Router 之间的解耦2.png" alt="" /></p>
+<h4><strong>　　2、解耦</strong></h4>
+<p>&nbsp;　　在文章开头我们有提到过，在使用路由传参的时候，我们将组件与 Vue Router 强绑定在了一块，这意味着在任何需要获取路由参数的地方，我们都需要加载 Vue Router。那么，如何解决这一强绑定呢？</p>
+<p>　　在之前学习组件相关的知识时，我们提到了可以通过组件的 props 选项来实现子组件接收父组件传递的值。而在 Vue Router 中，同样给我们提供了通过使用组件的 props 选项来进行解耦的功能。</p>
+<p>　　在下面的示例中，在定义路由模板时，我们通过指定需要传递的参数为 props 选项中的一个数据项，之后，我们通过在定义路由规则时，指定 props 属性为 true，即可实现对于组件以及 Vue Router 之间的解耦。</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script&gt;<span style="color: #000000;">
+    const second </span>=<span style="color: #000000;"> {
+        props: [</span>'id'<span style="color: #000000;">],
+        template: </span>'&lt;h3&gt;当前是第二页 --- {{id}} &lt;/h3&gt;'<span style="color: #000000;">
+    }
+
+    const router </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> VueRouter({
+        routes: [{
+            path: </span>'/second/:id'<span style="color: #000000;">,
+            component: second,
+            props: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+        }]
+    })
+
+    const vm </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+        el: </span>'#app'<span style="color: #000000;">,
+        data: {},
+        methods: {
+            goSecond() {
+                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.$router.push({
+                    path: </span>'/second'<span style="color: #000000;">
+                })
+            }
+        },
+        router: router
+    })
+</span>&lt;/script&gt;</pre>
+</div>
+<p><img src="./images/[Vue 牛刀小试]：第十四章 - 编程式导航与实现组件与 Vue Router 之间的解耦3.png" alt="" /></p>
+<p>　　可以看到，这里采用 param 传参的方式进行参数传递，而在组件中我们并没有加载 Vue Router 实例，也完成了对于路由参数的获取。需要注意的是，采用此方法，只能实现基于 param 方式进行传参的解耦。</p>
+<p>　　针对定义路由规则时，指定 props 属性为 true 这一种情况，在 Vue Router 中，我们还可以给路由规则的 props 属性定义成一个对象或是函数。不过，如果定义成对象或是函数，此时并不能实现对于组件以及 Vue Router 间的解耦。</p>
+<p>　　在将路由规则的 props 定义成对象后，此时不管路由参数中传递是任何值，最终获取到的都是对象中的值。同时，需要注意的是，props 中的属性值必须是静态的，也就是说，你不能采用类似于子组件同步获取父组件传递的值作为 props 中的属性值。</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script&gt;<span style="color: #000000;">
+    const third </span>=<span style="color: #000000;"> {
+        props: [</span>'name'<span style="color: #000000;">],
+        template: </span>'&lt;h3&gt;当前是第三页 --- {{name}} &lt;/h3&gt;'<span style="color: #000000;">
+    }
+
+    const router </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> VueRouter({
+        routes: [{
+            path: </span>'/third/:name'<span style="color: #000000;">,
+            component: third,
+            props: {
+                name: </span>'zhangsan'<span style="color: #000000;">
+            }
+        }]
+    })
+
+    const vm </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+        el: </span>'#app'<span style="color: #000000;">,
+        data: {},
+        methods: {
+            goThird() {
+                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.$router.push({
+                    path: </span>'/third'<span style="color: #000000;">
+                })
+            }
+        },
+        router: router
+    })
+</span>&lt;/script&gt;</pre>
+</div>
+<p><img src="./images/[Vue 牛刀小试]：第十四章 - 编程式导航与实现组件与 Vue Router 之间的解耦4.png" alt="" /></p>
+<p>　　在对象模式中，我们只能接收静态的 props 属性值，而当我们使用函数模式之后，就可以对静态值做数据的进一步加工或者是与路由传参的值进行结合。</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script&gt;<span style="color: #000000;">
+    const fourth </span>=<span style="color: #000000;"> {
+        props: [</span>'id', 'name'<span style="color: #000000;">],
+        template: </span>'&lt;h3&gt;当前是第四页 --- {{id}}  --- {{name}} &lt;/h3&gt;'<span style="color: #000000;">
+    }
+
+    const router </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> VueRouter({
+        routes: [{
+            path: </span>'/fourth'<span style="color: #000000;">,
+            component: fourth,
+            props: (route) </span>=&gt;<span style="color: #000000;"> ({
+                id: route.query.id,
+                name: </span>'zhangsan'<span style="color: #000000;">
+            })
+        }]
+    })
+
+    const vm </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+        el: </span>'#app'<span style="color: #000000;">,
+        data: {},
+        methods: {
+            goFourth() {
+                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.$router.push({
+                    path: </span>'/fourth'<span style="color: #000000;">
+                })
+            }
+        },
+        router: router
+    })
+</span>&lt;/script&gt;</pre>
+</div>
+<p><img src="./images/[Vue 牛刀小试]：第十四章 - 编程式导航与实现组件与 Vue Router 之间的解耦5.png" alt="" /></p>
+<h3 style="background-color: #169fe6; height: 38px; width: 100%; line-height: 2.2; color: #faffff;">&nbsp;三、总结</h3>
+<p>　　这一章主要学习了如何通过使用 Vue Router 的实例方法，从而实现编程式导航，以及如何实现组件与 Vue Router 之间的解耦。至此，Vue Router 的一些基础使用方法也就大概介绍完了，其它的知识点将在后面的项目中具体使用到的时候再进行介绍，欢迎持续关注哈~~~</p>
+<h3 style="background-color: #169fe6; height: 38px; width: 100%; line-height: 2.2; color: #faffff;">&nbsp;四、参考</h3>
+<p>　　1、<a href="https://www.cnblogs.com/accordion/p/5699372.html" target="_blank">History API与浏览器历史堆栈管理</a></p>
+<p>　　2、<a href="https://juejin.im/post/5b82bcfcf265da4345153343" target="_blank">可能比文档还详细--VueRouter完全指北</a></p>
+<p>　　3、<a href="https://juejin.im/post/5ab9a21ff265da238925bbf5" target="_blank">十全大补vue-router</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

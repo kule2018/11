@@ -1,0 +1,127 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue组件间的参数传递' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue组件间的参数传递</center></div><div class='banquan'>原文出处:本文由博客园博主lianjy357提供。<br/>
+原文连接:https://www.cnblogs.com/lianjy/p/10771649.html</div><br>
+    <h1 id="场景分析">场景分析</h1>
+<p>在前端开发中，我们常常会运用到“组件库”。在main入口中引入组件库，就可以很轻松的在页面中引入，并做一些基本的配置，如样式，颜色等。只需要在引入的组件中写入特定的属性，就能够定义。</p>
+<h1 id="举例说明">举例说明</h1>
+<p>例如：element-ui组件库中使用switch开关，有个属性active-color是设置“打开时”的背景色。change事件是触发状态的事件。</p>
+<pre><code><code>&lt;el-switch
+  v-model=&quot;value&quot;
+  :active-color=&quot;activecolor&quot;
+  @change=&quot;touchSwitch&quot;&gt;
+&lt;/el-switch&gt;
+
+&lt;script&gt;
+  export default {
+    data() {
+      return {
+        value: true,
+        activecolor: &#39;#13ce66&#39;
+      }
+    },
+    methods: {
+      touchSwitch () {
+        // 这里入方法
+      }
+    }
+  };
+&lt;/script&gt;</code></pre>
+<h1 id="分析代码">分析代码</h1>
+<p>我们分析上面的代码<br />
+首先我们可以看到<code>active-color</code>是将特定的数据传给组件，也就是父传子组件。<br />
+其次是<code>@change</code>虽然监听的是改变事件，但是语法糖依然是<code>$emit</code>，什么emit我们在以后的文章中会讲到，就是“抛出事件”。</p>
+<p>这就分为组件的最基本功能：</p>
+<ul>
+<li>数据进</li>
+<li>事件出</li>
+</ul>
+<p>那组件的使用我们知道了，通过active-color传入参数，通过@来接收事件。<br />
+所以，我们来探究一下组件的内部结构是什么样的？</p>
+<p>我写了一个小模型，是一个显示标题的小按钮，通过div包裹。</p>
+<pre><code><code>&lt;!-- type-box.vue --&gt;
+&lt;template&gt;
+  &lt;div class=&quot;box&quot; @click=&quot;ai_click(title)&quot;&gt;{{title}}&lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+export default {
+  name: &#39;type-box&#39;,
+  props: {
+    title: {
+      type: String,
+      default: () =&gt; &#39;&#39;
+    }
+  },
+  methods: {
+    ai_click (title) {
+      this.$emit(&#39;ai_click&#39;, title)
+    }
+  }
+}
+&lt;/script&gt;
+
+&lt;style scoped&gt;
+  .box{
+    width: 250px;
+    height: 100px;
+    margin: 10px;
+    border-radius: 10px;
+    background-color: #3a8ee6;
+    color: white;
+    font-size: 25px;
+    line-height: 100px;
+    text-align: center;
+    cursor: pointer;
+  }
+&lt;/style&gt;</code></pre>
+<p>使用方法：</p>
+<pre><code><code>&lt;!-- 父组件使用 --&gt;
+&lt;template&gt;
+  &lt;div&gt;
+    &lt;type-box title=&quot;演示盒子&quot; @ai_click=“touch”&gt;&lt;/type-box&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+import typeBox from &#39;./type-box&#39;
+export default {
+  components: {
+    typeBox
+  },
+  methods: {
+    touch (data) {
+      console.log(data)
+    }
+  }
+}
+&lt;/script&gt;</code></pre>
+<h1 id="分析组件">分析组件</h1>
+<h2 id="接收">接收</h2>
+<p>通过props接收父组件传递过来的数据，通过工厂函数获取一个默认值。</p>
+<h2 id="传递">传递</h2>
+<p>通过<code>this.$emit('ai_click', title)</code>告诉父组件，我要传递一个事件，名字叫“ai_click”,请通过@ai_click接收一下，并且我将title的值返回父组件。</p>
+<h1 id="总结">总结</h1>
+<p>所以今天分析vue组件的3大核心概念的其中两个——属性和事件。<br />
+这篇文章只分析到应用场景，也是最简单的组件。希望后续能够深入了解vue的组件概念：属性、事件和插槽。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

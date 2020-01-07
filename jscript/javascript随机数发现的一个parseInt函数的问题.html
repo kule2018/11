@@ -1,0 +1,164 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修javascript随机数发现的一个parseInt函数的问题' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>javascript随机数发现的一个parseInt函数的问题</center></div><div class='banquan'>原文出处:本文由博客园博主du-blog提供。<br/>
+原文连接:https://www.cnblogs.com/du-blog/p/11797139.html</div><br>
+    <p><span style="font-size: 18px;">　　前几天想伪造一些数据，用到了随机数，没有自己写，便在网上找了一下，找到了这篇文章：<a href="https://www.cnblogs.com/starof/p/4988516.html" target="_blank">https://www.cnblogs.com/starof/p/4988516.html</a>&nbsp;。之后测试了一下，发现了一个关于parseInt的问题。最后发现造成问题的原因是对该方法不够了解，下面详细说一下具体的过程。</span></p>
+<p><span style="font-size: 18px;">　　上文中连接中的随机数方法是这样的（并添加一些测试代码）：</span></p>
+<p><span style="font-size: 18px;">　　<img src="./images/javascript随机数发现的一个parseInt函数的问题0.png" alt="" /></span></p>
+<p><span style="font-size: 18px;">　　var temp=randomNum(0,0); 这样调用链接中的方法，按照方法中的逻辑应该永远返回0才对，为什么还包含其他的数字&hellip;&hellip;下面是一步一步的测试。</span></p>
+<p><span style="font-size: 18px;">　　一、我先修改了一下上面的方法，我想要的效果是可以传入0-2个参数，并且参数大小不分先后：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">    获取随机数测试1</span>
+<span style="color: #0000ff;">var</span> getRangeRandomNumberTest1 = <span style="color: #0000ff;">function</span><span style="color: #000000;">(num1,num2){ 
+    num1 </span>= num1 === undefined ? 0<span style="color: #000000;">: num1;
+    num2 </span>= num2 === undefined ? 0<span style="color: #000000;">: num2;
+    </span><span style="color: #0000ff;">var</span> minNum=Math.min(num1,num2),maxNum=<span style="color: #000000;">Math.max(num1,num2);
+    </span><span style="color: #0000ff;">return</span> parseInt(Math.random()*(maxNum-minNum+1)+minNum,10<span style="color: #000000;">);  
+}; 
+</span><span style="color: #0000ff;">var</span> tempRandomNumbers1=<span style="color: #000000;">[];
+</span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;=100000000;i++<span style="color: #000000;">){
+    </span><span style="color: #0000ff;">var</span> temp=<span style="color: #000000;">getRangeRandomNumberTest1();
+    </span><span style="color: #0000ff;">if</span>(tempRandomNumbers1.indexOf(temp)&lt;0<span style="color: #000000;">){
+        tempRandomNumbers1.push(temp);
+    }
+}
+console.log(</span>"随机数数组长度："+<span style="color: #000000;">tempRandomNumbers1.length);
+console.log(</span>"随机数数组内容："+JSON.stringify(tempRandomNumbers1));</pre>
+</div>
+<p><span style="font-size: 18px;">　　看一下测试结果：</span></p>
+<p><span style="font-size: 18px;">　　<img src="./images/javascript随机数发现的一个parseInt函数的问题1.png" alt="" /></span></p>
+<p><span style="font-size: 18px;">　　这次结果没有什么意外，和上面的一样。</span></p>
+<p><span style="font-size: 18px;">　　二、我想看一下，用这种方式调用，什么条件下返回结果不为0，下面是测试2：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">    获取随机数测试2</span>
+<span style="color: #0000ff;">var</span> getRangeRandomNumberTest2 = <span style="color: #0000ff;">function</span><span style="color: #000000;">(num1,num2){ 
+    num1 </span>= num1 === undefined ? 0<span style="color: #000000;">: num1;
+    num2 </span>= num2 === undefined ? 0<span style="color: #000000;">: num2;
+    </span><span style="color: #0000ff;">var</span> minNum=Math.min(num1,num2),maxNum=<span style="color: #000000;">Math.max(num1,num2);
+    </span><span style="color: #0000ff;">var</span> temp1=<span style="color: #000000;">Math.random();
+    </span><span style="color: #0000ff;">var</span> temp2=parseInt(temp1*(maxNum-minNum+1)+minNum,10<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">var</span> temp3="最大值："+maxNum+";最小值："+minNum+";随机数："+<span style="color: #000000;">temp1;
+    </span><span style="color: #0000ff;">if</span>(temp2!==0<span style="color: #000000;">){
+        console.log(temp3);
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> temp2;  
+}; 
+
+</span><span style="color: #0000ff;">var</span> tempRandomNumbers2=<span style="color: #000000;">[];
+</span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;=100000000;i++<span style="color: #000000;">){
+    </span><span style="color: #0000ff;">var</span> temp=<span style="color: #000000;">getRangeRandomNumberTest2();
+    </span><span style="color: #0000ff;">if</span>(tempRandomNumbers2.indexOf(temp)&lt;0<span style="color: #000000;">){
+        tempRandomNumbers2.push(temp);
+    }
+}
+console.log(</span>"随机数数组长度："+<span style="color: #000000;">tempRandomNumbers2.length);
+console.log(</span>"随机数数组内容："+JSON.stringify(tempRandomNumbers2));</pre>
+</div>
+<p><span style="font-size: 18px;">　　同样再看一下测试结果：</span></p>
+<p><span style="font-size: 18px;">　　<img src="./images/javascript随机数发现的一个parseInt函数的问题2.png" alt="" /></span></p>
+<div class="cnblogs_code">
+<pre><code>console.log(parseInt(6.467984137170646e-7));    <span style="color: #008000;">//</span><span style="color: #008000;">上面生成的一个随机数   //输出结果：6 </span></pre>
+</div>
+<p><span style="font-size: 18px;">　　这里发现了一些问题，返回结果不为0的时候，生成的随机数都特别小；之后查了一下parseInt函数的定义和语法</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">定义</span>
+<span style="color: #000000;">parseInt() 函数可解析一个字符串，并返回一个整数。
+</span><span style="color: #008000;">//</span><span style="color: #008000;">语法</span>
+parseInt(string, radix)</pre>
+</div>
+<p><span style="font-size: 18px;">　　parseInt函数的第一个参数是字符串，那执行parseInt(6.467984137170646e-7)的过程应该是先将6.467984137170646e-7转成一个字符串</span></p>
+<div class="cnblogs_code">
+<pre><code>6.467984137170646e-7.toString()                    <span style="color: #008000;">//</span><span style="color: #008000;">输出结果："6.467984137170646e-7"</span>
+0.0000006467984137170646.toString()                <span style="color: #008000;">//</span><span style="color: #008000;">输出结果："6.467984137170646e-7"</span>
+6.467984137170646e-7===0.0000006467984137170646    <span style="color: #008000;">//</span><span style="color: #008000;">输出结果：true</span></pre>
+</div>
+<p><span style="font-size: 18px;">　　这时结果就要浮出水面了。在数字中6.467984137170646e-7，"e"有特定的含义。但是"6.467984137170646e-7"就是一个字符串，其中"e"没有什么特殊含义，不能表示10的几次幂，和其他的字符没有什么区别。</span></p>
+<div class="cnblogs_code">
+<pre><code>parseInt("0.0000006467984137170646")            <span style="color: #008000;">//</span><span style="color: #008000;">输出结果：0    //这个结果是我们想要的结果</span></pre>
+</div>
+<p><span style="font-size: 18px;">　　看到结果，现在问题应该是0.0000006467984137170646转为字符串的问题了</span></p>
+<div class="cnblogs_code">
+<pre><code>0.00000654321.toString()                        <span style="color: #008000;">//</span><span style="color: #008000;">输出结果："0.00000654321"</span>
+0.000000654321.toString()                        <span style="color: #008000;">//</span><span style="color: #008000;">输出结果："6.54321e-7"</span>
+0.0000000654321.toString()                        <span style="color: #008000;">//</span><span style="color: #008000;">输出结果："6.54321e-8"</span></pre>
+</div>
+<p><span style="font-size: 18px;">　　<img src="./images/javascript随机数发现的一个parseInt函数的问题3.png" alt="" /></span></p>
+<p><span style="font-size: 18px;">　　问题就在这里，Math.random()生成的随机数特别小时（小数点后面有连续的&gt;=6个0时），这个小数会用科学计数法表示&hellip;&hellip;</span></p>
+<p><span style="font-size: 18px;">　　既然这样调用有问题（虽然是非常规调用），我想在换一种方式获取随机数。</span></p>
+<p><span style="font-size: 18px;">　　三、下一种获取随机数的方法：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">    获取随机数测试3</span>
+<span style="color: #0000ff;">var</span> getRangeRandomNumberTest3 = <span style="color: #0000ff;">function</span><span style="color: #000000;">(num1,num2){ 
+    num1 </span>= num1 === undefined ? 0<span style="color: #000000;">: num1;
+    num2 </span>= num2 === undefined ? 0<span style="color: #000000;">: num2;
+    </span><span style="color: #0000ff;">var</span> minNum=Math.min(num1,num2),maxNum=<span style="color: #000000;">Math.max(num1,num2);
+    </span><span style="color: #0000ff;">return</span> Math.floor(Math.random() * (maxNum - minNum)) +<span style="color: #000000;"> minNum;
+}; 
+</span><span style="color: #0000ff;">var</span> tempRandomNumbers3=<span style="color: #000000;">[];
+</span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;=10000;i++<span style="color: #000000;">){
+    </span><span style="color: #0000ff;">var</span> temp=getRangeRandomNumberTest3(9<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">if</span>(tempRandomNumbers3.indexOf(temp)&lt;0<span style="color: #000000;">){
+        tempRandomNumbers3.push(temp);
+    }
+}
+console.log(</span>"随机数数组长度："+<span style="color: #000000;">tempRandomNumbers3.length);
+console.log(</span>"随机数数组内容："+JSON.stringify(tempRandomNumbers3));</pre>
+</div>
+<p><span style="font-size: 18px;">　　看一下测试结果：</span></p>
+<p><span style="font-size: 18px;">　　<img src="./images/javascript随机数发现的一个parseInt函数的问题4.png" alt="" /></span></p>
+<p><span style="font-size: 18px;">　　这次测试，getRangeRandomNumberTest3(9)，是这样调用的，本意想生成0-9的随机数，这里缺少了9，应该是Math.floor的问题，那就在换一个&hellip;&hellip;</span></p>
+<p><span style="font-size: 18px;">　　四、再换一种获取随机数的方法：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">    获取随机数测试4</span>
+<span style="color: #0000ff;">var</span> getRangeRandomNumberTest4 = <span style="color: #0000ff;">function</span><span style="color: #000000;">(num1,num2){ 
+    num1 </span>= num1 === undefined ? 0<span style="color: #000000;">: num1;
+    num2 </span>= num2 === undefined ? 0<span style="color: #000000;">: num2;
+    </span><span style="color: #0000ff;">var</span> minNum=Math.min(num1,num2),maxNum=<span style="color: #000000;">Math.max(num1,num2);
+    </span><span style="color: #0000ff;">return</span> Math.round(Math.random() * (maxNum - minNum)) +<span style="color: #000000;"> minNum;
+}; 
+</span><span style="color: #0000ff;">var</span> tempRandomNumbers4=<span style="color: #000000;">[];
+</span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;=100000000;i++<span style="color: #000000;">){
+    </span><span style="color: #0000ff;">var</span> temp=getRangeRandomNumberTest4(9<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">if</span>(tempRandomNumbers4.indexOf(temp)&lt;0<span style="color: #000000;">){
+        tempRandomNumbers4.push(temp);
+    }
+}
+console.log(</span>"随机数数组长度："+<span style="color: #000000;">tempRandomNumbers4.length);
+console.log(</span>"随机数数组内容："+JSON.stringify(tempRandomNumbers4));</pre>
+</div>
+<p><span style="font-size: 18px;">　　再看一下测试结果：</span></p>
+<p><span style="font-size: 18px;">　　<img src="./images/javascript随机数发现的一个parseInt函数的问题5.png" alt="" /></span></p>
+<p><span style="font-size: 18px;">　　这次结果很是满意，达到了想要的结果&hellip;&hellip;作为最终版，再将方法完善一下：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> getRangeRandomNumber = <span style="color: #0000ff;">function</span><span style="color: #000000;">(num1,num2){ 
+    num1 </span>= Number.isInteger(num1) ? num1: 0<span style="color: #000000;">;
+    num2 </span>= Number.isInteger(num2) ? num2: 0<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> minNum=Math.min(num1,num2),maxNum=<span style="color: #000000;">Math.max(num1,num2);
+    </span><span style="color: #0000ff;">return</span> Math.round(Math.random() * (maxNum - minNum)) +<span style="color: #000000;"> minNum;
+}; </span></pre>
+</div>
+<p><span style="font-size: 18px;">　　下面看一下最终版的测试截图：</span></p>
+<p><span style="font-size: 18px;">　　<img src="./images/javascript随机数发现的一个parseInt函数的问题6.png" alt="" /></span></p>
+<p><span style="font-size: 18px;">　　至此，这篇笔记就结束了，谢谢大家！</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

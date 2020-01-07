@@ -1,0 +1,93 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Node.js之模块机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Node.js之模块机制</center></div><div class='banquan'>原文出处:本文由博客园博主逆月翎提供。<br/>
+原文连接:https://www.cnblogs.com/niyueling/p/11562990.html</div><br>
+    <blockquote>
+<p>文章原创于公众号：程序猿周先森。本平台不定时更新，喜欢我的文章，欢迎关注我的微信公众号。<br />
+<img src="./images/Node.js之模块机制0.png" alt="file" /></p>
+</blockquote>
+<p>其实在JavaScript的发展中，它主要是在浏览器前端中被应用广泛。因为在实际应用中， JavaScript的表现能力主要取决于宿主环境的API支持程度， 在最早期，只有对BOM, DOM的支持，随着HTML5的出现，在浏览器中出现了更多，更强大的API供JavaScript调用，但是这些都是发生在前端，后端JavaScript的规范却远远落后。Java有class文件，Phthon有import机制，PHP有include和require，但是JavaScript通过script标签引入代码的方式显得杂乱无章，为我们的后期维护增加了难度。对于JavaScript来说，还有四大主要缺点：</p>
+<blockquote>
+<ul>
+<li><pre><code><code>    1.没有模块系统。</code></pre></li>
+<li><pre><code><code>    2.标准库比较少。</code></pre></li>
+<li><pre><code><code>    3.没有标准，统一的接口。</code></pre></li>
+<li><pre><code><code>    4.缺乏包管理系统。</code></pre></li>
+</ul>
+</blockquote>
+<p>Node.js实现了一套非常易用的模块系统，而Node的包管理系统NPM对包规范的完好支持使得Node应用在开发过程事半功倍。这一篇文章，主要针对Node的模块以及包的实现进行说明。</p>
+<p><strong>Node的模块规范</strong></p>
+<p>其实模块的定义非常简单，主要分为模块引用，模块定义和模块标识三个部分。</p>
+<p><strong>1)模块引用</strong></p>
+<p>Node.js中存在require()方法，这个方法接受模块标识，以此引入一个模块的API到当前的上下文中。</p>
+<p><strong>2)模块定义</strong></p>
+<p>既然我们可以用require()来引入模块，那自然也可以引出模块。Node.js提供了exports对象用于导出当前模块的方法和变量，并且exports是唯一导出的出口。在每个模块中，存在一个module对象，表示模块本身，exports其实就是module的一个属性。在Node.js中，一个文件其实就是一个模块，将我们需要导出的方法和属性绑定在exports对象上作为属性就可以将该方法或属性导出。</p>
+<p>在另一个模块，可以通过require()引入模块，就可以使用导出的方法sum()。</p>
+<p><strong>3)模块标识</strong></p>
+<p>模块标识其实传递给require()方法的参数，模块标识必须是符合驼峰命名的字符串或者以./，../开头的路径，引入模块模块标识可以省略.js后缀。</p>
+<p>模块的好处是将特定的方法和变量限定在特定的作用域中，使得开发者完全不必去考虑变量污染的问题。</p>
+<p><strong>Node.js的模块实现</strong></p>
+<p>在Node.js中，有三类模块，其中一类是Node.js提供的核心模块，就比如上一篇说过的fs文件模块，database数据库模块，还有一类是开发者自行编写的文件模块，就比如刚才示例的test.js模块，第三类就是自定义模块，这是一种特殊的文件模块，一般是一个文件或包的形式，比如引入mysql所需的jar包。</p>
+<p>在Node.js中引入模块，需要经历三步：</p>
+<p><strong>(1)路径分析</strong></p>
+<p>对于文件模块来说，引入时模块标识指明了确切的文件位置，所以在路径分析中可以省略大量时间，加载速度仅次于核心模块。</p>
+<p>自定义模块则是会从项目根目录逐个比较路径，直到找到目标模块为止。所以，自定义模块的路径越深，路径分析的耗时越多，所以自定义模块的加载速度是最慢的。</p>
+<p><strong>(2)文件定位</strong></p>
+<p>刚才其实说过了，模块标识可以不包含后缀名，所以Node.js在文件定位时会依次补充.js，.json，.node后缀名，然后去进行文件定位，因为Node.js是单线程，所以文件定位时会发生堵塞，所以如果引入的模块后缀是.json或者.node，可以在引入的时候加上后缀，可以提高查找速度。</p>
+<p><strong>(3)编译执行</strong></p>
+<p>定义到具体文件后，Node.js会创建一个模块对象，然后将模块引入并且编译。每一个编译成功的模块其文件路径都会作为索引缓存在缓存对象上，以提高二次引入模块的性能。</p>
+<p>核心模块在Node.js源代码的编译过程中，直接被编译成二进制文件，然后被直接加载到内存中，所以核心模块引入时，文件定位和编译执行这两个步骤可以直接跳过，并且核心模块在路径分析中会被优先判断，所以核心模块的加载速度是最快的。</p>
+<p>文件模块则是在执行时动态加载，所以路径分析，文件定位以及编译执行这三个步骤都不可省略，所以加载速度比核心模块慢。</p>
+<p>Node.js对引入过的模块会进行缓存，以减少二次引入模块的性能开销二次加载模块一律采用缓存优先方式。核心模块的缓存检查优先于文件模块。</p>
+<p><strong>包管理工具NPM</strong></p>
+<p>刚才说到Node模块，但是虽然我们可以引用模块，但是模块与模块之间仍然是散列在各地的，相互之间并不能直接引用。而Node的包管理工具NPM则将模块相互联系起来。包其实是在模块的基础上进一步组织JavaScript代码。</p>
+<p>其实NPM会有一个包描述文件package.json,一般位于包的根目录， NPM的所有行为都与包描述文件息息相关。前面几篇有讲过NPM作为默认包管理工具，会作为Node环境被一起安装。</p>
+<p><strong>NPM常用功能</strong></p>
+<p>NPM帮助Node完成了第三方模块的发布，安装和依赖。因为有NPM的存在，Node和第三方模块之间形成了很好的一个生态系统，而且逐渐越来越强大。接下来大致讲解下几个NPM常见命令</p>
+<ul>
+<li><p>npm --version 查看当前NPM的版本</p></li>
+<li><p>npm 查看帮助说明</p></li>
+<li><p>npm help 查看具体命令说明</p></li>
+<li><p>执行命令会在浏览器中打开对应命令的说明文档</p></li>
+<li><p>npm install 安装依赖包，默认使用–-save参数，即默认添加到package.json中</p></li>
+<li><p>执行该命令，NPM会在当前目录创建node_modules目录，然后再node_modules创建对应依赖包的目录，然后将依赖包解压到该目录。</p></li>
+<li><p>npm init 在此目录初始化生成package.json文件</p></li>
+<li><p>npm uninstall <package> 卸载依赖包， 默认使用-–save参数，即从package.json中移除</p></li>
+<li><p>npm ls查看当前目录的依赖包</p></li>
+<li><p>npm root -g 查看全局安装地址</p></li>
+<li><p>npm list <package>查看依赖的当前版本</p></li>
+</ul>
+<p><strong>NPM存在的问题</strong></p>
+<p>在NPM平台，每个人都可以分享包，所以包质量没有办法保证，而且Node.js运行在服务端，所以需要考虑安全问题。所以一个优秀的模块需要符合几大模块：</p>
+<ol>
+<li><p>具备良好的测试</p></li>
+<li><p>具备良好的文档</p></li>
+<li><p>具备良好的测试覆盖率</p></li>
+<li><p>具备良好的代码规范</p></li>
+</ol>
+<p>今天内容就到这里了，其实这篇文章并没有涉及到代码的编写，而是从模块的角度去理解Node.js，Node.js通过模块规范，弥补了JavaSCript没有结构性的不足，而NPM通过对包的统一管理，使得项目开发中的依赖问题得到有效解决。</p>
+<p>下一篇将从异步编程的角度带大家继续了解Node.js，下一篇再见！<br />
+<strong>欢迎关注我个人公众号：程序猿周先森</strong><br />
+<img src="./images/Node.js之模块机制1.png" alt="file" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

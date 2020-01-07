@@ -1,0 +1,141 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修编辑器开发之 Range 范围对象的学习' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>编辑器开发之 Range 范围对象的学习</center></div><div class='banquan'>原文出处:本文由博客园博主张茂提供。<br/>
+原文连接:https://www.cnblogs.com/zhangmao/p/10739236.html</div><br>
+    <p><strong>写在前面：</strong></p>
+<p>网上有各种富文本编辑器，微博分享等操作，这些功能非常实用，他们就是使用 range，selection 对象来实现的，这两个对象偏冷门，不涉及编辑器一般用不到，range 对象是对选区的操作，选区是鼠标在页面上按下，然后拖动选择的内容，range 对象就是对这个选区的操作；selection 是当前活动区的操作对象，selection 对象下面可以有多个 range 对象；这篇文章写的是标准的 selection和 range，小于 IE 9 的旧版本不在讨论范围内；</p>
+<h4>先来看一下 W3C 文档上的 range 对象的基本属性：</h4>
+<p>collapsed：返回一个用于判断 Range 起始位置和终止位置是否相同的布尔值。</p>
+<p>commonAncestorContainer：返回包含 startContainer 和 endContainer 的最深的节点。</p>
+<p>endContainer：返回包含 Range 终点的节点。</p>
+<p>endOffset：返回 endContainer 中表示Range终点位置的数字。</p>
+<p>startContainer：返回包含 Range 开始的节点。</p>
+<p>startOffset：返回 startContainer 中表示 Range 起始位置的数字。</p>
+<p><strong>注意：range 的这些属性都是只读的，看下面这张图，就明白这些属性是怎么回事了：</strong></p>
+<p><img src="./images/编辑器开发之 Range 范围对象的学习0.png" alt="" /></p>
+<p>collapsed 为 flase，说明起始点和终点不在同一个位置，startOffset 是从0开始的，d 的索引是2，表示鼠标按下的位置，也就是 div 元素的字符开始算的，endOffset 是 4，是从 span 标签开始算的，i 字符在 span 标签立面的索引是4；</p>
+<p><strong><span style="color: #ff0000;">注意，他们总是从包裹<strong>字符的</strong>节点的开始字符计算的；</span></strong></p>
+<p><strong><span style="color: #000000;">再来看下 range 的方法和解释：</span></strong></p>
+<p>setStart(node, index)：设置 Range 的起点。<br />setEnd(node, index)：设置 Range 的终点。<br />setStartBefore(node)：以其它节点（ Node）为基准，设置 Range 的起点。<br />setStartAfter()：以其它节点为基准，设置 Range 的始点。<br />setEndBefore()：以其它节点为基准，设置 Range 的终点。<br />setEndAfter()：以其它节点为基准，设置 Range 的终点。<br />selectNode()：设定一个包含节点和节点内容的 Range。<br />selectNodeContents()：设定一个包含某个节点内容的 Range。<br />collapse()：向指定端点折叠该 Range。</p>
+<p>这个解释看了之后一脸蒙圈，我的感受是讲的不清楚，还是上图，加上我们的理解更直观：</p>
+<p><strong><em>setStart setEnd 方法：</em></strong></p>
+<p>JS 操作:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 创建新的 range 对象，设置 setStart setEnd</span>
+<span style="color: #008080;"> 2</span>   <span style="color: #0000ff;">function</span><span style="color: #000000;"> setStartEnd() {
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> box = document.getElementById('box'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (document.createRange) {
+</span><span style="color: #008080;"> 5</span>       <span style="color: #0000ff;">var</span> range =<span style="color: #000000;"> document.createRange();
+</span><span style="color: #008080;"> 6</span>       <span style="color: #0000ff;">var</span> start = box.querySelector('span'<span style="color: #000000;">).firstChild;
+</span><span style="color: #008080;"> 7</span>       <span style="color: #0000ff;">var</span> end = box.querySelector('p'<span style="color: #000000;">).firstChild;
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span>       range.setStart(start, 2); <span style="color: #008000;">//</span><span style="color: #008000;"> p 标签的第 2 个字符</span>
+<span style="color: #008080;">10</span>       range.setEnd(end, 3); <span style="color: #008000;">//</span><span style="color: #008000;"> span 标签的 第 3 个字符</span>
+<span style="color: #008080;">11</span>       console.log(range.cloneContents()); <span style="color: #008000;">//</span><span style="color: #008000;"> 打印 range 的内容</span>
+<span style="color: #008080;">12</span>       console.log(range); <span style="color: #008000;">//</span><span style="color: #008000;"> 打印 range</span>
+<span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span>   }</pre>
+</div>
+<p>选区的内容和打印 range 的结果：</p>
+<p><img src="./images/编辑器开发之 Range 范围对象的学习1.png" alt="" /></p>
+<p>这个例子可以看出来，startOffset 的位置在第一个 span 标签的 g 字符前面，endOffset 的位置在 p 标签的 p 字符前面；</p>
+<p>需要注意的是，如果是跨标签的选区，没有匹配到结束标签时，会折叠选区，把起点的位置设置为结束点的位置；</p>
+<p>看下这个例子，把开始节点设置为 p 标签，结束节点为 span 标签，从后面向前面选择：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> start = box.querySelector('p').firstChild; <span style="color: #008000;">//</span><span style="color: #008000;"> 开始节点是 p</span>
+<span style="color: #0000ff;">var</span> end = box.querySelector('span').firstChild; <span style="color: #008000;">//</span><span style="color: #008000;"> 结束节点是 span</span></pre>
+</div>
+<p>打印出来的结果：</p>
+<p><img src="./images/编辑器开发之 Range 范围对象的学习2.png" alt="" /></p>
+<p>仔细检查会发现&nbsp;<span class="name">collapsed:&nbsp;<span class="object-value-boolean value">true，并且&nbsp;</span></span>startContainer 和 endContainer 是同一个元素，这说明这个 range 选区折叠了，所以操作的时候需要注意；</p>
+<p><strong><em>setStartBefore&nbsp;setEndBefore 方法：</em></strong></p>
+<p>JS 操作：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> box = document.getElementById('box'<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (document.createRange) {
+      </span><span style="color: #0000ff;">var</span> range =<span style="color: #000000;"> document.createRange();
+      </span><span style="color: #0000ff;">var</span> spans = box.querySelectorAll('span'<span style="color: #000000;">);
+      </span><span style="color: #0000ff;">var</span> refStart = spans[0<span style="color: #000000;">].firstChild;
+      </span><span style="color: #0000ff;">var</span> refEnd = spans[1<span style="color: #000000;">].firstChild;
+
+      range.setStartBefore(refStart); </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置 p 节点的开始位置为 range 的起点</span>
+      range.setEndBefore(refEnd); <span style="color: #008000;">//</span><span style="color: #008000;"> 设置 span 节点的开始位置为 range 的终点</span>
+<span style="color: #000000;">
+      console.log(range.cloneContents());</span>
+<span style="color: #000000;">      console.log(range);
+    }</span></pre>
+</div>
+<p><img src="./images/编辑器开发之 Range 范围对象的学习3.png" alt="" /></p>
+<p>这两个方法的作用是以参考节点的<span style="color: #ff0000;"><strong>开始位置</strong></span>作为参考，来设置 range 的起点和结束点；</p>
+<p><strong><em>setStartAfter，setEndAfter 方法：</em></strong></p>
+<p>JS：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> box = document.getElementById('box'<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (document.createRange) {
+      </span><span style="color: #0000ff;">var</span> range =<span style="color: #000000;"> document.createRange();
+      </span><span style="color: #0000ff;">var</span> spans = box.querySelectorAll('span'<span style="color: #000000;">);
+      </span><span style="color: #0000ff;">var</span> refStart = spans[0<span style="color: #000000;">].firstChild;
+      </span><span style="color: #0000ff;">var</span> refEnd = spans[1<span style="color: #000000;">].firstChild;
+
+      range.setStartAfter(refStart); </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置 p 节点的结束位置为 range 的起点</span>
+      range.setEndAfter(refEnd); <span style="color: #008000;">//</span><span style="color: #008000;"> 设置 span 节点的结束位置为 range 的终点</span>
+<span style="color: #000000;">
+      console.log(range.cloneContents());</span>
+<span style="color: #000000;">      console.log(range);
+    }</span></pre>
+</div>
+<p>这两个方法的作用是以参考节点的<span style="color: #ff0000;"><strong>结束位置</strong></span>作为参考，来设置 range 的起点和结束点；</p>
+<p><em><strong>selectNode 方法：</strong></em></p>
+<p>JS：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> box = document.getElementById('box'<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (document.createRange) {
+      </span><span style="color: #0000ff;">var</span> range =<span style="color: #000000;"> document.createRange();
+      </span><span style="color: #0000ff;">var</span> span = box.querySelector('span'<span style="color: #000000;">).firstChild;
+
+      range.selectNode(span);
+
+      console.log(range.cloneContents());
+      console.log(range);
+    }</span></pre>
+</div>
+<p><img src="./images/编辑器开发之 Range 范围对象的学习4.png" alt="" /></p>
+<p>selectNode 方法的操作就是&nbsp;range 选择整个节点的，默认 startOffset 是 0，endOffset 是1；</p>
+<p>&nbsp;<em><strong>selectNodeContents 方法：</strong></em></p>
+<p>这个方法和&nbsp;selectNode 很类似，区别是会默认把结束点的位置移到最后；</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> box = document.getElementById('box'<span style="color: #000000;">);
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (document.createRange) {
+      </span><span style="color: #0000ff;">var</span> range =<span style="color: #000000;"> document.createRange();
+      </span><span style="color: #0000ff;">var</span> span = box.querySelector('span'<span style="color: #000000;">).firstChild;
+
+      range.selectNodeContents(span);
+
+      console.log(range.cloneContents());
+      console.log(range);
+    }</span></pre>
+</div>
+<p><img src="./images/编辑器开发之 Range 范围对象的学习5.png" alt="" /></p>
+<p>collapse 方法是设置折叠选区的，开始位置和结束位置相同，这么解释就清楚多了，作用是多用来设置光标的；</p>
+<p>下一篇看一下 selection 对象的基本属性和用法；</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

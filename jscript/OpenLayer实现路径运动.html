@@ -1,0 +1,174 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修OpenLayer实现路径运动' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>OpenLayer实现路径运动</center></div><div class='banquan'>原文出处:本文由博客园博主小龙女先生提供。<br/>
+原文连接:https://www.cnblogs.com/cqhaibin/p/10786886.html</div><br>
+    <p>&nbsp;&nbsp;&nbsp;&nbsp; 近期由于业务的需求，让我这从未想过要碰Web Gis的业余前端开发者，走了Web Gis的开发道路。功能需求很简单，但却也是让自己难为了好几天。如，应该选择那个Gis框架，Gis框架的兼容性如何，直接Ie哪些版，能不能简单到只有一张图片就行解决问题，等等。。。。。。</p>
+<p>在如此多的技术盲点，以及不确定的因素，我开始了征程，现将一些心得做些记录。</p>
+<h2>一、需求分析</h2>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 客户需要的功能就是能在一张Gis图上实现小车根据路径进行移动，为什么一定要Gis呢(这是客户指定需求，无语一该)。并且客户还说底图要很容易更换，但他想要用Gis表现的却是室内的地理信息，我也没办法用baidu, 高德等现成的Gis接口。</p>
+<p>针对上述需求，我没有去了解过多的web gis框架。因为客户对Gis的概念就是能放大，缩小，可以做路径规划等。所以我就选择ol，利用他的静态图片(选择这个是为满足客户灵活更新底图的需求)做Gis底图的功能来解决此问题。</p>
+<h2>二、效果展示</h2>
+<p><img src="./images/OpenLayer实现路径运动0.png" alt="" /></p>
+<h2>三、伪代码实现</h2>
+<p>由于是技术验证代码， 有些杂乱，现只给出关键性代码。如有业务需要欢迎共同讨论。</p>
+<h3>3.1 实现路径的绘制</h3>
+<p>此步骤还是相对简单的，主要用到Ol的Draw对象，代码哪下：</p>
+<div class="cnblogs_code" style="padding: 5px; border: 1px solid #cccccc; border-image: none; background-color: #f5f5f5;">
+<pre><code><span style="color: #000000;">draw(type){
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.stopdraw();
+        </span><span style="color: #0000ff;">this</span>._draw = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Draw({
+            source: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.layer.getSource(),
+            type: type </span>== 'Icon' ? 'Point'<span style="color: #000000;"> : type
+        });
+        </span><span style="color: #0000ff;">this</span>._draw.on('drawend', (event)=&gt;<span style="color: #000000;">{
+            </span><span style="color: #0000ff;">if</span>(type == 'LineString'<span style="color: #000000;">){
+                </span><span style="color: #0000ff;">this</span>.traceLine =<span style="color: #000000;"> event.feature;
+            }
+            </span><span style="color: #0000ff;">if</span>(type != 'Icon') <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+            let f </span>=<span style="color: #000000;"> event.feature;
+            f.setStyle(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Style({
+                image: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Icon({
+                    src: </span>'/content/battery.gif'<span style="color: #000000;">
+                }),
+                text: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Text({
+                    text: </span>'new item'<span style="color: #000000;">,
+                    fill: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Fill({
+                        color: </span>"red"<span style="color: #000000;">
+                    })
+                })
+            }));
+            f.type </span>= 'battery'<span style="color: #000000;">;
+        });
+        </span><span style="color: #0000ff;">this</span>.map.addInteraction(<span style="color: #0000ff;">this</span><span style="color: #000000;">._draw);
+        </span><span style="color: #0000ff;">this</span>._snap = <span style="color: #0000ff;">new</span> Snap({source: <span style="color: #0000ff;">this</span><span style="color: #000000;">.layer.getSource()});
+        </span><span style="color: #0000ff;">this</span>.map.addInteraction(<span style="color: #0000ff;">this</span><span style="color: #000000;">._snap);
+    }</span></pre>
+</div>
+<p>关键代码在于drawend事件的监听，如果是LineString情况，就将此feature放在一个共公变量，方便路径运行时使用。</p>
+<p>&nbsp;</p>
+<h3>3.2 分解路径数据</h3>
+<p>&nbsp;&nbsp;&nbsp;&nbsp; 此部分就是获取到3.1步骤的路径路径，然后进行解析，因为3.1上的linestring是多个线段的集合，但运动其本质就是改变图标的坐标，使其快速且连续的变化就形成了移动效果。所以这里有一个方法进行路径细分，代码如下：</p>
+<div class="cnblogs_code" style="padding: 5px; border: 1px solid #cccccc; border-image: none; background-color: #f5f5f5;">
+<pre><code><span style="color: #000000;">cutTrace(){
+        let traceCroods </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.traceLine.getGeometry().getCoordinates(); 
+        let len </span>=<span style="color: #000000;"> traceCroods.length;
+        let destCroods </span>=<span style="color: #000000;"> [];
+        </span><span style="color: #0000ff;">for</span>(let i = 0; i &lt; len - 1; ++<span style="color: #000000;">i){
+            let bPoint </span>=<span style="color: #000000;"> traceCroods[i];
+            let ePoint </span>= traceCroods[i+1<span style="color: #000000;">];
+            let bevelling </span>= Math.sqrt(Math.pow(ePoint[0] - bPoint[0], 2<span style="color: #000000;">)
+            </span>+ Math.pow(ePoint[1] - bPoint[1], 2<span style="color: #000000;">) );
+            let cosA </span>= (ePoint[0] - bPoint[0]) /<span style="color: #000000;"> bevelling;
+            let sinA </span>= (ePoint[1] - bPoint[1]) /<span style="color: #000000;"> bevelling;
+            
+            let curStep </span>= 0<span style="color: #000000;">;
+            let step </span>= 5<span style="color: #000000;">;
+            destCroods.push(</span><span style="color: #0000ff;">new</span> Point([bPoint[0], bPoint[1<span style="color: #000000;">]]));
+            </span><span style="color: #0000ff;">do</span><span style="color: #000000;">{
+                curStep</span>++<span style="color: #000000;">;
+                let nextPoint;
+                </span><span style="color: #0000ff;">if</span>(curStep * step &gt;=<span style="color: #000000;"> bevelling){
+                    nextPoint </span>= <span style="color: #0000ff;">new</span> Point([ePoint[0], ePoint[1<span style="color: #000000;">]]);
+                }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+                    nextPoint </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Point([
+                        cosA </span>* curStep * step + bPoint[0<span style="color: #000000;">]
+                        ,
+                        sinA </span>* curStep * step + bPoint[1<span style="color: #000000;">]
+                    ]);
+                }
+                destCroods.push(nextPoint);
+            }</span><span style="color: #0000ff;">while</span>(curStep * step &lt;<span style="color: #000000;"> bevelling);
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> destCroods;
+    }</span></pre>
+</div>
+<p>其中用到了一些数学上的三角函数和计算方法。此方法最终选一个根据步长计算后的坐标集合。</p>
+<p>&nbsp;</p>
+<h3>3.3 利用postcompose实现运动效果</h3>
+<p>代码如下：</p>
+<div class="cnblogs_code" style="padding: 5px; border: 1px solid #cccccc; border-image: none; background-color: #f5f5f5;">
+<pre><code><span style="color: #000000;">tracerun(){
+        </span><span style="color: #0000ff;">if</span>(!<span style="color: #0000ff;">this</span>.traceLine) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.traceCroods = <span style="color: #0000ff;">this</span><span style="color: #000000;">.cutTrace();
+        </span><span style="color: #0000ff;">this</span>.now = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().getTime();
+        </span><span style="color: #0000ff;">this</span>.map.on('postcompose', <span style="color: #0000ff;">this</span>.moveFeature.bind(<span style="color: #0000ff;">this</span><span style="color: #000000;">));
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.map.render();
+    }
+    moveFeature(event){
+        let vCxt </span>=<span style="color: #000000;"> event.vectorContext;
+        let fState </span>=<span style="color: #000000;"> event.frameState;
+        let elapsedTime </span>= fState.time - <span style="color: #0000ff;">this</span><span style="color: #000000;">.now;
+        let index </span>= Math.round(300 * elapsedTime / 1000<span style="color: #000000;">);
+        let len </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.traceCroods.length;
+        </span><span style="color: #0000ff;">if</span>(index &gt;=<span style="color: #000000;"> len){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">stop</span>
+            <span style="color: #0000ff;">this</span>.map.un('postcompose', <span style="color: #0000ff;">this</span><span style="color: #000000;">.moveFeature);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        let dx, dy, rotation;
+        </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.traceCroods[index] &amp;&amp; <span style="color: #0000ff;">this</span>.traceCroods[index + 1<span style="color: #000000;">]){
+            let isRigth </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            let bCrood </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.traceCroods[index].getCoordinates();
+            let eCrood </span>= <span style="color: #0000ff;">this</span>.traceCroods[index + 1<span style="color: #000000;">].getCoordinates();
+            </span><span style="color: #0000ff;">if</span>(bCrood[0] &lt; eCrood[0<span style="color: #000000;">]){
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">左-&gt;右</span>
+                isRigth = <span style="color: #0000ff;">true</span><span style="color: #000000;">
+            }
+            dx </span>= bCrood[0] - eCrood[0<span style="color: #000000;">];
+            dy </span>= bCrood[1] - eCrood[1<span style="color: #000000;">];
+
+            rotation </span>=<span style="color: #000000;"> Math.atan2(dy,dx);
+            </span><span style="color: #0000ff;">if</span>(rotation &gt; (Math.PI / 2<span style="color: #000000;">)){
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">修正</span>
+                rotation =  Math.PI -<span style="color: #000000;"> rotation;
+            }</span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(rotation &lt; -1 * (Math.PI / 2<span style="color: #000000;">)){
+                rotation </span>= -1 * Math.PI -<span style="color: #000000;"> rotation;
+            }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+                rotation </span>= -<span style="color: #000000;">rotation;
+            }
+            console.log(dx </span>+ '  ' + dy + '  ' +<span style="color: #000000;"> rotation);
+            let curPoint </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.traceCroods[index];
+            </span><span style="color: #0000ff;">var</span> anchor = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Feature(curPoint);
+            let style </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Style({
+                image: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Icon({
+                    img: isRigth </span>? <span style="color: #0000ff;">this</span>.carRight : <span style="color: #0000ff;">this</span><span style="color: #000000;">.carImg,
+                    imgSize: [</span>32,32<span style="color: #000000;">],
+                    rotateWithView: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+                    rotation: rotation
+                }),
+                text: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Text({
+                    text: </span>'Car'<span style="color: #000000;">,
+                    fill: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Fill({
+                        color: </span>'red'<span style="color: #000000;">
+                    }),
+                    offsetY: </span>-20<span style="color: #000000;">
+                })
+            });  
+            vCxt.drawFeature(anchor, style);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">this.map.getView().setCenter(bCrood);</span>
+<span style="color: #000000;">        }
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.map.render();
+    }</span></pre>
+</div>
+<p>&nbsp;&nbsp;&nbsp; 此移动代码的是用ol的postcompose事件进行实现的，因为render方法执行完成后会触发postcompose事件，所以就代替了定时器的的实现方案。其中rotation根据两点坐标计算出移动图标的斜度、以及移动的方向等，更为影响的展示。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

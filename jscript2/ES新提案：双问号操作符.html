@@ -1,0 +1,172 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ES新提案：双问号操作符' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ES新提案：双问号操作符</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/javascript-nullish-coalescing.html</div><br>
+    <p><strong>摘要：</strong> 简单实用的新特性。</p>
+<ul>
+<li>原文：<a href="https://segmentfault.com/a/1190000020182715">ES新提案：双问号操作符</a></li>
+<li>译者：前端小智</li>
+</ul>
+<p>本文主要讲<strong>Gabriel Isenberg</strong>撰写的ES提案<a href="https://github.com/tc39/proposal-nullish-coalescing">“Nullish coalescing for JavaScript”</a>。 它提出<code>??</code> 替换<code>||</code>的运算符,并提供默认值。这里先把这相提案叫作<strong>双问号操作符</strong>，如果你有好的叫法，欢迎留言讨论。</p>
+<h3 id="概述">1. 概述</h3>
+<p>双问号 <code>??</code> 的操作符跟 <code>||</code> 类似，如果给定变量值为 <code>null</code> 或者 <code>undefined</code>，刚使用双问号后的默认值，否则使用该变量值。</p>
+<p>如下:</p>
+<pre><code><code>    &gt; undefined ?? &#39;default&#39;
+    &#39;default&#39;
+    &gt; null ?? &#39;default&#39;
+    &#39;default&#39;
+    &gt; false ?? &#39;default&#39;
+    false
+    &gt; &#39;&#39; ?? &#39;default&#39;
+    &#39;&#39;
+    &gt; 0 ?? &#39;default&#39;
+    0</code></pre>
+<h3 id="早期的-运算符号">2. 早期的 || 运算符号</h3>
+<p>直接来个例子来演示一下 <code>||</code> 运算，下面两个等式是等价的：</p>
+<pre><code><code>    a || b
+    a ? a : b</code></pre>
+<p>如果 <code>a</code> 是 truthy 值，则返回 <code>a</code>, 否则返回 <code>b</code>。</p>
+<p>这使得使用<code>||</code>指定一个默认值成为可能，如果实际值是假的，那么将使用这个默认值：</p>
+<pre><code><code>    const result = actualValue || defaultValue;
+    function getTitle(fileDesc) {
+      return fileDesc.title || &#39;(Untitled)&#39;;
+    }
+    const files = [
+      {path: &#39;index.html&#39;, title: &#39;Home&#39;},
+      {path: &#39;tmp.html&#39;},
+    ];
+    assert.deepEqual(
+      files.map(f =&gt; getTitle(f)),
+      [&#39;Home&#39;, &#39;(Untitled)&#39;]);</code></pre>
+<p>请注意，基本只有在实际值<code>undefined</code>或为<code>null</code>时才应使用默认值，这是有效的，因为<code>undefined</code>和<code>null</code>都是假(虚值)的：</p>
+<pre><code><code>    &gt; undefined || &#39;default&#39;
+    &#39;default&#39;
+    &gt; null || &#39;default&#39;
+    &#39;default&#39;</code></pre>
+<p>遗憾的是，如果实际值是其他的虚值，也会使用默认值：</p>
+<pre><code><code>    &gt; false || &#39;default&#39;
+    &#39;default&#39;
+    &gt; &#39;&#39; || &#39;default&#39;
+    &#39;default&#39;
+    &gt; 0 || &#39;default&#39;
+    &#39;default&#39;</code></pre>
+<p>因此，这个<code>getTitle()</code>并不总能正常工作：</p>
+<pre><code><code>    assert.equal(
+      getTitle({path: &#39;empty.html&#39;, title: &#39;&#39;}),
+      &#39;(Untitled)&#39;);</code></pre>
+<h3 id="使用双问号操作符来解决-运算的问题">3. 使用双问号操作符来解决 || 运算的问题</h3>
+<p><code>??</code> 主要是用来解决 <code>||</code> 操作符号的一些问题，以下两个表达式是等价的：</p>
+<pre><code><code>    a ?? b
+    a !== undefined &amp;&amp; a !== null ? a : b</code></pre>
+<p>默认值是这样提供的：</p>
+<pre><code><code>    const result = actualValue ?? defaultValue;</code></pre>
+<p>对于<code>undefined</code>和<code>null</code>， <code>??</code>操作符的工作原理与<code>||</code>操作符相同</p>
+<pre><code><code>    &gt; undefined ?? &#39;default&#39;
+    &#39;default&#39;
+    &gt; null ?? &#39;default&#39;
+    &#39;default&#39;</code></pre>
+<p>除了 <code>undefined</code> 和 <code>null</code>的其它虚值，<code>??</code> 不会返回默认值。</p>
+<pre><code><code>    &gt; false ?? &#39;default&#39;
+    false
+    &gt; &#39;&#39; ?? &#39;default&#39;
+    &#39;&#39;
+    &gt; 0 ?? &#39;default&#39;
+    0</code></pre>
+<p>使用 <code>??</code> 来重写 <code>getTitle()</code>:</p>
+<pre><code><code>    function getTitle(fileDesc) {
+      return fileDesc.title ?? &#39;(Untitled)&#39;;
+    }</code></pre>
+<p>现在使用<code>fileDesc</code>调用它，它的<code>.title</code>是空字符串，仍然可以按符合咱们的预期工作：</p>
+<pre><code><code>    assert.equal(
+      getTitle({path: &#39;empty.html&#39;, title: &#39;&#39;}),
+      &#39;&#39;);</code></pre>
+<h4 id="通过解构给定默认值">3.1 通过解构给定默认值</h4>
+<p>除了使用 <code>??</code> 给<code>getTitle</code>添加默认值，咱们也可以通过解构方式来给定默认值：</p>
+<pre><code><code>    function getTitle({title = &#39;(Untitled)&#39;}) {
+      return title;
+    }</code></pre>
+<h4 id="使用-操作符号的实际例子">3.2 使用 ?? 操作符号的实际例子</h4>
+<p>作为一个现实的例子，咱们使用<code>??</code>来简化下面的函数。</p>
+<pre><code><code>    function countMatches(regex, str) {
+      if (!regex.global) {
+        throw new Error(&#39;Regular expression must have flag /g: &#39; + regex);
+      }
+      const matchResult = str.match(regex); // null or Array
+      if (matchResult === null) {
+        return 0;
+      } else {
+        return matchResult.length;
+      }
+    }
+    
+    assert.equal(
+      countMatches(/a/g, &#39;ababa&#39;), 3);
+    assert.equal(
+      countMatches(/b/g, &#39;ababa&#39;), 2);
+    assert.equal(
+      countMatches(/x/g, &#39;ababa&#39;), 0);
+    
+    // Flag /g is missing
+    assert.throws(
+      () =&gt; countMatches(/a/, &#39;ababa&#39;), Error);</code></pre>
+<p>使用 <code>??</code> 操作符号后，简化如下：</p>
+<pre><code><code>    function countMatches(regex, str) {
+      if (!regex.global) {
+        throw new Error(&#39;Regular expression must have flag /g: &#39; + regex);
+      }
+      return (str.match(regex) ?? []).length;
+    }</code></pre>
+<h4 id="双问号操作符与可选链">3.3 双问号(??)操作符与可选链(?)</h4>
+<p>双问号(<code>??</code>)的提出是为了补充可选链(<code>?</code>)，来看看这两兄弟结合使用的场景（第A行）：</p>
+<pre><code><code>    const persons = [
+      {
+        surname: &#39;Zoe&#39;,
+        address: {
+          street: {
+            name: &#39;Sesame Street&#39;,
+            number: &#39;123&#39;,
+          },
+        },
+      },
+      {
+        surname: &#39;Mariner&#39;,
+      },
+      {
+        surname: &#39;Carmen&#39;,
+        address: {
+        },
+      },
+    ];
+    
+    const streetNames = persons.map(
+      p =&gt; p.address?.street?.name ?? &#39;(no name)&#39;); // (A)
+    assert.deepEqual(
+      streetNames, [&#39;Sesame Street&#39;, &#39;(no name)&#39;, &#39;(no name)&#39;]
+    );</code></pre>
+<h3 id="兼容性">4. 兼容性</h3>
+<p>可以通过<a href="http://kangax.github.io/compat-table/esnext/#test-nullish_coalescing_operator_%28??%29">ECMAScript Next compatibility table</a> 查看 <code>??</code> 支持情况。</p>
+<p><strong>代码部署后可能存在的BUG没法实时知道，事后为了解决这些BUG，花了大量的时间进行log 调试，这边顺便给大家推荐一个好用的BUG监控工具 <a href="https://www.fundebug.com/?utm_source=xiaozhi">Fundebug</a>。</strong></p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了20亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

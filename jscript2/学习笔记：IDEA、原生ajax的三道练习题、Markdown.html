@@ -1,0 +1,398 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修学习笔记：IDEA、原生ajax的三道练习题、Markdown' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>学习笔记：IDEA、原生ajax的三道练习题、Markdown</center></div><div class='banquan'>原文出处:本文由博客园博主lil-donky提供。<br/>
+原文连接:https://www.cnblogs.com/donkey-boy/p/10645950.html</div><br>
+    <h1 id="前言">前言</h1>
+<blockquote>
+<p>该从何说起呢？想写博客好久了，正好这个学期课很少(大三)，可以静下心来写点东西(虽然事情依旧很多)，总感觉记录和分享是一件很酷的事情。第一篇博客，第一次使用Markdown写博客，第一次使用IDEA，所以有什么错误的地方请指出。</p>
+</blockquote>
+<h2 id="一.原生ajax">一.原生ajax</h2>
+<p>关于AJAX = Asynchronous JavaScript and XML（异步的 JavaScript 和 XML）。AJAX 不是新的编程语言，而是一种使用现有标准的新方法。AJAX 是一种用于创建快速动态网页的技术。通过在后台与服务器进行少量数据交换，AJAX 可以使网页实现异步更新。这意味着可以在不重新加载整个网页的情况下，对网页的某部分进行更新。<br />
+详情请移步<a href="http://www.w3school.com.cn/ajax/ajax_intro.asp">w3c AJAX</a>。<br />
+在学习ajax的原理之后，有三个简单的例子：</p>
+<h3 id="实时验证用户名是否存在">1.实时验证用户名是否存在</h3>
+<p>实时验证用户名是否存在，多用于注册的时提醒用户更换用户名，即有效性验证。<br />
+如cnblog注册时当输入信息后，失去焦点实时判断信息是否可用。<br />
+<img src="./images/学习笔记：IDEA、原生ajax的三道练习题、Markdown0.png" alt="cnblog注册" /><br />
+首先模拟一个后台servlet</p>
+<pre><code><code>package test.servlet;
+
+import net.sf.json.JSONObject;
+import test.utils.DBUtil;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.*;
+
+@WebServlet(name = &quot;AjaxServlet&quot;,urlPatterns = &quot;/AjaxServlet&quot;)
+public class AjaxServlet extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+    }
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Connection con;
+        String exist = &quot;true&quot;;
+        try {
+            con = DBUtil.getInstance().getConnection();
+            String sql = &quot;select count(*) from stu where name = ?&quot;;
+            PreparedStatement pStatement = con.prepareStatement(sql);
+            pStatement.setString(1, request.getParameter(&quot;username&quot;));
+            ResultSet resultSet = pStatement.executeQuery();
+            while (resultSet.next()) {
+                if (resultSet.getInt(1)==0) {
+                    exist = &quot;false&quot;;
+                }
+            }
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put(&quot;exist&quot;, exist);
+            response.getWriter().write(jsonObject.toString());
+            System.out.println(jsonObject.toString());
+
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+<p>这段代码的逻辑简单：接受doget请求得到参数<code>username</code>，从数据库里查询用户名是否存在，最后将结果转化成json数据响应到前台。</p>
+<blockquote>
+<p>之前一直使用Eclipse，第一次使用IDEA，很不熟悉，其中新建servlet ，IDEA是这样的注解<code>@WebServlet(name = &quot;AjaxServlet&quot;)</code>,而Eclipse是<code>@WebServlet(&quot;/AjaxServlet&quot;)</code>,在IDEA中用默认的注解会有404问题,必须使用这样的注解<code>@WebServlet(name = &quot;AjaxServlet&quot;,urlPatterns = &quot;/AjaxServlet&quot;)</code>或者<code>@WebServlet(&quot;/AjaxServlet&quot;)</code>,或者配置web.xml文件。</p>
+</blockquote>
+<p>接下来就是前台页面了</p>
+<pre class="html"><code>&lt;body&gt;
+    USERNAME&lt;input type=&quot;text&quot; id=&quot;username&quot; name=&quot;username&quot;  onblur=&quot;exist(&#39;username&#39;)&quot;/&gt;&lt;span id=&quot;it&quot;&gt;&lt;/span&gt;&lt;br&gt;
+    PASSWORD&lt;input type=&quot;password&quot; id=&quot;pwd&quot; name=&quot;pwd&quot;&gt;&lt;br&gt;
+    &lt;input type=&quot;submit&quot; value=&quot;提交&quot; /&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+    var xhr = new XMLHttpRequest();
+    function ajax(url,id){
+        var input = document.getElementById(id);
+        var span = document.getElementById(&quot;it&quot;);
+        var value = input.value;
+        xhr.open(&quot;GET&quot;,url+&quot;?username=&quot;+value,true);
+        xhr.onreadystatechange = function(){
+            if (xhr.readyState == 4 &amp;&amp; xhr.status == 200){
+                var temp = xhr.responseText;
+                var data = eval(&quot;(&quot;+temp+&quot;)&quot;);
+                if (data.exist==&quot;true&quot;){
+                    span.innerText = &quot;该用户已存在！&quot;;
+                }else{
+                    span.innerText = &quot;命名正确！！&quot;;
+                }
+            }
+        };
+        xhr.send(null);
+    };
+    function exist(id){
+        var input = document.getElementById(id);
+        var value = input.value;
+        if(value){
+            ajax(&quot;AjaxServlet&quot;,id);
+        }else{
+            var span = document.getElementById(&quot;it&quot;);
+            span.innerText = &quot;输入为空，请输入内容！！&quot;;
+        }
+    }
+&lt;/script&gt;
+&lt;/body&gt;</code></pre>
+<p>写的比较初级，刚学javaScript没多久，原谅我的菜^_^，简单来说这段代码就是DOM找元素绑定到<code>onblur</code>(失去焦点事件)，当触发事件在判断是否有值，如果有值的话，ajax发送请求，发送成功，服务器响应，返回数据，接着利用<code>eval(&quot;(&quot;+temp+&quot;)&quot;)</code>处理成json字符串，进行解析并判断。<br />
+<img src="./images/学习笔记：IDEA、原生ajax的三道练习题、Markdown1.png" alt="预览图" /></p>
+<h3 id="省市区三级联动">2.省市区三级联动</h3>
+<p>省市区三级联动多用于填写地址，为防止用户输入信息有效，采取下拉框选项供用户选择。<br />
+例如淘宝网的地址填写。<br />
+<img src="./images/学习笔记：IDEA、原生ajax的三道练习题、Markdown2.png" alt="淘宝网收货地址" /><br />
+数据库设计<br />
+<img src="./images/学习笔记：IDEA、原生ajax的三道练习题、Markdown3.png" alt="数据库设计" /><br />
+这样设计的好处是便于维护，如果增加第四级，直接插入数据表明super_id就可以了，不用继续增加表，从而降低耦合性。<br />
+后台servlet代码</p>
+<pre><code><code>package test.servlet;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import test.pojo.Postion;
+import test.untils.DBUtil;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.List;
+
+@WebServlet(name = &quot;AjaxServlet&quot;,urlPatterns = &quot;/AjaxServlet&quot;)
+public class AjaxServlet extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+    }
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Connection con ;
+        String sql =&quot;select * from postion where super_id=?&quot;;
+        List&lt;Postion&gt; list = new ArrayList&lt;&gt;();
+        int super_id = Integer.parseInt(request.getParameter(&quot;super_id&quot;));
+        try {
+            con = DBUtil.getInstance().getConnection();
+            PreparedStatement pst = con.prepareStatement(sql);
+            pst.setInt(1,super_id);
+            ResultSet resultSet = pst.executeQuery();
+            while(resultSet.next()){
+                Postion postion = new Postion();
+                postion.setId(resultSet.getInt(1));
+                postion.setName(resultSet.getString(2));
+                postion.setSuper_id(resultSet.getInt(3));
+                list.add(postion);
+            }
+            JSONArray json = JSONArray.fromObject(list);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put(&quot;potions&quot;,json);
+            System.out.println(jsonObject.toString());
+            response.getWriter().write(jsonObject.toString());
+        } catch ( SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}</code></pre>
+<p>这段代码也写的比较简单，主要的逻辑是接受doget请求得到参数<code>super_id</code>，从数据库里查询super_id匹配的词条，放入<code>List</code>中最后将结果转化成json数据响应到前台。<br />
+下面是前台代码</p>
+<pre class="html"><code>&lt;body&gt;
+    省&lt;select id = &quot;province&quot; &gt;&lt;/select&gt;
+    市&lt;select id = &quot;city&quot;&gt;&lt;/select&gt;
+    区&lt;select id = &quot;region&quot;&gt;&lt;/select&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+    var xhr = new XMLHttpRequest();
+    var province = document.getElementById(&quot;province&quot;);
+    var city = document.getElementById(&quot;city&quot;);
+    function ajax(level,super_id) {
+        var type = document.getElementById(level);
+        xhr.open(&quot;GET&quot;,&quot;AjaxServlet?super_id=&quot;+super_id,true);
+        xhr.onreadystatechange = function (ev) {
+            if (xhr.readyState == 4 &amp;&amp; xhr.status ==200){
+                var temp = xhr.responseText;
+                var data = JSON.parse(temp);
+                var innerhtml = &quot;&quot;;
+                for (i in data.potions){
+                    innerhtml+=&quot;&lt;option value=&quot;;
+                    innerhtml+=data.potions[i].id;
+                    innerhtml+=&quot;&gt;&quot;;
+                    innerhtml+=data.potions[i].name;
+                    innerhtml+=&quot;&lt;/option&gt;&quot;;
+                }
+                type.innerHTML = innerhtml;
+            }
+        }
+        xhr.send(null);
+    }
+    (function () {
+        ajax(&quot;province&quot;,0);
+    }());
+    province.onchange = function () {
+        var index = province.selectedIndex;
+        ajax(&quot;city&quot;,province[index].value);
+    };
+    city.onchange = function () {
+        var index = city.selectedIndex;
+        ajax(&quot;region&quot;,city[index].value);
+    }
+&lt;/script&gt;
+&lt;/body&gt;</code></pre>
+<p>首先省级的<code>super_id=0</code>,当html加载的时候首先把省级的元素填充满，之后通过<code>onchange</code>事件绑定得到选中的<code>option</code>的value。之后发送请求，返回数据，转化解析json。<br />
+<img src="./images/学习笔记：IDEA、原生ajax的三道练习题、Markdown4.png" alt="预览图" /></p>
+<h3 id="无刷新添加">3.无刷新添加</h3>
+<p>无刷新添加是ajax应用的典型代表，原始添加数据，首先发送显示所有数据的请求，请求应答之后，返回数据，显示在页面上，而添加请求之后要重新加载页面重新发送显示所有页面的请求，这时候就要刷新了。而利用ajax的方法，很容易的解决这个问题。<br />
+下面贴出servlet代码</p>
+<pre><code><code>package test.servlet;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import test.pojo.Topic;
+import test.untils.DBUtil;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+
+@WebServlet(name = &quot;ShowAllServlet&quot;,urlPatterns = &quot;/ShowAllServlet&quot;)
+public class ShowAllServlet extends HttpServlet {
+
+
+    public ShowAllServlet() {
+        super();
+        // TODO Auto-generated constructor stub
+    }
+
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+
+        Connection con = DBUtil.getInstance().getConnection();
+        List&lt;Topic&gt; list = new ArrayList&lt;&gt;();
+        try {
+            PreparedStatement pst =con.prepareStatement(&quot;select * from topic&quot;);
+            ResultSet resultSet = pst.executeQuery();
+            while (resultSet.next()){
+                Topic topic = new Topic();
+                topic.setId(resultSet.getInt(1));
+                topic.setContent(resultSet.getString(2));
+                list.add(topic);
+            }
+            JSONArray jsonArray = JSONArray.fromObject(list);
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put(&quot;topics&quot;,jsonArray);
+            response.setContentType(&quot;application/html;charset=utf-8&quot;);
+            response.getWriter().write(jsonObject.toString());
+            System.out.println(jsonObject.toString());
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        // TODO Auto-generated method stub
+        doGet(request, response);
+    }
+
+}
+</code></pre>
+<p>这个是显示所有内容的servlet，这个很简单就不多说了。</p>
+<pre><code><code>package test.servlet;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+import test.pojo.Topic;
+import test.untils.DBUtil;
+
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+@WebServlet(name = &quot;AddAction&quot;,urlPatterns = &quot;/AddAction&quot;)
+public class AddAction extends HttpServlet {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        Connection con = DBUtil.getInstance().getConnection();
+        try {
+            PreparedStatement pst =con.prepareStatement(&quot;insert topic values(null,?)&quot;);
+            pst.setString(1,request.getParameter(&quot;content&quot;));
+            pst.execute();
+            JSONObject jsonObject = new JSONObject();
+            jsonObject.put(&quot;status&quot;,1);
+            response.setContentType(&quot;application/html;charset=utf-8&quot;);
+            response.getWriter().write(jsonObject.toString());
+        } catch (SQLException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    }
+}</code></pre>
+<p>AddActio从数据库中插入数据，如果插入成功，<code>status=1</code>,响应到前台进行判断。<br />
+下面是前台代码</p>
+<pre class="html"><code>&lt;body&gt;
+    &lt;div id = &quot;content&quot;&gt;
+
+    &lt;/div&gt;
+    请输入内容&lt;textarea id=&quot;input&quot;&gt;
+
+    &lt;/textarea&gt;
+    &lt;button id=&quot;bt&quot;&gt;添加&lt;/button&gt;
+&lt;script type=&quot;text/JavaScript&quot;&gt;
+    var xhr = new XMLHttpRequest();
+    var area = document.getElementById(&quot;input&quot;);
+    var bt = document.getElementById(&quot;bt&quot;);
+    bt.onclick = function () {
+        var text = document.getElementById(&quot;content&quot;);
+        xhr.open(&quot;POST&quot;,&quot;AddAction?content=&quot;+area.value,true);
+        var innerHtml = text.innerHTML;
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4 &amp;&amp; xhr.status == 200) {
+                var temp = xhr.responseText;
+                var result = eval(&quot;(&quot;+temp+&quot;)&quot;);
+                if (result.status==1){
+                    innerHtml+=area.value;
+                }
+                innerHtml+=&quot;&lt;hr&gt;&quot;;
+                text.innerHTML = innerHtml;
+            }
+        }
+        xhr.send(null);
+    };
+    function ajax() {
+        var text = document.getElementById(&quot;content&quot;);
+        xhr.open(&quot;GET&quot;,&quot;ShowAllServlet&quot;,true);
+        var innerHtml =&quot;&quot;;
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState == 4 &amp;&amp; xhr.status == 200) {
+                var temp = xhr.responseText;
+                var result = eval(&quot;(&quot;+temp+&quot;)&quot;);
+                for(i in result.topics){
+                    innerHtml+=result.topics[i].content;
+                    innerHtml+=&quot;&lt;hr/&gt;&quot;;
+                }
+                text.innerHTML = innerHtml;
+            }
+        }
+        xhr.send(null);
+    }
+    (function () {
+        ajax();
+    }());
+&lt;/script&gt;
+&lt;/body&gt;</code></pre>
+<p>首先请求显示所有内容，收到应答的数据，将数据放到块中，添加数据后单击按钮，触发onclick事件，发送请求，返回<code>status</code>值，判断是否添加成功，如果添加成功直接放到块中，从而避免刷新(重新发送显示所有内容的请求)。<br />
+<img src="./images/学习笔记：IDEA、原生ajax的三道练习题、Markdown5.png" alt="预览图" /></p>
+<h2 id="关于idea">关于IDEA</h2>
+<p>第一次用IDEA，从Eclipse到IDEA真的不熟悉，项目模块的概念不一样，导入jar包的方式让我费解，Artifacts的打包方式，一脸懵逼，这些都不是关键问题，关键的是我电脑打开IDEA需要1分多钟，真的快o(╥﹏╥)o了，打开eclipse间接性抽搐，哎，欲哭无泪，省了几顿饭钱，忍痛从8g内存换到12g内存，没什么多大用。好恨，当初骗我买学习本的那个家伙！！！！<br />
+推荐一个关于IDEA的学习教程，写的很棒，这是<a href="https://github.com/judasn/IntelliJ-IDEA-Tutorial/">地址</a></p>
+<h2 id="关于markdown">关于Markdown</h2>
+<p>之前准备用sublime Text3的插件写博客，sublime Text3的插件下载如果不能科学上网就很难受，网贼慢，我自己捣鼓半天发现有点问题，之后就改用vscode写markdown的文件，这篇博客就是利用vscode 的插件<code>Markdown Preview Enhanced</code>所完成的，怎么说呢？用<code>markdown</code>写文档很酷(<em>^▽^</em>)。<br />
+<img src="./images/学习笔记：IDEA、原生ajax的三道练习题、Markdown6.png" alt="vscode" /></p>
+<h2 id="最后">最后</h2>
+<p>一直都想写博客，以为就是写点文字贴点儿图片代码，第一次写，写到这里真的很费神，首先语言组织，然后大致的格式，最重要的是技术的理解，是，写是这么写，但为什么这么写，你对这个技术的理解是否到位，是否会把别人带到坑里，这些都要考虑，这篇博客就图个乐呵，真的写的很差劲，对技术的理解也可能没有到位，语言组织能力也比较差，不过这是一个过程，我会不断的成长，提成各项的能力。加油，努力。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

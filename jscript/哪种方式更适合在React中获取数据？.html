@@ -1,0 +1,189 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修哪种方式更适合在React中获取数据？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>哪种方式更适合在React中获取数据？</center></div><div class='banquan'>原文出处:本文由博客园博主小维FE提供。<br/>
+原文连接:https://www.cnblogs.com/tangshiwei/p/11819369.html</div><br>
+    <blockquote>
+<p>作者：Dmitri Pavlutin<br />
+译者：小维FE<br />
+原文：dmitripavlutin.com</p>
+</blockquote>
+<p><strong>国外文章，笔者采用意译的方式，以保证文章的可读性。</strong></p>
+<p>当执行像数据获取这样的I/O操作时，你必须发起获取请求，等待响应，将响应数据保存到组件的状态中，最后渲染。异步的数据获取会要求额外的工作来适应React的声明性，React也在逐步改进去最小化这种额外的工作。<strong>生命周期函数，hooks和suspense</strong>都是React中获取数据的方式，我将在下面的示例中分别讨论它们的优缺点。只有了解每种方式的具体细节才能帮助你更好地在代码中实现异步操作。</p>
+<h2 id="使用生命周期函数获取数据">1. 使用生命周期函数获取数据</h2>
+<p>下面这个应用必须要做两件事情：</p>
+<p>(1) 初始化获取该公司的20位员工；</p>
+<p>(2) 筛选出名称包含查询条件的员工。<br />
+<img src="./images/哪种方式更适合在React中获取数据？0.png" /><br />
+在实现这些需求之前，回顾一下类组件的2个生命周期方法:</p>
+<p>(1) <code>componentDidMount()</code>：在组件挂载后执行一次；</p>
+<p>(2) <code>componentDidUpdate(prevProps)</code>：当<code>props</code>和<code>state</code>发生变化的时候执行。<br />
+<code>&lt;EmployeesPage&gt;</code>使用这两个生命周期函数来实现了数据获取逻辑：</p>
+<pre><code><code>import EmployeesList from &quot;./EmployeesList&quot;;
+import { fetchEmployees } from &quot;./fake-fetch&quot;;
+
+class EmployeesPage extends Component {
+  constructor(props) {
+    super(props);
+    this.state = { employees: [], isFetching: true };
+  }
+
+  componentDidMount() {
+    this.fetch();
+  }
+
+  componentDidUpdate(prevProps) {
+    if (prevProps.query !== this.props.query) {
+      this.fetch();
+    }
+  }
+
+  async fetch() {
+    this.setState({ isFetching: true });
+    const employees = await fetchEmployees(this.props.query);
+    this.setState({ employees, isFetching: false });
+  }
+
+  render() {
+    const { isFetching, employees } = this.state;
+    if (isFetching) {
+      return &lt;div&gt;Fetching employees....&lt;/div&gt;;
+    }
+    return &lt;EmployeesList employees={employees} /&gt;;
+  }
+}</code></pre>
+<p>打开<a href="https://codesandbox.io/s/react-fetch-class-urndw">示例</a>来探索一下<code>&lt;EmployeesPage&gt;</code>是如何来获取数据的。<code>&lt;EmployeesPage&gt;</code>有一个异步的<code>fetch</code>方法用来获取数据，当获取完成的时候，使用获取的<code>employees</code>来更新组件的状态。<code>this.fetch()</code>在<code>componentDidMount()</code>生命周期函数中执行：当组件初始化渲染完成后开始获取员工数据。<br />
+当用户在这个输入框中输入查询条件后，<code>query</code>属性会发生变更，每次在它发生变化的时候，<code>this.fetch()</code>都将会在<code>componentDidUpdate</code>生命周期函数中执行，从而来实现员工筛选的功能。<strong>虽然生命周期方法相对容易掌握，但是基于类的方法存在样板代码和可重用性困难。</strong></p>
+<p><strong>优点：</strong><br />
+简便。比较容易理解：生命周期方法<code>componentDidMount</code>在组件第一次初始化渲染后发起获取数据的请求，当<code>props</code>发生变化的时候通过<code>componentDidUpdate</code>来重新获取数据。</p>
+<p><strong>缺点：</strong></p>
+<p>(1) 样板代码。基于类的组件的代码具有&quot;仪式感&quot;：继承<code>React.Component</code>，并且需要在<code>constructor</code>中调用<code>super(props)</code>等等；</p>
+<p>(2) this问题。使用this关键字很麻烦；</p>
+<p>(3) 代码重复。在<code>componentDidMount</code>和<code>componentDidUpdate</code>中的代码其实大部分都是重复的；</p>
+<p>(4) 难以重用。获取员工的逻辑如果是在其他的组件中就已经很难复用了。</p>
+<h2 id="使用hooks获取数据">2. 使用hooks获取数据</h2>
+<p>对于基于类的组件来说，hooks是一个更好的选择。作为一个普通函数来讲，hooks摒弃了具有&quot;仪式感&quot;的代码并且更容易复用。<br />
+我们首先来回顾一下<code>useEffect(callback[, deps])</code>钩子函数的使用。这个钩子函数在组件挂载后会执行<code>callback</code>，当依赖项<code>deps</code>发生变化后会继续执行后续的渲染。在下面的示例中<code>&lt;EmployeesPage&gt;</code>使用<code>useEffect()</code>来获取员工数据：</p>
+<pre><code><code>import React, { useState } from &#39;react&#39;;
+
+import EmployeesList from &quot;./EmployeesList&quot;;
+import { fetchEmployees } from &quot;./fake-fetch&quot;;
+
+function EmployeesPage({ query }) {
+  const [isFetching, setFetching] = useState(false);
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(function fetch() {
+    (async function() {
+      setFetching(true);
+      setEmployees(await fetchEmployees(query));
+      setFetching(false);
+    })();
+  }, [query]);
+  
+  if (isFetching) {
+    return &lt;div&gt;Fetching employees....&lt;/div&gt;;
+  }
+  return &lt;EmployeesList employees={employees} /&gt;;
+}</code></pre>
+<p>打开<a href="https://codesandbox.io/s/react-fetch-hook-vz2vl">示例</a>来看看<code>useEffect()</code>是如何来获取数据的。你可以看到使用了<code>useEffect()</code>的版本要比类组件的版本简化得多。在<code>EmployeesPage</code>函数式组件中<code>useEffect(fetch, [query])</code>在组件第一次渲染后执行<code>fetch</code>回调，并且只有在<code>query</code>属性发生变化后，组件才会在重渲染后再次执行<code>fetch</code>回调。但是我们还有提升的空间，hooks允许你将获取员工的逻辑从<code>&lt;EmployeesPage&gt;</code>中提取出来，我们来试试：</p>
+<pre><code><code>import React, { useState } from &#39;react&#39;;
+
+import EmployeesList from &quot;./EmployeesList&quot;;
+import { fetchEmployees } from &quot;./fake-fetch&quot;;
+
+function useEmployeesFetch(query) {
+  const [isFetching, setFetching] = useState(false);
+  const [employees, setEmployees] = useState([]);
+
+  useEffect(function fetch {
+    (async function() {
+      setFetching(true);
+      setEmployees(await fetchEmployees(query));
+      setFetching(false);
+    })();
+  }, [query]);
+
+  return [isFetching, employees];
+}
+
+function EmployeesPage({ query }) {
+  const [employees, isFetching] = useEmployeesFetch(query);
+  
+  if (isFetching) {
+    return &lt;div&gt;Fetching employees....&lt;/div&gt;;
+  }
+  return &lt;EmployeesList employees={employees} /&gt;;
+}</code></pre>
+<p>我们的数据获取的逻辑已经被提取到<code>useEmployeesFetch()</code>中了。组件<code>&lt;EmployeesPage&gt;</code>已经没有集成任何数据获取相关的逻辑，而是专注于他最直接的工作：UI渲染。更重要的是，你可以在任何需要获取员工数据的组件中复用<code>useEmployeesFetch()</code>。<br />
+<strong>优点</strong></p>
+<p>(1) 简单明了。hooks没有样板代码的约束因为它们只是普通的函数；</p>
+<p>(2) 复用性。hooks中所实现的数据获取逻辑是很容易被复用的。<br />
+<strong>缺点</strong></p>
+<p>(1) 入门障碍。hooks有点违反常规，你在使用之前必须要理解他们，hooks依赖<strong>闭包</strong>，所以你也有必要将它们弄清楚。</p>
+<p>(2) 命令式的。使用hooks，你仍旧需要使用命令式的方式来执行数据获取。</p>
+<h2 id="使用suspense获取数据">3. 使用suspense获取数据</h2>
+<p>suspense提供了声明性的方式来在React中异步获取数据。<br />
+<code>&lt;Suspense&gt;</code>包装一个执行异步操作的组件：</p>
+<pre><code><code>&lt;Suspense fallback={&lt;span&gt;Fetch in progress...&lt;/span&gt;}&gt;
+  &lt;FetchSomething /&gt;
+&lt;/Suspense&gt;</code></pre>
+<p>当正在获取数据的时候，suspense会渲染<code>fallback</code>属性中的内容。当数据获取完成后，suspense会使用获取到的数据来渲染<code>&lt;FetchSomething /&gt;</code>组件。我们来看看如何将suspense运用到员工应用中：</p>
+<pre><code><code>import React, { Suspense } from &quot;react&quot;;
+import EmployeesList from &quot;./EmployeesList&quot;;
+
+function EmployeesPage({ resource }) {
+  return (
+    &lt;Suspense fallback={&lt;h1&gt;Fetching employees....&lt;/h1&gt;}&gt;
+      &lt;EmployeesFetch resource={resource} /&gt;
+    &lt;/Suspense&gt;
+  );
+}
+
+function EmployeesFetch({ resource }) {
+  const employees = resource.employees.read();
+  return &lt;EmployeesList employees={employees} /&gt;;
+}</code></pre>
+<p>打开<a href="https://codesandbox.io/s/react-fetch-suspense-wltdd">示例</a>来检查suspense是如何工作的。<code>&lt;EmployeesPage&gt;</code>使用suspense来处理组件<code>&lt;EmployeesFetch&gt;</code>中的数据获取逻辑。<code>&lt;EmployeesFetch&gt;</code>中的<code>resource.employees</code>是一个特殊的<a href="https://github.com/gaearon/suspense-experimental-github-demo/blob/master/src/api.js#L33">wrapped promise</a>用来在后台和suspense通信，采用这种方式suspense可以知道在<code>&lt;EmployeesFetch&gt;</code>被渲染之前需要暂停多久，并且知道当资源就绪后，能继续渲染。</p>
+<blockquote>
+<p>最大的亮点：Suspense采用一种声明性和同步的方式来处理异步操作。</p>
+</blockquote>
+<p>这些组件本身并没有集成任何数据获取相关的细节，相反它们声明性地使用resource来渲染内容。没有生命周期函数，没有hooks，没有async/await，也没有在组件内部的回调：仅仅只是渲染资源。<br />
+<strong>优点</strong>：</p>
+<p>(1) 声明性的。suspense允许你在React中以声明性的方式执行异步操作；</p>
+<p>(2) 简单明了。声明性代码使用起来更加简单，组件本身并不关心数据获取的细节；</p>
+<p>(3) 与获取逻辑的松散耦合。因为使用suspense的组件本身是不知道如何获取数据的：使用REST又或是GraphQL。suspense设定了一个边界用来保护数据获取的细节泄露到组件内部；</p>
+<p>(4) 没有竞态条件。如果同时开启了多个异步获取的操作，suspense会使用最近一次的获取请求。<br />
+<strong>缺点</strong>：<br />
+需要适配器。suspense需要已经实现了其fetching接口的专业的fetching库或者适配器。</p>
+<h2 id="总结">4. 总结</h2>
+<p>生命周期函数曾经很长一段时间是数据获取的唯一手段。然而通过这种方式会带来很多问题比如大量的样板代码，重复和复用难度。而使用hooks来获取数据是一个更好的选择：我们减少了很多样板代码。suspense的好处是声明性获取数据，你的组件本身并不关心数据获取的细节，同时suspense是最接近React本身的声明性理念的。</p>
+<h3 id="你更喜欢哪种获取数据的方式呢"><strong>你更喜欢哪种获取数据的方式呢？</strong></h3>
+<p>原文: <a href="https://dmitripavlutin.com/react-fetch-lifecycle-methods-hooks-suspense/" class="uri">https://dmitripavlutin.com/react-fetch-lifecycle-methods-hooks-suspense/</a></p>
+<h2 id="交流">5. 交流</h2>
+<p>今天主要分享了React中几种数据获取的方式以及每种方式的优缺点对比，旨在让大家在异步操作中能够更得心应手，希望能和大家相互讨论技术，一起交流学习。</p>
+<p><strong>文章已同步更新至<a href="https://github.com/qq591468061/xwfe">Github博客</a>，若觉文章尚可，欢迎前往star！</strong></p>
+<p><strong>你的一个点赞，值得让我付出更多的努力！</strong></p>
+<p><strong>逆境中成长，只有不断地学习，才能成为更好的自己，与君共勉！</strong></p>
+<p><img src="./images/哪种方式更适合在React中获取数据？1.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

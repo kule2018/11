@@ -1,0 +1,293 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修angular cli http请求封装+拦截器配置+ 接口配置文件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>angular cli http请求封装+拦截器配置+ 接口配置文件</center></div><div class='banquan'>原文出处:本文由博客园博主不爱贞子爱爽子提供。<br/>
+原文连接:https://www.cnblogs.com/shuangzikun/p/taotao_angular_cli_intercept.html</div><br>
+    <p>内容：接口配置文件、http请求封装 、拦截器验证登录</p>
+<p><strong>1、接口配置文件</strong></p>
+<p><span style="color: #99ccff;">app.api.ts</span></p>
+<div class="cnblogs_code">
+<pre><code>import { Component, OnInit } <span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">@angular/core</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 接口配置文件
+ * baseurl
+ * urlList
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+export </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> apiList implements OnInit {
+  baseurl: any </span>= <span style="color: #800000;">''</span><span style="color: #000000;">;
+  urlList: any </span>=<span style="color: #000000;"> {};
+  constructor() { 
+    </span><span style="color: #0000ff;">this</span>.baseurl = <span style="color: #800000;">'</span><span style="color: #800000;">http://127.0.0.1</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">this</span>.urlList =<span style="color: #000000;">  {
+      </span><span style="color: #800000;">'</span><span style="color: #800000;">login</span><span style="color: #800000;">'</span><span style="color: #000000;">: {
+        path: </span><span style="color: #800000;">'</span><span style="color: #800000;">/login</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+        </span><span style="color: #0000ff;">params</span><span style="color: #000000;">: {
+          username: </span><span style="color: #800000;">''</span><span style="color: #000000;">,
+          password: </span><span style="color: #800000;">''</span><span style="color: #000000;">
+        }
+      },
+      </span><span style="color: #800000;">'</span><span style="color: #800000;">getUser</span><span style="color: #800000;">'</span><span style="color: #000000;">: {
+        path: </span><span style="color: #800000;">'</span><span style="color: #800000;">/getUser</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+        </span><span style="color: #0000ff;">params</span><span style="color: #000000;">: {
+          id: </span><span style="color: #800000;">''</span><span style="color: #000000;">
+        }
+      }
+    }
+  }
+  ngOnInit() {}
+}</span></pre>
+</div>
+<p>上面模拟定义了两个接口</p>
+<p><strong>2、http请求封装</strong></p>
+<p><span style="color: #99ccff;">app.service.ts</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>import { Component, Injectable } <span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">@angular/core</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import { HttpClient, HttpParams } </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">@angular/common/http</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import {apiList} </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">./app.api</span><span style="color: #800000;">'</span><span style="color: #000000;">;  // 引入api配置文件
+
+@Component({
+  providers:[apiList]
+})
+
+@Injectable()
+export </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> selfHttp {
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> restServer;
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> http;
+  status </span>=<span style="color: #000000;"> {
+    </span><span style="color: #800000;">'</span><span style="color: #800000;">0</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">请求超时，请检查网络是否断开或者链接是否正确</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">400</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">错误的请求。由于语法错误，该请求无法完成。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">401</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">未经授权。服务器拒绝响应。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">403</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">已禁止。服务器拒绝响应。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">404</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">未找到。无法找到请求的位置。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">405</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">方法不被允许。使用该位置不支持的请求方法进行了请求。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">406</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">不可接受。服务器只生成客户端不接受的响应。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">407</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">需要代理身份验证。客户端必须先使用代理对自身进行身份验证。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">408</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">请求超时。等待请求的服务器超时。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">409</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">冲突。由于请求中的冲突，无法完成该请求。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">410</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">过期。请求页不再可用。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">411</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">长度必需。未定义&ldquo;内容长度&rdquo;。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">412</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">前提条件不满足。请求中给定的前提条件由服务器评估为 false。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">413</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">请求实体太大。服务器不会接受请求，因为请求实体太大。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">414</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">请求 URI 太长。服务器不会接受该请求，因为 URL 太长。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">415</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">不支持的媒体类型。服务器不会接受该请求，因为媒体类型不受支持。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">416</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">HTTP 状态代码 {0}</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">500</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">内部服务器错误。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">501</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">未实现。服务器不识别该请求方法，或者服务器没有能力完成请求。</span><span style="color: #800000;">"</span><span style="color: #000000;">,
+    </span><span style="color: #800000;">"</span><span style="color: #800000;">503</span><span style="color: #800000;">"</span>: <span style="color: #800000;">"</span><span style="color: #800000;">服务不可用。服务器当前不可用(过载或故障)。</span><span style="color: #800000;">"</span><span style="color: #000000;">
+  };
+
+  constructor(Http: HttpClient, </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> api: apiList) {
+    console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.api.baseurl);
+    </span><span style="color: #0000ff;">this</span>.http =<span style="color: #000000;"> Http;
+    </span><span style="color: #0000ff;">this</span>.restServer = <span style="color: #0000ff;">this</span><span style="color: #000000;">.api.baseurl;
+  }
+
+  </span><span style="color: #0000ff;">public</span> <span style="color: #0000ff;">get</span>(url, <span style="color: #0000ff;">params</span>?: Object, cb?<span style="color: #000000;">: Function) {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.msg(url);
+    let httpParams </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpParams();
+    </span><span style="color: #0000ff;">const</span> vm = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">params</span><span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">const</span> key <span style="color: #0000ff;">in</span> <span style="color: #0000ff;">params</span><span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">params</span>[key] === <span style="color: #0000ff;">false</span> || <span style="color: #0000ff;">params</span><span style="color: #000000;">[key]) {
+          httpParams </span>= httpParams.<span style="color: #0000ff;">set</span>(key, <span style="color: #0000ff;">params</span><span style="color: #000000;">[key]);
+        }
+      }
+    }
+    vm.http.</span><span style="color: #0000ff;">get</span>(vm.restServer + url, { <span style="color: #0000ff;">params</span><span style="color: #000000;">: httpParams })
+      .subscribe(data </span>=&gt;<span style="color: #000000;"> {
+        cb(data);
+      },(err)</span>=&gt;<span style="color: #000000;">{
+        console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.status[err.status]);
+      });
+  }
+
+  </span><span style="color: #0000ff;">public</span> post(url, data?: Object, cb?: Function, options?<span style="color: #000000;">: Object) {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.msg(url);
+    </span><span style="color: #0000ff;">const</span> vm = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    vm.http.post(vm.restServer </span>+<span style="color: #000000;"> url, data, options)
+      .subscribe(res </span>=&gt;<span style="color: #000000;"> {
+        cb(res);
+      }, (err) </span>=&gt;<span style="color: #000000;"> {
+        console.log(err);
+        console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.status[err.status]);
+       }, () </span>=&gt;<span style="color: #000000;"> {
+         </span><span style="color: #008000;">//</span><span style="color: #008000;">...请求完成</span>
+<span style="color: #000000;">       }
+      );
+  }
+
+  </span><span style="color: #0000ff;">public</span> put(url, data?: Object, cb?: Function, options?<span style="color: #000000;">: Object) {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.msg(url);
+    </span><span style="color: #0000ff;">const</span> vm = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    vm.http.put(vm.restServer </span>+<span style="color: #000000;"> url, data, options)
+      .subscribe(res </span>=&gt;<span style="color: #000000;"> {
+        cb(res);
+      },(err)</span>=&gt;<span style="color: #000000;">{
+        console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.status[err.status]);
+      });
+  }
+
+  </span><span style="color: #0000ff;">public</span> delete(url, <span style="color: #0000ff;">params</span>?: Object, cb?<span style="color: #000000;">: Function) {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.msg(url);
+    let httpParams </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpParams();
+    </span><span style="color: #0000ff;">const</span> vm = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">params</span><span style="color: #000000;">) {
+      </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">const</span> key <span style="color: #0000ff;">in</span> <span style="color: #0000ff;">params</span><span style="color: #000000;">) {
+        </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">params</span><span style="color: #000000;">[key]) {
+          httpParams </span>= httpParams.<span style="color: #0000ff;">set</span>(key, <span style="color: #0000ff;">params</span><span style="color: #000000;">[key]);
+        }
+      }
+    }
+    vm.http.delete(vm.restServer </span>+ url, { <span style="color: #0000ff;">params</span><span style="color: #000000;">: httpParams })
+      .subscribe(data </span>=&gt;<span style="color: #000000;"> {
+        cb(data);
+      },(err)</span>=&gt;<span style="color: #000000;">{
+        console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.status[err.status]);
+      });
+  }
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;"> msg(url) {
+    console.log(</span><span style="color: #800000;">'</span><span style="color: #800000;">/*</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+    console.log(</span><span style="color: #800000;">'</span><span style="color: #800000;"> **开始请求</span><span style="color: #800000;">'</span><span style="color: #000000;">,url)
+    console.log(</span><span style="color: #800000;">'</span><span style="color: #800000;"> */</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+  }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>上面定义了几个请求的函数，已经提示信息的函数。</p>
+<p><span style="color: #99ccff;">app.module.ts</span>注入</p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>import {apiList} <span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">./common/app.api</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+.
+.
+..
+providers: [httpInterceptorProviders, apiList],</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="color: #99ccff;">example.ts</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>import { Component, OnInit } <span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">@angular/core</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import { HttpHeaders } </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">@angular/common/http</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import { selfHttp } </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">src/app/common/app.service</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import {apiList} </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">../common/app.api</span><span style="color: #800000;">'</span><span style="color: #000000;">;  // 引入
+@Component({
+  selector: </span><span style="color: #800000;">'</span><span style="color: #800000;">app-article</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+  templateUrl: </span><span style="color: #800000;">'</span><span style="color: #800000;">./article.component.html</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+  styleUrls: [</span><span style="color: #800000;">'</span><span style="color: #800000;">./article.component.css</span><span style="color: #800000;">'</span><span style="color: #000000;">],
+  providers:[selfHttp, apiList]
+})
+export </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> ArticleComponent implements OnInit {
+  httpOptions </span>=<span style="color: #000000;"> {
+    headers: </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> HttpHeaders({
+      </span><span style="color: #800000;">'</span><span style="color: #800000;">Content-Type</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">application/json</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+      </span><span style="color: #800000;">'</span><span style="color: #800000;">Authorization</span><span style="color: #800000;">'</span>: <span style="color: #800000;">'</span><span style="color: #800000;">my-auth-token</span><span style="color: #800000;">'</span><span style="color: #000000;">
+    })
+  };
+  data: any;
+  constructor(</span><span style="color: #0000ff;">public</span> http: selfHttp, <span style="color: #0000ff;">public</span><span style="color: #000000;"> api: apiList) {
+    console.log(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.api);
+  }
+
+  ngOnInit() {
+    </span><span style="color: #0000ff;">this</span>.http.post(<span style="color: #0000ff;">this</span>.api.urlList.login.path, {username: <span style="color: #800080;">1</span>, password:<span style="color: #800080;">22</span>, other:<span style="color: #800080;">1113</span>}, res =&gt;<span style="color: #000000;"> {
+      console.log(</span><span style="color: #800000;">'</span><span style="color: #800000;">结果</span><span style="color: #800000;">'</span><span style="color: #000000;">, res);
+    }, </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.httpOptions);
+
+  }
+}</span></pre>
+</div>
+<p>然后访问的话就会</p>
+<p><img src="./images/angular cli http请求封装+拦截器配置+ 接口配置文件0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong>2、拦截器</strong></p>
+<p><span style="color: #99ccff;">app.myintercept.ts</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 拦截器验证token
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+import { Injectable } </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">@angular/core</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import {HttpInterceptor, HttpHandler, HttpRequest, HttpEvent,} </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">@angular/common/http</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import { Router } </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">@angular/router</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import { Observable,  } </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">rxjs</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import {apiList} </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">./app.api</span><span style="color: #800000;">'</span><span style="color: #000000;">
+
+@Injectable()
+export </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> InterceptorService implements HttpInterceptor {
+    
+    constructor( </span><span style="color: #0000ff;">public</span> router: Router,  <span style="color: #0000ff;">public</span><span style="color: #000000;"> api: apiList) { 
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> localStorage.setItem('access_token', 'xxxxxxxxxxxxx')</span>
+<span style="color: #000000;">    };
+    intercept(req: HttpRequest</span>&lt;any&gt;, next: HttpHandler): Observable&lt;HttpEvent&lt;any&gt;&gt;<span style="color: #000000;"> {
+        let authReq: any;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实现第一次不拦截的方式：1. 指定接口不拦截  2. 判断本地localStorage</span>
+        let loginUrl = <span style="color: #0000ff;">this</span>.api.baseurl + <span style="color: #0000ff;">this</span>.api.urlList[<span style="color: #800000;">'</span><span style="color: #800000;">login</span><span style="color: #800000;">'</span>][<span style="color: #800000;">'</span><span style="color: #800000;">path</span><span style="color: #800000;">'</span><span style="color: #000000;">];
+        </span><span style="color: #0000ff;">if</span> (req.url !==<span style="color: #000000;"> loginUrl) {
+            </span><span style="color: #0000ff;">if</span> (localStorage.getItem(<span style="color: #800000;">'</span><span style="color: #800000;">access_token</span><span style="color: #800000;">'</span><span style="color: #000000;">)) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log(2);</span>
+                <span style="color: #0000ff;">const</span> token = localStorage.getItem(<span style="color: #800000;">'</span><span style="color: #800000;">access_token</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+                authReq </span>=<span style="color: #000000;"> req.clone({ setHeaders: { token } });
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> next.handle(authReq);
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 未登录  ==  access_token</span>
+                <span style="color: #0000ff;">this</span>.router.navigate([<span style="color: #800000;">'</span><span style="color: #800000;">/login</span><span style="color: #800000;">'</span><span style="color: #000000;">]);
+            }
+        }
+        authReq </span>=<span style="color: #000000;"> req.clone({ setHeaders: {} });
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> next.handle(authReq);
+    }
+    
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>上面请求会验证是否有token，没有就跳转到登录页面。</p>
+<p>定义拦截器收集文件</p>
+<p><img src="./images/angular cli http请求封装+拦截器配置+ 接口配置文件1.png" alt="" /></p>
+<p><span style="color: #99ccff;">http-intercepts/index.ts</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 拦截器 收集
+ * barrel
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+import { HTTP_INTERCEPTORS } </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">@angular/common/http</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+import { InterceptorService } </span><span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">../app.myIntercept</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+
+export </span><span style="color: #0000ff;">const</span> httpInterceptorProviders =<span style="color: #000000;"> [
+    { provide: HTTP_INTERCEPTORS, useClass: InterceptorService, multi: </span><span style="color: #0000ff;">true</span><span style="color: #000000;"> },
+];</span></pre>
+</div>
+<p><span style="color: #99ccff;">app.module.ts</span>注入</p>
+<div class="cnblogs_code">
+<pre><code>import {httpInterceptorProviders} <span style="color: #0000ff;">from</span> <span style="color: #800000;">'</span><span style="color: #800000;">src/app/common/http-interceptors/index</span><span style="color: #800000;">'</span><span style="color: #000000;">
+.
+.
+.
+.
+providers: [httpInterceptorProviders, apiList],<br /></span></pre>
+</div>
+<p>现在如果进入页面请求，没有带token的话就会自动跳转到登录页面。</p>
+<p>github:&nbsp;<a href="https://github.com/ft1107949255/BackSystem">https://github.com/ft1107949255/BackSystem</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

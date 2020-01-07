@@ -1,0 +1,161 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Node.js学习（第四章：初见express）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Node.js学习（第四章：初见express）</center></div><div class='banquan'>原文出处:本文由博客园博主pubdreamcc提供。<br/>
+原文连接:https://www.cnblogs.com/dreamcc/p/10898686.html</div><br>
+    <p><code>Express</code>框架是一款简洁而灵活的node.js web应用框架。前面我们自己手动创建服务器在<code>Express</code>中就是一个<code>API</code>的事情，这就使得我们更加注重业务的功能和开发效率上，不必纠结过多底层的事情。</p>
+<blockquote>
+<p>Express中文官网：<a href="http://www.expressjs.com.cn/">Express</a></p>
+</blockquote>
+<h2 id="快速入门">快速入门</h2>
+<ol>
+<li><p>安装：<code>npm install express --save</code></p></li>
+<li><p>项目中引入：</p></li>
+</ol>
+<pre><code><code>
+const express = require(&#39;express&#39;)
+
+// 得到server（服务器）实例
+
+const app = express()
+
+// 绑定服务器接受请求事件，并且添加处理回调函数
+
+app.get(&#39;/&#39;, (req, res) =&gt; res.send(&#39;Hello World!&#39;))
+
+// 绑定服务端口，启动服务器
+
+app.listen(3000, () =&gt; console.log(&#39;Example app listening on port 3000!&#39;))</code></pre>
+<ol>
+<li>运行项目:<br />
+<code>node app.js</code></li>
+</ol>
+<p><img src="./images/Node.js学习（第四章：初见express）0.png" /></p>
+<p>利用express框架可以减少我们的代码量，比起之前使用node核心模块<code>http</code>构建服务器代码排版更直观。express底层使用的就是<code>http</code>核心模块的API。如果要处理客户端不同请求路径，我们可以往下罗列多个<code>app.get()</code>方法，无需再使用<code>if...else...</code>来判断。express也不用我们设置响应头的Content-Type和中文编码格式，会底层自动识别添加，可以看下面代码：</p>
+<pre><code><code>const express = require(&#39;express&#39;)
+const app = express()
+app.get(&#39;/&#39;, (req, res) =&gt; {
+  res.send(&#39;您好，中国&#39;)
+})
+app.get(&#39;/login&#39;, (req, res) =&gt; {
+  res.send(&#39;&lt;h1&gt;登录&lt;/h1&gt;&#39;)
+})
+app.get(&#39;/register&#39;, (req, res) =&gt; {
+  res.send(&#39;&lt;h1&gt;注册&lt;/h1&gt;&#39;)
+})
+app.listen(&#39;3000&#39;, () =&gt; {
+  console.log(&#39;running...&#39;)
+})</code></pre>
+<p><img src="./images/Node.js学习（第四章：初见express）1.png" /></p>
+<h2 id="express结合art-template模板引擎">express结合art-template模板引擎</h2>
+<p>前面的学习我们已经知道如何在<code>Node.js</code>中使用<code>art-template</code>模板引擎，同样在<code>express</code>中也可以使用<code>art-template</code>。</p>
+<ol>
+<li>安装相应的第三方包</li>
+</ol>
+<pre class="shell"><code>npm install --save art-template
+npm install --save express-art-template</code></pre>
+<p>注意：<strong>这里的<code>express-art-template</code>依赖了<code>art-template</code>模块，所以必须连同<code>art-template</code>模板一起安装下来。</strong></p>
+<ol>
+<li>项目中引入<code>express</code>，配置<code>express-art-template</code>模板引擎</li>
+</ol>
+<pre><code><code>let express = require(&#39;express&#39;)
+// 得到服务器实例对象
+let app = express()
+
+// 配置express-art-template模板引擎，配置之后会在服务器请求事件的回调处理函数response对象中有一个render方法，用于渲染模板字符串返回渲染后的结果。
+
+app.engine(&#39;art&#39;, require(&#39;express-art-template&#39;))
+
+// 为服务器绑定get请求事件，添加相应处理回调函数
+
+app.get(&#39;/&#39;, (req, res) =&gt; {
+  res.render(&#39;login.art&#39;, {
+    title: &#39;这里是登陆页&#39;
+  })
+})
+// 绑定服务器监听端口号，启动服务器
+app.listen(3000, () =&gt; {
+  console.log(&#39;running...&#39;)
+})</code></pre>
+<p>这里的<code>app.engine('art', require('express-art-template'))</code>为必须项，是配置模板引擎的关键所在，项目中虽然没有引入art-template模块，但是由于依赖关系，所以也必须一同下载安装。<code>app.engine</code>的第一个参数为解析模板字符文件的后缀名，<code>art</code>表示模板文件必须以<code>.art</code>为扩展名，可以修改为常见的<code>.html</code>格式。<code>res.render()</code>第一个参数为要解析的模板字符串文件，文件的扩展名与前面的<code>app.engine()</code>第一个参数一致，模板文件会默认去当前同级目录的<code>views</code>文件夹下查找，所以无需写文件路径，也不能写文件路径，因此，我们经常把一些与页面视图相关的文件都放在<code>views</code>文件夹下，这也是一种好的编程习惯。第二个参数为模板配置对象。如果需要修改<code>res.render()</code>默认查找模版文件的位置，比如我希望它去别的文件夹下找，不是<code>views</code>文件夹，可以使用下面配置语句：</p>
+<pre><code><code>app.set(&#39;views&#39;, &#39;替换的文件路径&#39;) // 第一个参数必须为：views</code></pre>
+<ol>
+<li>启动服务后看到结果</li>
+</ol>
+<p><img src="./images/Node.js学习（第四章：初见express）2.png" /></p>
+<h2 id="express中的静态服务">express中的静态服务</h2>
+<h3 id="前言">前言</h3>
+<p>在web网站后端开发的过程中，我们往往需要把一些静态文件夹暴露出去，用户可以根据url地址去访问到其中的内容，这些静态文件往往也称之为公共资源，利用express框架可以方便地托管静态文件。</p>
+<blockquote>
+<p>本章节对应的API地址：<a href="http://www.expressjs.com.cn/starter/static-files.html">Express 托管静态文件</a></p>
+</blockquote>
+<ol>
+<li>在项目中新建一个公共文件夹(公共资源)：<code>public</code></li>
+</ol>
+<p><img src="./images/Node.js学习（第四章：初见express）3.png" /></p>
+<ol>
+<li>使用express的静态文件服务暴露公共资源</li>
+</ol>
+<ul>
+<li>方法一：（常用）</li>
+</ul>
+<p><code>app.use('/public/', express.static('./public'))</code></p>
+<p>第一个参数指定用户必须以<code>/public/</code>开头的url地址才能访问到静态文件夹下的具体对应文件资源。<code>express.static()</code>里面传一个相对路径，指定要暴露的文件。</p>
+<pre><code><code>let express = require(&#39;express&#39;)
+let app = express()
+app.use(&#39;/public/&#39;, express.static(&#39;./public&#39;))
+app.listen(3000, ()=&gt; {
+  console.log(&#39;running...&#39;)
+})</code></pre>
+<p><img src="./images/Node.js学习（第四章：初见express）4.png" /></p>
+<ul>
+<li>方法二：</li>
+</ul>
+<p><code>app.use(express.static('./public'))</code></p>
+<p>app.use()方法省略第一个参数，用户无需以<code>/public/</code>开头，可以直接以暴露文件夹下对应文件地址访问对应资源，看例子</p>
+<pre><code><code>let express = require(&#39;express&#39;)
+let app = express()
+app.use(express.static(&#39;./public&#39;))
+app.listen(3000, ()=&gt; {
+  console.log(&#39;running...&#39;)
+})</code></pre>
+<p><img src="./images/Node.js学习（第四章：初见express）5.png" /></p>
+<ul>
+<li>方法三：</li>
+</ul>
+<p><code>app.use('/static/', express.static('./public'))</code></p>
+<p>第一个参数为我们自己指定的任意文件名，用户访问公共资源，需要以我们指定的文件名开头的url地址，看例子</p>
+<pre><code><code>let express = require(&#39;express&#39;)
+let app = express()
+app.use(&#39;/static/&#39;, express.static(&#39;./public&#39;))
+app.listen(3000, ()=&gt; {
+  console.log(&#39;running...&#39;)
+})</code></pre>
+<p><img src="./images/Node.js学习（第四章：初见express）6.png" /></p>
+<h2 id="后语">后语</h2>
+<p>本篇博文出之于我的<code>GitHub</code>仓库node学习教程资料，如果需要demo源码的伙伴可以前往GitHub下载，欢迎小伙伴们给个star，你们的点赞是我持续更新的动力。</p>
+<p><strong>pubdreamcc原创之，欢迎转载！</strong></p>
+<blockquote>
+<p>仓库地址：<a href="https://github.com/pubdreamcc/Node.js">Node学习教程资料</a></p>
+</blockquote>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

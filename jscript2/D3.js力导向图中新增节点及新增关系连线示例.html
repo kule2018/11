@@ -1,0 +1,201 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修D3.js力导向图中新增节点及新增关系连线示例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>D3.js力导向图中新增节点及新增关系连线示例</center></div><div class='banquan'>原文出处:本文由博客园博主木余提供。<br/>
+原文连接:https://www.cnblogs.com/lmou/p/10889794.html</div><br>
+    <h3 id="大家在使用d3.js中的力导向图时基本都会遇到动态增加节点及连线的需求这里记录一下我的实现方式">大家在使用D3.js中的力导向图时，基本都会遇到动态增加节点及连线的需求，这里记录一下我的实现方式。</h3>
+<ul>
+<li>话不多说，先放代码：</li>
+</ul>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;title&gt;Title&lt;/title&gt;
+    &lt;script src=&quot;https://d3js.org/d3.v4.min.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;svg width=&quot;960&quot; height=&quot;500&quot;&gt;&lt;/svg&gt;
+&lt;/body&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+    var nodes = [
+        { name: &quot;姓名1&quot;},
+        { name: &quot;姓名2&quot;},
+        { name: &quot;姓名3&quot;},
+        { name: &quot;姓名4&quot;},
+        { name: &quot;姓名5&quot;},
+    ];
+ 
+    var links = [  { source : 0  , target: 2 } , { source : 1  , target: 2 } ,
+        { source : 3  , target: 2 } , { source : 3  , target: 4 } ,
+    ];
+ 
+    var width = 1024;
+    var height = 738;
+    var svg = d3.select(&quot;svg&quot;)
+        .attr(&quot;width&quot;,width)
+        .attr(&quot;height&quot;,height);
+    var circle_radius = 30;
+ 
+    // 通过布局来转换数据，然后进行绘制
+    var simulation = d3.forceSimulation(nodes)
+        .force(&quot;link&quot;, d3.forceLink(links).distance(200))
+        .force(&quot;charge&quot;,d3.forceManyBody().strength(-100))
+        .force(&quot;center&quot;,d3.forceCenter(width/2, height/2));
+ 
+    var color = d3.scaleOrdinal(d3.schemeCategory20);
+
+    // 绘制线
+    var svg_links = svg.selectAll(&quot;path&quot;)
+        .data(links)
+        .enter()
+        .append(&quot;path&quot;)
+        .style(&quot;stroke&quot;,&quot;#ccc&quot;)
+        .style(&quot;stroke-width&quot;,3);
+ 
+    //节点对象
+    var svg_nodes = svg.selectAll(&quot;circle&quot;)
+        .data(nodes)
+        .enter()
+        .append(&quot;circle&quot;)
+        .attr(&quot;r&quot;,circle_radius)
+        .attr(&quot;fill&quot;,&quot;yellow&quot;)
+        .call(d3.drag()
+            .on(&quot;start&quot;, dragstarted)
+            .on(&quot;drag&quot;, dragged)
+            .on(&quot;end&quot;, dragended));
+    function dragstarted(d) {
+        if (!d3.event.active)
+            simulation.alphaTarget(0.002).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+    function dragged(d) {
+        d.fx = d3.event.x;
+        d.fy = d3.event.y;
+    }
+    function dragended(d) {
+        if (!d3.event.active)
+            simulation.alphaTarget(0);
+    }
+    //节点描述
+    var svg_text = svg.selectAll(&quot;text&quot;)
+        .data(nodes)
+        .enter()
+        .append(&quot;text&quot;)
+        .style(&quot;fill&quot;,&quot;#000&quot;)
+        .attr(&quot;dominant-baseline&quot;,&quot;middle&quot;)
+        .attr(&quot;text-anchor&quot;, &quot;middle&quot;)//在圆圈中加上数据
+        .text(function(d){return d.name;});
+ 
+    //箭头
+    var marker=
+        svg.append(&quot;marker&quot;)
+            .attr(&quot;id&quot;, &quot;resolved&quot;)
+            .attr(&quot;markerUnits&quot;,&quot;userSpaceOnUse&quot;)
+            .attr(&quot;viewBox&quot;, &quot;0 -5 10 10&quot;)//坐标系的区域
+            .attr(&quot;refX&quot;,34)//箭头坐标
+            .attr(&quot;refY&quot;, -1)
+            .attr(&quot;markerWidth&quot;, 12)//标识的大小
+            .attr(&quot;markerHeight&quot;, 12)
+            .attr(&quot;orient&quot;, &quot;auto&quot;)//绘制方向，可设定为：auto（自动确认方向）和 角度值
+            .attr(&quot;stroke-width&quot;,2)//箭头宽度
+            .append(&quot;path&quot;)
+            .attr(&quot;d&quot;, &quot;M0,-5L10,0L0,5&quot;)//箭头的路径
+            .attr(&#39;fill&#39;,&#39;#000000&#39;);//箭头颜色
+ 
+    function draw(){
+        svg_nodes
+            .attr(&quot;cx&quot;,function(d){return d.x;})
+            .attr(&quot;cy&quot;,function(d){return d.y;})
+            .attr(&quot;role&quot;,function (d) {
+                return d.role;
+            });
+ 
+        svg_text
+            .attr(&quot;x&quot;, function(d){ return d.x; })
+            .attr(&quot;y&quot;, function(d){ return d.y; });
+ 
+        svg_links
+            .attr(&quot;d&quot;,function(d){
+                return &#39;M &#39;+d.source.x+&#39; &#39;+d.source.y+&#39; L &#39;+ d.target.x +&#39; &#39;+d.target.y
+            })
+            .attr(&quot;marker-end&quot;, &quot;url(#resolved)&quot;);
+    }
+    simulation.on(&quot;tick&quot;,draw);
+    svg.call(d3.zoom().scaleExtent([0.05, 8]).on(&#39;zoom&#39;, () =&gt; {
+        var transform = d3.event.transform;
+        svg_nodes.attr(&#39;transform&#39;, transform);
+        svg_links.attr(&quot;transform&quot;,transform);
+        svg_text.attr(&quot;transform&quot;,transform);
+    })).on(&#39;dblclick.zoom&#39;, null);
+ 
+    var e = { name: &quot;姓名6&quot;};
+    var f =  {source : 5  , target: 2};
+    d3.timeout(function(){
+        nodes.push(e);
+        links.push(f);
+        update()
+    }, 4000);
+    function update() {
+        svg_nodes = svg_nodes
+            .data(nodes, (d) =&gt; d.name)
+            .enter()
+            .append(&quot;circle&quot;)
+            .attr(&quot;r&quot;,circle_radius)
+            .attr(&quot;fill&quot;,&quot;yellow&quot;)
+            .merge(svg_nodes).call(d3.drag()
+            .on(&quot;start&quot;, dragstarted)
+            .on(&quot;drag&quot;, dragged)
+            .on(&quot;end&quot;, dragended));
+
+        svg_text = svg_text.data(nodes)
+            .enter()
+            .append(&quot;text&quot;)
+            .style(&quot;fill&quot;,&quot;#000&quot;)
+            .attr(&quot;dominant-baseline&quot;,&quot;middle&quot;)
+            .attr(&quot;text-anchor&quot;, &quot;middle&quot;)
+            .text(function(d){return d.name;})
+            .merge(svg_text);
+            
+        svg_links = svg_links.data(links, (d) =&gt; { return d.source.name + &quot;-&quot; + d.target.name; })
+            .enter()
+            .append(&quot;path&quot;)
+            .style(&quot;stroke&quot;,&quot;#ccc&quot;)
+            .style(&quot;stroke-width&quot;,3)
+            .merge(svg_links);
+     
+        simulation.nodes(nodes);
+        simulation.force(&quot;link&quot;).links(links);
+        simulation.alpha(1).restart();
+    }
+&lt;/script&gt;
+&lt;/html&gt;</code></pre>
+<ul>
+<li>再看效果图：</li>
+</ul>
+<p><img src="./images/D3.js力导向图中新增节点及新增关系连线示例0.png" alt="addNode-博客园" /></p>
+<ul>
+<li>总结：从代码上看实现这个功能逻辑还是挺简单的，但是从显示效果上看后增加的连线会覆盖在原先的节点上，显示效果不友好，下一篇会说明一下这个问题应该如何解决。</li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

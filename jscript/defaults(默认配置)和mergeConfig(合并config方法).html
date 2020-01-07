@@ -1,0 +1,212 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修defaults(默认配置)和mergeConfig(合并config方法)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>defaults(默认配置)和mergeConfig(合并config方法)</center></div><div class='banquan'>原文出处:本文由博客园博主zgddan提供。<br/>
+原文连接:https://www.cnblogs.com/zgddan/p/11767388.html</div><br>
+    <h1 id="axios学习笔记defaults默认配置和mergeconfig合并config方法">axios学习笔记defaults(默认配置)和mergeConfig(合并config方法)</h1>
+<p><a href="https://github.com/axios/axios">源码地址</a></p>
+<h2 id="找到入口文件">找到入口文件</h2>
+<blockquote>
+<p>axios/lib/axios.js</p>
+</blockquote>
+<pre><code><code>    ...
+    var mergeConfig  =  require(&#39;./core/mergeConfig&#39;);`
+    var defaults = require(&#39;./defaults&#39;)`
+    ...</code></pre>
+<h2 id="学习mergeconfig">学习mergeConfig</h2>
+<blockquote>
+<p>axios/lib/core/mergeConfig.js</p>
+</blockquote>
+<pre><code><code>    var utils = require(&#39;../utils&#39;)//引入公用方法
+    // 合并 config1 和config2,并将一些默认配置项放到config中
+    function mergeConfig(config1, config2) {
+        config2 = config2 || {};
+        var config = {}
+        //默认配置参数字段
+        //从config2中拿到config里的字段
+        var valueFromConfig2Keys = [&#39;url&#39;, &#39;method&#39;, &#39;params&#39;, &#39;data&#39;];
+        //合并config1和config2中的这些字段，config2优先
+        var mergeDeepPropertiesKeys = [&#39;headers&#39;, &#39;auth&#39;, &#39;proxy&#39;];
+        // 从config2中拿到default的字段
+        var defaultToConfig2Keys = [
+            &#39;baseURL&#39;, &#39;url&#39;, &#39;transformRequest&#39;, &#39;transformResponse&#39;, &#39;paramsSerializer&#39;,
+            &#39;timeout&#39;, &#39;withCredentials&#39;, &#39;adapter&#39;, &#39;responseType&#39;, &#39;xsrfCookieName&#39;,
+            &#39;xsrfHeaderName&#39;, &#39;onUploadProgress&#39;, &#39;onDownloadProgress&#39;,
+            &#39;maxContentLength&#39;, &#39;validateStatus&#39;, &#39;maxRedirects&#39;, &#39;httpAgent&#39;,
+            &#39;httpsAgent&#39;, &#39;cancelToken&#39;, &#39;socketPath&#39;
+        ];
+        //将config2中valueFromConfig2Key里存在的项复制config对象里
+        utils.forEach(valueFromConfig2Keys, function valueFromConfig2(prop){//prop为valueFromConfig2Keyd中的具体每项的值
+            if(typeof config2[prop] !== &#39;undefined&#39;){
+                config[prop] = config2[prop];
+            }
+        })
+        utils.forEach(mergeDeepPropertiesKeys, function mergeDeepProperties(prop){
+            if(utils.isObject(config2[prop])){//如果config2[prop]为对象，进行深度合并
+                config[prop] = utils.deepMerge(config1[prop], config2[prop]);//此处确保了config1[prop]的存在
+            } else if(typeof config2[prop] != &#39;undefiend&#39;) {//config2[prop]存在且不为对象，直接赋值
+                config[prop] = config2[prop];
+            } else if(utils.isObect(config1[prop])){//config2[prop]不存在但config1[prop]存在且为对象
+                config[prop] = utils.deepMerge(config1[prop]);
+            } eles {//config2[prop]不存在且config1[prop]不为对象
+                config[prop] = config1[prop];
+            }
+        })
+        // 从config2中拿到default的字段,如果没有去config1中拿字段
+        utils.forEach(defaultToConfig2Keys, function defaultToConfig2(prop){
+            if(typeof config2[prop] !== &#39;undefined&#39;){
+                config[prop] = config2[prop];
+            } else {
+                config[prop] = config1[prop]
+            }
+        })
+        //合并所有关键字
+        var axiosKeys = valueFromConfig2Keys.concat(mergeDeepPropeotiesKeys).cancat(defaultToConfig2Key2);
+        //找出存在config2中不同于默认配置项的项，并加到config上去
+        var otherKeys = Object.keys(config2).filter(function filterAxiosKeys(key){
+            return axiosKeys.indexOf(key) === -1
+        });
+        utils.forEach(otherKey2, function other(prop){
+            if(typeof config2[prop] !== &#39;undefined&#39; || typeof config1[prop] !== &#39;undefined&#39;){
+                config[prop] = config2[prop] || config1[prop];
+            } 
+        })
+        //返回拼接后的对象
+        return config;
+    }</code></pre>
+<h2 id="default默认配置">default默认配置</h2>
+<pre><code><code>&lt;!-- 默认配置依赖normalizeHeaderName --&gt;
+var utils = require(&#39;./utils&#39;);
+var normalizeHeaderName = require(&#39;./helpers/normalizeHeaderName&#39;);
+...</code></pre>
+<h3 id="normalizeheadername方法">normalizeHeaderName方法</h3>
+<p><em>先看normalizeHeaderName方法，默认配置中使用到此方法</em></p>
+<pre><code><code>var utils = require(&#39;../utils&#39;)
+module.export = function normalizeHeaderName(headers, normalizedName) {
+    //转化headers中的键值名，如果headers中的键值不等于normalizedName,且字母相同，将heders中的键值换成normalizedName
+    utils.forEach(heders, function processHeader(value, name){
+        if(name !== normalizedName &amp;&amp; name.toUpperCase() === normalizedName.toUpperCase()){
+            headers[normalizedName] = value;//添加新键值对
+            delete headers[name]; //删除原有键值对
+        }
+    })
+
+}</code></pre>
+<h3 id="配置默认的content-type">配置默认的Content-Type</h3>
+<p><em>请求头content-type,用来指定不同格式的请求信息</em><br />
+<em>mediaType,互联网媒体类型，在http协议消息头中，使用content-type表示具体请求中的媒体类型信息</em></p>
+<pre><code><code>&lt;!-- 
+常见的媒体格式
+text/html:html格式
+application/json: json格式
+application/x-www-form-urlencoded: (表单默认提交数据格式)&lt;form encType=&quot;&quot;&gt;中默认的encType,form表单中的数据被编码为key/value格式发送到服务器
+multipart/form-data: 需要在表单中进行文件上传时设置此格式 
+--&gt;
+var DEFAULT_CONTENT_TYPE = {//默认的Content-Type
+    &#39;Content-Type&#39;: &#39;application/x-www-form-urlencoded&#39;
+}</code></pre>
+<h3 id="setcontenttypeifunset方法">setContentTypeIfUnset方法</h3>
+<p><em>当没有配置Content-Type时设置headers中Content-Type的值</em></p>
+<pre><code><code>function setContentTypeIfUnset(headers, value){//value为需要设置的Content-Type的值
+    //当headers存在且heders[Content-Type]不存在
+    if(!utils.isUndefined(headers) &amp;&amp; utils.isUndefined(headers[&#39;Content-Type&#39;])){
+        headers[&#39;Content-Type&#39;] = value;
+    }
+}</code></pre>
+<h3 id="getdefaultadapter方法">getDefaultAdapter方法</h3>
+<p><em>获取默认的异步请求适配器，由于axios支持浏览器环境和node环境两套环境，两套环境需要不同的适配器</em></p>
+<pre><code><code>function getDefaultAdaptet(){
+    var adapter;
+    if(typeof XMLHttpRequest !== &#39;undifined&#39;){//当前环境支持XMLHttpRequest对象为浏览器环境
+        adapter = require(&#39;./adapter/xhr&#39;);
+    } else if(typeof process !== &#39;undefined&#39; &amp;&amp; Object.property.toString.call(process) === &#39;[object process]&#39;){//当前环境支持process对象为node环境
+        adapter = require(&#39;./adapter/http&#39;);
+    }
+}</code></pre>
+<h3 id="定义默认default对象">定义默认default对象</h3>
+<pre><code><code>var default = {
+    adapter: getDefaultAdapter(),//默认异步请求适配器，允许自定义处理请求，方便测试
+    //拦截请求数据默认配置，根据数据类型做一定处理,例如设置Content-type
+    transformRequest:[function transformRequest(data, headers){
+        normalizeHederName(headers, &#39;Accept&#39;);//大小写处理，防止用户写错
+        normalizeHederName(headers, &#39;Content-Type&#39;);
+        if(utils.isFormData(data) || utils.isArrayBuffer(data) || utils.isBuffer(data) || utils.isStream(data) || utils.isFile(data) || utils.isBlob(data)){
+            return data;
+        }
+        if(utils.isArrayBufferView(data)){
+            return data.buffer;
+        }
+        //根据数据类型设置相应的Content-Type
+        if(utils.isURLSearchParams(data)){
+            setContentTypeIfUnset(headers, &#39;application/x-www-form-urlencoded;charset=utf-8&#39;)
+            return data.toString();
+        }
+        if(utils.isObject(data)){
+            setContentTypeIfUnset(headers, &#39;application/json;chatset=utf-8&#39;)
+            return JSON.stringify(data);
+        }
+        return data;
+    }],
+    //拦截响应数据默认配置，根据数据类型做一定处理
+    transformResponse:[function transformResponse(data){
+        if(typeof data == &#39;string&#39;){
+            try{
+                data = JSON.parse(data);
+            }catch(e){
+
+            }
+        }
+        return data;
+    }],,
+    timeout: 0, // 请求超时时长
+    xsrfCookieName:&#39;XSFR-TOKEN&#39;,//表示用作xsrf令牌的值的名称
+    xsrfHeaderName:&#39;X-XSRF-TOKEN&#39;,//表示携带xsrf令牌的值的http头的名称
+    maxContentLength: -1,定义允许的http响应内容的最大大小
+    validateStatus: function validateStatus(status){//校验请求返回的状态码，状态码在200-300以内请求成功
+        return status &gt; 200 &amp;&amp; status &lt; 300;
+    }
+}</code></pre>
+<h3 id="配置default对象的默认headers">配置default对象的默认headers</h3>
+<pre><code><code>//Accept代表客户希望接受的数据类型,一般情况下服务端会根据accept的值，来决定返回数据的类型，并设置response中Content-type的值
+default.headers = {
+    common: {
+        &#39;Accept&#39;: &#39;application/json, text/plain, */*&#39;,
+    }
+}</code></pre>
+<h3 id="给headers加上默认方法">给headers加上默认方法</h3>
+<pre><code><code>&lt;!-- 添加没有数据的方法 --&gt;
+utils.forEach([&#39;delete&#39;, &#39;get&#39;, &#39;header&#39;], function forEachMethodNoData(method){
+    default.headers[method] = {};
+})
+&lt;!-- 添加有数据的方法 --&gt;
+utils.forEach([post&#39;, &#39;put&#39;, &#39;patch&#39;], function forEachMethodNoData(method){
+    //post put patch 方法需要传递参数，故需要设置传参默认类型
+    default.headers[method] = utils.merge(DEFAULT_CONTENT_TYPE);
+})</code></pre>
+<h2 id="总结">总结</h2>
+<p>js设置的Content-Type为http请求头中request中的Content-type,是告诉服务器客户端要发送的数据的格式，get，delete请求默认无<br />
+js设置的Accept为http请求头中request字段，告诉服务器客户端希望接受的数据的格式<br />
+一般情况下服务端会设置http请求头中response中的Content-type和request中Accept格式一样，告诉客户端服务端返回的数据格式<br />
+服务器可以根据Accept选择不同的格式，选择返回不同的格式，也可以不管Accpet<br />
+总得来说前端只能设置请求头，响应头只能客户端设置</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

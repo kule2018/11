@@ -1,0 +1,110 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue图片预加载' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue图片预加载</center></div><div class='banquan'>原文出处:本文由博客园博主fyk曩昔提供。<br/>
+原文连接:https://www.cnblogs.com/nangxi/p/11545593.html</div><br>
+    <p>目的： 图片预加载能够使得用户在浏览后续页面的时候，不会出现图片加载一半导致浏览不流畅的情况。</p>
+<h2>一、方法一</h2>
+<p>项目打开的时候要对图片进行预加载，在App.vue里面的beforeCreate添加预加载程序</p>
+<p>App.vue</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">beforeCreate(){
+    let count </span>= 0<span style="color: #000000;">;
+    let imgs </span>=<span style="color: #000000;"> [
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">用require的方式添加图片地址，直接添加图片地址的话，在build打包之后会查找不到图片，因为打包之后的图片名称会有一个加密的字符串</span>
+        require('xxx'<span style="color: #000000;">)
+    ]
+    </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (let img of imgs) {
+        let image </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Image();
+        image.src </span>=<span style="color: #000000;"> img;
+        image.onload </span>= () =&gt;<span style="color: #000000;"> {
+            count</span>++<span style="color: #000000;">;
+        };
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2>二、方法二</h2>
+<p>创建两个文件名称分别为imgPreloader.js以及imgPreloaderList.js，前者用于导出图片加载的异步方法imgPreloader，后者用于存放图片列表<br />然后在main.js里面，Vue对象创建之前，必须先把图片全部加载完才能创建Vue对象并且挂载到#app上</p>
+<h3>1.imgPreloaderList.js</h3>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> [
+  require(</span>'相对图片地址1'<span style="color: #000000;">),
+  require(</span>'相对图片地址2'<span style="color: #000000;">),
+  ...
+];</span></pre>
+</div>
+<h3>2.imgPreloader.js</h3>
+<div class="cnblogs_code">
+<pre><code>const imgPreloader = url =&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    let image </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Image();
+    image.src </span>=<span style="color: #000000;"> url;
+    image.onload </span>= () =&gt;<span style="color: #000000;"> {
+      resolve();
+    };
+    image.onerror </span>= () =&gt;<span style="color: #000000;"> {
+      reject();
+    };
+  });
+};
+export const imgsPreloader </span>= imgs =&gt;<span style="color: #000000;"> {
+  let promiseArr </span>=<span style="color: #000000;"> [];
+  imgs.forEach(element </span>=&gt;<span style="color: #000000;"> {
+    promiseArr.push(imgPreloader(element));
+  });
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Promise.all(promiseArr);
+};</span></pre>
+</div>
+<h3>3.main.js</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 导入图片预加载方法以及图片列表</span>
+import { imgsPreloader } from './config/imgPreloader.js'<span style="color: #000000;">;
+import imgPreloaderList from </span>'./config/imgPreloaderList.js'<span style="color: #000000;">;
+
+(async () </span>=&gt;<span style="color: #000000;"> {
+  await imgsPreloader(imgPreloaderList);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">关闭加载弹框</span>
+  document.querySelector('.loading').style.display = 'none'<span style="color: #000000;">;
+  </span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+    router,
+    store,
+    render: h </span>=&gt;<span style="color: #000000;"> h(App)
+  }).$mount(</span>'#app'<span style="color: #000000;">);
+})();</span></pre>
+</div>
+<h3>4.加载弹框</h3>
+<p>main.js提到加载弹框，那么这个弹框要加在哪里呢？答案是index.html</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+    <span style="background-color: #f5f5f5; color: #008000;">/*</span><span style="background-color: #f5f5f5; color: #008000;">
+    *加载弹框的样式    
+    </span><span style="background-color: #f5f5f5; color: #008000;">*/</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="loading"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<h2>三、总结</h2>
+<p>方法二的效果较方法一更符合一般的需求，方法一可能图片还没完全加载完成，就执行beforeMount了。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

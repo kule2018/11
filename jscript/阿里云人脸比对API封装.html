@@ -1,0 +1,143 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修阿里云人脸比对API封装' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>阿里云人脸比对API封装</center></div><div class='banquan'>原文出处:本文由博客园博主LiangSenCheng小森森提供。<br/>
+原文连接:https://www.cnblogs.com/LiangSenCheng/p/10922979.html</div><br>
+    <p>&nbsp;这是根据封装是根据阿里云官方给的Demo进行修改的，当时是因为编写微信小程序云函数需要使用到阿里云人脸比对接口，才对其进行封装的。</p>
+<p>记录下来，方便下次使用。</p>
+<p>复制下来可以直接使用。</p>
+<p>用到的依赖如下，使用npm安装：</p>
+<ul>
+<li>request</li>
+<li>url</li>
+<li>crypto</li>
+</ul>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #008000;">/*</span><span style="color: #008000;">*
+</span><span style="color: #008080;">  2</span> <span style="color: #008000;"> * 文件说明：阿里云人脸比对API封装
+</span><span style="color: #008080;">  3</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;">  4</span> 
+<span style="color: #008080;">  5</span> <span style="color: #0000ff;">var</span> request = require('request'<span style="color: #000000;">);
+</span><span style="color: #008080;">  6</span> <span style="color: #0000ff;">var</span> url = require('url'<span style="color: #000000;">);
+</span><span style="color: #008080;">  7</span> <span style="color: #0000ff;">var</span> crypto = require('crypto'<span style="color: #000000;">);
+</span><span style="color: #008080;">  8</span> <span style="color: #0000ff;">var</span> date = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().toUTCString()
+</span><span style="color: #008080;">  9</span> 
+<span style="color: #008080;"> 10</span> <span style="color: #008000;">//</span><span style="color: #008000;">///////////////////////////////////////////////////////////////////////</span>
+<span style="color: #008080;"> 11</span> <span style="color: #008000;">/*</span><span style="color: #008000;">*
+</span><span style="color: #008080;"> 12</span> <span style="color: #008000;"> * 配置信息
+</span><span style="color: #008080;"> 13</span> <span style="color: #008000;"> * ak_id ：阿里云控制台获取的AccessKey
+</span><span style="color: #008080;"> 14</span> <span style="color: #008000;"> * ak_secret ：阿里云控制台获取的AccessKeySecret 
+</span><span style="color: #008080;"> 15</span> <span style="color: #008000;"> * Api_Url ：阿里云控制台获取Api接口地址
+</span><span style="color: #008080;"> 16</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 17</span> <span style="color: #008000;">//</span><span style="color: #008000;"> AccessKey</span>
+<span style="color: #008080;"> 18</span> <span style="color: #0000ff;">var</span> ak_id = ''<span style="color: #000000;">;
+</span><span style="color: #008080;"> 19</span> <span style="color: #008000;">//</span><span style="color: #008000;"> AccessKeySecret </span>
+<span style="color: #008080;"> 20</span> <span style="color: #0000ff;">var</span> ak_secret = ''<span style="color: #000000;">;
+</span><span style="color: #008080;"> 21</span> <span style="color: #008000;">//</span><span style="color: #008000;"> APIURL</span>
+<span style="color: #008080;"> 22</span> <span style="color: #0000ff;">var</span> Api_Url = ''
+<span style="color: #008080;"> 23</span> 
+<span style="color: #008080;"> 24</span> <span style="color: #008000;">/*</span><span style="color: #008000;">*
+</span><span style="color: #008080;"> 25</span> <span style="color: #008000;"> * 读取本地图片并转base64编码
+</span><span style="color: #008080;"> 26</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 27</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 图片1</span>
+<span style="color: #008080;"> 28</span> <span style="color: #0000ff;">var</span> fs = require("fs"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 29</span> <span style="color: #0000ff;">var</span> filePath = "01.jpg"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 30</span> <span style="color: #0000ff;">var</span> imageData =<span style="color: #000000;"> fs.readFileSync(filePath);
+</span><span style="color: #008080;"> 31</span> <span style="color: #0000ff;">var</span> imageBase64 = imageData.toString("base64"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 32</span> <span style="color: #008000;">//</span><span style="color: #008000;">图片2</span>
+<span style="color: #008080;"> 33</span> <span style="color: #0000ff;">var</span> fs = require("fs"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 34</span> <span style="color: #0000ff;">var</span> filePath = "02.jpg"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 35</span> <span style="color: #0000ff;">var</span> imageData =<span style="color: #000000;"> fs.readFileSync(filePath);
+</span><span style="color: #008080;"> 36</span> <span style="color: #0000ff;">var</span> imageBase64_2 = imageData.toString("base64"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 37</span> 
+<span style="color: #008080;"> 38</span> <span style="color: #0000ff;">var</span> options =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 39</span> <span style="color: #000000;">    url: Api_Url,
+</span><span style="color: #008080;"> 40</span>     method: 'POST'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 41</span>     body: '{"type": "1", "content_1":"' + imageBase64 + '","content_2":"' + imageBase64 + '"}'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 42</span> <span style="color: #000000;">    headers: {
+</span><span style="color: #008080;"> 43</span>         'accept': 'application/json'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 44</span>         'content-type': 'application/json'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 45</span>         'date'<span style="color: #000000;">: date,
+</span><span style="color: #008080;"> 46</span>         'Authorization': ''
+<span style="color: #008080;"> 47</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 48</span> <span style="color: #000000;">};
+</span><span style="color: #008080;"> 49</span> <span style="color: #008000;">//</span><span style="color: #008000;">///////////////////////////////////////////////////////////////////////</span>
+<span style="color: #008080;"> 50</span> 
+<span style="color: #008080;"> 51</span> 
+<span style="color: #008080;"> 52</span> md5 = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (buffer) {
+</span><span style="color: #008080;"> 53</span>     <span style="color: #0000ff;">var</span><span style="color: #000000;"> hash;
+</span><span style="color: #008080;"> 54</span>     hash = crypto.createHash('md5'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 55</span> <span style="color: #000000;">    hash.update(buffer);
+</span><span style="color: #008080;"> 56</span>     <span style="color: #0000ff;">return</span> hash.digest('base64'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 57</span> <span style="color: #000000;">};
+</span><span style="color: #008080;"> 58</span> 
+<span style="color: #008080;"> 59</span> sha1 = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (stringToSign, secret) {
+</span><span style="color: #008080;"> 60</span>     <span style="color: #0000ff;">var</span><span style="color: #000000;"> signature;
+</span><span style="color: #008080;"> 61</span>     <span style="color: #0000ff;">return</span> signature = crypto.createHmac('sha1', secret).update(stringToSign).digest().toString('base64'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 62</span> <span style="color: #000000;">};
+</span><span style="color: #008080;"> 63</span> 
+<span style="color: #008080;"> 64</span> <span style="color: #0000ff;">var</span> body = options.body || ''<span style="color: #000000;">;
+</span><span style="color: #008080;"> 65</span> <span style="color: #0000ff;">var</span><span style="color: #000000;"> bodymd5;
+</span><span style="color: #008080;"> 66</span> <span style="color: #0000ff;">if</span> (body === <span style="color: #0000ff;">void</span> 0 || body === ''<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 67</span>     bodymd5 =<span style="color: #000000;"> body;
+</span><span style="color: #008080;"> 68</span> } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 69</span>     bodymd5 = md5(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Buffer(body));
+</span><span style="color: #008080;"> 70</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 71</span> 
+<span style="color: #008080;"> 72</span> <span style="color: #0000ff;">var</span> stringToSign = options.method + "\n" + options.headers.accept + "\n" + bodymd5 + "\n" + options.headers['content-type'] + "\n" + options.headers.date + "\n" +<span style="color: #000000;"> url.parse(options.url).path;
+</span><span style="color: #008080;"> 73</span> 
+<span style="color: #008080;"> 74</span> <span style="color: #0000ff;">var</span> signature =<span style="color: #000000;"> sha1(stringToSign, ak_secret);
+</span><span style="color: #008080;"> 75</span> <span style="color: #0000ff;">var</span> authHeader = "Dataplus " + ak_id + ":" +<span style="color: #000000;"> signature;
+</span><span style="color: #008080;"> 76</span> options.headers.Authorization =<span style="color: #000000;"> authHeader;
+</span><span style="color: #008080;"> 77</span> 
+<span style="color: #008080;"> 78</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 封装函数</span>
+<span style="color: #008080;"> 79</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> AliFace(options) {
+</span><span style="color: #008080;"> 80</span>     let promise = <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (resolve, reject) {
+</span><span style="color: #008080;"> 81</span>         request(options, (error, response, body) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 82</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 失败</span>
+<span style="color: #008080;"> 83</span>             <span style="color: #0000ff;">if</span><span style="color: #000000;"> (error) {
+</span><span style="color: #008080;"> 84</span>                 console.log("error"<span style="color: #000000;">, error)
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">                reject()
+</span><span style="color: #008080;"> 86</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 87</span>             console.log("step4-response body:"<span style="color: #000000;">, response.statusCode, body)
+</span><span style="color: #008080;"> 88</span>             console.log(<span style="color: #0000ff;">typeof</span><span style="color: #000000;"> (body))
+</span><span style="color: #008080;"> 89</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 成功</span>
+<span style="color: #008080;"> 90</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 注意：这里的body是string类型</span>
+<span style="color: #008080;"> 91</span> <span style="color: #000000;">            resolve(body)
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">        })
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">    })
+</span><span style="color: #008080;"> 94</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> promise;
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 96</span> 
+<span style="color: #008080;"> 97</span> 
+<span style="color: #008080;"> 98</span> 
+<span style="color: #008080;"> 99</span> <span style="color: #008000;">/*</span><span style="color: #008000;">*
+</span><span style="color: #008080;">100</span> <span style="color: #008000;"> * 调用接口进行测试
+</span><span style="color: #008080;">101</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;">102</span> <span style="color: #000000;">AliFace(options).then(
+</span><span style="color: #008080;">103</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> (res) {
+</span><span style="color: #008080;">104</span> <span style="color: #000000;">        console.log(res)
+</span><span style="color: #008080;">105</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">106</span> )</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

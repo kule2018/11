@@ -1,0 +1,269 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[] == ![] 发生了什么？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[] == ![] 发生了什么？</center></div><div class='banquan'>原文出处:本文由博客园博主苏进取提供。<br/>
+原文连接:https://www.cnblogs.com/sujinqu/p/11421385.html</div><br>
+    <p>记不清在某处看见了这一比较，当时对强制转换这块理解的还没有特别清晰，故有此一文。以为我会以标题的表达式来展开？那你就错了，下面直接上[] == []是如何转换的：</p>
+<ol>
+<li>因为!运算符的优先级比较高，所以表达式右侧先运行[]，得出false，表达式变为[] == false</li>
+<li>强制将false转换为0，表达式变为[] == 0</li>
+<li>将[]强制转换为原始类型后为&quot;&quot;，表达式变为&quot;&quot; == 0</li>
+<li>将&quot;&quot;转换为Number类型，表达式变为0 == 0</li>
+<li><p>两侧类型相同，直接返回0 === 0的结果true<br />
+- - -</p>
+<h2 id="前言">前言</h2>
+<p>本文旨在总结js中强制转换的规则及触发强制转换的几种场景。ES6标准中定义了六种原始类型，分别是Undefined，Null，String，Number，Boolean，Symbol。本文中的强制转换指的是在代码运行时，触发了数值的隐式转换，而不是代码显示的指定转换操作。</p>
+<h2 id="原始类型间强制转换">原始类型间强制转换</h2>
+<p>发生在原始类型之间的转换，以个人的理解是其他类型转换为String，Number或者Boolean类型。</p>
+<h3 id="转换为string类型">转换为String类型</h3>
+<p>其他原始类型转换为String类型通常发生在+两边存在字符串时，会将+另一边的值转换为String类型。<br />
+考虑如下代码：</p></li>
+</ol>
+<pre><code><code>var strAddNum = &quot;test&quot; + 1;
+var numAddStr = 1 + &quot;test&quot;;
+var boolAddStr = true + &quot;test&quot;;
+var undAddStr = undefined + &quot;&quot;;
+var nullAddStr = null + &quot;&quot;;
+console.log(strAddNum);
+console.log(numAddStr);
+console.log(boolAddStr);
+console.log(undAddStr);
+console.log(nullAddStr);</code></pre>
+<p><a href="https://jsbin.com/cumugak/1/edit?js,console">代码传送门</a>，以上代码的运行结果均为字符串。其他原始类型转换为String类型基本是其值的字符串形式，具体如下：</p>
+<ul>
+<li>Undefined，&quot;undefined&quot;</li>
+<li>Null，&quot;null&quot;</li>
+<li>Boolean，&quot;true&quot;或&quot;false&quot;</li>
+<li>Number，值为NaN，&quot;NaN&quot;</li>
+<li>Number，值为+0或-0，&quot;0&quot;</li>
+<li>Number，值为+Infinity，&quot;Infinity&quot;</li>
+<li>Number，值为-Infinity，&quot;-Infinity&quot;</li>
+</ul>
+<p>Number转为字符串具体可参考<a href="https://ecma262.docschina.org/#sec-tostring">ES2018 7.1.12.1章节</a></p>
+<p><em>注意：Symbol类型无法转换为String类型。</em></p>
+<h3 id="转换为number类型">转换为Number类型</h3>
+<p>转换为Number类型的情况，+-*/%等运算中，除了+之外其他运算均会转换成Number类型，+运算时需要满足两侧未出现String类型，该值才会被转换为Number类型。+运算时情况较为复杂，后面会专门描述其相关转换规则。考虑如下代码：</p>
+<pre><code><code>var trueAddTrue = true + true;
+var trueAddFalse = true + false;
+var trueAdda0 = true + 0;
+var nullAddTrue = null + true;
+var undefinedAdd0 = undefined + 0;
+var strAdd0 = &quot;&quot; + 0;
+console.log(trueAddTrue);
+console.log(trueAddFalse);
+console.log(trueAdda0);
+console.log(nullAddTrue);
+console.log(undefinedAdd0);
+console.log(strAdd0);</code></pre>
+<p><a href="https://jsbin.com/tesuvok/edit?js,console">代码传送门</a>，在运行代码之前可以先考虑下以上代码答打印的结果分别是什么？然后再运行，看是否符合你的预期。其他原始类型转换为Number类型的具体如下：</p>
+<ul>
+<li>Undefined，NaN</li>
+<li>Null， +0</li>
+<li>Boolaen，值为true，1</li>
+<li>Boolean，值为false，+0</li>
+<li>String，不可转为Number的，NaN</li>
+<li>String，可转为Number的就是其对应的Number值（具体可参考ES2018 <a href="https://ecma262.docschina.org/#prod-StringNumericLiteral">7.1.3.1</a>）</li>
+</ul>
+<p><em>注意：Symbol类型同样无法转换为Number类型。</em></p>
+<h3 id="转换为boolean类型">转换为Boolean类型</h3>
+<p>转换为Boolean类型的情况较为简单，除了以下情况转换为Boolean类型会是false，其他情况均是true</p>
+<ul>
+<li>Undefined</li>
+<li>Null</li>
+<li>Number，+0，-0，NaN</li>
+<li>String，长度为0的字符串<br />
+这几种false的情况在ES标准中有明确规定<a href="https://ecma262.docschina.org/#sec-toboolean">7.1.2</a></li>
+</ul>
+<h2 id="对象强制转换为原始类型">对象强制转换为原始类型</h2>
+<p>ES中将对象转换为原始类型的算法，大致可描述为三种情形：</p>
+<ol>
+<li>如果该对象设置了[Symbol.toPrimitive]，调用该函数，如果其返回值为非Object类型则返回结果，否则抛出TypeError异常</li>
+<li>若未指定转换提示则转换提示为&quot;default&quot;</li>
+<li>若转换提示为&quot;default&quot;，则将其置为&quot;number&quot;</li>
+<li>当指定转换提示为&quot;number&quot;时先调用该对象的valueOf函数并判断其结果，如果是原始类型则返回结果，否则调用该对象的toString函数并判断其返回结果，如果结果为原始类型则返回，否则抛出异常TypeError</li>
+<li>当指定转换提示为&quot;string&quot;时先调用toString函数并判断其返回结果，如果是原始类型则返回结果，否则调用该对象的valueOf函数并判断其返回结果，如果结果为原始类型则返回，否则抛出异常TypeError</li>
+</ol>
+<p>上述三种情形中第一种情形优先级最高，第二三种情形优先级并列，具体需要根据使用场景判断是哪一种。其中的指定转换提示是ES标准内部调用该算法时指定的。</p>
+<p>第一种情形只有Symbol对象和Date对象内置了[Symbol.toPrimitive]，且该属性的writeable为false，enumerable为false，configurable为true<br />
+对象转换为原始类型时发生的强制转换非特殊情况均为第二种，第三种情况较为少见。在正常编码工作中应该使用第二种情形就够用了，第三种情形几乎不会出现，要了解更多细节可查阅ES标准。</p>
+<pre><code><code>var test = {
+  [Symbol.toPrimitive]: function(hint) {
+     console.log(hint)
+  },
+  valueOf: function() {
+      console.log(&quot;valueOf&quot;)
+  },
+  toString: function() {
+      console.log(&quot;toString&quot;)
+  }
+}
+test + &quot;&quot;;  //&quot;default&quot;
+test * 0;   //&quot;number&quot;
+String(test);   //&quot;string&quot;</code></pre>
+<p><a href="https://jsbin.com/sobazod/1/edit?js,console">代码传送门</a>上述代码指定了分别指定了test对象的[Symbol.toPrimitive]，valueOf和toString函数，可以观察到并valueoOf和toString函数均未被调用，指定的[Symbol.toPrimitive]函数可以接受一个提示参数，这个参数就是强制转换时的强制转换提示。这样我们在函数中就可以根据转换场景的不同分别返回不同的值。</p>
+<h2 id="原始类型强制转换为对象装箱">原始类型强制转换为对象（装箱）</h2>
+<p>在开始描述这个问题之前，可以先思考一下，都有哪些场景会是强制的将原始类型转换为对象，其实这种场景几乎在js代码中随处可见，考虑如下代码：</p>
+<pre><code><code>var str = &quot;testString&quot;;
+str.replace(&quot;test&quot;, &quot;&quot;);</code></pre>
+<p>如上代码中定义的str的值并不是一个对象而是一个原始类型String，原始类型显然是没有方法可以调用的。</p>
+<p>实际上这里的str在执行str.replace时str其值会被强制转换为对象，得到一个String类型的实例对象，而该实例的原型上定义了一系列方法，且该实例是无法被获取的，在执行完这行代码后，该实例就会被回收，所以这里的str依然是一个字符串。</p>
+<p>考虑如下代码：</p>
+<pre><code><code>var a = 3;
+a.fn = function(){};
+a.fn();</code></pre>
+<h2 id="强制转换的几种场景">强制转换的几种场景</h2>
+<p>在js代码中会出现强制转换的场景通常有三种：</p>
+<ul>
+<li>+运算</li>
+<li>-,*,/,%运算</li>
+<li>==比较</li>
+<li><p>作为判断条件</p>
+<h3 id="运算">+运算</h3>
+<h4 id="一元运算">一元+运算</h4>
+<p>做一元+运算时，均会被强制转为Number类型，例如</p></li>
+</ul>
+<pre><code><code>var a = {
+    [Symbol.toPrimitive]: function(hint) {
+        console.log(hint);  // number
+        if(hint === &quot;number&quot;) {
+            return 2;
+        } else {
+            return 9;
+        }
+    }
+};
+console.log(+a);   // 2
+
+var b = &quot;3&quot;;
+console.log(+b);    // 3</code></pre>
+<p><a href="https://jsbin.com/vudupov/1/edit?js,console">代码传送门</a></p>
+<h4 id="二元运算">二元+运算</h4>
+<p>二元+运算为几种强制转换中复杂度仅次于==比较的一种情形，个人总结其转换步骤如下：</p>
+<ol>
+<li>先将两侧数值强制转换为原始类型(未指定转换提示，即转换提示为hint default)；</li>
+<li>若两侧存在String类型，均转换为String类型，则返回两侧拼接的字符串；</li>
+<li>若第2未返回，则两侧数值强制转换为Number类型，返回计算结果；</li>
+</ol>
+<pre><code><code>var a = &quot;&quot;;
+var b = {
+    [Symbol.toPrimitive]: function(hint) {
+        console.log(hint);  // &quot;default&quot;
+        if(hint === &quot;default&quot;) {
+            return 2;
+        } else {
+            return 9;
+        }
+    }
+};
+var c = a + b;  //这里b转换为原始类型返回的是Number类型2，由于a是&quot;&quot;，所以b被转换为&quot;2&quot;，后与&quot;&quot;拼接返回&quot;2&quot;
+console.log(c); // &quot;2&quot;
+
+var d = 3;
+var e = {
+    [Symbol.toPrimitive]: function(hint) {
+        console.log(hint);  // &quot;default&quot;
+        if(hint === &quot;default&quot;) {
+            return 2;
+        } else {
+            return 9;
+        }
+    }
+};
+var f = d + e;  //这里e转换为原始类型返回的是Number类型2，由于两侧均没有String类型，则至第3步，强制转换为Number后返回两侧相加的结果5
+console.log(f); // 5
+</code></pre>
+<p><a href="https://jsbin.com/kogisiy/1/edit?js,console">代码传送门</a></p>
+<h3 id="运算-这几个运算符这涉及的强制转换都是转换为number类型的所以这里只要搞清楚转换为number是怎样的过程就可以了上文中已经对原始类型转换为number类型做了描述这里补充一下object转换为number的过程">-,*,/,%运算<br />
+这几个运算符这涉及的强制转换都是转换为Number类型的，所以这里只要搞清楚转换为Number是怎样的过程就可以了。上文中已经对原始类型转换为Number类型做了描述，这里补充一下Object转换为Number的过程：</h3>
+<ol>
+<li>将对象转换为原始类型，且转换时会指定转换提示为&quot;number&quot;;</li>
+<li>转换为原始类型后再根据原始类型转换为Number类型进行转换；</li>
+</ol>
+<pre><code><code>var a = 8;
+var b = {
+    [Symbol.toPrimitive]: function(hint) {
+        console.log(hint);  // &quot;number&quot;
+        if(hint === &quot;number&quot;) {
+            return 2;
+        } else {
+            return 9;
+        }
+    }
+};
+console.log(a-b);   //  6
+console.log(a/b);   // 4
+console.log(a*b);   // 16
+console.log(a%b);   // 0
+
+console.log(undefined * 0);   //NaN
+console.log(null * -1); // 0
+console.log(false * -1);    //0 
+console.log(true * -1); // -1
+console.log(&quot;1&quot; * -1);  // -1</code></pre>
+<p><a href="https://jsbin.com/cocuzez/1/edit?js,console">代码传送门</a></p>
+<h3 id="比较">==比较</h3>
+<h4 id="比较的基础比较">==比较的基础===比较</h4>
+<p>x === y，其具体比较步骤如下：</p>
+<ol>
+<li>若x和y的类型不一致，返回false；</li>
+<li>若x和y为Number类型，则若x和y中有一个为NaN返回false；若x和y的值相等则返回true；若x是+0，y是-0或者x是-0，y是+0则返回true；其他情况返回false；</li>
+<li>若x和y为Undefined类型，返回true</li>
+<li>若x和y为Null类型，返回true</li>
+<li>若x和y为String类型，其值相同则返回true，否则返回false</li>
+<li>若x和y为Boolean类型，其值均为true或均为false返回true，否则返回false</li>
+<li>若x和y为Symbol类型，其值为同一个Symbol值则返回true，否则返回false</li>
+<li>若x和y为Object类型，其值为同一个对象（其引用地址相同）则返回true，否则返回false</li>
+</ol>
+<h4 id="x-y规则">x == y规则</h4>
+<p>==比较的转换规则虽然稍微多一点，实际上也就几条规则，两侧的数值类型符合哪种就按哪种去转换，只不过有的可能需要转两次，具体如下：</p>
+<ol>
+<li>如果两侧类型相等则直接返回===的结果；</li>
+<li>若x为undefined和y为null或x为null和y为undefined，返回true</li>
+<li>若两侧为String类型和Number类型，将String类型转换为Number类型，继续用==比较</li>
+<li>若有一侧存在Boolean类型，将Boolean类型转换为Number类型，继续用==比较</li>
+<li>若两侧为String，Number或Symbol类型和Object类型，将Object类型转换原始类型，继续用==比较</li>
+<li>其他返回false</li>
+</ol>
+<p>下面列举一些可能有点违反直觉的比较</p>
+<pre><code><code>&quot;0&quot; == false; // true
+false == 0; // true
+false == &quot;&quot;; // true
+false == []; // true
+&quot;&quot; == 0; // true
+&quot;&quot; == []; // true
+0 == []; // true
+[] == ![];  //true</code></pre>
+<h3 id="作为条件判断">作为条件判断</h3>
+<p>这种情形到没有太多可说的，基本上就是，除了undefined，null，+0，-0，NaN，&quot;&quot;这六个值会被转为false，其他情况均为true;</p>
+<p>出现将不是Boolean类型的值强制转换的情况为</p>
+<ol>
+<li>if(...)</li>
+<li>for(...;...;...)第二个条件表达式</li>
+<li>while(...)和do...while(...)中的条件表达式</li>
+<li>...?...:...三元表达式中的第一个条件表达式</li>
+<li>||和&amp;&amp;</li>
+</ol>
+<h2 id="结论">结论</h2>
+<p>其实上面描述了这么多，日常开发环境中用到比较多的应该是作为判断条件，+，==这三种情况了，这三种中最常见的应该是判断条件的情况了，这种情况反而是最简单的一种了。</p>
+<h3 id="转载请注明出处">转载请注明出处！</h3>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

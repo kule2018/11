@@ -1,0 +1,118 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修koa2服务端使用jwt进行鉴权及路由权限分发' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>koa2服务端使用jwt进行鉴权及路由权限分发</center></div><div class='banquan'>原文出处:本文由博客园博主陌上兮月提供。<br/>
+原文连接:https://www.cnblogs.com/zhangnan35/p/11217962.html</div><br>
+    <p><span style="font-size: 18pt;"><strong>大体思路</strong></span></p>
+<p>　　<span style="font-size: 16px;">后端书写REST api时，有一些api是非常敏感的，比如获取用户个人信息，查看所有用户列表，修改密码等。如果不对这些api进行保护，那么别人就可以很容易地获取并调用这些 api 进行操作。</span></p>
+<p><span style="font-size: 16px;">　　所以对于一些api，在调用之前，我们在服务端必须先对操作者进行&ldquo;身份认证&rdquo;，这就是所谓的鉴权。</span></p>
+<p><span style="font-size: 16px;">　　Json Web Token 简称为 JWT，它定义了一种通信双方之间以 JSON 对象的形式安全传递信息的方法。JWT 可以使用 HMAC 算法或者是 RSA 的公钥密钥对进行签名，复杂度较高，换来的是更可靠的安全系数。</span></p>
+<p><span style="font-size: 16px;">　　整个认证的流程大体如下：</span></p>
+<p><span style="font-size: 16px;"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/koa2服务端使用jwt进行鉴权及路由权限分发0.png" alt="" /></span></p>
+<p>　　<span style="font-size: 16px;">首先用户登录的接口是不用token认证的，因为这个接口本身就是token的产生来源。前端输入用户名和密码后请求服务器登录接口，服务器验证用户名密码正确后，生成token并返回给前端，前端存储token，并在后面的请求中把token带在请求头中传给服务器，服务器验证token有效，才可以进行下一步操作。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt;"><strong>服务器生成token</strong></span></p>
+<p>　　<span style="font-size: 16px;">由于我们的服务端使用 Koa2 框架进行开发，除了要使用到 jsonwebtoken 库之外，还要使用一个 koa-jwt 中间件，该中间件针对 Koa 对 jsonwebtoken 进行了封装，使用起来更加方便。</span></p>
+<p>　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">const</span> router = require(<span style="color: #800000;">'</span><span style="color: #800000;">koa-router</span><span style="color: #800000;">'</span><span style="color: #000000;">)();
+</span><span style="color: #0000ff;">const</span> jwt = require(<span style="color: #800000;">'</span><span style="color: #800000;">jsonwebtoken</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">const</span> userModel = require(<span style="color: #800000;">'</span><span style="color: #800000;">../models/userModel.js</span><span style="color: #800000;">'</span><span style="color: #000000;">);<br />
+router.post(</span><span style="color: #800000;">'</span><span style="color: #800000;">/login</span><span style="color: #800000;">'</span>, <span style="color: #0000ff;">async</span> (ctx) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">const</span> data =<span style="color: #000000;"> ctx.request.body;</span><span style="color: #0000ff;">const</span> result = <span style="color: #0000ff;">await</span><span style="color: #000000;"> userModel.findOne({
+        name: data.name,
+        password: data.password
+    })
+    </span><span style="color: #0000ff;">if</span>(result !== <span style="color: #0000ff;">null</span><span style="color: #000000;">){
+        </span><span style="color: #0000ff;">const</span> token =<span style="color: #000000;"> jwt.sign({
+            name: result.name,
+            _id: result._id
+        }, </span><span style="color: #800000;">'</span><span style="color: #800000;">zhangnan</span><span style="color: #800000;">'</span>, { expiresIn: <span style="color: #800000;">'</span><span style="color: #800000;">2h</span><span style="color: #800000;">'</span><span style="color: #000000;"> });
+        </span><span style="color: #0000ff;">return</span> ctx.body =<span style="color: #000000;"> {
+            code: </span><span style="color: #000000;"><span style="color: #800000;">200</span></span><span style="color: #000000;">,
+            token: token,
+            msg: </span><span style="color: #800000;">'</span><span style="color: #800000;">登录成功</span><span style="color: #800000;">'</span><span style="color: #000000;">
+        }
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">return</span> ctx.body =<span style="color: #000000;"> {
+            code: </span><span style="color: #000000;"><span style="color: #800000;">400</span></span><span style="color: #000000;">,
+            token: </span><span style="color: #0000ff;">null</span><span style="color: #000000;">,
+            msg: </span><span style="color: #800000;">'</span><span style="color: #800000;">用户名或密码错误</span><span style="color: #800000;">'</span><span style="color: #000000;">
+        }
+    }
+});
+module.exports </span>= router;</pre>
+</div>
+<p>　　<strong><span style="font-size: 16px;">（注意：这里暂时不讨论加盐加密校验，实际项目中密码不可能这样明文验证，这里只是为了着重讨论token鉴权。在验证了用户名密码正确之后，就可以调用 jsonwebtoken 的 sign() 方法来生成token，接收三个参数，第一个是载荷，用于编码后存储在 token 中的数据，也是验证 token 后可以拿到的数据；第二个是密钥，自己定义的，随便写个什么单词都可以，但是验证的时候一定要相同的密钥才能解码；第三个是options，可以设置 token 的过期时间。）</span></strong></p>
+<p>　　</p>
+<p><span style="font-size: 18pt;"><strong>前端获取token</strong></span></p>
+<p><strong>　　</strong><span style="font-size: 16px;">接下来就是前端获取 token，这里是在 vue.js 中使用 axios 进行请求，请求成功之后拿到 token 保存到 localStorage 中。</span></p>
+<p>　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">submit(){
+    axios.post(</span><span style="color: #800000;">'</span><span style="color: #800000;">/login</span><span style="color: #800000;">'</span><span style="color: #000000;">, {
+        name: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.username,
+        password: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.password
+    }).then(res </span>=&gt;<span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span>(res.code === <span style="color: #800080;">200</span><span style="color: #000000;">){
+            localStorage.setItem(</span><span style="color: #800000;">'</span><span style="color: #800000;">token</span><span style="color: #800000;">'</span><span style="color: #000000;">, res.data.token);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            </span><span style="color: #0000ff;">this</span>.$message(<span style="color: #800000;">'</span><span style="color: #800000;">登录失败</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+        }
+    })
+}</span></pre>
+</div>
+<p>　　<span style="font-size: 16px;">然后前端在请求后端api时，就把 token 带在请求头中传给服务器进行验证。每次请求都要获取 localStorage 中的 token，这样很麻烦，这里使用了 axios 的请求拦截器，进行全局设置，对每次请求都进行了取 token 放到 headers 中的操作。</span></p>
+<div class="cnblogs_code">
+<pre><code>axios.interceptors.request.use(config =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">const</span> token = localStorage.getItem(<span style="color: #800000;">'</span><span style="color: #800000;">token</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+    config.headers.common[</span><span style="color: #800000;">'</span><span style="color: #800000;">Authorization</span><span style="color: #800000;">'</span>] = <span style="color: #800000;">'</span><span style="color: #800000;">Bearer </span><span style="color: #800000;">'</span> +<span style="color: #000000;"> token;
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> config;
+})</span></pre>
+</div>
+<p><span style="font-size: 16px;">（这段代码，如果是vue项目，可以直接放在main.js中设置，表示每次请求前都会往请求头的authorization里塞一个token，至于那个<strong>Bearer</strong> 是koa-jwt的一个标识单词，方便解析）</span></p>
+<p>&nbsp;&nbsp;</p>
+<h2 id="验证token"><strong><span style="font-size: 18pt;">服务器验证token</span></strong></h2>
+<p>　　<span style="font-size: 16px;">接下来服务器收到前端发过来的token后，就可以进行验证。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">const</span> koa = require(<span style="color: #800000;">'</span><span style="color: #800000;">koa</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">const</span> koajwt = require(<span style="color: #800000;">'</span><span style="color: #800000;">koa-jwt</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">const</span> app = <span style="color: #0000ff;">new</span><span style="color: #000000;"> koa();
+
+app.use(koajwt({
+    secret: </span><span style="color: #800000;">'</span><span style="color: #800000;">zhangnan</span><span style="color: #800000;">'</span><span style="color: #000000;">
+}).unless({
+     path: [</span>/\/register/, /\/login/<span style="color: #000000;">]
+}));</span></pre>
+</div>
+<p><strong><span style="font-size: 16px;">（在这里没有定义错误处理函数，由于出现错误后会返回401，所以我直接就让前端来处理这种异常情况，给出一个错误的交互提示即可）</span></strong></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18pt;"><strong>分析koa-jwt源码</strong></span></p>
+<p><strong>　　</strong><span style="font-size: 16px;">我们在node_mudules里面找到koa-jwt/lib/resolvers文件夹下的auth-header.js文件，看下koa-jwt做了些什么</span></p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/koa2服务端使用jwt进行鉴权及路由权限分发1.png" alt="" /></p>
+<p><span style="font-size: 16px;">　　（可以看到它是先判断请求头中是否带了 authorization，如果有，则通过正则将 token 从 authorization 中分离出来，这里我们也看到了Bearer这个单词。如果没有 authorization，则代表了客户端没有传 token 到服务器，这时候就抛出 401 错误状态。）</span></p>
+<p>　　<span style="font-size: 16px;">再看看上一级的vertify.js。</span></p>
+<p>　　<img style="display: block; margin-left: auto; margin-right: auto;" src="./images/koa2服务端使用jwt进行鉴权及路由权限分发2.png" alt="" /></p>
+<p>　　<span style="font-size: 16px;">（可以看到在 verify.js 中，它就是调用 jsonwebtoken 原生提供的<strong> verify()</strong> 方法进行验证返回结果。jsonwebtoken 的 sign() 方法用于生成 token ，而 verify() 方法当然则是用来解析 token。属于jwt配对生产的两个方法，所以koa-jwt这个中间件也没做什么事，无非就是用正则解析请求头，调用jwt的vertify方法验证token，在koa-jwt文件夹的index.js中，koa-jwt还调用<strong>koa-unless</strong>进行路由权限分发）</span></p>
+<p><span style="font-size: 16px;">　　以上就是json web token的大体流程。</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

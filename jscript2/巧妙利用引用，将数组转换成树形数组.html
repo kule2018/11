@@ -1,0 +1,169 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修巧妙利用引用，将数组转换成树形数组' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>巧妙利用引用，将数组转换成树形数组</center></div><div class='banquan'>原文出处:本文由博客园博主杨柳依提供。<br/>
+原文连接:https://www.cnblogs.com/loveshes/p/11877799.html</div><br>
+    <h2 id="section">前言</h2>
+<p>笔者所做的一个项目需要做一个前端的树形菜单，后端返回的数据是一个平行的list，list中的每个元素都是一个对象，例如<code>list[0]</code>的值为<code>{id: 1, fid: 0, name: 一级菜单}</code>，每个元素都指定了父元素，生成的菜单可以无限级嵌套。一开始找的插件需要手动将生成好的树形数组传进去才能使用（尽管后来找到了一个UI框架，可以直接传list进去，只需要指定id和fid），但是当时思索了好久都没能正确写出来，故在空下来的时候认真想了一下，整理成笔记，以便后期查阅。</p>
+<h2 id="section-1">准备工作</h2>
+<p>因为是前端处理，所以本文实现语言为js。</p>
+<p>如下，有一个平行的list列表和一个不在list中的根节点root：</p>
+<pre><code><code class="language-js">var s = [
+  { id: 1, fid: 0, name: &quot;第一级菜单1&quot; },
+  { id: 2, fid: 0, name: &quot;第一级菜单2&quot; },
+  { id: 3, fid: 1, name: &quot;第二级菜单1.1&quot; },
+  { id: 4, fid: 1, name: &quot;第二级菜单1.2&quot; },
+  { id: 5, fid: 2, name: &quot;第二级菜单2.1&quot; },
+  { id: 6, fid: 3, name: &quot;第三级菜单1.1.1&quot; },
+  { id: 7, fid: 3, name: &quot;第三级菜单1.1.2&quot; },
+  { id: 8, fid: 4, name: &quot;第三级菜单1.2.1&quot; },
+  { id: 9, fid: 4, name: &quot;第三级菜单1.2.2&quot; },
+  { id: 10, fid: 6, name: &quot;第四级菜单1.1.1.1&quot; },
+  { id: 11, fid: 6, name: &quot;第四级菜单1.1.1.2&quot; },
+  { id: 12, fid: 9, name: &quot;第四级菜单1.2.2.1&quot; },
+  { id: 13, fid: 9, name: &quot;第四级菜单1.2.2.2&quot; },
+  { id: 14, fid: 0, name: &quot;第一级菜单3&quot; }
+]
+
+var root = { id: 0, fid: 0, name: &quot;根菜单&quot; };
+</code></pre>
+<p>需要整理成类似于下面的样子，如果该节点没有子节点，就没有node属性：</p>
+<pre><code><code class="language-js">{
+    id: xx,
+    fid: xx,
+    name: xx,
+    node: [
+        id: xx,
+        fid: xx,
+        name: xx,
+        node: [...]
+    ]
+}
+</code></pre>
+<p>需要一个打乱list顺序的shuffle算法，该算法会对原数组进行影响：</p>
+<pre><code><code class="language-js">function shuffle(a) {
+  var len = a.length;
+  for (var i = 0; i &lt; len; i++) {
+    var end = len - 1;
+    var index = (Math.random() * (end + 1)) &gt;&gt; 0;
+    var t = a[end];
+    a[end] = a[index];
+    a[index] = t;
+  }
+};
+</code></pre>
+<p>使用JSON序列化来实现数组的深度拷贝：</p>
+<pre><code><code class="language-js">function deepCopy(arr) {
+  return JSON.parse(JSON.stringify(arr));
+}
+</code></pre>
+<p>使用一个简单的方式来初步判断结果是否正确：</p>
+<pre><code><code class="language-js">function check(node) {
+    return JSON.stringify(node).match(/菜单/g).length;
+}
+</code></pre>
+<h2 id="section-2">使用递归</h2>
+<p><strong>【思路】</strong></p>
+<p>对于这种问题，因为不知道到底要循环多少层，所以使用递归能够以一种很方便的方式来解决。</p>
+<p><strong>【步骤】</strong></p>
+<p>1. 遍历当前列表，找出fid为传入的父元素的id的节点，并挂到父元素的node上；</p>
+<p>2. 每找到一个节点就从当前列表删除这个元素（不然递归怎么终止）；</p>
+<p>3. 对于每一个子节点，重复如上步骤，将子节点当成下一层的父节点继续查找该节点的子节点。</p>
+<p>可以看到，时间复杂度最坏为<code>O(n!)</code>。</p>
+<p><strong>【实现】</strong></p>
+<pre><code><code class="language-js">function arr2tree(arr, father) {
+  // 遍历数组，找到当前father的所有子节点
+  for (var i = 0; i &lt; arr.length; i++) {   
+    if (arr[i].fid == father.id) {
+      // 这里是有子节点才需要有node属性（也就是说有node里绝不会为空list）
+      if (!father.node) { 
+        father.node = [];
+      }
+      var son = arr[i];
+      father.node.push(son);
+      arr.splice(i, 1); // 删除该节点，当list为空的时候就终止递归
+      i--; // 由于删除了i节点，所以下次访问的元素下标应该还是i
+    }
+  }
+  // 再对每一个子节点进行如上操作
+  if (father.node) { // 需要先判断有没有子节点
+    var childs = father.node;
+    for (var i=0; i&lt;childs.length; i++) {
+      arr2tree(arr, childs[i]); // 调用递归函数
+    }
+    // 用于按名称进行排序，如果不强调顺序可以去掉
+    father.node.sort(function (a, b) {
+      return a.name &gt; b.name;
+    })
+  }
+}
+</code></pre>
+<p><strong>【检验】</strong></p>
+<pre><code><code class="language-js">shuffle(s); // 打乱数组
+var arr = deepCopy(s); // 拷贝一份，避免对原数组进行修改
+arr2tree(arr, root);
+console.log(check(root)); // 预期输出15
+console.log(root); // 手工检查输出是否正确
+</code></pre>
+<h2 id="section-3">不使用递归</h2>
+<p><strong>【思路】</strong></p>
+<p>当数据量大的时候，使用递归及其容易因为内存溢出而无法运行，有没有不使用递归的方式呢？能不能够直接就用循环来搞定呢？能不能边遍历这个元素，就直接把这个元素放到正确的位置上，这样就可以省好多事情。可以用一个哈希表（字典/对象）来储存这些元素，键（属性名）就是元素的id，这样就可以直接判断当前遍历的元素的父元素在不在哈希表里面了。</p>
+<p>忽然，笔者想到了一个特性——<strong>引用</strong>，<strong>js中的对象都是引用的</strong>，哪怕我已经把a对象push进一个list中了，我在后面对a对象进行的任何修改都会在list中反映出来。也就是说，我把a元素挂到对应的父元素f上了，当我在后面找到a元素的子元素b时，我把该子元素b挂到a上，f中挂载的a也会一样有b元素。</p>
+<p><strong>【步骤】</strong></p>
+<p>1. 新建一个对象temp用于存放临时信息。遍历列表，将当前访问元素a加到temp中（属性名为对象id，属性值为该对象）；</p>
+<p>2. 在temp中查找是否有a的子节点，有的话就将子节点挂到a上；</p>
+<p>3. 在temp中查找是否有a的父节点，有的话就将a挂到父节点上；</p>
+<p>可以看到，时间复杂度为O(n<sup>2</sup>)，空间复杂度也不会太高，该方法不会对原数组进行修改。</p>
+<p><strong>【实现】</strong></p>
+<pre><code><code class="language-js">function arr2tree2(arr, root) {
+  var temp = {};
+  temp[root.id] = root;
+  for (var i = 0; i &lt; arr.length; i++) {
+    // 插入一个新节点，后面对该节点的修改都会同步到该节点的父节点上
+    temp[arr[i].id] = arr[i];
+    // 查找是否有子节点
+    var keys = Object.keys(temp);
+    for (var j = 0; j &lt; keys.length; j++) {
+      if (temp[keys[j]].fid == arr[i].id) {
+        temp[arr[i].id].node ? &quot;&quot; : temp[arr[i].id].node = [];
+        temp[arr[i].id].node.push(temp[keys[j]]); // 将该子节点挂到当前节点的node上
+      }
+    }
+    // 查找是否有父节点
+    if (temp[arr[i].fid]) {
+      temp[arr[i].fid].node ? &quot;&quot; : temp[arr[i].fid].node = [];
+      temp[arr[i].fid].node.push(arr[i]); // 将当前节点挂到父节点的node上
+    }
+  }
+  return temp;
+}
+</code></pre>
+<p><strong>【检验】</strong></p>
+<pre><code><code class="language-js">shuffle(s); // 打乱数组
+var result = arr2tree2(s, root);
+console.log(check(result[root.id])); // 预期输出15
+console.log(result[root.id]); // 手工检查输出是否正确
+</code></pre>
+<h2 id="section-4">总结</h2>
+<p>平时笔者所做的项目大多也不涉及到算法，平时秉承的也是能用循环解决的就用循环解决，可以看到，算法对于程序员而言还是很重要的，本文也只是个人的想法，欢迎一起探讨。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

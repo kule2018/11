@@ -1,0 +1,95 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于页面数据未保存改变路由（beforeunload，beforeRouteLeave）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于页面数据未保存改变路由（beforeunload，beforeRouteLeave）</center></div><div class='banquan'>原文出处:本文由博客园博主-俊辉提供。<br/>
+原文连接:https://www.cnblogs.com/Junhui-37/p/11251457.html</div><br>
+    <h4>　　一下内容为笔者个人理解，如有出入还请大佬指出不胜感激</h4>
+<p>　　页面有数据未保存，用户离开页面分为两种</p>
+<p>　　　　1 . 直接关闭浏览器标签 或者点击浏览器后退按钮 离开当前页面</p>
+<p>　　　　2. 在页面内改变路由，或则刷新页面（不包含新标签页打开页面&lsquo;target=_blank&rsquo;）</p>
+<p>&nbsp;</p>
+<p>　<span style="font-size: 16px;">　<span style="font-family: 黑体;">先说第1种情况 通过关闭页签和后退按钮&nbsp;</span></span></p>
+<p>　　　　</p>
+<div>　　　1 通过window的api&nbsp; beforeunload&nbsp;</div>
+<div>　　　　　　
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">window.addEventListener('beforeunload', (event) =&gt; {
+  // Cancel the event as stated by the standard.
+  event.preventDefault();
+  // Chrome requires returnValue to be set.
+  event.returnValue = '';
+});</span></pre>
+</div>
+<p>　　　　注意&nbsp;event.preventDefault();谷歌不兼容该方法（详细兼容见下文兼容详图）</p>
+<p>　　笔者实现如下</p>
+<p>　　　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;"> addBeforeunloadHandler(){
+      window.addEventListener('beforeunload', this.beforeunloadHandler, false);
+    },</span></pre>
+</div>
+<p>　注意这里是callback 该事件对象可以设置提示语（目前官方文档标明不推荐使用兼容性很差具体兼容见下文兼容详图）</p>
+<p>　<img src="./images/关于页面数据未保存改变路由（beforeunload，beforeRouteLeave）0.png" alt="" /></p>
+<p>　　　通过watch监听是否有数据未保存来判断 注册该方法还是清除该方法&nbsp;</p>
+<p>　　　　清除注册的监听事件</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">deleBeforeunloadHandler(){
+      window.removeEventListener('beforeunload', this.beforeunloadHandler, false);
+    }</span></pre>
+</div>
+<p>　自定义提示语的callback，注意兼容问题</p>
+<p>　&nbsp; &nbsp;<img src="./images/关于页面数据未保存改变路由（beforeunload，beforeRouteLeave）1.png" alt="" /></p>
+<p>　　　　事件监听：</p>
+<p>　　<img src="./images/关于页面数据未保存改变路由（beforeunload，beforeRouteLeave）2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>　　简单的一段代码可以避免用户误操作丢失数据的蛋疼问题（通常丢失数据的误操作会问候无辜的码农们emmmm）</p>
+<p>　　　　兼容详图&nbsp; 地址 <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event" target="_blank">https://developer.mozilla.org/en-US/docs/Web/API/Window/beforeunload_event</a></p>
+<p>　　　　<img src="./images/关于页面数据未保存改变路由（beforeunload，beforeRouteLeave）3.png" alt="" width="978" height="674" /></p>
+<p>&nbsp;　　</p>
+<pre class="brush: js line-numbers language-js"><code>　　2 用户在页面中点击链接跳转页面和刷新页面 vue的 </code>beforeRouteLeave 路由导航　</pre>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">beforeRouteLeave(to,form,next){
+  let that=this
+  if(that.isPreservation){ <br /></span></pre>
+<div>
+<div>　　　　that.$confirm('有未保存数据，继续该操作数据将丢失。是否确认?', '提示', {</div>
+<div>　　　　confirmButtonText: '确定',</div>
+<div>　　　　cancelButtonText: '取消',</div>
+<div>　　　　type: 'warning'</div>
+<div>　　　　}).then(()=&gt;{</div>
+<div>　　　　next()</div>
+<div>　　　　})</div>
+</div>
+<pre><code>  }else{</pre>
+<pre><code><span style="color: #000000;">     next()
+  }</span></pre>
+</div>
+<p class="brush: js line-numbers language-js">　自己的代码段（生命周期函数别大意写到其他生命周期函数内部了）　　<br />　关于 to form next就不用介绍了 一般开发应该都知道是干嘛的。next（false） 取消导航&nbsp;&nbsp;</p>
+<p>&nbsp;</p>
+<p>　　该方法为笔者自己项目使用的ui框架，就是弹窗而已，根据自己情况使用</p>
+<p>　　<img src="./images/关于页面数据未保存改变路由（beforeunload，beforeRouteLeave）4.png" alt="" /></p>
+<p>　　两者一起使用，让用户未保存数据时无路可走。</p>
+
+
+</div>
+<div>　　　　　　</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,183 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何快速搭建一个短链接服务？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何快速搭建一个短链接服务？</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/how-to-build-shorten-url-service.html</div><br>
+    <p><strong>摘要：</strong> 很简单的短链接教程。</p>
+<ul>
+<li>原文：<a href="https://segmentfault.com/a/1190000020142570">十分钟实现短链接服务（Node + Express + MongoDB）</a></li>
+<li>作者：MudOnTire</li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<p>短链接我们或多或少都使用过，所谓短链接就是根据较长的原链接url生成一段较短的链接，访问短链接可以跳转到对应的原链接，这样做好处在于：1. url更加美观；2. 便于保存和传播；3. 某些网站内容发布有字数限制，短链接可以节约字数。</p>
+<p>短链接实现的原理非常简单，可以概括为：</p>
+<ol>
+<li>为每个原链接生成不重复的唯一短链接</li>
+<li>将原链接和对应短链接成对保存到数据库</li>
+<li>访问短链接时，web服务器将目标重定向到对应的原链接</li>
+</ol>
+<p>根据以上思路，我们自己也可以分分钟实现一个短链接生成服务。本文示例使用 node + express + mongodb。</p>
+<h3 id="初始化项目">1. 初始化项目</h3>
+<h4 id="安装如下依赖">(1). 安装如下依赖：</h4>
+<p><strong>package.json：</strong></p>
+<pre><code><code>&quot;dependencies&quot;: {
+  &quot;config&quot;: &quot;^3.2.2&quot;, // 读取项目配置
+  &quot;express&quot;: &quot;^4.17.1&quot;, // web服务器
+  &quot;mongoose&quot;: &quot;^5.6.9&quot;, // 操作mongodb
+  &quot;shortid&quot;: &quot;^2.2.14&quot;, // 生成不重复的唯一Id
+  &quot;valid-url&quot;: &quot;^1.0.9&quot; // 判断url格式是否正确
+}</code></pre>
+<h4 id="增加项目配置">(2). 增加项目配置：</h4>
+<p>主要用于存放MongoDB的连接字符串和短链接的base url。</p>
+<p><strong>config/default.json：</strong></p>
+<pre><code><code>{
+  &quot;mongoURI&quot;: &quot;mongodb://localhost:27017/url-shorten-service&quot;,
+  &quot;baseUrl&quot;: &quot;http://localhost:5000&quot;
+}</code></pre>
+<h4 id="增加mongodb连接方法">(3). 增加MongoDB连接方法</h4>
+<p><strong>config/db.js：</strong></p>
+<pre><code><code>const mongoose = require(&#39;mongoose&#39;);
+const config = require(&#39;config&#39;);
+const db = config.get(&#39;mongoURI&#39;);
+
+const connectDB = async () =&gt; {
+  try {
+    await mongoose.connect(db, {
+      useNewUrlParser: true
+    });
+    console.log(`MongoDB Connected to: ${db}`);
+  } catch (error) {
+    console.error(error.message);
+    process.exit(1);
+  }
+}
+
+module.exports = connectDB;</code></pre>
+<h4 id="启动express">(4). 启动express：</h4>
+<p><strong>index.js：</strong></p>
+<pre><code><code>const express = require(&#39;express&#39;);
+const connectDB = require(&#39;./config/db&#39;);
+
+const app = express();
+
+// 连接MongoDB
+connectDB();
+
+app.use(express.json({
+  extended: false
+}));
+
+// 路由，稍后设置
+app.use(&#39;/&#39;, require(&#39;./routes/index&#39;));
+app.use(&#39;/api/url&#39;, require(&#39;./routes/url&#39;));
+
+const port = 5000;
+
+app.listen(port, () =&gt; {
+  console.log(`Server running on port ${port}`);
+});</code></pre>
+<h3 id="定义数据库模型">2. 定义数据库模型</h3>
+<p>我们需要将原链接和对应短链接保存到数据库，简单起见，我们只需要保存一个短链接编码，相应的短链接可以使用base url和编码拼接而成。</p>
+<p><strong>models/url.js：</strong></p>
+<pre><code><code>const mongoose = require(&#39;mongoose&#39;);
+
+const urlSchema = new mongoose.Schema({
+  urlCode: String,
+  longUrl: String
+});
+
+module.exports = mongoose.model(&#39;Url&#39;, urlSchema);</code></pre>
+<h3 id="生成短链接编码">3. 生成短链接编码</h3>
+<p>这是我们实现的关键一步，思路是：用户传入一个长链接，我们首先使用 <a href="https://www.npmjs.com/package/valid-url">valid-url</a> 判断传入的url是否合法，不合法则返回错误，如果合法我们在数据库中搜索是否有该长链接的记录，如果有则直接返回该条记录，如果没有则生成一条新记录，并生成对应的短链接。借助于 <a href="https://www.npmjs.com/package/shortid">shortId</a>，我们可以很方便的生成一个不重复的唯一编码。</p>
+<p><strong>routes/url.js：</strong></p>
+<pre><code><code>const epxress = require(&quot;express&quot;);
+const router = epxress.Router();
+const validUrl = require(&#39;valid-url&#39;);
+const shortId = require(&#39;shortid&#39;);
+const config = require(&#39;config&#39;);
+const Url = require(&#39;../models/url&#39;);
+
+router.post(&#39;/shorten&#39;, async (req, res, next) =&gt; {
+  const { longUrl } = req.body;
+  if (validUrl.isUri(longUrl)) {
+    try {
+      let url = await Url.findOne({ longUrl });
+      if (url) {
+        res.json({
+          shortUrl: `${config.get(&#39;baseUrl&#39;)}/${url.urlCode}`
+        });
+      } else {
+        const urlCode = shortId.generate();
+        url = new Url({
+          longUrl,
+          urlCode
+        });
+        await url.save();
+        res.json({
+          shortUrl: `${config.get(&#39;baseUrl&#39;)}/${urlCode}`
+        });
+      }
+    } catch (error) {
+      res.status(500).json(&#39;Server error&#39;);
+    }
+  } else {
+    res.status(401).json(&#39;Invalid long url&#39;);
+  }
+});
+
+module.exports = router;</code></pre>
+<h3 id="访问短链接跳转到原链接">4. 访问短链接跳转到原链接</h3>
+<p>最后一步非常简单，当用户访问我们生成的短链接时，我们根据url中的短链接编码查询到对应记录，如果存在对应记录我们使用express的<code>res.redirect</code>方法将访问重定向至原链接，如果不存在则返回错误。</p>
+<p><strong>routes/index.js</strong></p>
+<pre><code><code>const epxress = require(&quot;express&quot;);
+const router = epxress.Router();
+const Url = require(&#39;../models/url&#39;);
+
+router.get(&#39;/:code&#39;, async (req, res, next) =&gt; {
+  try {
+    const urlCode = req.params.code;
+    const url = await Url.findOne({ urlCode });
+    if (url) {
+      // 重定向至原链接
+      res.redirect(url.longUrl);
+    } else {
+      res.status(404).json(&quot;No url found&quot;);
+    }
+  } catch (error) {
+    res.status(500).json(&quot;Server error&quot;);
+  }
+});
+
+module.exports = router;</code></pre>
+<p><strong>测试一下：</strong></p>
+<p><img src="./images/如何快速搭建一个短链接服务？0.png" /></p>
+<p><strong>访问短链接：</strong></p>
+<p><img src="./images/如何快速搭建一个短链接服务？1.png" /></p>
+<p>这样，一个简单的短链接生成服务就完成了，往往在我们看来很神奇的技术其实背后的原理和实现很简单，希望本文对大家有所启发。</p>
+<blockquote>
+<p>最后，推荐大家使用<a href="https://www.fundebug.com/?utm_source=MudOnTire">Fundebug</a>，一款很好用的BUG监控工具~</p>
+</blockquote>
+<p>本文Demo地址：<a href="https://github.com/MudOnTire/url-shortener-service" class="uri">https://github.com/MudOnTire/url-shortener-service</a></p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了20亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

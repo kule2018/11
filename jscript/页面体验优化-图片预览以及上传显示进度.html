@@ -1,0 +1,267 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修页面体验优化-图片预览以及上传显示进度' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>页面体验优化-图片预览以及上传显示进度</center></div><div class='banquan'>原文出处:本文由博客园博主Peerless1029提供。<br/>
+原文连接:https://www.cnblogs.com/peerless1029/p/11748443.html</div><br>
+    <p>&nbsp; &nbsp; 在平时项目开发中，我们经常会对文件做一些上传操作，不仅仅要实现基本需求，也要兼顾用户体验，根据自己在工作中遇到的问题谈谈对图片上传的预览以及上传进度的优化。</p>
+<h2 id="1-搭建项目">1.搭建项目</h2>
+<p>基于Vue.js+axios搭建的项目，新建一个Index.Vue项目如下，基本结构可以先可以选择文件，预览文件。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>&lt;template&gt;
+    &lt;div class="wrapper"&gt;
+        &lt;h2 class="text-center"&gt;上传图片&lt;/h2&gt;
+        选择文件：&lt;input type="file" multiple="true" accept="image/gif, image/jpeg" @change="handleFileChange($event)"&gt;
+        &lt;p&gt;图片预览：&lt;/p&gt;
+        &lt;img v-show="imgPreViewSrc" :src="imgPreViewSrc" alt="图片预览"&gt;
+        &lt;button v-show="file" @click="uploadFile"&gt;上传文件到服务器&lt;/button&gt;
+    &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;
+  ...
+  data(){
+      return{
+          imgPreViewSrc:'', //文件预览地址
+          file:null, //上传文件
+      }
+  }
+  methods:{
+      
+  }
+  ...
+&lt;/script&gt;
+&lt;style lang="less" scoped&gt;
+.text-center{
+    text-align: center;
+}
+.wrapper{
+    font-size: 16px;
+    width: 60%;
+    height: 100%;
+    margin:  0 20%;
+    border: 1px solid #ddd;
+    img{
+        width: 200px;
+    }
+    button{
+        width:120px;
+        height: 30px;
+        margin-top: 30px;
+        line-height: 30px;
+        border: 1px solid #CCC;
+        text-align: center;
+    }
+}
+&lt;/style&gt;
+</pre>
+</div>
+<p>input的类型type设置为file,可以选择文件，multipe属性设置为true，一次可以选择多个文件。<br />运行项目，页面如下：</p>
+<p><img src="./images/页面体验优化-图片预览以及上传显示进度0.png" alt="" /></p>
+<h2>2.选择文件以及预览</h2>
+<p>选择一个图片文件（bg.jpg）,之前有在input绑定文件改变监听方法，打印事件参数如下：</p>
+<p><img src="./images/页面体验优化-图片预览以及上传显示进度1.png" alt="" /></p>
+<p>发现刚才选择的文件在Event&gt;target&gt;files下面</p>
+<p>files是一个数组，刚才只选择了一张图片，所以长度为1，图片的名称（name），大小（size），类型（type）都有包含。</p>
+<p>2.1.设置文件类型</p>
+<p>&nbsp; &nbsp;&nbsp;在input标签accept属性设置文件类型，当用户打开文件资源管理器选择文件时，会过滤掉其他类型文件，能够从源头避免用户选择脏文件，也更加方便用户选择文件。</p>
+<div class="cnblogs_code">
+<pre><code>&lt;input type="file" multiple="true" accept="image/gif, image/jpeg" @change="handleFileChange($event)"&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>2.2.图片预览</p>
+<p>&nbsp; &nbsp; 要将用户选择的文件显示到页面上，以方便用户下一步操作，因为用户可能会从选择的文件中再挑选几张图片操作，例如上传到服务器。<br />&emsp;图片预览要用到<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/URL/createObjectURL" rel="noopener" target="_blank">URL</a>对象的URL.createObjectURL(file)方法生成一个blob地址，直接赋值给img标签的src，页面就可以展示。<em>(URL.createObjectURL() 静态方法会创建一个 DOMString，其中包含一个表示参数中给出的对象的URL。这个 URL 的生命周期和创建它的窗口中的 document 绑定。这个新的URL 对象表示指定的 File 对象或 Blob 对象。)</em><br />在methods添加handleFileChange方法，预览图片</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">...
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 文件改变监听事件</span>
+<span style="color: #000000;">handleFileChange(evt){
+    console.log(evt);
+    let file</span>=evt.target.files[0<span style="color: #000000;">];
+    </span><span style="color: #0000ff;">this</span>.file=<span style="color: #000000;">file;
+    let src</span>=<span style="color: #000000;">URL.createObjectURL(file);
+    </span><span style="color: #0000ff;">this</span>.imgPreViewSrc=<span style="color: #000000;">src;
+},
+...</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><img src="./images/页面体验优化-图片预览以及上传显示进度2.png" alt="" /></p>
+<h2 id="3-显示上传文件进度">3.显示上传文件进度</h2>
+<p>&nbsp; &nbsp;&nbsp;选择好文件之后，文件要上传到服务器，有时候文件很大或者网速很慢的情况下，用户需要知道已经上传进度，如果没有上传进度，用户退出页面那么文件就上传失败了。</p>
+<p>3.1.修改script文件</p>
+<ul>
+<li>引入axios,封装上传Promise函数</li>
+<li>在methods里添加上传方法uploadFile</li>
+</ul>
+<div class="cnblogs_code">
+<pre><code>&lt;script&gt;<span style="color: #000000;">
+  import axios from </span>'axios'<span style="color: #000000;">;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 文件上传服务api</span>
+  const baseURL='http://127.0.0.1/api'<span style="color: #000000;">;
+  </span><span style="color: #0000ff;">function</span> upload (params,cb=<span style="color: #0000ff;">null</span><span style="color: #000000;">) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+      axios.create({
+        baseURL,
+      })({
+        url:</span>'/upload/uploadFile/image'<span style="color: #000000;">,
+        method:</span>'post'<span style="color: #000000;">,
+        data:params,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 上传进度</span>
+        onUploadProgress:<span style="color: #0000ff;">function</span><span style="color: #000000;">(progressEvent){
+          </span><span style="color: #0000ff;">if</span>(progressEvent.lengthComputable &amp;&amp;<span style="color: #000000;"> cb){
+            cb(progressEvent);
+          }
+        },
+      }).then(res </span>=&gt;<span style="color: #000000;"> {
+        console.log(res.data);
+        </span><span style="color: #0000ff;">if</span>(res.status===200<span style="color: #000000;">){
+          resolve(res.data);
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+          reject(res.data);
+        }
+      }).</span><span style="color: #0000ff;">catch</span>(err =&gt;<span style="color: #000000;"> {
+        reject(err);
+      });
+    });
+  }
+  ...
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 上传文件到服务器</span>
+<span style="color: #000000;">  uploadFile(){
+    let file</span>=<span style="color: #0000ff;">this</span><span style="color: #000000;">.file;
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(file){
+        let formData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FormData();
+        formData.append(</span>'file'<span style="color: #000000;">, file);
+        upload(formData,(progressEvent)</span>=&gt;<span style="color: #000000;">{
+         console.log(progressEvent);
+        });
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        alert(</span>'请选择文件'<span style="color: #000000;">)
+    }
+  ...
+</span>&lt;/script&gt;</pre>
+</div>
+<p>3.2.上传进度<br />&emsp;&emsp;在axios入参新增onUploadProgress方法，在文件上传过程中该方法会调用，参数包含上传的一些信息。<br />有关<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/ProgressEvent" rel="noopener" target="_blank">ProgressEvent</a>的一些介绍:</p>
+<ol>
+<li>ProgressEvent 是一个用来测量底层操作进度的接口，可以测量HTTP请求（例如：一个 XMLHttpRequest请求、或者一个底层资源如img，audio，video等,ProgressEvent常用属性值：</li>
+<li>ProgressEvent.lengthComputable:它是一个布尔值标识，表明总共需要完成的工作量和已经完成的工作是否可以被底层所计算到。换而言之，它表示的就是过程是否是可以测量的。</li>
+<li>ProgressEvent.loaded:是一个unsigned long long类型，表示底层进程已经执行的工作量。所做的工作比率可以用属性和ProgressEvent.total计算。当使用HTTP下载资源时，这只表示内容本身的一部分，而不是头和其他开销。</li>
+<li>ProgressEvent.total:是unsigned long long类型，表示底层进程正在执行的工作总量。当使用HTTP下载资源时，这只表示内容本身，而不是头和其他开销。</li>
+
+
+
+
+
+</ol>
+<p>点击上传按钮，打开控制台：</p>
+<p><img src="./images/页面体验优化-图片预览以及上传显示进度3.png" alt="" /></p>
+<p>可以发现ProgressEvent中loaded属性值为图片文件上传的大小，total为文件的大小。</p>
+<p>3.3.在页面添加进度条<br />为了组件通用化，新建一个Progress.vue组件,接受一个progressValue进度参数。</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div class="progress-box"&gt;
+    &lt;div class="progress-content"&gt;
+      &lt;p v-<span style="color: #0000ff;">if</span>="progressValue&lt;100"&gt;上传进度：{{progressValue}}%&lt;/p&gt;
+      &lt;p v-<span style="color: #0000ff;">else</span>&gt;上传成功!&lt;/p&gt;
+      &lt;progress :value="progressValue" max="100"&gt;&lt;/progress&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;<span style="color: #000000;">
+  export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    props:[</span>'progressValue'<span style="color: #000000;">],
+    name: </span>'Progress'<span style="color: #000000;">,
+  };
+</span>&lt;/script&gt;
+&lt;style lang="less" scoped&gt;<span style="color: #000000;">
+.progress</span>-<span style="color: #000000;">box{
+  position: fixed;
+  top:</span>0<span style="color: #000000;">;
+  left:</span>0<span style="color: #000000;">;
+  bottom: </span>0<span style="color: #000000;">;
+  right:</span>0<span style="color: #000000;">;
+  background: rgba(</span>0,0,0,0.5<span style="color: #000000;">);
+  .progress</span>-<span style="color: #000000;">content{
+    position: absolute;
+    top:</span>50%<span style="color: #000000;">;
+    left:</span>50%<span style="color: #000000;">;
+    width: 300px;
+    height: 76px;
+    padding: 8px 30px;
+    transform: translate(</span>-150px,-<span style="color: #000000;">38px);
+    background: #fff;
+    border</span>-<span style="color: #000000;">radius: 8px;
+    p{
+      margin</span>-<span style="color: #000000;">bottom: 5px;
+    }
+    progress{
+      width: </span>100%<span style="color: #000000;">;
+      height: 22px;
+    }
+    progress::</span>-webkit-progress-<span style="color: #000000;">bar{
+      background</span>-<span style="color: #000000;">color:#d7d7d7;
+    }
+    progress::</span>-webkit-progress-<span style="color: #000000;">value{
+      background</span>-<span style="color: #000000;">color:orange;
+    }
+  }
+}
+</span>&lt;/style&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>在div末尾添加Progress组件，再修改Index.vue文件methods的上传方法：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div class="wrapper"&gt;<span style="color: #000000;">
+    ...
+    </span>&lt;Progress :progressValue="progressValue" v-<span style="color: #0000ff;">if</span>="isShowProgressBox"&gt;&lt;/Progress&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+&lt;script&gt;<span style="color: #000000;">
+import Progress from </span>'../components/Progress'<span style="color: #000000;">;
+...
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 上传文件到服务器</span>
+<span style="color: #000000;">uploadFile(){
+  let file</span>=<span style="color: #0000ff;">this</span><span style="color: #000000;">.file;
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(file){
+    let formData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FormData();
+    formData.append(</span>'file'<span style="color: #000000;">, file);
+    upload(formData,(progressEvent)</span>=&gt;<span style="color: #000000;">{
+      </span><span style="color: #0000ff;">this</span>.isShowProgressBox=<span style="color: #0000ff;">true</span><span style="color: #000000;">;
+      </span><span style="color: #0000ff;">this</span>.progressValue=parseFloat((progressEvent.loaded/progressEvent.total*100).toFixed(2));
+      <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.progressValue===100<span style="color: #000000;">){
+        let timer</span>=setTimeout(()=&gt;<span style="color: #000000;">{
+        </span><span style="color: #0000ff;">this</span>.isShowProgressBox=<span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        clearTimeout(timer);
+        timer</span>=<span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        },</span>500<span style="color: #000000;">);
+      }
+    });
+  }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+    alert(</span>'请选择文件'<span style="color: #000000;">);
+  }
+...
+</span>&lt;/script&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>然后再上传图片，如下：</p>
+<p><img src="./images/页面体验优化-图片预览以及上传显示进度4.png" alt="" /></p>
+<p>可以看到，点击上传后，页面出现进度模态框，让用户知道已经上传百分比，优化用户体验。</p>
+<h3 id="关于图片上传其实还能优化的方面还有很多，后续在工作中遇到问题再加以论述。">关于图片上传其实还能优化的方面还有很多，后续在工作中遇到问题再加以论述。</h3>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

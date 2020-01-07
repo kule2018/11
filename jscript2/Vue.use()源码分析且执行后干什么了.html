@@ -1,0 +1,75 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue.use()源码分析且执行后干什么了' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue.use()源码分析且执行后干什么了</center></div><div class='banquan'>原文出处:本文由博客园博主铭の提供。<br/>
+原文连接:https://www.cnblogs.com/liumingwang/p/11212352.html</div><br>
+    <p>直接开始分析源码</p>
+<div class="cnblogs_Highlighter">
+<pre><code>// Vue源码文件路径：src/core/global-api/use.js
+
+import { toArray } from '../util/index'<br />
+//initUse函数接受也一个参数，参数值为Vue实例
+export function initUse (Vue: GlobalAPI) {<br /><br />　//Vue.use函数接受的第一个参数为一个函数或者一个对象（注意：如果是对象，对象里面一定个要有install属性名，且值为一个函数）
+  Vue.use = function (plugin: Function | Object) {<br /><br />　　//声明变量installedPluguns，并指向this._installedPluguns 
+    const installedPlugins = (this._installedPlugins || (this._installedPlugins = []))<br /><br />//判断插件是否注册过，如果已经注册了，不允许重复注册。
+    if (installedPlugins.indexOf(plugin) &gt; -1) {
+      return this
+    }
+
+    // 把通过Vue.use()传入的参数，除开第一个，从第二个参数开始全部取出存储在args中，并向args数组开头添加一个元素，此元素为Vue实例，（所以plugin对应的方法在执行的时候，第一个参数永远是Vue实例）
+    const args = toArray(arguments, 1)
+    args.unshift(this)<br /><br />　　//开始执行要注册的插件函数<br />　　//1.如果传入的插件是一个对象，且对象中有install属性，且此属性对应的值是一个函数
+    if (typeof plugin.install === 'function') {
+      plugin.install.apply(plugin, args)<br />　　//2.如果传入的插件直接就是一个函数
+    } else if (typeof plugin === 'function') {
+      plugin.apply(null, args)
+    }<br /><br />　　// 把刚刚注册的插件添加到installedPlugins中，用作记录是否注册过此插件
+    installedPlugins.push(plugin)
+    return this
+  }
+}
+</pre>
+</div>
+<p>&nbsp;</p>
+<p>顺便贴一下<strong>(toArray源码)</strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>// Vue源码文件路径：src/core/shared/util.js
+
+export function toArray (list: any, start?: number): Array&lt;any&gt; {
+  start = start || 0
+  let i = list.length - start
+  const ret: Array&lt;any&gt; = new Array(i)
+  while (i--) {
+    ret[i] = list[i + start]
+  }
+  return ret
+}
+</pre>
+</div>
+<p>　　</p>
+<p>　　</p>
+<p>&nbsp;</p>
+<p>总结：</p>
+<p>　　第一，判断这个插件是否被注册过，如果已经注册了，不允许重复注册。</p>
+<p>　　第二，接收的<code>plugin</code>参数的限制是<code>Function | Object</code>两种类型之一。</p>
+<p>以后编写插件的时候可以有两种方式。<br />一种是将这个插件的逻辑封装成一个对象，最后在install编写业务代码暴露给Vue对象。<br />还有一种则是将所有逻辑都编写成一个函数暴露给Vue。<br />两种方法原理都一样，第二种就是将这个插件直接当成install函数来处理。<br /><br /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

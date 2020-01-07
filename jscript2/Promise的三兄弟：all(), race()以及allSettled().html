@@ -1,0 +1,429 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Promise的三兄弟：all(), race()以及allSettled()' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Promise的三兄弟：all(), race()以及allSettled()</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/javascript-promise-combinators.html</div><br>
+    <p><strong>摘要：</strong> 玩转Promise。</p>
+<ul>
+<li>原文：<a href="https://segmentfault.com/a/1190000020034361">Promise 中的三兄弟 .all(), .race(), .allSettled()</a></li>
+<li>译者：前端小智</li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<p>从ES6 开始，我们大都使用的是 <code>Promise.all()</code>和<code>Promise.race()</code>，<code>Promise.allSettled()</code> 提案已经到第4阶段，因此将会成为<code>ECMAScript 2020</code>的一部分。</p>
+<h3 id="概述">1.概述</h3>
+<p><strong>Promise.all<T>(promises: Iterable&lt;Promise<T>&gt;): Promise&lt;Array<T>&gt;</strong></p>
+<ul>
+<li><code>Promise.all(iterable)</code> 方法返回一个 <code>Promise</code> 实例，此实例在 <code>iterable</code> 参数内所有的 <code>promise</code> 都“完成（resolved）”或参数中不包含 <code>promise</code> 时回调完成（resolve）；如果参数中 <code>promise</code> 有一个失败（rejected），此实例回调失败（reject），失败原因的是第一个失败 <code>promise</code> 的结果</li>
+</ul>
+<p><strong>Promise.race<T>(promises: Iterable&lt;Promise<T>&gt;): Promise<T></strong></p>
+<ul>
+<li><strong>Promise.race(iterable)</strong> 方法返回一个 <code>promise</code>，一旦迭代器中的某个<code>promise</code>解决或拒绝，返回的 <code>promise</code>就会解决或拒绝。</li>
+</ul>
+<p><strong>Promise.allSettled<T>(promises: Iterable&lt;Promise<T>&gt;): Promise&lt;Array&lt;SettlementObject<T>&gt;&gt;</strong></p>
+<ul>
+<li><strong>Promise.allSettled()</strong>方法返回一个<code>promise</code>，该<code>promise</code>在所有给定的<code>promise</code>已被解析或被拒绝后解析，并且每个对象都描述每个<code>promise</code>的结果。</li>
+</ul>
+<h3 id="回顾-promise-状态">2. 回顾: Promise 状态</h3>
+<p>给定一个返回<code>Promise</code>的异步操作，以下这些是<code>Promise</code>的可能状态：</p>
+<ul>
+<li>pending: 初始状态，既不是成功，也不是失败状态。</li>
+<li>fulfilled: 意味着操作成功完成。</li>
+<li>rejected: 意味着操作失败。</li>
+<li>Settled： <code>Promise</code>要么被完成，要么被拒绝。<code>Promise</code>一旦达成，它的状态就不再改变。</li>
+</ul>
+<p><img src="./images/Promise的三兄弟：all(), race()以及allSettled()0.png" /></p>
+<h2 id="什么是组合">3.什么是组合</h2>
+<p>又称部分-整体模式，将对象整合成树形结构以表示“部分整体”的层次结构。组合模式使得用户对单个对象和组合对象的使用具有一致性，它基于两种函数：</p>
+<ul>
+<li>基元函数(简短:基元)创建原子块。</li>
+<li>组合函数（简称：组合）将原子和/或复合件组合在一起以形成复合件。</li>
+</ul>
+<p>对于 JS 的 Promises 来说</p>
+<ul>
+<li>基元函数包括:<code>Promise.resolve()</code>、<code>Promise.reject()</code></li>
+<li>组合函数：<code>Promise.all()</code>, <code>Promise.race()</code>, <code>Promise.allSettled()</code></li>
+</ul>
+<h2 id="promise.all">4. Promise.all()</h2>
+<p><code>Promise.all()</code>的类型签名:</p>
+<ul>
+<li><strong>Promise.all<T>(promises: Iterable&lt;Promise<T>&gt;): Promise&lt;Array<T>&gt;</strong></li>
+</ul>
+<p>返回情况：</p>
+<p><strong>完成（Fulfillment）：</strong><br />
+如果传入的可迭代对象为空，<code>Promise.all</code> 会同步地返回一个已完成（<code>resolved</code>）状态的<code>promise</code>。<br />
+如果所有传入的 <code>promise</code> 都变为完成状态，或者传入的可迭代对象内没有 <code>promise</code>，<code>Promise.all</code> 返回的 <code>promise</code> 异步地变为完成。<br />
+在任何情况下，<code>Promise.all</code> 返回的 <code>promise</code> 的完成状态的结果都是一个数组，它包含所有的传入迭代参数对象的值（也包括非 promise 值）。</p>
+<p><strong>失败/拒绝（Rejection）：</strong><br />
+如果传入的 <code>promise</code> 中有一个失败（<code>rejected</code>），<code>Promise.all</code> 异步地将失败的那个结果给失败状态的回调函数，而不管其它 <code>promise</code> 是否完成。</p>
+<p>来个例子：</p>
+<pre><code><code>    const promises = [
+      Promise.resolve(&#39;a&#39;),
+      Promise.resolve(&#39;b&#39;),
+      Promise.resolve(&#39;c&#39;),
+    ];
+    Promise.all(promises)
+      .then((arr) =&gt; assert.deepEqual(
+        arr, [&#39;a&#39;, &#39;b&#39;, &#39;c&#39;]
+      ));</code></pre>
+<p>如果其中的一个 promise 被拒绝，那么又是什么情况：</p>
+<pre><code><code>    const promises = [
+      Promise.resolve(&#39;a&#39;),
+      Promise.resolve(&#39;b&#39;),
+      Promise.reject(&#39;ERROR&#39;),
+    ];
+    Promise.all(promises)
+      .catch((err) =&gt; assert.equal(
+        err, &#39;ERROR&#39;
+      ));</code></pre>
+<p>下图说明<code>Promise.all()</code>是如何工作的</p>
+<p><img src="./images/Promise的三兄弟：all(), race()以及allSettled()1.png" /></p>
+<h4 id="异步-.map-与-promise.all">4.1 异步 .map() 与 Promise.all()</h4>
+<p>数组转换方法，如<code>.map()</code>、<code>.filter()</code>等，用于同步计算。例如</p>
+<pre><code><code>    function timesTwoSync(x) {
+      return 2 * x;
+    }
+    const arr = [1, 2, 3];
+    const result = arr.map(timesTwoSync);
+    assert.deepEqual(result, [2, 4, 6]);</code></pre>
+<p>如果<code>.map()</code>的回调是基于<code>Promise</code>的函数会发生什么？ 使用这种方式 <code>.map()</code>返回的的结果是一个<code>Promises</code>数组。</p>
+<p><code>Promises</code>数组不是普通代码可以使用的数据，但我们可以通过<code>Promise.all()</code>来解决这个问题：它将Promises数组转换为<code>Promise</code>，并使用一组普通值数组来实现。</p>
+<pre><code><code>    function timesTwoAsync(x) {
+      return new Promise(resolve =&gt; resolve(x * 2));
+    }
+    const arr = [1, 2, 3];
+    const promiseArr = arr.map(timesTwoAsync);
+    Promise.all(promiseArr)
+      .then(result =&gt; {
+        assert.deepEqual(result, [2, 4, 6]);
+      });</code></pre>
+<h4 id="更实际工作上关于-.map示例">更实际工作上关于 .map()示例</h4>
+<p>接下来，咱们使用<code>.map()</code>和<code>Promise.all()</code>从<code>Web</code>下载文件。 首先，咱们需要以下帮助函数：</p>
+<pre><code><code>    function downloadText(url) {
+      return fetch(url)
+        .then((response) =&gt; { // (A)
+          if (!response.ok) { // (B)
+            throw new Error(response.statusText);
+          }
+          return response.text(); // (C)
+        });
+    }</code></pre>
+<p><code>downloadText()</code>使用基于<code>Promise</code>的fetch API 以字符串流的方式下载文件：</p>
+<ul>
+<li>首先，它异步检索响应（第A行）。</li>
+<li>response.ok（B行）检查是否存在“找不到文件”等错误。</li>
+<li>如果没有错误，使用<code>.text()</code>(第C行)以字符串的形式取回文件的内容。</li>
+</ul>
+<p>在下面的示例中，咱们 下载了两个文件</p>
+<pre><code><code>    const urls = [
+      &#39;http://example.com/first.txt&#39;,
+      &#39;http://example.com/second.txt&#39;,
+    ];
+
+    const promises = urls.map(
+      url =&gt; downloadText(url));
+    
+    Promise.all(promises)
+      .then(
+        (arr) =&gt; assert.deepEqual(
+          arr, [&#39;First!&#39;, &#39;Second!&#39;]
+        ));</code></pre>
+<h4 id="promise.all的一个简版实现">Promise.all()的一个简版实现</h4>
+<pre><code><code>    function all(iterable) {
+      return new Promise((resolve, reject) =&gt; {
+        let index = 0;
+        for (const promise of iterable) {
+          // Capture the current value of `index`
+          const currentIndex = index;
+          promise.then(
+            (value) =&gt; {
+              if (anErrorOccurred) return;
+              result[currentIndex] = value;
+              elementCount++;
+              if (elementCount === result.length) {
+                resolve(result);
+              }
+            },
+            (err) =&gt; {
+              if (anErrorOccurred) return;
+              anErrorOccurred = true;
+              reject(err);
+            });
+          index++;
+        }
+        if (index === 0) {
+          resolve([]);
+          return;
+        }
+        let elementCount = 0;
+        let anErrorOccurred = false;
+        const result = new Array(index);
+      });
+    }</code></pre>
+<h3 id="promise.race">5. Promise.race()</h3>
+<p><code>Promise.race()</code>方法的定义：</p>
+<p><strong>Promise.race<T>(promises: Iterable&lt;Promise<T>&gt;): Promise<T></strong></p>
+<p><strong>Promise.race(iterable)</strong> 方法返回一个 <code>promise</code>，一旦迭代器中的某个<code>promise</code>解决或拒绝，返回的 <code>promise</code>就会解决或拒绝。来几个例子，瞧瞧：</p>
+<pre><code><code>const promises = [
+  new Promise((resolve, reject) =&gt;
+    setTimeout(() =&gt; resolve(&#39;result&#39;), 100)), // (A)
+  new Promise((resolve, reject) =&gt;
+    setTimeout(() =&gt; reject(&#39;ERROR&#39;), 200)), // (B)
+];
+Promise.race(promises)
+  .then((result) =&gt; assert.equal( // (C)
+    result, &#39;result&#39;));</code></pre>
+<p>在第 <code>A</code> 行，<code>Promise</code> 是完成状态 ，所以 第 <code>C</code> 行会执行（尽管第 <code>B</code> 行被拒绝）。</p>
+<p>如果 Promise 被拒绝首先执行，在来看看情况是嘛样的：</p>
+<pre><code><code>    const promises = [
+      new Promise((resolve, reject) =&gt;
+        setTimeout(() =&gt; resolve(&#39;result&#39;), 200)),
+      new Promise((resolve, reject) =&gt;
+        setTimeout(() =&gt; reject(&#39;ERROR&#39;), 100)),
+    ];
+    Promise.race(promises)
+      .then(
+        (result) =&gt; assert.fail(),
+        (err) =&gt; assert.equal(
+          err, &#39;ERROR&#39;));</code></pre>
+<p>注意，由于 <code>Promse</code> 先被拒绝，所以 <code>Promise.race()</code> 返回的是一个被拒绝的 <code>Promise</code></p>
+<p>这意味着<code>Promise.race（[]）</code>的结果永远不会完成。</p>
+<p>下图演示了<code>Promise.race()</code>的工作原理：</p>
+<p><img src="./images/Promise的三兄弟：all(), race()以及allSettled()2.png" /></p>
+<h4 id="promise.race-在-promise-超时下的情况">Promise.race() 在 Promise 超时下的情况</h4>
+<p>在本节中，我们将使用<code>Promise.race()</code>来处理超时的 <code>Promise</code>。 以下辅助函数:</p>
+<pre><code><code>    function resolveAfter(ms, value=undefined) {
+      return new Promise((resolve, reject) =&gt; {
+        setTimeout(() =&gt; resolve(value), ms);
+      });
+    }</code></pre>
+<p><code>resolveAfter()</code> 主要做的是在指定的时间内，返回一个状态为 <code>resolve</code> 的 <code>Promise</code>，值为为传入的 <code>value</code></p>
+<p>调用上面方法：</p>
+<pre><code><code>    function timeout(timeoutInMs, promise) {
+      return Promise.race([
+        promise,
+        resolveAfter(timeoutInMs,
+          Promise.reject(new Error(&#39;Operation timed out&#39;))),
+      ]);
+    }</code></pre>
+<p><code>timeout()</code> 返回一个<code>Promise</code>，该 <code>Promise</code> 的状态取决于传入 <code>promise</code> 状态 。</p>
+<p>其中 <code>timeout</code> 函数中的 <code>resolveAfter(timeoutInMs, Promise.reject(new Error('Operation timed out'))</code> ，通过 <code>resolveAfter</code> 定义可知，该结果返回的是一个被拒绝状态的 <code>Promise</code>。</p>
+<p>再来看看<code>timeout(timeoutInMs, promise)</code>的运行情况。如果传入<code>promise</code>在指定的时间之前状态为完成时，<code>timeout</code> 返回结果就是一个完成状态的 <code>Promise</code>,可以通过<code>.then</code>的第一个回调参数处理返回的结果。</p>
+<pre><code><code>    timeout(200, resolveAfter(100, &#39;Result!&#39;))
+      .then(result =&gt; assert.equal(result, &#39;Result!&#39;));</code></pre>
+<p>相反，如果是在指定的时间之后完成，刚 <code>timeout</code> 返回结果就是一个拒绝状态的 <code>Promise</code>,从而触发<code>catch</code>方法指定的回调函数。</p>
+<pre><code><code>    timeout(100, resolveAfter(2000, &#39;Result!&#39;))
+      .catch(err =&gt; assert.deepEqual(err, new Error(&#39;Operation timed out&#39;)));</code></pre>
+<p>重要的是要了解“Promise 超时”的真正含义：</p>
+<ol>
+<li>如果传入入<code>Promise</code> 较到的得到解决，其结果就会给返回的 <code>Promise</code>。</li>
+<li>如果没有足够快得到解决，输出的 <code>Promise</code> 的状态为拒绝。</li>
+</ol>
+<p>也就是说，超时只会阻止传入的Promise，影响输出 Promise（因为Promise只能解决一次）， 但它并没有阻止传入<code>Promise</code>的异步操作。</p>
+<h4 id="promise.race-的一个简版实现">5.2 Promise.race() 的一个简版实现</h4>
+<p>以下是 <code>Promise.race()</code>的一个简化实现(它不执行安全检查)</p>
+<pre><code><code>    function race(iterable) {
+      return new Promise((resolve, reject) =&gt; {
+        for (const promise of iterable) {
+          promise.then(
+            (value) =&gt; {
+              if (settlementOccurred) return;
+              settlementOccurred = true;
+              resolve(value);
+            },
+            (err) =&gt; {
+              if (settlementOccurred) return;
+              settlementOccurred = true;
+              reject(err);
+            });
+        }
+        let settlementOccurred = false;
+      });
+    }</code></pre>
+<h3 id="promise.allsettled">6.Promise.allSettled()</h3>
+<p><code>“Promise.allSettled”</code>这一特性是由<strong>Jason Williams</strong>，<strong>Robert Pamely</strong>和<strong>Mathias Bynens</strong>提出。</p>
+<p><code>promise.allsettle()</code>方法的定义：</p>
+<ul>
+<li><strong>Promise</strong>.allSettled<T>(promises: Iterable&lt;<strong>Promise</strong><T>&gt;)<br />
+: <strong>Promise</strong>&lt;<strong>Array</strong>&lt;SettlementObject<T>&gt;&gt;</li>
+</ul>
+<p>它返回一个<code>Array</code>的<code>Promise</code>，其元素具有以下类型特征：</p>
+<pre><code><code>    type SettlementObject&lt;T&gt; = FulfillmentObject&lt;T&gt; | RejectionObject;
+    
+    interface FulfillmentObject&lt;T&gt; {
+      status: &#39;fulfilled&#39;;
+      value: T;
+    }
+    
+    interface RejectionObject {
+      status: &#39;rejected&#39;;
+      reason: unknown;
+    }</code></pre>
+<p><code>Promise.allSettled()</code>方法返回一个promise，该promise在所有给定的promise已被解析或被拒绝后解析，并且每个对象都描述每个promise的结果。</p>
+<p>举例说明, 比如各位用户在页面上面同时填了3个独立的表单, 这三个表单分三个接口提交到后端, 三个接口独立, 没有顺序依赖, 这个时候我们需要等到请求全部完成后给与用户提示表单提交的情况</p>
+<p>在多个<code>promise</code>同时进行时咱们很快会想到使用<code>Promise.all</code>来进行包装, 但是由于<code>Promise.all</code>的短路特性, 三个提交中若前面任意一个提交失败, 则后面的表单也不会进行提交了, 这就与咱们需求不符合.</p>
+<p><code>Promise.allSettled</code>跟<code>Promise.all</code>类似, 其参数接受一个<code>Promise</code>的数组, 返回一个新的<code>Promise</code>, 唯一的不同在于, 其不会进行短路, 也就是说当<code>Promise</code>全部处理完成后我们可以拿到每个<code>Promise</code>的状态, 而不管其是否处理成功.</p>
+<p>下图说明<code>promise.allsettle()</code>是如何工作的</p>
+<p><img src="./images/Promise的三兄弟：all(), race()以及allSettled()3.png" /></p>
+<h4 id="promise.allsettled-例子">6.1 Promise.allSettled() 例子</h4>
+<p>这是<code>Promise.allSettled()</code> 使用方式快速演示示例</p>
+<pre><code><code>    Promise.allSettled([
+      Promise.resolve(&#39;a&#39;),
+      Promise.reject(&#39;b&#39;),
+    ])
+    .then(arr =&gt; assert.deepEqual(arr, [
+      { status: &#39;fulfilled&#39;, value:  &#39;a&#39; },
+      { status: &#39;rejected&#39;,  reason: &#39;b&#39; },
+    ]));</code></pre>
+<h4 id="promise.allsettled-较复杂点的例子">6.2 Promise.allSettled() 较复杂点的例子</h4>
+<p>这个示例类似于<code>.map()</code>和<code>Promise.all()</code>示例(我们从其中借用了<code>downloadText()</code>函数):我们下载多个文本文件，这些文件的<code>url</code>存储在一个数组中。但是，这一次，咱们不希望在出现错误时停止，而是希望继续执行。<code>Promise.allSettled()</code>允许咱们这样做：</p>
+<pre><code><code>    const urls = [
+      &#39;http://example.com/exists.txt&#39;,
+      &#39;http://example.com/missing.txt&#39;,
+    ];
+    
+    const result = Promise.allSettled(
+      urls.map(u =&gt; downloadText(u)));
+    result.then(
+      arr =&gt; assert.deepEqual(
+        arr,
+        [
+          {
+            status: &#39;fulfilled&#39;,
+            value: &#39;Hello!&#39;,
+          },
+          {
+            status: &#39;rejected&#39;,
+            reason: new Error(&#39;Not Found&#39;),
+          },
+        ]
+    ));
+</code></pre>
+<h4 id="promise.allsettled-的简化实现">6.3 Promise.allSettled() 的简化实现</h4>
+<p>这是<code>promise.allsettle()</code>的简化实现(不执行安全检查)</p>
+<pre><code><code>    function allSettled(iterable) {
+      return new Promise((resolve, reject) =&gt; {
+        function addElementToResult(i, elem) {
+          result[i] = elem;
+          elementCount++;
+          if (elementCount === result.length) {
+            resolve(result);
+          }
+        }
+    
+        let index = 0;
+        for (const promise of iterable) {
+          // Capture the current value of `index`
+          const currentIndex = index;
+          promise.then(
+            (value) =&gt; addElementToResult(
+              currentIndex, {
+                status: &#39;fulfilled&#39;,
+                value
+              }),
+            (reason) =&gt; addElementToResult(
+              currentIndex, {
+                status: &#39;rejected&#39;,
+                reason
+              }));
+          index++;
+        }
+        if (index === 0) {
+          resolve([]);
+          return;
+        }
+        let elementCount = 0;
+        const result = new Array(index);
+      });
+    }
+</code></pre>
+<h3 id="短路特性">7. 短路特性</h3>
+<p><code>Promise.all()</code> 和 <code>romise.race()</code> 都具有 短路特性</p>
+<ul>
+<li><strong>Promise.all()</strong>： 如果参数中 <code>promise</code> 有一个失败（rejected），此实例回调失败（reject）</li>
+</ul>
+<p><strong>Promise.race()</strong>：如果参数中某个<code>promise</code>解决或拒绝，返回的 promise就会解决或拒绝。</p>
+<h3 id="并发性和-promise.all">8.并发性和 Promise.all()</h3>
+<h4 id="顺序执行与并发执行">8.1 顺序执行与并发执行</h4>
+<p>考虑下面的代码：</p>
+<pre><code><code>    asyncFunc1()
+      .then(result1 =&gt; {
+        assert.equal(result1, &#39;one&#39;);
+        return asyncFunc2();
+      })
+      .then(result2 =&gt; {
+        assert.equal(result2, &#39;two&#39;);
+      });
+</code></pre>
+<p>使用<code>.then()</code>顺序执行基于<code>Promise</code>的函数：只有在 <code>asyncFunc1()</code>的结果被解决后才会执行<code>asyncFunc2()</code> 。</p>
+<p>而 <code>Promise.all()</code> 是并发执行的</p>
+<pre><code><code>    Promise.all([asyncFunc1(), asyncFunc2()])
+      .then(arr =&gt; {
+        assert.deepEqual(arr, [&#39;one&#39;, &#39;two&#39;]);
+      });
+</code></pre>
+<h4 id="并发技巧关注操作何时开始">9.2 并发技巧：关注操作何时开始</h4>
+<p>确定并发异步代码的技巧:关注异步操作何时启动，而不是如何处理它们的<strong>Promises</strong>。</p>
+<p>例如，下面的每个函数都同时执行<code>asyncFunc1()</code>和<code>asyncFunc2()</code>，因为它们几乎同时启动。</p>
+<pre><code><code>    function concurrentAll() {
+      return Promise.all([asyncFunc1(), asyncFunc2()]);
+    }
+    
+    function concurrentThen() {
+      const p1 = asyncFunc1();
+      const p2 = asyncFunc2();
+      return p1.then(r1 =&gt; p2.then(r2 =&gt; [r1, r2]));
+    }
+</code></pre>
+<p>另一方面，以下两个函数依次执行<code>asyncFunc1()</code>和<code>asyncFunc2()</code>: <code>asyncFunc2()</code>仅在<code>asyncFunc1()</code>的解决之后才调用。</p>
+<pre><code><code>    function sequentialThen() {
+      return asyncFunc1()
+        .then(r1 =&gt; asyncFunc2()
+          .then(r2 =&gt; [r1, r2]));
+    }
+    
+    function sequentialAll() {
+      const p1 = asyncFunc1();
+      const p2 = p1.then(() =&gt; asyncFunc2());
+      return Promise.all([p1, p2]);
+    }</code></pre>
+<h4 id="promise.all-与-fork-join-分治编程">9.3 Promise.all() 与 Fork-Join 分治编程</h4>
+<p><code>Promise.all()</code> 与并发模式“fork join”松散相关。重温一下咱们前面的一个例子：</p>
+<pre><code><code>    Promise.all([
+        // (A) fork
+        downloadText(&#39;http://example.com/first.txt&#39;),
+        downloadText(&#39;http://example.com/second.txt&#39;),
+      ])
+      // (B) join
+      .then(
+        (arr) =&gt; assert.deepEqual(
+          arr, [&#39;First!&#39;, &#39;Second!&#39;]
+        ));</code></pre>
+<ul>
+<li>Fork：在<code>A</code>行中，分割两个异步任务并同时执行它们。</li>
+<li>Join：在<code>B</code>行中，对每个小任务得到的结果进行汇总。</li>
+</ul>
+<p><strong>代码部署后可能存在的BUG没法实时知道，事后为了解决这些BUG，花了大量的时间进行log 调试，这边顺便给大家推荐一个好用的BUG监控工具 <a href="https://www.fundebug.com/?utm_source=xiaozhi">Fundebug</a>。</strong></p>
+<p>原文：<a href="https://2ality.com/2019/08/promise-combinators.html" class="uri">https://2ality.com/2019/08/promise-combinators.html</a></p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了20亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,180 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack4 code splitting' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack4 code splitting</center></div><div class='banquan'>原文出处:本文由博客园博主郭佬提供。<br/>
+原文连接:https://www.cnblogs.com/guolao/p/11256275.html</div><br>
+    <p><a href="https://github.com/imguolao/webpack4-demo">demo 代码点此</a>，webpack4 进行 code splitting 使用 <a href="https://webpack.js.org/plugins/split-chunks-plugin/">split-chunks-plugin</a>, 开始前先做点准备工作。</p>
+<h2 id="start">start</h2>
+<hr />
+<p>安装：</p>
+<pre><code><code>npm i -D webpack webpack-cli
+npm i -S lodash</code></pre>
+<p>创建 webpack.config.js 进行配置：</p>
+<pre class="js"><code>const path = require(&#39;path&#39;);
+
+module.exports = {
+  mode: &#39;development&#39;,
+  entry: {
+    main: &#39;./index.js&#39;,
+  },
+  optimization: {
+    // code splitting settings
+    splitChunks: {
+      chunks: &#39;all&#39;,
+      cacheGroups: {
+        vendors: {
+          // 仅将 node_modules 下的代码打包进 vendors.js
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          filename: &#39;vendors.js&#39;,
+        },
+      },
+    },
+  },
+  // 出口
+  output: {
+    filename: &#39;bundle.js&#39;,
+    path: path.resolve(__dirname, &#39;dist&#39;),
+  },
+}</code></pre>
+<p>创建 index.js ：</p>
+<pre class="js"><code>// 引入 lodash
+import _ from &#39;lodash&#39;;
+
+console.log(_.chunk([&#39;a&#39;, &#39;b&#39;, &#39;c&#39;, &#39;d&#39;], 2));</code></pre>
+<p>打包终端执行 <code>npx webpack</code>进行打包，打开 dist 目录，可以看见 bundle.js 和 vendors.js，引入的 lodash 被打包到 vendors 中。</p>
+<h2 id="公共模块">公共模块</h2>
+<hr />
+<p>如果 index.js 引入了公共模块，则可以将此模块进行打包。</p>
+<p>修改配置：</p>
+<pre class="js"><code>// webpack.config.js
+
+const path = require(&#39;path&#39;);
+
+module.exports = {
+  mode: &#39;development&#39;,
+  entry: {
+    main: &#39;./index.js&#39;,
+  },
+  optimization: {
+    splitChunks: {
+      chunks: &#39;all&#39;,
+      // 代码文件大于 0kb 就进行打包
++     minSize: 0,
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          filename: &#39;vendors.js&#39;,
+        },
++       default: {
++         // 公共模块仅引用 1 次也打包进 common.js
++         minChunks: 1,
++         priority: -20,
++         reuseExistingChunk: true,
++         filename: &#39;common.js&#39;,
++       }
+      }
+    }
+  },
+  // 出口
+  output: {
+    filename: &#39;bundle.js&#39;,
+    path: path.resolve(__dirname, &#39;dist&#39;),
+  },
+}</code></pre>
+<p>然后创建一个 math.js:</p>
+<pre class="js"><code>// math.js
+
+export default function add (x, y) {
+  return x + y;
+}</code></pre>
+<p>接着修改 index.js:</p>
+<pre class="js"><code>// inddex.js
+
+import add  from &#39;./math&#39;;
+console.log(add(1, 2));</code></pre>
+<p>执行<code>npx webpack</code>进行打包，打开 dist 目录，可以看见 math.js 被打包进 common.js 中了。</p>
+<h2 id="异步代码">异步代码</h2>
+<hr />
+<p>打包异步代码需要使用 <code>import(...)</code>语法，所以需要配置一下 babel。</p>
+<p>安装：</p>
+<pre><code><code>npm i -D babel-loader @babel/core babel-plugin-dynamic-import-webpack</code></pre>
+<p>配置一下 webpack.config.js：</p>
+<pre class="js"><code>const path = require(&#39;path&#39;);
+
+module.exports = {
+  mode: &#39;development&#39;,
+  entry: {
+    main: &#39;./index.js&#39;,
+  },
+  module: {
+    rules: [{
+      test: /\.js/,
+      use: [{
+        loader: &#39;babel-loader&#39;, 
+        options: {
+          &quot;babelrc&quot;: false,
+          &quot;plugins&quot;: [
+            &quot;dynamic-import-webpack&quot;
+          ]
+        }
+      }]
+    }]
+  },
+  optimization: {
+    splitChunks: {
+      chunks: &#39;all&#39;,
+      minSize: 0,
+      cacheGroups: {
+        vendors: {
+          test: /[\\/]node_modules[\\/]/,
+          priority: -10,
+          // filename: &#39;vendors.js&#39;,
+        },
+        default: {
+          minChunks: 1,
+          priority: -20,
+          reuseExistingChunk: true,
+          // filename: &#39;common.js&#39;,
+        }
+      }
+    }
+  },,
+  output: {...},
+}</code></pre>
+<p>修改 index.js:</p>
+<pre class="js"><code>// index.js
+
+async function getComponent() {
+  const { default: _ } = await import(&#39;lodash&#39;);
+  const element = document.createElement(&#39;div&#39;);
+  element.innerHTML = _.join([&#39;hello&#39;, &#39;world&#39;], &#39;-&#39;);
+  return element;
+}
+
+getComponent().then(element =&gt; {
+  document.body.appendChild(element);
+})</code></pre>
+<p>执行打包，可以看见 import(...) 异步加载的 lodash 被打包成 0.bundle.js。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

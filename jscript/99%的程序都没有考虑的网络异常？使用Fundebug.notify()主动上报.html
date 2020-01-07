@@ -1,0 +1,118 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修99%的程序都没有考虑的网络异常？使用Fundebug.notify()主动上报' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>99%的程序都没有考虑的网络异常？使用Fundebug.notify()主动上报</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/report-http-error-by-fundebug-notify.html</div><br>
+    <p>近日看到一篇文章<a href="https://my.oschina.net/qcloudcommunity/blog/2993689">99%的程序都没有考虑的网络异常</a>，开篇提到：</p>
+<blockquote>
+<p>绝大多数程序只考虑了接口正常工作的场景，而用户在使用我们的产品时遇到的各类异常，全都丢在看似 ok 的 try catch 中。如果没有做好异常的兼容和兜底处理，会极大的影响用户体验，严重的还会带来安全和资损风险。</p>
+</blockquote>
+<p>于是，笔者分析了 GitHub 上的一些开源微信小程序，发现大多数的代码异常处理确实是不够的。</p>
+<ul>
+<li>登录接口只考虑成功的情况，没考虑失败的情况</li>
+</ul>
+<pre><code><code>//调用登录接口
+wx.login({
+    success: function() {
+        wx.getUserInfo({
+            success: function(res) {
+                that.globalData.userInfo = res.userInfo;
+                typeof cb == &quot;function&quot; &amp;&amp; cb(that.globalData.userInfo);
+            }
+        });
+    }
+});</code></pre>
+<ul>
+<li><p>网络请求只考虑<code>then</code>不考虑<code>catch</code></p>
+<pre><code><code>util.getData(index_api).then(function(data) {
+    //this.setData({
+    //
+    //});
+    console.log(data);
+});</code></pre></li>
+<li><p>考虑了异常情况但是没有做妥善的处理</p>
+<pre><code><code>db.collection(&quot;config&quot;)
+    .where({})
+    .get()
+    .then(res =&gt; {
+        console.log(res);
+        if (res.data.length &gt; 0) {
+            Taro.setStorage({
+                key: &quot;config_gitter&quot;,
+                data: res.data[0]
+            });
+        }
+    })
+    .catch(err =&gt; {
+        console.error(err);
+    });</code></pre></li>
+</ul>
+<p>也许 99%的情况下接口都是正常返回的，只有 1%的情况会失败。看起来好像不是一件严重的事情，但是考虑到用户的量级，这个事情就不那么简单了。假设有 100 万用户，那么就有 1 万用户遇到异常情况，而且如果用户的使用频次很高，影响的何止 1 万用户。并且，如今产品都是体验至上，如果遇到这样的问题，用户极大可能就弃你而去，流失了客户就等于流失了收入。</p>
+<p>如何妥善地处理接口异常的情况是一件严肃的事情，应当被重视起来。</p>
+<h3 id="妥善处理请求异常">妥善处理请求异常</h3>
+<p>那么，应当如何做呢？首先要定义请求异常的处理代码，比如微信开放接口的参数中有<code>fail</code>（“接口调用失败的回调函数”）、Promise 的<code>catch</code>部分；其次，根据异常可能导致的后果，在函数中做相应的处理。如果会导致后续操作失败、或则界面无反馈，那么应当在 fail 回调中正确处理；如果你真的认为基本不可能出问题，那么至少写个异常上报。即使出错了，也知道具体的情况。</p>
+<p>下图是<a href="https://developers.weixin.qq.com/miniprogram/dev/api/open-api/payment/wx.requestPayment.html">微信支付接口</a>的参数列表，其中包含了接口调用失败的回调函数(<code>fail</code>)。</p>
+<p><img src="./images/99%的程序都没有考虑的网络异常？使用Fundebug.notify()主动上报0.png" alt="image-20190703114115173" /></p>
+<p>而且官方也给出了示例：</p>
+<pre><code><code>wx.requestPayment({
+    timeStamp: &quot;&quot;,
+    nonceStr: &quot;&quot;,
+    package: &quot;&quot;,
+    signType: &quot;MD5&quot;,
+    paySign: &quot;&quot;,
+    success(res) {},
+    fail(res) {}
+});</code></pre>
+<h3 id="在回调函数fail中上报异常">在回调函数<code>fail</code>中上报异常</h3>
+<p>为了确保完全掌握小程序的运行状况，我们将异常上报。Fundebug 的<a href="https://docs.fundebug.com/notifier/wxjs/">微信小程序插件</a>除了可以自动捕获异常外，还支持通过<a href="https://docs.fundebug.com/notifier/wxjs/api/notify.html">API 接口</a>主动上报异常。</p>
+<p>根据其官方文档：</p>
+<blockquote>
+<p>使用 fundebug.notify()，可以将自定义的错误信息发送到 Fundebug</p>
+<p><strong>name</strong>: 错误名称，参数类型为字符串</p>
+<p><strong>message</strong>: 错误信息，参数类型为字符串</p>
+<p><strong>option</strong>: 可选对象，参数类型为对象，用于发送一些额外信息</p>
+<p>示例：</p>
+<pre><code><code>fundebug.notify(&quot;Test&quot;, &quot;Hello, Fundebug!&quot;, {
+ metaData: {
+     company: &quot;云麒&quot;,
+     location: &quot;厦门&quot;
+ }
+});</code></pre>
+</blockquote>
+<p>首先在 Fundebug 创建一个小程序监控项目，并按照指示接入插件，然后在<code>app.js</code>的<code>onLaunch</code>函数下面调用<code>wx.requestPayment</code>来进行测试。</p>
+<p><img src="./images/99%的程序都没有考虑的网络异常？使用Fundebug.notify()主动上报1.png" /></p>
+<p>Fundebug 的微信小程序插件捕获并上报了异常：</p>
+<p><img src="./images/99%的程序都没有考虑的网络异常？使用Fundebug.notify()主动上报2.png" /></p>
+<p>在<code>metaData</code>标签还可以看到我们配置的 metaData，也就是<code>fail</code>回调函数的<code>res</code>参数。</p>
+<p><img src="./images/99%的程序都没有考虑的网络异常？使用Fundebug.notify()主动上报3.png" /></p>
+<p>因此，我们可以知道失败的原因是订单过期。</p>
+<p>另外，如果在二维码页面停留时间过久，也会触发报错：</p>
+<p><img src="./images/99%的程序都没有考虑的网络异常？使用Fundebug.notify()主动上报4.png" /></p>
+<p>通过简单的加入几行代码，就可以将小程序的异常情况了如指掌。而且 Fundebug 的微信小程序插件还可以监控线上 JavaScript 执行异常、自动捕获<code>wx.request</code>请求错误、监控慢 HTTP 请求，推荐大家接入试用！</p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+<p><img src="./images/99%的程序都没有考虑的网络异常？使用Fundebug.notify()主动上报5.png" alt="img" /></p>
+<h3 id="版权声明">版权声明</h3>
+<p>转载时请注明作者 <strong>Fundebug</strong>以及本文地址：<br />
+<a href="https://blog.fundebug.com/2019/07/08/report-http-error-by-fundebug-notify/" class="uri">https://blog.fundebug.com/2019/07/08/report-http-error-by-fundebug-notify/</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

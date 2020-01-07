@@ -1,0 +1,162 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue之组件及组件通信' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue之组件及组件通信</center></div><div class='banquan'>原文出处:本文由博客园博主R_Javac提供。<br/>
+原文连接:https://www.cnblogs.com/ViavaCos/p/11712131.html</div><br>
+    <p>组件之全局组件</p>
+<pre><code><code>//注意：需要在Vue实例化之前注册全局组件，使用Vue.component(&quot;组件名&quot;,{ template:`组件模板` })
+Vue.component(&quot;show-name&quot;,{
+    template:`
+	&lt;div title=&quot;注意, 组件模板的根元素必须有且只有一个&quot;&gt;
+	&lt;p&gt;ViavaCos&lt;/p&gt;
+	&lt;/div&gt;
+	`
+})
+
+var vm = new Vue({
+    el:'#app',
+    data:{
+        name:'ViavaCos'
+    },
+    methods:{}
+})
+</code></pre>
+<p>组件之局部组件</p>
+<pre><code><code>// 套路和全局组件一样，这两者只是注册的位置不同，作用的范围也不一样罢了 使用components选项来注册局部
+var vm = new Vue({
+    el:'#app',
+    data:{},
+    components:{
+        'show-name':{
+            template:`
+      	    &lt;div title=&quot;注意, 组件模板的根元素必须有且只有一个&quot;&gt;
+            	&lt;p&gt;ViavaCos&lt;/p&gt;
+            &lt;/div&gt;
+		`
+        }
+    }
+})
+</code></pre>
+<p>##组件通信之父组件传递值给子组件</p>
+<pre><code><code>// 父组件传递值给子组件通过自定义属性传递，然后子组件通过porps选项来接收所传递过来的值
+</code></pre>
+<p>一共三个步骤：</p>
+<ol>
+<li><p>在子组件的自定义标签上设置自定义属性，值为父组件需要从传递的值(变量)</p>
+</li>
+<li><p>在子组件的实例上设置一个叫props的属性，用来接收父组件传递过来的值，props选项是一个字符串数组</p>
+</li>
+<li><p>由于props选项也被vue实例代理了，所以直接在当前子组件实例中使用this.自定义属性名就可使用了</p>
+<pre><code><code> &lt;div id=&quot;app&quot;&gt;
+     // 1. 设置自定义属性
+     &lt;show-city :city=&quot;city&quot;&gt;&lt;/show-city&gt;
+ &lt;/div&gt;
+ &lt;script src=&quot;./vue.js&quot;&gt;&lt;/script&gt;
+ &lt;script&gt;
+     var vm = new Vue({
+         el: '#app',
+         data: {
+             city: [&quot;北京&quot;, &quot;上海&quot;, &quot;天津&quot;]
+         },
+         methods: {},
+         components: {
+             'show-city': {
+                 // 3.使用
+                 template: `
+                 &lt;div&gt;
+                     &lt;p v-for=&quot;item in city&quot;&gt;{{item}}&lt;/p&gt;
+                 &lt;/div&gt;
+                 `,
+                 // 2.接收值
+                 props: ['city']
+             }
+         }
+     });
+ &lt;/script&gt;
+</code></pre>
+</li>
+</ol>
+<p>##组件通信之子组件传递给父组件</p>
+<p>一共五个步骤：</p>
+<ol>
+<li><p>在子组件的组件模板上设置一个点击事件，用来触发自定义事件用于传值</p>
+</li>
+<li><p>在子组件的methods中设置点击事件的事件处理程序：内容为执行自定义事件this.$emit(&quot;自定义事件名&quot;, 若干个参数)</p>
+</li>
+<li><p>在父组件管理的视图，也就是书写子组件的自定义标签的地方，在这个标签上设置自定义事件的监听(用v-on指令就行)</p>
+</li>
+<li><p>提前在父组件的数据对象data中定义一个容器来接收子组件传递过来的值</p>
+</li>
+<li><p>在父组件的methods中设置监听自定义事件的事件处理程序：由于事件触发了，会有写好的若干个参数传递过来，所以在这里处理一下。将传递来的值用方才定义好的容器接收，然后就可以放心使用这个子组件传递来的值了</p>
+<pre><code><code>  &lt;div id=&quot;app&quot;&gt;
+         &lt;!-- 3. 监听事件 --&gt;
+         &lt;show-city @getcity='exeCity' v-for=&quot;item in city&quot; :city=&quot;item&quot; :tcity=&quot;tcity&quot;&gt;&lt;/show-city&gt;
+     &lt;/div&gt;
+
+
+ &lt;script src=&quot;./vue.js&quot;&gt;&lt;/script&gt;
+ &lt;script&gt;
+     var vm = new Vue({
+         el: '#app',
+         data: {
+             city: [&quot;北京&quot;, &quot;上海&quot;, &quot;天津&quot;],
+             // 4. 定义容器接收
+             tcity: ''
+         },
+         methods: {
+             // 5. 赋值给tcity这个容器
+             exeCity(data) {
+                 this.tcity = data;
+             }
+         },
+         components: {
+             'show-city': {
+                 // 1. 设置自定义事件
+                 template: `
+                 &lt;div&gt;
+                     &lt;p @click=&quot;toFather&quot; :class=&quot;{select:isSelect}&quot; &gt;{{city}}&lt;/p&gt;
+                     &lt;input text=&quot;text&quot; v-model=&quot;isSelect&quot;&gt;
+                 &lt;/div&gt;
+                 `,
+                 props: ['city', 'tcity'],
+                 methods: {
+                     toFather() {
+                         // 2. 触发自定义事件
+                         console.log('被点击了')
+                         this.$emit('getcity', this.city);
+                     },
+                 },
+                 computed: {
+                     isSelect() {
+                         return this.city === this.tcity;
+                     }
+                 }
+             }
+
+         }
+     });
+ &lt;/script&gt;
+</code></pre>
+</li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

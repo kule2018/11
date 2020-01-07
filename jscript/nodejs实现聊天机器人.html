@@ -1,0 +1,380 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修nodejs实现聊天机器人' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>nodejs实现聊天机器人</center></div><div class='banquan'>原文出处:本文由博客园博主Eddy`Blog提供。<br/>
+原文连接:https://www.cnblogs.com/it-xiong/p/11549264.html</div><br>
+    <h2>技术栈</h2>
+<h3>服务端：</h3>
+<p><span style="color: #008000;">koa、koa-route、koa-websocket、request。</span></p>
+<h3>客户端：</h3>
+<p><span style="color: #008000;">html、css、js、websocket。</span></p>
+<h3>远程聊天API：</h3>
+<p class="t"><span style="color: #008000;">http://api.qingyunke.com/api.php?key=free&amp;appid=0&amp;msg=msg</span><span style="color: #008000;">。</span></p>
+<p class="t">&nbsp;</p>
+<h2>客户端展示</h2>
+<p><img src="./images/nodejs实现聊天机器人0.png" alt="" /></p>
+<h2>开发步骤</h2>
+<p>1.在桌面创建bbs文件夹，然后在文件夹内打开cmd,输入：</p>
+<div class="cnblogs_code">
+<pre><code>$ npm init</pre>
+</div>
+<p>&nbsp;</p>
+<p>初始化箱项目，生成package.json包管理文件</p>
+<p>2.cmd输入：</p>
+<div class="cnblogs_code">
+<pre><code>$ npm install koa --save</pre>
+</div>
+<p>&nbsp;</p>
+<p>安装koa。</p>
+<p>3.cmd输入：</p>
+<div class="cnblogs_code">
+<pre><code>$ npm install koa-route --save</pre>
+</div>
+<p>安装koa路由模块。</p>
+<p>4.cmd输入：</p>
+<div class="cnblogs_code">
+<pre><code>$ npm install koa-websocket --save</pre>
+</div>
+<p>安装koawebsocket模块。</p>
+<p class="t">我的package.json：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  </span>"name": "bbs"<span style="color: #000000;">,
+  </span>"version": "1.0.0"<span style="color: #000000;">,
+  </span>"description": ""<span style="color: #000000;">,
+  </span>"main": "server.js"<span style="color: #000000;">,
+  </span>"scripts"<span style="color: #000000;">: {
+    </span>"test": "echo \"Error: no test specified\" &amp;&amp; exit 1"<span style="color: #000000;">,
+    </span>"start": "node server.js"<span style="color: #000000;">
+  },
+  </span>"author": ""<span style="color: #000000;">,
+  </span>"license": "ISC"<span style="color: #000000;">,
+  </span>"dependencies"<span style="color: #000000;">: {
+    </span>"koa": "^2.8.1"<span style="color: #000000;">,
+    </span>"koa-route": "^3.2.0"<span style="color: #000000;">,
+    </span>"koa-websocket": "^6.0.0"<span style="color: #000000;">
+  }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>5.在bbs文件夹中新建server.js,项目启动入口文件。</p>
+<p>添加内容如下：</p>
+<div class="cnblogs_code">
+<pre><code>const Koa = require('koa'<span style="color: #000000;">),
+      route </span>= require('koa-route'<span style="color: #000000;">),
+      websockify </span>= require('koa-websocket'<span style="color: #000000;">),
+      http </span>= require('http'<span style="color: #000000;">),
+      app </span>= websockify(<span style="color: #0000ff;">new</span><span style="color: #000000;"> Koa());
+
+app.ws.use(route.all(</span>'/', ctx =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> websocket作为&ldquo;ctx.websocket&rdquo;添加到上下文中。</span>
+    ctx.websocket.on('message', message =&gt;<span style="color: #000000;"> {
+        startRequest(message, ctx);
+    });
+}));
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> startRequest(message, ctx) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 采用http模块向服务器发起一次get请求      </span>
+    http.get(`http:<span style="color: #008000;">//</span><span style="color: #008000;">api.qingyunke.com/api.php?key=free&amp;appid=0&amp;msg=${encodeURI(message)}`, res =&gt; {</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> 防止中文乱码</span>
+        res.setEncoding('utf-8'<span style="color: #000000;">);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 监听data事件，每次取一块数据</span>
+        res.on('data', chunk =&gt;<span style="color: #000000;"> {
+            ctx.websocket.send(JSON.parse(chunk).content);
+        });
+    }).on(</span>'error', err =&gt;<span style="color: #000000;"> {
+        ctx.websocket.send(</span>'对不起，网络故障了'<span style="color: #000000;">);
+    });}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 监听端口、启动程序</span>
+app.listen(3000, err =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">if</span> (err) <span style="color: #0000ff;">throw</span><span style="color: #000000;"> err;
+    console.log(</span>'websocket服务器启动在3000端口'<span style="color: #000000;">);
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>假如对server.js还不清楚的，可以留言或者邮件咨询我。</p>
+<p>6.在bbs文件夹中新建index.html文件，作为客户端展示文件。</p>
+<p>添加内容如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>实时聊天室<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">link </span><span style="color: #ff0000;">rel</span><span style="color: #0000ff;">="stylesheet"</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text/css"</span><span style="color: #ff0000;"> href</span><span style="color: #0000ff;">="index.css"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="box"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="title"</span><span style="color: #0000ff;">&gt;</span>实时聊天室<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="input-box"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="input"</span><span style="color: #ff0000;"> placeholder</span><span style="color: #0000ff;">="你想说什么..."</span><span style="color: #ff0000;"> type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="pl"</span><span style="color: #ff0000;"> onkeydown</span><span style="color: #0000ff;">="keyEnter()"</span> <span style="color: #0000ff;">/&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="send"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="submit"</span><span style="color: #0000ff;">&gt;</span>发送<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="view"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="ulView"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="view"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="index.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>7.在bbs文件夹中新建index.css,客户端的样式。</p>
+<p>内容如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #800000;">* </span>{<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;"> 0</span>;<span style="color: #ff0000;">
+    margin</span>:<span style="color: #0000ff;"> 0</span>;<span style="color: #ff0000;">
+    -webkit-user-select</span>:<span style="color: #0000ff;"> none</span>;<span style="color: #ff0000;">
+    -moz-user-select</span>:<span style="color: #0000ff;"> none</span>;
+}<span style="color: #800000;">
+
+html,
+body </span>{<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 100%</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 100%</span>;<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #333</span>;<span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> relative</span>;<span style="color: #ff0000;">
+    font-size</span>:<span style="color: #0000ff;"> 12px</span>;
+}<span style="color: #800000;">
+
+.box </span>{<span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> absolute</span>;<span style="color: #ff0000;">
+    top</span>:<span style="color: #0000ff;"> 50%</span>;<span style="color: #ff0000;">
+    left</span>:<span style="color: #0000ff;"> 50%</span>;<span style="color: #ff0000;">
+    transform</span>:<span style="color: #0000ff;"> translate(-50%, -50%)</span>;<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #eee</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 320px</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 564px</span>;<span style="color: #ff0000;">
+    box-sizing</span>:<span style="color: #0000ff;"> border-box</span>;
+}<span style="color: #800000;">
+
+.title </span>{<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 40px</span>;<span style="color: #ff0000;">
+    line-height</span>:<span style="color: #0000ff;"> 40px</span>;<span style="color: #ff0000;">
+    text-align</span>:<span style="color: #0000ff;"> center</span>;<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #000</span>;<span style="color: #ff0000;">
+    color</span>:<span style="color: #0000ff;"> #fff</span>;<span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> relative</span>;<span style="color: #ff0000;">
+    font-size</span>:<span style="color: #0000ff;"> 16px</span>;
+}<span style="color: #800000;">
+
+.input-box </span>{<span style="color: #ff0000;">
+    margin-top</span>:<span style="color: #0000ff;"> 10px</span>;<span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> absolute</span>;<span style="color: #ff0000;">
+    bottom</span>:<span style="color: #0000ff;"> 0</span>;<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #fff</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 100%</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 40px</span>;<span style="color: #ff0000;">
+    line-height</span>:<span style="color: #0000ff;"> 32px</span>;<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;"> 4px</span>;<span style="color: #ff0000;">
+    padding-right</span>:<span style="color: #0000ff;"> 0</span>;<span style="color: #ff0000;">
+    box-sizing</span>:<span style="color: #0000ff;"> border-box</span>;<span style="color: #ff0000;">
+    display</span>:<span style="color: #0000ff;"> -webkit-flex</span>;<span style="color: #ff0000;">
+    display</span>:<span style="color: #0000ff;"> -moz-flex</span>;<span style="color: #ff0000;">
+    display</span>:<span style="color: #0000ff;"> -ms-flex</span>;<span style="color: #ff0000;">
+    display</span>:<span style="color: #0000ff;"> -o-flex</span>;<span style="color: #ff0000;">
+    display</span>:<span style="color: #0000ff;"> flex</span>;<span style="color: #ff0000;">
+    -ms-align-items</span>:<span style="color: #0000ff;"> center</span>;<span style="color: #ff0000;">
+    align-items</span>:<span style="color: #0000ff;"> center</span>;<span style="color: #ff0000;">
+    justify-content</span>:<span style="color: #0000ff;"> space-between</span>;<span style="color: #ff0000;">
+    border-top</span>:<span style="color: #0000ff;"> 1px solid #eee</span>;
+}<span style="color: #800000;">
+
+.input </span>{<span style="color: #ff0000;">
+    vertical-align</span>:<span style="color: #0000ff;"> top</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 32px</span>;<span style="color: #ff0000;">
+    line-height</span>:<span style="color: #0000ff;"> 32px</span>;<span style="color: #ff0000;">
+    outline</span>:<span style="color: #0000ff;"> none</span>;<span style="color: #ff0000;">
+    border</span>:<span style="color: #0000ff;"> 1px solid #ccc</span>;<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;"> 0 4px</span>;<span style="color: #ff0000;">
+    box-sizing</span>:<span style="color: #0000ff;"> border-box</span>;<span style="color: #ff0000;">
+    flex</span>:<span style="color: #0000ff;"> 1</span>;<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #eee</span>;<span style="color: #ff0000;">
+    border-radius</span>:<span style="color: #0000ff;"> 4px</span>;<span style="color: #ff0000;">
+    margin-right</span>:<span style="color: #0000ff;"> 10px</span>;<span style="color: #ff0000;">
+    margin-left</span>:<span style="color: #0000ff;"> 4px</span>;
+}<span style="color: #800000;">
+
+.input:focus </span>{<span style="color: #ff0000;">
+    border</span>:<span style="color: #0000ff;"> 1px solid #ccc</span>;
+}<span style="color: #800000;">
+
+.send </span>{<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 80px</span>;<span style="color: #ff0000;">
+    text-align</span>:<span style="color: #0000ff;"> center</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 32px</span>;<span style="color: #ff0000;">
+    line-height</span>:<span style="color: #0000ff;"> 32px</span>;<span style="color: #ff0000;">
+    cursor</span>:<span style="color: #0000ff;"> pointer</span>;<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> green</span>;<span style="color: #ff0000;">
+    color</span>:<span style="color: #0000ff;"> #fff</span>;<span style="color: #ff0000;">
+    margin-right</span>:<span style="color: #0000ff;"> 10px</span>;<span style="color: #ff0000;">
+    font-size</span>:<span style="color: #0000ff;"> 14px</span>;
+}<span style="color: #800000;">
+
+.send:active </span>{<span style="color: #ff0000;">
+    opacity</span>:<span style="color: #0000ff;"> 0.6</span>;
+}<span style="color: #800000;">
+
+li </span>{<span style="color: #ff0000;">
+    list-style</span>:<span style="color: #0000ff;"> none</span>;<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;"> 6px 10px</span>;<span style="color: #ff0000;">
+    box-sizing</span>:<span style="color: #0000ff;"> border-box</span>;
+}<span style="color: #800000;">
+
+.my-say </span>{<span style="color: #ff0000;">
+    text-align</span>:<span style="color: #0000ff;"> right</span>;
+}<span style="color: #800000;">
+
+.say </span>{<span style="color: #ff0000;">
+    display</span>:<span style="color: #0000ff;"> inline-block</span>;<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #fff</span>;<span style="color: #ff0000;">
+    font-size</span>:<span style="color: #0000ff;"> 12px</span>;<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;"> 6px 4px</span>;<span style="color: #ff0000;">
+    border-radius</span>:<span style="color: #0000ff;"> 4px</span>;<span style="color: #ff0000;">
+    margin-top</span>:<span style="color: #0000ff;"> 1px</span>;<span style="color: #ff0000;">
+    vertical-align</span>:<span style="color: #0000ff;"> top</span>;<span style="color: #ff0000;">
+    max-width</span>:<span style="color: #0000ff;"> 220px</span>;
+}<span style="color: #800000;">
+
+.computer-say .sayman </span>{<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #40E0D0</span>;
+}<span style="color: #800000;">
+
+.my-say .sayman </span>{<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #FFA500</span>;
+}<span style="color: #800000;">
+
+.my-say .say </span>{<span style="color: #ff0000;">
+    text-align</span>:<span style="color: #0000ff;"> left</span>;
+}<span style="color: #800000;">
+
+.sayman </span>{<span style="color: #ff0000;">
+    font-size</span>:<span style="color: #0000ff;"> 10px</span>;<span style="color: #ff0000;">
+    display</span>:<span style="color: #0000ff;"> inline-block</span>;<span style="color: #ff0000;">
+    height</span>:<span style="color: #0000ff;"> 30px</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 30px</span>;<span style="color: #ff0000;">
+    background-color</span>:<span style="color: #0000ff;"> #ccc</span>;<span style="color: #ff0000;">
+    border-radius</span>:<span style="color: #0000ff;"> 50%</span>;<span style="color: #ff0000;">
+    text-align</span>:<span style="color: #0000ff;"> center</span>;<span style="color: #ff0000;">
+    line-height</span>:<span style="color: #0000ff;"> 30px</span>;<span style="color: #ff0000;">
+    overflow</span>:<span style="color: #0000ff;"> hidden</span>;<span style="color: #ff0000;">
+    text-overflow</span>:<span style="color: #0000ff;"> ellipsis</span>;<span style="color: #ff0000;">
+    white-space</span>:<span style="color: #0000ff;"> nowrap</span>;<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;"> 0 4px</span>;<span style="color: #ff0000;">
+    box-sizing</span>:<span style="color: #0000ff;"> border-box</span>;<span style="color: #ff0000;">
+    margin</span>:<span style="color: #0000ff;"> 0 4px</span>;<span style="color: #ff0000;">
+    color</span>:<span style="color: #0000ff;"> #fff</span>;
+}<span style="color: #800000;">
+
+.view </span>{<span style="color: #ff0000;">
+    position</span>:<span style="color: #0000ff;"> absolute</span>;<span style="color: #ff0000;">
+    top</span>:<span style="color: #0000ff;"> 40px</span>;<span style="color: #ff0000;">
+    bottom</span>:<span style="color: #0000ff;"> 40px</span>;<span style="color: #ff0000;">
+    left</span>:<span style="color: #0000ff;"> 0</span>;<span style="color: #ff0000;">
+    width</span>:<span style="color: #0000ff;"> 100%</span>;<span style="color: #ff0000;">
+    padding</span>:<span style="color: #0000ff;"> 10px 0</span>;<span style="color: #ff0000;">
+    box-sizing</span>:<span style="color: #0000ff;"> border-box</span>;<span style="color: #ff0000;">
+    overflow-y</span>:<span style="color: #0000ff;"> auto</span>;
+}</pre>
+</div>
+<p>&nbsp;</p>
+<p>8.在bbs文件夹中创建index.js文件，作为客户端js处理文件。</p>
+<p>内容如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #800000;">let submit = document.getElementById("submit"),
+    pl = document.getElementById("pl");
+// 很重要 必须写，判断浏览器是否支持websocket
+let CreateWebSocket = (() =&gt; </span>{<span style="color: #ff0000;">
+    return (urlValue) =&gt; {
+        if (window.WebSocket) return new WebSocket(urlValue);
+        if (window.MozWebSocket) return new MozWebSocket(urlValue);
+        return false;
+    </span>}<span style="color: #800000;">
+})()
+// 实例化websoscket websocket有两种协议ws(不加密)和wss(加密)
+let webSocket = CreateWebSocket(`ws://127.0.0.1:3000`);
+webSocket.onopen = evt =&gt; </span>{<span style="color: #ff0000;">
+    addMsg(1, '你好，欢迎进入实时聊天室！')
+</span>}<span style="color: #800000;">
+webSocket.onmessage = evt =&gt; </span>{<span style="color: #ff0000;">
+    // 这是服务端返回的数据
+    addMsg(1, evt.data);
+    submit.innerHTML = '发送';
+</span>}<span style="color: #800000;">
+// input事件发送数据
+submit.onclick = (e) =&gt; </span>{<span style="color: #ff0000;">
+    if (e.target.innerHTML == '回复中...') {
+        return false
+    </span>}<span style="color: #800000;">
+    e.target.innerHTML = '回复中...';
+    const str = document.getElementById("pl").value;
+    webSocket.send(str);
+    addMsg(2, str);
+}
+// 绑定回车事件
+function keyEnter() </span>{<span style="color: #ff0000;">
+    if (event.keyCode == 13) {
+        document.getElementById("submit").click();
+    </span>}<span style="color: #800000;">
+}
+// 添加消息
+function addMsg(type, msg) </span>{<span style="color: #ff0000;">
+    let li = document.createElement('li');
+    // 1机器人/2自己
+    if (type == 1) {
+        li.classList.add('computer-say');
+        li.innerHTML = `&lt;span class="sayman"&gt;机器人&lt;/span&gt;&lt;span class="computer say"&gt;${msg</span>}<span style="color: #800000;">&lt;/span&gt;`;
+    } else </span>{<span style="color: #ff0000;">
+        li.classList.add('my-say');
+        li.innerHTML = `&lt;span class="computer say"&gt;${msg</span>}<span style="color: #800000;">&lt;/span&gt;&lt;span class="sayman"&gt;我&lt;/span&gt;`;
+        pl.value = '';
+    }
+    document.getElementById('view').appendChild(li);
+    document.getElementById('ulView').scrollTo(0, document.getElementById('view').clientHeight);
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>为了保证服务端包都可以加载进来，可以在bbs文件夹中打开cmd，然后输入：</p>
+<div class="cnblogs_code">
+<pre><code>$ npm install</pre>
+</div>
+<p>&nbsp;</p>
+<p class="t">到这里，程序就已经搭建完成了。</p>
+<p class="t">启动程序：</p>
+<p class="t">cmd输入：</p>
+<div class="cnblogs_code">
+<pre><code>$ node server.js</pre>
+</div>
+<p><img src="./images/nodejs实现聊天机器人1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>这样服务端就已经启动成功了。</p>
+<p>直接右键浏览器打开index.html即可愉快地和机器人妹妹聊天了，告别单身狗了....</p>
+<p>喜欢的麻烦点赞，谢谢</p>
+<p>可以关注下本人博客，本人会坚持时不时更新好的博客给大家哦。</p>
+<p class="t">&nbsp;</p>
+<p class="t">&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

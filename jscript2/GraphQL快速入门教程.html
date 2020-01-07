@@ -1,0 +1,280 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修GraphQL快速入门教程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>GraphQL快速入门教程</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/quick-graphql-tutorial.html</div><br>
+    <p><strong>摘要：</strong> 体验神奇的GraphQL!</p>
+<ul>
+<li>原文：<a href="https://segmentfault.com/a/1190000017766370">GraphQL 入门详解</a></li>
+<li>作者：MudOnTire</li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<h3 id="graphql简介">GraphQL简介</h3>
+<h4 id="定义">定义</h4>
+<p>一种用于API调用的数据查询语言</p>
+<h4 id="核心思想">核心思想</h4>
+<p>传统的api调用一般获取到的是后端组装好的一个完整对象，而前端可能只需要用其中的某些字段，大部分数据的查询和传输工作都浪费了。graphQL提供一种全新数据查询方式，可以只获取需要的数据，使api调用更灵活、高效和低成本。</p>
+<h4 id="特点">特点</h4>
+<ol>
+<li>需要什么就获取什么数据</li>
+<li>支持关系数据的查询</li>
+<li>API无需定义各种路由，完全数据驱动</li>
+<li>无需管理API版本，一个版本持续演进</li>
+<li>支持大部分主流开发语言和平台</li>
+<li>强大的配套开发工具</li>
+</ol>
+<h4 id="使用方法">使用方法</h4>
+<p>下面我们通过搭建一个<a href="https://www.spacex.com/">SpaceX</a>的新闻网站来直观学习graphQL的基本使用方法，所有数据由 <a href="https://github.com/r-spacex/SpaceX-API">官方API</a> 获得。</p>
+<h3 id="graphql服务端">GraphQL服务端</h3>
+<p>服务端采用node + express。新建一个node项目，安装如下依赖：</p>
+<pre><code><code>$ npm i graphql express-graphql express axios</code></pre>
+<p>创建入口文件 <code>server.js</code>，里面创建express服务。使用graphQL我们只需要设置一个路由，所有的请求都由这个graphQL的request handler处理：</p>
+<pre class="javascript"><code>const express = require(&quot;express&quot;);
+const graphqlHTTP = require(&quot;express-graphql&quot;);
+const schema = require(&quot;./schema&quot;);
+
+const app = express();
+
+app.use(
+    &quot;/graphql&quot;,
+    graphqlHTTP({
+        schema,
+        graphiql: true
+    })
+);
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () =&gt; console.log(`Server started on port ${PORT}`));</code></pre>
+<p>graphqlHTTP是grapql的http服务，用于处理graphql的查询请求，它接收一个options参数，其中schema是一个 <code>GraphQLSchema</code>实例，我们接下来定义，graphiql设置为true可以在浏览器中直接对graphQL进行调试。更多express-graphql的用法请参考 <a href="https://github.com/graphql/express-graphql">Github express-graphql</a>。</p>
+<h4 id="schema">schema</h4>
+<p>接下来我们定义schema，schema意为‘模式’，其中定义了数据模型的结构、字段的类型、模型间的关系，是graphQL的核心。</p>
+<p>新建<code>schema.js</code>文件，首先定义两个数据模型：LaunchType（发射）和 RocketType（火箭）。注意字段的数据类型需要使用GraphQL定义的，不能使用js中的基本数据类型。</p>
+<pre class="javascript"><code>const {
+    GraphQLObjectType,
+    GraphQLInt,
+    GraphQLString,
+    GraphQLBoolean,
+    GraphQLList,
+    GraphQLSchema
+} = require(&quot;graphql&quot;);
+
+const LaunchType = new GraphQLObjectType({
+    name: &quot;Launch&quot;,
+    fields: () =&gt; ({
+        flight_number: { type: GraphQLInt },
+        mission_name: { type: GraphQLString },
+        launch_date_local: { type: GraphQLString },
+        launch_success: { type: GraphQLBoolean },
+        rocket: { type: RocketType }
+    })
+});
+
+const LaunchType = new GraphQLObjectType({
+    name: &quot;Rocket&quot;,
+    fields: () =&gt; ({
+        rocket_id: { type: GraphQLString },
+        rocket_name: { type: GraphQLString },
+        rocket_type: { type: GraphQLString }
+    })
+});</code></pre>
+<p>有了数据模型之后，我们需要从数据库或者第三方API获取数据，在此我们从spacex的官方API获取。我们需要定义一个root query，root query做为所有查询的入口，处理并返回数据，更多请参考 <a href="https://graphql.org/learn/execution/#root-fields-resolvers">GraphQL Root fields &amp; resolvers</a>。</p>
+<p>在 <code>schema.js</code>中增加代码：</p>
+<pre class="javascript"><code>const axios = require(&quot;axios&quot;);
+
+const RootQuery = new GraphQLObjectType({
+    name: &quot;RootQueryType&quot;,
+    fields: {
+        launches: {
+            type: new GraphQLList(LaunchType),
+            resolve(parent, args) {
+                return axios
+                    .get(&quot;https://api.spacexdata.com/v3/launches&quot;)
+                    .then(res =&gt; res.data);
+            }
+        }
+    }
+});
+
+module.exports = new GraphQLSchema({
+    query: RootQuery
+});</code></pre>
+<h3 id="查询列表">查询列表</h3>
+<p>完成这一步，服务端api基本搭建完成！我们看一下效果，在浏览器中输入 http://localhost:5000/graphql 将打开 Graphiql（生产环境建议禁用）：</p>
+<p><img src="./images/GraphQL快速入门教程0.png" /></p>
+<p>我们可以只查询所有的 <code>flight_number</code>：</p>
+<p><img src="./images/GraphQL快速入门教程1.png" /></p>
+<p>或者更多的属性：</p>
+<p><img src="./images/GraphQL快速入门教程2.png" /></p>
+<p>是不是很简单很神奇！</p>
+<h4 id="单个查询">单个查询</h4>
+<p>我们也可以通过传入参数查询单条信息：</p>
+<pre class="javascript"><code>const RootQuery = new GraphQLObjectType({
+    name: &quot;RootQueryType&quot;,
+    fields: {
+        launch: {
+            type: LaunchType,
+            args: {
+                flight_number: { type: GraphQLInt }
+            },
+            resolve(parent, args) {
+                return axios
+                    .get(
+                        `https://api.spacexdata.com/v3/launches/${
+                            args.flight_number
+                        }`
+                    )
+                    .then(res =&gt; res.data);
+            }
+        }
+    }
+});</code></pre>
+<p>结果：</p>
+<p><img src="./images/GraphQL快速入门教程3.png" /></p>
+<p><strong>推荐大家使用<a href="https://www.fundebug.com/?utm_source=MudOnTire">Fundebug</a>，一款很好用的BUG监控工具~</strong></p>
+<h3 id="graphql前端">GraphQL前端</h3>
+<p>刚刚我们都是用GraphiQL在浏览器调用接口，接下来我们看一下在前端页面中怎么调用graphql服务。前端我们使用react。</p>
+<p>在项目根目录初始化react项目：</p>
+<pre><code><code>$ npx create-react-app client</code></pre>
+<p>为了便于调试，在<code>package.json</code>中增加scripts：</p>
+<pre class="javascript"><code>&quot;start&quot;: &quot;node server.js&quot;,
+&quot;server&quot;: &quot;nodemon server.js&quot;,
+&quot;client&quot;: &quot;npm start --prefix client&quot;,
+&quot;dev&quot;:&quot;concurrently \&quot;npm run server\&quot; \&quot;npm run client\&quot; &quot;</code></pre>
+<p>样式我们使用bootswatch中的一款主题：</p>
+<p><img src="./images/GraphQL快速入门教程4.png" /></p>
+<p>GraphQL的客户端有多种实现，本次项目使用 <a href="https://www.apollographql.com/docs/react/">Apollo</a>，最流行的GraphQL Client。更多client请参考 <a href="https://graphql.org/code/#graphql-clients">GraphQL Clients</a>。</p>
+<h4 id="安装依赖">安装依赖</h4>
+<p>安装如下依赖：</p>
+<pre><code><code>$ cd client
+$ npm i apollo-boost react-apollo graphql</code></pre>
+<p>其中 <code>apollo-boost</code> 是apollo client本身，<code>react-apollo</code> 是react视图层的集成，<code>graphql</code> 用于解析graphql的查询语句。</p>
+<h4 id="设置client">设置client</h4>
+<p>修改<code>App.js</code>内容如下：</p>
+<pre class="javascript"><code>import React, { Component } from &quot;react&quot;;
+import ApolloClient from &quot;apollo-boost&quot;;
+import { ApolloProvider } from &quot;react-apollo&quot;;
+import &quot;./theme.css&quot;;
+import &quot;./App.css&quot;;
+import logo from &quot;./spacex-logo-light.png&quot;;
+
+const client = new ApolloClient({
+    uri: &quot;http://localhost:5000/graphql&quot;
+});
+
+class App extends Component {
+    render() {
+        return (
+            &lt;ApolloProvider client={client}&gt;
+                &lt;div className=&quot;container&quot;&gt;
+                    &lt;img src={logo} id=&quot;logo&quot; /&gt;
+                &lt;/div&gt;
+            &lt;/ApolloProvider&gt;
+        );
+    }
+}
+
+export default App;</code></pre>
+<p>和redux使用<code>&lt;Provider&gt;</code>传递store类似，<code>react-apollo</code> 通过 <code>&lt;ApolloProvider&gt;</code>将apollo client向下传递。</p>
+<h4 id="实现query">实现query</h4>
+<p>接着我们来实现显示launches的component，新增文件 <code>components/Launches.js</code>：</p>
+<pre class="javascript"><code>import React, { Component, Fragment } from &quot;react&quot;;
+import gql from &quot;graphql-tag&quot;;
+import { Query } from &quot;react-apollo&quot;;
+import LaunchItem from &quot;./LaunchItem&quot;;
+
+const LAUNCHES_QUERY = gql`
+    query LaunchesQuery {
+        launches {
+            flight_number
+            mission_name
+            launch_date_local
+            launch_success
+        }
+    }
+`;
+
+export class Launches extends Component {
+    render() {
+        return (
+            &lt;Fragment&gt;
+                &lt;h1 className=&quot;display-4 my-3&quot;&gt;Launches&lt;/h1&gt;
+                &lt;Query query={LAUNCHES_QUERY}&gt;
+                    {({ loading, error, data }) =&gt; {
+                        if (loading) return &lt;h4&gt;Loading...&lt;/h4&gt;;
+                        if (error) console.log(error);
+                        return (
+                            &lt;Fragment&gt;
+                                {data.launches.map(launch =&gt; (
+                                    &lt;LaunchItem
+                                        key={launch.flight_number}
+                                        launch={launch}
+                                    /&gt;
+                                ))}
+                            &lt;/Fragment&gt;
+                        );
+                    }}
+                &lt;/Query&gt;
+            &lt;/Fragment&gt;
+        );
+    }
+}
+
+export default Launches;</code></pre>
+<p>query语句通过 <code>graphql-tag</code> 定义，传入 <code>&lt;Query&gt;</code> 执行获取数据并传入 <code>LaunchItem</code> 显示。</p>
+<p><code>components/LaunchItem.js</code>:</p>
+<pre class="javascript"><code>import React from &quot;react&quot;;
+
+export default function LaunchItem({
+    launch: { flight_number, mission_name, launch_date_local, launch_success }
+}) {
+    return (
+        &lt;div className=&quot;card card-body mb-3&quot;&gt;
+            &lt;div className=&quot;col-md-9&quot;&gt;
+                &lt;h4&gt;Mission: {mission_name}&lt;/h4&gt;
+                &lt;p&gt;Date: {launch_date_local}&lt;/p&gt;
+            &lt;/div&gt;
+            &lt;div className=&quot;col-md-3&quot;&gt;
+                &lt;button className=&quot;btn btn-secondary&quot;&gt;Launch Details&lt;/button&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+    );
+}</code></pre>
+<p>查询语句通过<code>graphql-tag</code>定义，然后传入<code>&lt;Query&gt;</code>执行。</p>
+<h4 id="运行">运行</h4>
+<p>由于本地调试，client和server分别运行在不同的端口，所以需要先进行跨域处理，使用 <a href="https://www.npmjs.com/package/cors">cors</a>。</p>
+<pre class="javascript"><code>// server.js
+const cors = require(&#39;cors&#39;);
+app.use(cors());</code></pre>
+<h4 id="效果">效果</h4>
+<p>好了，大功告成，我们来看一下效果：</p>
+<p><img src="./images/GraphQL快速入门教程5.png" /></p>
+<h3 id="结语">结语</h3>
+<p>今天就主要介绍GraphQL工程的搭建和GraphQL Query的使用，更多关于GraphQL的内容比如 <a href="https://www.apollographql.com/docs/react/essentials/mutations.html">Mutation</a>下次有空会跟大家逐步讲解。</p>
+<p>本文灵感来源：<a href="https://www.youtube.com/watch?v=SEMTj8w04Z8">Youtube@Traversy Media</a>，感谢</p>
+<p>本文Demo Github地址：<a href="https://github.com/MudOnTire/graphQL-tutorial">Github@MudOnTire</a></p>
+<p>本文Demo线上展示：<a href="Heroku@graphql-spacex-launches" class="uri">Heroku@graphql-spacex-launches</a></p>
+<p><strong>最后，推荐大家使用<a href="https://www.fundebug.com/?utm_source=MudOnTire">Fundebug</a>，一款很好用的BUG监控工具~</strong></p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家免费试用！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

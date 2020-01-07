@@ -1,0 +1,384 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修详解Vue响应式原理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>详解Vue响应式原理</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/responsive-vue.html</div><br>
+    <p><strong>摘要：</strong> 搞懂Vue响应式原理！</p>
+<ul>
+<li>作者：<a href="https://segmentfault.com/u/langlixingzhou">浪里行舟</a></li>
+<li>原文：<a href="https://segmentfault.com/a/1190000019700618">深入浅出Vue响应式原理</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<h3 id="前言">前言</h3>
+<p>Vue 最独特的特性之一，是其非侵入性的响应式系统。数据模型仅仅是普通的 JavaScript 对象。而当你修改它们时，视图会进行更新。这使得状态管理非常简单直接，不过理解其工作原理同样重要，这样你可以避开一些常见的问题。----官方文档</p>
+<p>本文将针对响应式原理做一个详细介绍，并且带你实现一个基础版的响应式系统。本文的代码请猛戳<a href="https://github.com/ljianshu/Blog/tree/master/vue2.0%E5%AD%A6%E4%B9%A0/%E5%86%85%E9%83%A8%E8%BF%90%E8%A1%8C%E6%9C%BA%E5%88%B6/%E5%93%8D%E5%BA%94%E5%BC%8F%E5%8E%9F%E7%90%86">Github博客</a></p>
+<h3 id="什么是响应式">什么是响应式</h3>
+<p>我们先来看个例子：</p>
+<pre><code><code>&lt;div id=&quot;app&quot;&gt;
+    &lt;div&gt;Price :￥{{ price }}&lt;/div&gt;
+    &lt;div&gt;Total:￥{{ price * quantity }}&lt;/div&gt;
+    &lt;div&gt;Taxes: ￥{{ totalPriceWithTax }}&lt;/div&gt;
+    &lt;button @click=&quot;changePrice&quot;&gt;改变价格&lt;/button&gt;
+&lt;/div&gt;</code></pre>
+<pre class="javascript"><code>var app = new Vue({
+  el: &#39;#app&#39;,
+  data() {
+    return {
+      price: 5.0,
+      quantity: 2
+    };
+  },
+  computed: {
+    totalPriceWithTax() {
+      return this.price * this.quantity * 1.03;
+    }
+  },
+  methods: {
+    changePrice() {
+      this.price = 10;
+    }
+  }
+})</code></pre>
+<p><img src="./images/详解Vue响应式原理0.png" /></p>
+<p>上例中当price 发生变化的时候，Vue就知道自己需要做三件事情：</p>
+<ul>
+<li>更新页面上price的值</li>
+<li>计算表达式 price*quantity 的值，更新页面</li>
+<li>调用totalPriceWithTax 函数，更新页面</li>
+</ul>
+<p>数据发生变化后，会重新对页面渲染，这就是Vue响应式，那么这一切是怎么做到的呢？</p>
+<p>想完成这个过程，我们需要：</p>
+<ul>
+<li>侦测数据的变化</li>
+<li>收集视图依赖了哪些数据</li>
+<li>数据变化时，自动“通知”需要更新的视图部分，并进行更新</li>
+</ul>
+<p>对应专业俗语分别是：</p>
+<ul>
+<li>数据劫持 / 数据代理</li>
+<li>依赖收集</li>
+<li>发布订阅模式</li>
+</ul>
+<h3 id="如何侦测数据的变化">如何侦测数据的变化</h3>
+<p>首先有个问题，在Javascript中，如何侦测一个对象的变化？</p>
+<p>其实有两种办法可以侦测到变化：使用<code>Object.defineProperty</code>和ES6的<code>Proxy</code>，这就是进行数据劫持或数据代理。这部分代码主要参考珠峰架构课。</p>
+<h4 id="方法1.-object.defineproperty实现">方法1. Object.defineProperty实现</h4>
+<p>Vue通过设定对象属性的 setter/getter 方法来监听数据的变化，通过getter进行依赖收集，而每个setter方法就是一个观察者，在数据变更的时候通知订阅者更新视图。</p>
+<pre class="javascript"><code>function render () {
+  console.log(&#39;模拟视图渲染&#39;)
+}
+let data = {
+  name: &#39;浪里行舟&#39;,
+  location: { x: 100, y: 100 }
+}
+observe(data)
+function observe (obj) { // 我们来用它使对象变成可观察的
+  // 判断类型
+  if (!obj || typeof obj !== &#39;object&#39;) {
+    return
+  }
+  Object.keys(obj).forEach(key =&gt; {
+    defineReactive(obj, key, obj[key])
+  })
+  function defineReactive (obj, key, value) {
+    // 递归子属性
+    observe(value)
+    Object.defineProperty(obj, key, {
+      enumerable: true, //可枚举（可以遍历）
+      configurable: true, //可配置（比如可以删除）
+      get: function reactiveGetter () {
+        console.log(&#39;get&#39;, value) // 监听
+        return value
+      },
+      set: function reactiveSetter (newVal) {
+        observe(newVal) //如果赋值是一个对象，也要递归子属性
+        if (newVal !== value) {
+          console.log(&#39;set&#39;, newVal) // 监听
+          render()
+          value = newVal
+        }
+      }
+    })
+  }
+}
+data.location = {
+  x: 1000,
+  y: 1000
+} //set {x: 1000,y: 1000} 模拟视图渲染
+data.name // get 浪里行舟</code></pre>
+<p>上面这段代码的主要作用在于：<code>observe</code>这个函数传入一个 <code>obj</code>（需要被追踪变化的对象），通过遍历所有属性的方式对该对象的每一个属性都通过 <code>defineReactive</code> 处理,以此来达到实现侦测对象变化。值得注意的是，<code>observe</code> 会进行递归调用。</p>
+<p>那我们如何侦测Vue中<code>data</code> 中的数据，其实也很简单：</p>
+<pre class="javascript"><code>class Vue {
+    /* Vue构造类 */
+    constructor(options) {
+        this._data = options.data;
+        observer(this._data);
+    }
+}</code></pre>
+<p>这样我们只要 new 一个 Vue 对象，就会将 <code>data</code> 中的数据进行追踪变化。<br />
+不过这种方式有几个注意点需补充说明：</p>
+<ul>
+<li><strong>无法检测到对象属性的添加或删除</strong>(如<code>data.location.a=1</code>)。</li>
+</ul>
+<p>这是因为 Vue 通过<code>Object.defineProperty</code>来将对象的key转换成<code>getter/setter</code>的形式来追踪变化，但<code>getter/setter</code>只能追踪一个数据是否被修改，无法追踪新增属性和删除属性。如果是删除属性，我们可以用<code>vm.$delete</code>实现，那如果是新增属性，该怎么办呢？<br />
+1）可以使用 <code>Vue.set(location, a, 1)</code> 方法向嵌套对象添加响应式属性;<br />
+2）也可以给这个对象重新赋值，比如<code>data.location = {...data.location,a:1}</code></p>
+<ul>
+<li><strong><code>Object.defineProperty</code> 不能监听数组的变化，需要进行数组方法的重写</strong>，具体代码如下：</li>
+</ul>
+<pre class="javascript"><code>function render() {
+  console.log(&#39;模拟视图渲染&#39;)
+}
+let obj = [1, 2, 3]
+let methods = [&#39;pop&#39;, &#39;shift&#39;, &#39;unshift&#39;, &#39;sort&#39;, &#39;reverse&#39;, &#39;splice&#39;, &#39;push&#39;]
+// 先获取到原来的原型上的方法
+let arrayProto = Array.prototype
+// 创建一个自己的原型 并且重写methods这些方法
+let proto = Object.create(arrayProto)
+methods.forEach(method =&gt; {
+  proto[method] = function() {
+    // AOP
+    arrayProto[method].call(this, ...arguments)
+    render()
+  }
+})
+function observer(obj) {
+  // 把所有的属性定义成set/get的方式
+  if (Array.isArray(obj)) {
+    obj.__proto__ = proto
+    return
+  }
+  if (typeof obj == &#39;object&#39;) {
+    for (let key in obj) {
+      defineReactive(obj, key, obj[key])
+    }
+  }
+}
+function defineReactive(data, key, value) {
+  observer(value)
+  Object.defineProperty(data, key, {
+    get() {
+      return value
+    },
+    set(newValue) {
+      observer(newValue)
+      if (newValue !== value) {
+        render()
+        value = newValue
+      }
+    }
+  })
+}
+observer(obj)
+function $set(data, key, value) {
+  defineReactive(data, key, value)
+}
+obj.push(123, 55)
+console.log(obj) //[1, 2, 3, 123,  55]</code></pre>
+<p>这种方法将数组的常用方法进行重写，进而覆盖掉原生的数组方法，重写之后的数组方法需要能够被拦截。但有些数组操作Vue时拦截不到的，当然也就没办法响应，比如：</p>
+<pre class="javascript"><code>obj.length-- // 不支持数组的长度变化
+obj[0]=1  // 修改数组中第一个元素，也无法侦测数组的变化</code></pre>
+<p>ES6提供了元编程的能力，所以有能力拦截，Vue3.0可能会用ES6中Proxy 作为实现数据代理的主要方式。</p>
+<h4 id="方法2.-proxy实现">方法2. Proxy实现</h4>
+<p><code>Proxy</code> 是 JavaScript 2015 的一个新特性。<strong><code>Proxy</code> 的代理是针对整个对象的，而不是对象的某个属性</strong>，因此不同于 <code>Object.defineProperty</code> 的必须遍历对象每个属性，<code>Proxy</code> 只需要做一层代理就可以监听同级结构下的所有属性变化，当然对于深层结构，递归还是需要进行的。此外<strong><code>Proxy</code>支持代理数组的变化。</strong></p>
+<pre class="javascript"><code>function render() {
+  console.log(&#39;模拟视图的更新&#39;)
+}
+let obj = {
+  name: &#39;前端工匠&#39;,
+  age: { age: 100 },
+  arr: [1, 2, 3]
+}
+let handler = {
+  get(target, key) {
+    // 如果取的值是对象就在对这个对象进行数据劫持
+    if (typeof target[key] == &#39;object&#39; &amp;&amp; target[key] !== null) {
+      return new Proxy(target[key], handler)
+    }
+    return Reflect.get(target, key)
+  },
+  set(target, key, value) {
+    if (key === &#39;length&#39;) return true
+    render()
+    return Reflect.set(target, key, value)
+  }
+}
+
+let proxy = new Proxy(obj, handler)
+proxy.age.name = &#39;浪里行舟&#39; // 支持新增属性
+console.log(proxy.age.name) // 模拟视图的更新 浪里行舟
+proxy.arr[0] = &#39;浪里行舟&#39; //支持数组的内容发生变化
+console.log(proxy.arr) // 模拟视图的更新 [&#39;浪里行舟&#39;, 2, 3 ]
+proxy.arr.length-- // 无效</code></pre>
+<p>以上代码不仅精简，而且还是实现一套代码对对象和数组的侦测都适用。不过<code>Proxy</code>兼容性不太好！</p>
+<h3 id="为什么要收集依赖">为什么要收集依赖</h3>
+<p>我们之所以要观察数据，其目的在于当数据的属性发生变化时，可以通知那些曾经使用了该数据的地方。比如第一例子中，模板中使用了price 数据，当它发生变化时，要向使用了它的地方发送通知。那如果多个Vue实例中共用一个变量，如下面这个例子：</p>
+<pre class="javascript"><code>let globalData = {
+    text: &#39;浪里行舟&#39;
+};
+let test1 = new Vue({
+    template:
+        `&lt;div&gt;
+            &lt;span&gt;{{text}}&lt;/span&gt; 
+        &lt;div&gt;`,
+    data: globalData
+});
+let test2 = new Vue({
+    template:
+        `&lt;div&gt;
+            &lt;span&gt;{{text}}&lt;/span&gt; 
+        &lt;div&gt;`,
+    data: globalData
+});</code></pre>
+<p>如果我们执行下面这条语句：</p>
+<pre class="javascript"><code>globalData.text = &#39;前端工匠&#39;;</code></pre>
+<p>此时我们需要通知 test1 以及 test2 这两个Vue实例进行视图的更新,我们只有通过收集依赖才能知道哪些地方依赖我的数据，以及数据更新时派发更新。那依赖收集是如何实现的？其中的核心思想就是“事件发布订阅模式”。接下来我们先介绍两个重要角色-- 订阅者 Dep和观察者 Watcher ，然后阐述收集依赖的如何实现的。</p>
+<h3 id="订阅者-dep">订阅者 Dep</h3>
+<h4 id="为什么引入-dep">1.为什么引入 Dep</h4>
+<p>收集依赖需要为依赖找一个存储依赖的地方，为此我们创建了Dep,它用来收集依赖、删除依赖和向依赖发送消息等。</p>
+<p>于是我们先来实现一个订阅者 Dep 类，用于解耦属性的依赖收集和派发更新操作，说得具体点，它的主要作用是用来存放 Watcher 观察者对象。我们可以把<strong>Watcher理解成一个中介的角色，数据发生变化时通知它，然后它再通知其他地方。</strong></p>
+<h4 id="dep的简单实现">2. Dep的简单实现</h4>
+<pre class="javascript"><code>class Dep {
+    constructor () {
+        /* 用来存放Watcher对象的数组 */
+        this.subs = [];
+    }
+    /* 在subs中添加一个Watcher对象 */
+    addSub (sub) {
+        this.subs.push(sub);
+    }
+    /* 通知所有Watcher对象更新视图 */
+    notify () {
+        this.subs.forEach((sub) =&gt; {
+            sub.update();
+        })
+    }
+}</code></pre>
+<p>以上代码主要做两件事情：</p>
+<ul>
+<li>用 addSub 方法可以在目前的 Dep 对象中增加一个 Watcher 的订阅操作；</li>
+<li>用 notify 方法通知目前 Dep 对象的 subs 中的所有 Watcher 对象触发更新操作。</li>
+</ul>
+<p>所以当需要依赖收集的时候调用 addSub，当需要派发更新的时候调用 notify。调用也很简单：</p>
+<pre class="javascript"><code>let dp = new Dep()
+dp.addSub(() =&gt; {
+    console.log(&#39;emit here&#39;)
+})
+dp.notify()</code></pre>
+<p>给大家推荐一个好用的BUG监控工具<a href="https://www.fundebug.com/?utm_source=liao">Fundebug</a>，欢迎免费试用！</p>
+<h3 id="观察者-watcher">观察者 Watcher</h3>
+<h4 id="为什么引入watcher">1.为什么引入Watcher</h4>
+<p>Vue 中定义一个 Watcher 类来表示观察订阅依赖。至于为啥引入Watcher，《深入浅出vue.js》给出了很好的解释:</p>
+<p>当属性发生变化后，我们要通知用到数据的地方，而使用这个数据的地方有很多，而且类型还不一样，既有可能是模板，也有可能是用户写的一个watch,这时需要抽象出一个能集中处理这些情况的类。然后，我们在依赖收集阶段只收集这个封装好的类的实例进来，通知也只通知它一个，再由它负责通知其他地方。</p>
+<p><strong>依赖收集的目的是将观察者 Watcher 对象存放到当前闭包中的订阅者 Dep 的 subs 中</strong>。形成如下所示的这样一个关系（图参考《剖析 Vue.js 内部运行机制》）。</p>
+<p><img src="./images/详解Vue响应式原理1.png" /></p>
+<h4 id="watcher的简单实现">2. Watcher的简单实现</h4>
+<pre class="javascript"><code>class Watcher {
+  constructor(obj, key, cb) {
+    // 将 Dep.target 指向自己
+    // 然后触发属性的 getter 添加监听
+    // 最后将 Dep.target 置空
+    Dep.target = this
+    this.cb = cb
+    this.obj = obj
+    this.key = key
+    this.value = obj[key]
+    Dep.target = null
+  }
+  update() {
+    // 获得新值
+    this.value = this.obj[this.key]
+   // 我们定义一个 cb 函数，这个函数用来模拟视图更新，调用它即代表更新视图
+    this.cb(this.value)
+  }
+}</code></pre>
+<p>以上就是 Watcher 的简单实现，在执行构造函数的时候将 <code>Dep.target</code> 指向自身，从而使得收集到了对应的 Watcher，在派发更新的时候取出对应的 Watcher ,然后执行 <code>update</code> 函数。</p>
+<h3 id="收集依赖">收集依赖</h3>
+<p>所谓的依赖，其实就是Watcher。至于如何收集依赖，总结起来就一句话，<strong>在getter中收集依赖，在setter中触发依赖。</strong>先收集依赖，即把用到该数据的地方收集起来，然后等属性发生变化时，把之前收集好的依赖循环触发一遍就行了。</p>
+<p>具体来说，当外界通过Watcher读取数据时，便会触发getter从而将Watcher添加到依赖中，哪个Watcher触发了getter，就把哪个Watcher收集到Dep中。当数据发生变化时，会循环依赖列表，把所有的Watcher都通知一遍。</p>
+<p>最后我们对 defineReactive 函数进行改造，在自定义函数中添加依赖收集和派发更新相关的代码,实现了一个简易的数据响应式。</p>
+<pre class="javascript"><code>function observe (obj) {
+  // 判断类型
+  if (!obj || typeof obj !== &#39;object&#39;) {
+    return
+  }
+  Object.keys(obj).forEach(key =&gt; {
+    defineReactive(obj, key, obj[key])
+  })
+  function defineReactive (obj, key, value) {
+    observe(value)  // 递归子属性
+    let dp = new Dep() //新增
+    Object.defineProperty(obj, key, {
+      enumerable: true, //可枚举（可以遍历）
+      configurable: true, //可配置（比如可以删除）
+      get: function reactiveGetter () {
+        console.log(&#39;get&#39;, value) // 监听
+     // 将 Watcher 添加到订阅
+       if (Dep.target) {
+         dp.addSub(Dep.target) // 新增
+       }
+        return value
+      },
+      set: function reactiveSetter (newVal) {
+        observe(newVal) //如果赋值是一个对象，也要递归子属性
+        if (newVal !== value) {
+          console.log(&#39;set&#39;, newVal) // 监听
+          render()
+          value = newVal
+     // 执行 watcher 的 update 方法
+          dp.notify() //新增
+        }
+      }
+    })
+  }
+}
+
+class Vue {
+    constructor(options) {
+        this._data = options.data;
+        observer(this._data);
+        /* 新建一个Watcher观察者对象，这时候Dep.target会指向这个Watcher对象 */
+        new Watcher();
+        console.log(&#39;模拟视图渲染&#39;);
+    }
+}</code></pre>
+<p>当 render function 被渲染的时候,读取所需对象的值，会触发 reactiveGetter 函数把当前的 Watcher 对象（存放在 Dep.target 中）收集到 Dep 类中去。之后如果修改对象的值，则会触发 reactiveSetter 方法，通知 Dep 类调用 notify 来触发所有 Watcher 对象的 update 方法更新对应视图。</p>
+<h2 id="总结">总结</h2>
+<p>最后我们依照下图（参考《深入浅出vue.js》），再来回顾下整个过程：</p>
+<p><img src="./images/详解Vue响应式原理2.png" /></p>
+<ul>
+<li>在 <code>new Vue()</code> 后， Vue 会调用<code>_init</code> 函数进行初始化，也就是init 过程，在 这个过程Data通过Observer转换成了getter/setter的形式，来对数据追踪变化，当被设置的对象被读取的时候会执行<code>getter</code> 函数，而在当被赋值的时候会执行 <code>setter</code>函数。</li>
+<li>当外界通过Watcher读取数据时，会触发getter从而将Watcher添加到依赖中。</li>
+<li>在修改对象的值的时候，会触发对应的<code>setter</code>， <code>setter</code>通知之前<strong>依赖收集</strong>得到的 Dep 中的每一个 Watcher，告诉它们自己的值改变了，需要重新渲染视图。这时候这些 Watcher就会开始调用 <code>update</code> 来更新视图。</li>
+</ul>
+<p>给大家推荐一个好用的BUG监控工具<a href="https://www.fundebug.com/?utm_source=liao">Fundebug</a>，欢迎免费试用！</p>
+<h3 id="参考">参考</h3>
+<ul>
+<li><a href="https://blog.fundebug.com/2019/06/17/handling-errors-in-vuejs/">5种处理Vue异常的方法</a></li>
+<li><a href="https://blog.fundebug.com/2019/06/03/vue-development-tutorial/">Vue开发入门看这篇文章就够了</a></li>
+<li><a href="https://blog.fundebug.com/2019/01/17/release-fundebug-vue/">Fundebug发布Vue插件，简化BUG监控接入代码</a></li>
+<li><a href="https://blog.fundebug.com/2019/05/18/6-ways-for-vue-communication/">Vue组件间通信6种方式</a></li>
+</ul>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家免费试用！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

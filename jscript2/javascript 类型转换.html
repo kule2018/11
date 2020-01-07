@@ -1,0 +1,375 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修javascript 类型转换' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>javascript 类型转换</center></div><div class='banquan'>原文出处:本文由博客园博主郭佬提供。<br/>
+原文连接:https://www.cnblogs.com/guolao/p/11364779.html</div><br>
+    <h2 id="strat">strat</h2>
+<hr />
+<p>javascript 的类型转换一直是个大坑，但其实它也减少了代码量。</p>
+<h2 id="toprimitive">ToPrimitive</h2>
+<hr />
+<p><strong>Symbol.toPrimitive</strong> 是一个内置的 Symbol 值，它作为对象的函数值属性存在，当一个对象转换为原始值时，会调用此函数。</p>
+<p>该函数被调用时，会被传递一个字符串参数 <code>hint</code> ，表示要转换到的原始值的预期类型。 <code>hint</code> 参数的取值是 <code>&quot;number&quot;</code>、<code>&quot;string&quot;</code> 和 <code>&quot;default&quot;</code> 中的任意一个。</p>
+<pre><code><code>// 一个没有提供 Symbol.toPrimitive 属性的对象，参与运算时的输出结果
+let obj1 = {};
+console.log(+obj1);     // NaN
+console.log(`${obj1}`); // &quot;[object Object]&quot;
+console.log(obj1 + &quot;&quot;); // &quot;[object Object]&quot;
+
+// 接下面声明一个对象，手动赋予了 Symbol.toPrimitive 属性，再来查看输出结果
+let obj2 = {
+  [Symbol.toPrimitive](hint) {
+    if (hint == &quot;number&quot;) {
+      return 10;
+    }
+    if (hint == &quot;string&quot;) {
+      return &quot;hello&quot;;
+    }
+    return true;
+  }
+};
+console.log(+obj2);     // 10      -- hint 参数值是 &quot;number&quot;
+console.log(`${obj2}`); // &quot;hello&quot; -- hint 参数值是 &quot;string&quot;
+console.log(obj2 + &quot;&quot;); // &quot;true&quot;  -- hint 参数值是 &quot;default&quot;</code></pre>
+<p>从上面可以看出，toPrimitive 转换过程依靠 hint 参数:</p>
+<ul>
+<li><code>number</code>: valueOf() → toString() → TypeError</li>
+<li><code>string</code>: toString() → valueOf() → TypeError</li>
+<li><code>default</code>: 同 number</li>
+</ul>
+<h3 id="valueof">valueOf</h3>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;"><strong>对象</strong></th>
+<th style="text-align: left;"><strong>返回值</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Array</td>
+<td style="text-align: left;">返回数组对象本身。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Boolean</td>
+<td style="text-align: left;">布尔值。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Date</td>
+<td style="text-align: left;">存储的时间是从 1970 年 1 月 1 日午夜开始计的毫秒数 UTC。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Function</td>
+<td style="text-align: left;">函数本身。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Number</td>
+<td style="text-align: left;">数字值。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Object</td>
+<td style="text-align: left;">对象本身。这是默认情况。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">字符串值。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Symbol</td>
+<td style="text-align: left;">Symbol本身</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"></td>
+<td style="text-align: left;">Math 和 Error 对象没有 valueOf 方法。</td>
+</tr>
+</tbody>
+</table>
+<h3 id="tostring">toString</h3>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;"><strong>对象</strong></th>
+<th style="text-align: left;"><strong>返回值</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Array</td>
+<td style="text-align: left;">[1, 2, 3] =&gt; &quot;1,2,3&quot;</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Boolean</td>
+<td style="text-align: left;">false =&gt; &quot;false&quot;</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Date</td>
+<td style="text-align: left;">返回表示 UTC 的字符串。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Function</td>
+<td style="text-align: left;">返回表示当前函数源代码的字符串。</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Number</td>
+<td style="text-align: left;">返回表示当前数值的字符串。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Object</td>
+<td style="text-align: left;">&quot;[object Object]&quot;</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">String</td>
+<td style="text-align: left;">字符串本身。</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Symbol</td>
+<td style="text-align: left;">&quot;Symbol()&quot;</td>
+</tr>
+</tbody>
+</table>
+<p><strong>注意：<code>[null].toString()</code>以及<code>[undefined].toString()</code>均返回空字符串<code>&quot;&quot;</code>。</strong></p>
+<h2 id="toboolean">ToBoolean</h2>
+<hr />
+<p><a href="https://es5.github.io/#x9.2">ES5 规范 9.2</a>中列举了布尔强制类型转换 (ToBoolean) 会出现假值 (false) 的仅有以下几个，其余都为真值 (true)：</p>
+<ul>
+<li>undefined</li>
+<li>null</li>
+<li>false</li>
+<li>+0、-0、NaN</li>
+<li>''（空字符串）</li>
+</ul>
+<pre><code><code>/*
+ 以下 a、b、c 存储的是指向对象的指针，并非假值
+*/
+let a = new Number(0);
+let b = new Boolean(false);
+let c = new String(&#39;&#39;);
+
+Boolean(a) // true
+Boolean(b) // true
+Boolean(c) // true
+
+Boolean(0) // false
+Boolean(false) // false
+Boolean(&#39;&#39;) // false</code></pre>
+<h2 id="tonumber">ToNumber</h2>
+<hr />
+<table>
+<thead>
+<tr class="header">
+<th>对象</th>
+<th>返回值</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Undefined</td>
+<td>NaN</td>
+</tr>
+<tr class="even">
+<td>Null</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td>Boolean</td>
+<td>true =&gt; 1, false =&gt; 0</td>
+</tr>
+<tr class="even">
+<td>Number</td>
+<td>返回自身</td>
+</tr>
+<tr class="odd">
+<td>String</td>
+<td>不能解析为 <em>StringNumericLiteral</em> 的，均返回 NaN</td>
+</tr>
+<tr class="even">
+<td>Object</td>
+<td>ToPrimitive(<em>input argument</em>, hint Number)</td>
+</tr>
+</tbody>
+</table>
+<p>注: <a href="https://es5.github.io/#x9.3.1">StringNumericLiteral</a></p>
+<h2 id="强制类型转换符">强制类型转换符</h2>
+<hr />
+<h3 id="加号">加号 (+)</h3>
+<p><code>+</code>作为一元运算符，单独使用，会强制将右侧操作数类型转为 number，即对右侧操作数使用 ToNumber()。</p>
+<pre><code><code>+1 // 1
++&#39;1.2&#39; // 1.2
++[] // 0
++[1, 2, 3] // NaN
++{} // NaN</code></pre>
+<h3 id="叹号">叹号 (!)</h3>
+<p><code>!</code>会强制将右侧操作数类型转为 boolean，并反转真、假值，即对右侧操作数使用 !ToBoolean()。</p>
+<pre><code><code>!true // false
+!0 // true
+![] // false
+!&#39;&#39; // true
+!undefined // true
+!null // true
+
+!!true // true
+!!undefined // false
+!!null // false</code></pre>
+<h2 id="四则运算符">四则运算符</h2>
+<hr />
+<p>加法运算遵循以下规则：</p>
+<ol>
+<li><p>运算的其中一方为字符串，就会把另一方转换为字符串。</p>
+<pre><code><code>1 + &#39;1&#39; // &#39;11&#39;
+42 + &#39;&#39; // &#39;42&#39;</code></pre></li>
+<li><p>如果其中一方不是字符串或数字，就会将它转换为字符串或数字。</p>
+<pre><code><code>false + true // 1
+3 + [1, 2, 3] // &#39;31,2,3&#39;
+([] + {}) // &#39;[object Object]&#39;
+
+/* {} + [] 的结果为 0, 是因为从左往右解析，{} 为一个代码块，+[] 被解析为将 [] 转为 number, 即 0。*/
+{} + [] // 0
+({} + []) // &quot;[object Object]&quot;</code></pre>
+<p><strong>注意：</strong></p>
+<pre><code><code>/* 会出现以下情况，是因为 + &#39;b&#39; 解释为 ToNumber(&#39;b&#39;) */
+&#39;a&#39; + + &#39;b&#39; // &quot;aNaN&quot;</code></pre></li>
+</ol>
+<p>对于加法运算以外的运算来说，双方会被转为数字进行运算。</p>
+<pre><code><code>1 * &#39;2&#39; // 2
+[] * {} // NaN
+1 * [1, 2, 3] // NaN
+
+let obj = {
+    valueOf: () =&gt; {
+        return 1
+    }
+}
+
+obj * 2 // 2</code></pre>
+<h2 id="and">== and ===</h2>
+<hr />
+<p>对于<code>==</code>(相对等于)、<code>===</code>(绝对等于)，绝大部分的书籍和博客都解释为前者仅检查值是否相等，后者检查值和类型是否相等，其实这样是不对的，正确的解释应该是：<strong>前者允许在比较的时候进行强制类型转换，后者不允许</strong>。</p>
+<p><a href="https://es5.github.io/#x11.9.3">ES5 规范 11.9.3</a> 定义了相对等于的行为，涵盖了所有的类型，具体可分为以下几种情况：</p>
+<ol>
+<li><p>双方类型相同</p>
+<table>
+<thead>
+<tr class="header">
+<th>类型</th>
+<th>结果</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Undefined</td>
+<td>true</td>
+</tr>
+<tr class="even">
+<td>Null</td>
+<td>true</td>
+</tr>
+<tr class="odd">
+<td>Number</td>
+<td>1. 如果其中一方为<strong>NaN</strong>，返回<strong>false</strong>。2. 如果 x 与 y 的值相同，则返回<strong>true</strong>，否则<strong>false</strong>。3.如果其中一方为<strong>+0</strong>或<strong>-0</strong>且另一方为<strong>+0</strong>或<strong>-0</strong>，返回<strong>true</strong>。</td>
+</tr>
+<tr class="even">
+<td>String</td>
+<td>双方为完全相同的字符序列，返回<strong>true</strong>。否则返回 <strong>false</strong>。</td>
+</tr>
+<tr class="odd">
+<td>Boolean</td>
+<td>双方为<strong>true</strong>或<strong>false</strong>，返回<strong>true</strong>，否则返回<strong>false</strong>。</td>
+</tr>
+<tr class="even">
+<td>Object</td>
+<td>双方引用同一个对象，返回 <strong>true</strong>。否则，返回<strong>false</strong></td>
+</tr>
+</tbody>
+</table>
+<pre><code><code>NaN == NaN // false
+-0 == +0 // true</code></pre></li>
+<li><p>null 与 undefined</p>
+<pre><code><code>null == undefined // true</code></pre></li>
+<li><p>字符串与数字</p>
+<p>会将字符串转为数字进行比较，即<code>ToNumber(字符串) == 数字</code>。</p>
+<pre><code><code>10 == &#39;10&#39; // true
+10 == &#39;a&#39; // false
+/* 十六进制 &#39;0xa&#39; =&gt; 十进制 10 */
+10 == &#39;0Xa&#39; // true</code></pre></li>
+<li><p>布尔类型与其他类型</p>
+<p>会将布尔类型转为数字，再与其他类型进行比较，即<code>ToNumber(布尔类型) == 其他类型</code></p>
+<pre><code><code>0 == false // true
+&#39;1&#39; == true // true
+null == false // false
+undefined == false // false</code></pre></li>
+<li><p>对象类型与非对象类型</p>
+<p>会将对象类型转为原始类型，再进行比较，即 <code>ToPrimitive(对象类型) == 非对象类型</code></p>
+<pre><code><code>[1] == 1 // true
+[1, 2] == 1 // false
+
+/* b.toString() 返回 &#39;111&#39; */
+let a = &#39;111&#39;;
+let b = Object(a);
+a == b // true
+
+/* null 与 undefined 不能被封装为 object, 即 Object(null) 的返回结果与 Object() 的一样 */
+let c = null;
+let d = Object(c);
+c == d // false
+
+let e = undefined;
+let f = Object(e);
+e == f // false</code></pre></li>
+</ol>
+<h2 id="难以理解的情况">难以理解的情况</h2>
+<hr />
+<ol>
+<li><p><code>[] == ![]</code></p>
+<pre><code><code>[] == ![] // true
+
+/*
+第一步: !的优先级比 == 高，所以 ![] 解析为 !Boolean([])，结果为 true.
+现在: [] == true
+
+第二布: 布尔类型与其他类型进行比较，解析为 ToNumber(true), 结果为 0.
+现在: [] == 0
+
+第三步: 对象类型与非对象类型进行比较，解析为 ToPrimitive([], &#39;number&#39;)，结果为 0.
+现在: 0 == 0 // true
+*/</code></pre></li>
+<li><p><code>[null] == ''</code></p>
+<pre><code><code>[null] == &#39;&#39; // true
+[undefined] == &#39;&#39; // true
+
+/*
+[null].toString() 以及 [undefined].toString() 均返回空字符串 &#39;&#39;
+因为 null 与 undefined 均没有 toString 和 valueOf 方法。
+*/</code></pre></li>
+<li><p><code>0 == '\n'</code></p>
+<pre><code><code>0 == &#39;\n&#39; // true
+0 == &#39;\t\r\n&#39; // true
+
+/*
+上述语句被解析为 ToNumber(&#39;\n&#39;), 返回结果为 0.
+*/</code></pre>
+<p>具体解释：<a href="https://stackoverflow.com/questions/10376179/n-t-r-0-is-true">'\n\t\r' == 0 is true?</a></p></li>
+</ol>
+<h2 id="备注">备注</h2>
+<hr />
+<p>理解了类型转换，你会发现并非一定要抛弃<code>==</code>去使用<code>===</code>。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

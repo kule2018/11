@@ -1,0 +1,346 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修axios 源码解析(中)  代码结构' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>axios 源码解析(中)  代码结构</center></div><div class='banquan'>原文出处:本文由博客园博主大沙漠提供。<br/>
+原文连接:https://www.cnblogs.com/greatdesert/p/11606941.html</div><br>
+    <p>axios现在最新的版本的是v0.19.0，本节我们来分析一下它的实现源码，首先通过 gitHub地址获取到它的源代码,地址:<a href="https://github.com/axios/axios/tree/v0.19.0" target="_blank">https://github.com/axios/axios/tree/v0.19.0</a></p>
+<p>下载后就可以看到axios的目录结构,主目录下有一个index.js文件，该文件比较简单，内容如下:</p>
+<p><img src="./images/axios 源码解析(中)  代码结构0.png" alt="" /></p>
+<p>就是去引入./lib/axios模块而已,lib目录内容如下:</p>
+<p><img src="./images/axios 源码解析(中)  代码结构1.png" alt="" /></p>
+<p>大致文件说明如下:</p>
+<p>index.js&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;入口文件<br />&nbsp;&nbsp; &nbsp;├lib&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;代码主目录<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;├helpers&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;定义了一些辅助函数<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;├adapters&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; ;原生ajax和node环境下请求的封装<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;├cancel&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp; ;取消请求的一些封装<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;├core&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;;请求派发、拦截器管理、数据转换等处理<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;axios.js&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; ;也算是入口文件吧<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;default.js&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; ;默认配置文件<br />&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;utils.js&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; ;工具函数</p>
+<p class="hwi">writer by:大沙漠 QQ:22969969</p>
+<p>./lib/axios应该也可以说是一个入口文件，主要的分支如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> utils = require('./utils'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> bind = require('./helpers/bind'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> Axios = require('./core/Axios'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> mergeConfig = require('./core/mergeConfig'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> defaults = require('./defaults');                            <span style="color: #008000;">//</span><span style="color: #008000;">默认配置对象</span>
+
+<span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">function</span> createInstance(defaultConfig) {                        <span style="color: #008000;">//</span><span style="color: #008000;">创建一个Axios的实例 参数为:Axios的默认配置</span>
+  <span style="color: #0000ff;">var</span> context = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Axios(defaultConfig);  　　　　　　　　　　　　　　//创建一个./lib/core/Axios对象，作为上下文
+  </span><span style="color: #0000ff;">var</span> instance =<span style="color: #000000;"> bind(Axios.prototype.request, context); 　　　　　　//创建一个instance属性，值为bind()函数的返回值
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Copy axios.prototype to instance</span>
+<span style="color: #000000;">  utils.extend(instance, Axios.prototype, context); 　　　　　　　　　//<span style="color: #ff0000;">将Axios.prototype上的方法(delete、get、head、options、post、put、patch、request)extend到instans上，通过bind进行绑定
+
+  </span></span><span style="color: #008000;">//</span><span style="color: #008000;"> Copy context to instance</span>
+<span style="color: #000000;">  utils.extend(instance, context);  　　　　　　　　　　　　　　　　　　//<span style="color: #ff0000;">将context上的两个defaults和interceptors属性保存到utils上面，这两个都是对象，这样我们就可以通过axios.defaults修改配置信息，通过axios.interceptors去设置拦截器了
+
+  </span></span><span style="color: #0000ff;">return</span><span style="color: #000000;"> instance; 　　　　　　　　　　　　　　　　　　　　　　　　　　　　//返回instance方法
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Create the default instance to be exported</span>
+<span style="color: #0000ff;">var</span> axios = createInstance(defaults);                            <span style="color: #008000;">//</span><span style="color: #008000;">创建一个默认的实例作为输出</span>
+
+<span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+module.exports </span>= axios;                                            <span style="color: #008000;">//</span><span style="color: #008000;">导出符号</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;"> Allow use of default import syntax in TypeScript</span>
+module.exports.<span style="color: #0000ff;">default</span> = axios;                                    <span style="color: #008000;">//</span><span style="color: #008000;">默认导出符号</span></pre>
+</div>
+<p>createInstance会创建一个./lib/core/Axios的一个对象实例，保存到局部变量context中，然后调用<span style="color: #000000;">bind函数，将返回值保存到instance中(<span style="color: #ff0000;">这就是我们调用axios()执行ajax请求时所调用的符号</span>)，bind()是一个辅助函数，如下:<br /></span></p>
+<div class="cnblogs_code">
+<pre><code>module.exports = <span style="color: #0000ff;">function</span> bind(fn, thisArg) {        <span style="color: #008000;">//</span><span style="color: #008000;">以thisArg为上下文，执行fn函数</span>
+  <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> wrap() {
+    </span><span style="color: #0000ff;">var</span> args = <span style="color: #0000ff;">new</span> Array(arguments.length);                <span style="color: #008000;">//</span><span style="color: #008000;">将arguments按照顺序依次保存到args里面</span>
+    <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; args.length; i++<span style="color: #000000;">) {
+      args[i] </span>=<span style="color: #000000;"> arguments[i];
+    }
+    </span><span style="color: #0000ff;">return</span> fn.apply(thisArg, args);                        <span style="color: #008000;">//</span><span style="color: #008000;">执行fn函数，参数为thisArg为上下文，args为参数</span>
+<span style="color: #000000;">  };
+};</span></pre>
+</div>
+<p>&nbsp;该函数是一个高阶函数的实现，它会以参数2作为上下文，执行参数1，也就是以context为上下文，执行<span style="color: #000000;">Axios.prototype.request</span>函数，<span style="color: #ff0000;">Axios.prototype.request就是所有异步请求的入口了</span></p>
+<p>&nbsp;<span style="color: #000000;">我们看一下<span style="color: #000000;">Axios.prototype.request的实现，如下:</span></span></p>
+<div class="cnblogs_code">
+<pre><code>Axios.prototype.request = <span style="color: #0000ff;">function</span> request(config) {            <span style="color: #008000;">//</span><span style="color: #008000;">派发一个请求,也是ajax请求的入口</span>
+  <span style="color: #008000;">/*</span><span style="color: #008000;">eslint no-param-reassign:0</span><span style="color: #008000;">*/</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> Allow for axios('example/url'[, config]) a la fetch API</span>
+  <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> config === 'string') {                                   <span style="color: #008000;">//</span><span style="color: #008000;">如果config对象是个字符串，  ;例如:axios('/api/1.php').then(function(){},function(){})</span>
+    config = arguments[1] || {};                                        <span style="color: #008000;">//</span><span style="color: #008000;">则将其转换为对象</span>
+    config.url = arguments[0<span style="color: #000000;">];
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    config </span>= config ||<span style="color: #000000;"> {};
+  }
+
+  config </span>= mergeConfig(<span style="color: #0000ff;">this</span>.defaults, config);                          <span style="color: #008000;">//</span><span style="color: #008000;">合并默认值</span>
+  config.method = config.method ? config.method.toLowerCase() : 'get';  <span style="color: #008000;">//</span><span style="color: #008000;">ajax方法，例如:get，这里是转换为小写</span>
+
+  <span style="color: #008000;">//</span><span style="color: #008000;"> Hook up interceptors middleware</span>
+  <span style="color: #0000ff;">var</span> chain = [dispatchRequest, undefined];                             <span style="color: #008000;">//</span><span style="color: #008000;">这个是发送ajax的异步对列</span>
+  <span style="color: #0000ff;">var</span> promise = Promise.resolve(config);                                <span style="color: #008000;">//</span><span style="color: #008000;">将config转换为Promise对象</span>
+
+  <span style="color: #0000ff;">this</span>.interceptors.request.forEach(<span style="color: #0000ff;">function</span> unshiftRequestInterceptors(interceptor) {      <span style="color: #008000;">//</span><span style="color: #ff0000;">请求拦截器的逻辑(下一节介绍)</span>
+<span style="color: #000000;">    chain.unshift(interceptor.fulfilled, interceptor.rejected);                               
+  });
+
+  </span><span style="color: #0000ff;">this</span>.interceptors.response.forEach(<span style="color: #0000ff;">function</span> pushResponseInterceptors(interceptor) {       <span style="color: #008000;">//</span><span style="color: #ff0000;">响应拦截的逻辑<span style="color: #ff0000;">(下一节介绍)</span></span>
+<span style="color: #000000;">    chain.push(interceptor.fulfilled, interceptor.rejected);
+  });
+
+  </span><span style="color: #0000ff;">while</span> (chain.length) {                                                <span style="color: #008000;">//</span><span style="color: #008000;">如果chain.length存在</span>
+    promise = promise.then(chain.shift(), chain.shift());                 <span style="color: #008000;">//</span><span style="color: #ff0000;">则执行promise.then()，这里执行dispatchRequest函数，这样就组成了异步队列</span>
+<span style="color: #000000;">  }
+
+  </span><span style="color: #0000ff;">return</span> promise;                                                     <span style="color: #008000;">//</span><span style="color: #008000;">最后返回promise对象</span>
+};</pre>
+</div>
+<p>这里有一个while(chain.length){}遍历循环比较难以理解，这个设计思想很新颖，这里理解了整个axios的执行流程就能理解了，拦截器也是在这里实现的。它就是遍历chain数组，依次把前两个元素分别作为promise().then的参数1和参数2来执行，这样当promise之前的队列执行完后就会接着执行后面的队列，默认就是[dispatchRequest,undefined]，也就是首先会执行dispatchRequest，如果有添加了请求拦截器则会在dispatchRequest之前执行拦截器里的逻辑，同样的，如果有响应拦截器，则会在执行dispatchRequest之后执行响应拦截器里的逻辑。</p>
+<p>dispatchRequest逻辑如下:</p>
+<div class="cnblogs_code">
+<pre><code>module.exports = <span style="color: #0000ff;">function</span> dispatchRequest(config) {                <span style="color: #008000;">//</span><span style="color: #008000;">派发一个到服务器的请求，用config里的配置</span>
+<span style="color: #000000;">  throwIfCancellationRequested(config);
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Support baseURL config</span>
+  <span style="color: #0000ff;">if</span> (config.baseURL &amp;&amp; !isAbsoluteURL(config.url)) {                <span style="color: #008000;">//</span><span style="color: #008000;">如果config.baseURL存在，且config.url不是绝对URL(以http://开头的)</span>
+    config.url = combineURLs(config.baseURL, config.url);                <span style="color: #008000;">//</span><span style="color: #ff0000;">则调用combineURLs将config.baseURL拼凑在config.url的前面，我们在项目里设置的baseURL="api/"就是在这里处理的</span>
+<span style="color: #000000;">  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Ensure headers exist</span>
+  config.headers = config.headers || {};                            <span style="color: #008000;">//</span><span style="color: #008000;">确保headers存在</span>
+
+  <span style="color: #008000;">//</span><span style="color: #008000;"> Transform request data</span>
+  config.data = transformData(                                        <span style="color: #008000;">//</span><span style="color: #008000;">修改请求数据，会调用默认配置里的transformRequest进行处理</span>
+<span style="color: #000000;">    config.data,
+    config.headers,
+    config.transformRequest
+  );
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Flatten headers</span>
+  config.headers = utils.merge(                                     <span style="color: #008000;">//</span><span style="color: #008000;">将请求头合并为一个数组</span>
+    config.headers.common ||<span style="color: #000000;"> {},
+    config.headers[config.method] </span>||<span style="color: #000000;"> {},
+    config.headers </span>||<span style="color: #000000;"> {}
+  );
+
+  utils.forEach(                                                     </span><span style="color: #008000;">//</span><span style="color: #008000;">再删除config.headers里的delete、get、head、post、put、patch、common请求头</span>
+    ['delete', 'get', 'head', 'post', 'put', 'patch', 'common'<span style="color: #000000;">],
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> cleanHeaderConfig(method) {
+      </span><span style="color: #0000ff;">delete</span><span style="color: #000000;"> config.headers[method];
+    }
+  );
+  </span><span style="color: #008000;">//</span><span style="color: #ff0000;">执行到这里请求头已经设置好了</span>
+  <span style="color: #0000ff;">var</span> adapter = config.adapter || defaults.adapter;                 <span style="color: #008000;">//</span><span style="color: #008000;">获取默认配置里的adapter，也就是封装好的ajax请求器</span>
+
+  <span style="color: #0000ff;">return</span> adapter(config).then(<span style="color: #0000ff;">function</span> onAdapterResolution(response) {    <span style="color: #008000;">//</span><span style="color: #008000;">执行adapter()就会发送ajax请求了,then()的第一个参数会修正返回的值</span>
+<span style="color: #000000;">    throwIfCancellationRequested(config);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Transform response data</span>
+    response.data = transformData(                                         <span style="color: #008000;">//</span><span style="color: #008000;">调用默认配置里的transformResponse对返回的数据进行处理</span>
+<span style="color: #000000;">      response.data,
+      response.headers,
+      config.transformResponse
+    );
+
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> response;
+  }, </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> onAdapterRejection(reason) {
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isCancel(reason)) {
+      throwIfCancellationRequested(config);
+
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Transform response data</span>
+      <span style="color: #0000ff;">if</span> (reason &amp;&amp;<span style="color: #000000;"> reason.response) {
+        reason.response.data </span>=<span style="color: #000000;"> transformData(
+          reason.response.data,
+          reason.response.headers,
+          config.transformResponse
+        );
+      }
+    }
+
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Promise.reject(reason);
+  });
+};</span></pre>
+</div>
+<p>&nbsp;最后会执行默认配置里的adapter属性对应的函数，我们来看一下，如下:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span> getDefaultAdapter() {                <span style="color: #008000;">//</span><span style="color: #008000;">获取默认的适配器,就是Ajax的发送器吧</span>
+  <span style="color: #0000ff;">var</span><span style="color: #000000;"> adapter;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Only Node.JS has a process variable that is of [[Class]] process</span>
+  <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> process !== 'undefined' &amp;&amp; Object.prototype.toString.call(process) === '[object process]') {        <span style="color: #008000;">//</span><span style="color: #ff0000;">对于浏览器来说，用XHR adapter</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> For node use HTTP adapter</span>
+    adapter = require('./adapters/http'<span style="color: #000000;">);
+  } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> XMLHttpRequest !== 'undefined') {                                                            <span style="color: #008000;">//</span><span style="color: #008000;">对于node环境来说，则使用HTTP adapter</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> For browsers use XHR adapter</span>
+    adapter = require('./adapters/xhr'<span style="color: #000000;">);
+  }
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> adapter;
+}
+
+</span><span style="color: #0000ff;">var</span> defaults =<span style="color: #000000;"> {
+  adapter: getDefaultAdapter(),            </span><span style="color: #008000;">//</span><span style="color: #008000;">适配器</span>
+  <span style="color: #008000;">/*</span><span style="color: #008000;">略</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+}</span></pre>
+</div>
+<p>./adapters/http就是最终发送ajax请求的实现，主要的逻辑如下:</p>
+<div class="cnblogs_code">
+<pre><code>module.exports = <span style="color: #0000ff;">function</span> xhrAdapter(config) {                            <span style="color: #008000;">//</span><span style="color: #008000;">发送XMLHTtpRequest()请求等</span>
+  <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;"> dispatchXhrRequest(resolve, reject) {
+    </span><span style="color: #0000ff;">var</span> requestData =<span style="color: #000000;"> config.data;
+    </span><span style="color: #0000ff;">var</span> requestHeaders =<span style="color: #000000;"> config.headers;
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (utils.isFormData(requestData)) {
+      </span><span style="color: #0000ff;">delete</span> requestHeaders['Content-Type']; <span style="color: #008000;">//</span><span style="color: #008000;"> Let the browser set it</span>
+<span style="color: #000000;">    }
+
+    </span><span style="color: #0000ff;">var</span> request = <span style="color: #0000ff;">new</span><span style="color: #000000;"> XMLHttpRequest();
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> HTTP basic authentication</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (config.auth) {
+      </span><span style="color: #0000ff;">var</span> username = config.auth.username || ''<span style="color: #000000;">;
+      </span><span style="color: #0000ff;">var</span> password = config.auth.password || ''<span style="color: #000000;">;
+      requestHeaders.Authorization </span>= 'Basic ' + btoa(username + ':' +<span style="color: #000000;"> password);
+    }
+
+    request.open(config.method.toUpperCase(), buildURL(config.url, config.params, config.paramsSerializer), </span><span style="color: #0000ff;">true</span>);        <span style="color: #008000;">//</span><span style="color: #008000;">初始化HTTP请求，采用异步请求  调用buildURL获取URL地址</span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Set the request timeout in MS</span>
+    request.timeout = config.timeout;                                                    <span style="color: #008000;">//</span><span style="color: #008000;">设置超时时间</span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Listen for ready state</span>
+    request.onreadystatechange = <span style="color: #0000ff;">function</span> handleLoad() {                                <span style="color: #008000;">//</span><span style="color: #008000;">绑定onreadystatechange事件</span>
+      <span style="color: #0000ff;">if</span> (!request || request.readyState !== 4) {                                            <span style="color: #008000;">//</span><span style="color: #008000;">如果HTTP响应已经还没有接收完成</span>
+        <span style="color: #0000ff;">return</span>;                                                                                    <span style="color: #008000;">//</span><span style="color: #008000;">则直接返回，不做处理</span>
+<span style="color: #000000;">      }
+
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> The request errored out and we didn't get a response, this will be</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> handled by onerror instead</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> With one exception: request that using file: protocol, most browsers</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> will return status as 0 even though it's a successful request</span>
+      <span style="color: #0000ff;">if</span> (request.status === 0 &amp;&amp; !(request.responseURL &amp;&amp; request.responseURL.indexOf('file:') === 0)) {    <span style="color: #008000;">//</span><span style="color: #008000;">请求出错，没有得到响应的逻辑 如果request.responseURL不是以file:开头且request.status=0，则直接返回</span>
+        <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+      }
+
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Prepare the response</span>
+      <span style="color: #0000ff;">var</span> responseHeaders = 'getAllResponseHeaders' <span style="color: #0000ff;">in</span> request ? parseHeaders(request.getAllResponseHeaders()) : <span style="color: #0000ff;">null</span>;        <span style="color: #008000;">//</span><span style="color: #008000;">解析响应头，并调用parseHeaders将其转换为对象，保存到responseHeaders里面</span>
+      <span style="color: #0000ff;">var</span> responseData = !config.responseType || config.responseType === 'text' ? request.responseText : request.response;    <span style="color: #008000;">//</span><span style="color: #008000;">如果未设置config.responseType或者设置了responseType.responseType且等于text，则直接获取request.responseText，否则获取request.response</span>
+      <span style="color: #0000ff;">var</span> response = {                                            <span style="color: #008000;">//</span><span style="color: #ff0000;">拼凑返回的数据，也就是上一篇说的axios请求后返回的promise对象</span>
+        data: responseData,                                            <span style="color: #008000;">//</span><span style="color: #008000;">接收到的数据</span>
+        status: request.status,                                        <span style="color: #008000;">//</span><span style="color: #008000;">状态 ie浏览器是用1223端口代替204端口 ，见:https://github.com/axios/axios/issues/201</span>
+        statusText: request.statusText,                                <span style="color: #008000;">//</span><span style="color: #008000;">响应头的状态文字</span>
+        headers: responseHeaders,                                    <span style="color: #008000;">//</span><span style="color: #008000;">头部信息</span>
+        config: config,                                                <span style="color: #008000;">//</span><span style="color: #008000;">配置信息</span>
+        request: request                                             <span style="color: #008000;">//</span><span style="color: #008000;">对应的XmlHttpRequest对象</span>
+<span style="color: #000000;">      };
+
+      settle(resolve, reject, response);                        </span><span style="color: #008000;">//</span><span style="color: #008000;">调用settle函数进行判断，是resolve或者reject</span>
+
+      <span style="color: #008000;">//</span><span style="color: #008000;"> Clean up request</span>
+      request = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    };
+
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">略，主要是对于错误、超时、的一些处理</span><span style="color: #008000;">*/</span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Add headers to the request</span>
+    <span style="color: #0000ff;">if</span> ('setRequestHeader' <span style="color: #0000ff;">in</span> request) {                        <span style="color: #008000;">//</span><span style="color: #008000;">如果request里面存在setRequestHeader</span>
+      utils.forEach(requestHeaders, <span style="color: #0000ff;">function</span> setRequestHeader(val, key) {                <span style="color: #008000;">//</span><span style="color: #008000;">遍历requestHeaders</span>
+        <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> requestData === 'undefined' &amp;&amp; key.toLowerCase() === 'content-type') {    <span style="color: #008000;">//</span><span style="color: #008000;">如果key等于content-type 且没有发送数据</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> Remove Content-Type if data is undefined </span>
+          <span style="color: #0000ff;">delete</span> requestHeaders[key];                                                             <span style="color: #008000;">//</span><span style="color: #008000;">则删除content-type这个请求头      ;只有发送数据时content-type才有用的吧</span>
+        } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> Otherwise add header to the request</span>
+          request.setRequestHeader(key, val);                                                 <span style="color: #008000;">//</span><span style="color: #008000;">否则设置请求头</span>
+<span style="color: #000000;">        }
+      });
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Add withCredentials to request if needed</span>
+    <span style="color: #0000ff;">if</span> (config.withCredentials) {                                 <span style="color: #008000;">//</span><span style="color: #008000;">如果设置了跨域请求时使用凭证</span>
+      request.withCredentials = <span style="color: #0000ff;">true</span>;                                 <span style="color: #008000;">//</span><span style="color: #008000;">设置request.withCredentials为true</span>
+<span style="color: #000000;">    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Add responseType to request if needed</span>
+    <span style="color: #0000ff;">if</span> (config.responseType) {                                     <span style="color: #008000;">//</span><span style="color: #008000;">如果设置了服务器响应的数据类型，默认为json</span>
+      <span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        request.responseType </span>=<span style="color: #000000;"> config.responseType;
+      } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (e) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Expected DOMException thrown by browsers not compatible XMLHttpRequest Level 2.</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> But, this can be suppressed for 'json' type as it can be parsed by default 'transformResponse' function.</span>
+        <span style="color: #0000ff;">if</span> (config.responseType !== 'json'<span style="color: #000000;">) {
+          </span><span style="color: #0000ff;">throw</span><span style="color: #000000;"> e;
+        }
+      }
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Handle progress if needed</span>
+    <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> config.onDownloadProgress === 'function') {                     <span style="color: #008000;">//</span><span style="color: #008000;">如果设置了下载处理进度事件</span>
+      request.addEventListener('progress'<span style="color: #000000;">, config.onDownloadProgress);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Not all browsers support upload events</span>
+    <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> config.onUploadProgress === 'function' &amp;&amp; request.upload) {     <span style="color: #008000;">//</span><span style="color: #008000;">如果设置了上传处理进度事件</span>
+      request.upload.addEventListener('progress'<span style="color: #000000;">, config.onUploadProgress);
+    }
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (config.cancelToken) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> Handle cancellation</span>
+      config.cancelToken.promise.then(<span style="color: #0000ff;">function</span><span style="color: #000000;"> onCanceled(cancel) {
+        </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">request) {
+          </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+
+        request.abort();
+        reject(cancel);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> Clean up request</span>
+        request = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+      });
+    }
+
+    </span><span style="color: #0000ff;">if</span> (requestData === undefined) {                                     <span style="color: #008000;">//</span><span style="color: #008000;">修正requestData,如果为undefined,则修正为null</span>
+      requestData = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Send the request</span>
+    request.send(requestData);                                             <span style="color: #008000;">//</span><span style="color: #008000;">发送数据</span>
+<span style="color: #000000;">  });
+};</span></pre>
+</div>
+<p>也就是原生的ajax请求了，主要的逻辑都备注了一下，这样整个流程就跑完了</p>
+<p>对于便捷方法来说，例如axios.get()、axios.post()来说，就是对Axios.prototype.request的一次封装，实现代码如下:</p>
+<div class="cnblogs_code">
+<pre><code>utils.forEach(['delete', 'get', 'head', 'options'], <span style="color: #0000ff;">function</span> forEachMethodNoData(method) {    <span style="color: #008000;">//</span><span style="color: #008000;">定义delete、get、head、options方法</span>
+  <span style="color: #008000;">/*</span><span style="color: #008000;">eslint func-names:0</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Axios.prototype[method] </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(url, config) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.request(utils.merge(config || {}, {                                             <span style="color: #008000;">//</span><span style="color: #008000;">调用utils.merge将参数合并为一个对象，然后调用request()方法</span>
+<span style="color: #000000;">      method: method,
+      url: url
+    }));
+  };
+});
+
+utils.forEach([</span>'post', 'put', 'patch'], <span style="color: #0000ff;">function</span> forEachMethodWithData(method) {              <span style="color: #008000;">//</span><span style="color: #008000;">定义post、put、patch方法</span>
+  <span style="color: #008000;">/*</span><span style="color: #008000;">eslint func-names:0</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  Axios.prototype[method] </span>= <span style="color: #0000ff;">function</span>(url, data, config) {                                       <span style="color: #008000;">//</span><span style="color: #008000;">调用utils.merge将参数合并为一个对象，然后调用request()方法</span>
+    <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.request(utils.merge(config ||<span style="color: #000000;"> {}, {
+      method: method,
+      url: url,
+      data: data                                                                                </span><span style="color: #008000;">//</span><span style="color: #ff0000;">post、put和patch比get等请求多了个data，其它一样的</span>
+<span style="color: #000000;">    }));
+  };
+});</span></pre>
+</div>
+<p>OK,搞定。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

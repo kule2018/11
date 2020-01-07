@@ -1,0 +1,109 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修响应式js库——rxjs' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>响应式js库——rxjs</center></div><div class='banquan'>原文出处:本文由博客园博主沉睡的木木夕提供。<br/>
+原文连接:https://www.cnblogs.com/ms27946/p/reactive-rxjs.html</div><br>
+    <p>原文地址：<a href="https://rxjs.dev/guide/overview" class="uri">https://rxjs.dev/guide/overview</a></p>
+<h1 id="简介">简介</h1>
+<p>RxJS 是组合异步以及基于事件的使用可观察者序列的程序类库。它提供一个核心类型，<a href="https://rxjs.dev/guide/observable">Observable</a>，附属类型（Observer,Schedulers,Subjects）并且受到了数组额外操作（map,filter,reduce,every 等等）启发来将异步事件作为集合来处理。</p>
+<blockquote>
+<p>可以理解为 RxJS 就是事件的 Loadsh</p>
+</blockquote>
+<p>ReactiveX 结合了观察者模式，迭代模式以及集合式的函数事编程来满足对管理事件的需求。</p>
+<p>RxJS 解决异步事件的管理的基本概念是：</p>
+<ul>
+<li>Observable（可观察的）：表示可调用的值或事件的集合</li>
+<li>Observer（观察者）：回调的集合，它知道怎么去监听 Observable 派送（传递）的值</li>
+<li>Subscription（订阅）：表示 Observable 的执行，主要的用途取消执行</li>
+<li>Operators（操作者）：是一个纯粹的功能，它以一种函数式编程风格来处理集合的操作，就像数组的 <code>map,concat,filter,reduce</code> 等等</li>
+<li>Subject（主题）：这个等价于一个事件触发器（EventEmitter），只能以多播的方式传递值或事件给多个多个观察者（Observers）</li>
+<li>Schedulers（调度者）：是控制并发的集中式调度程序，允许我们调节当电脑发生了如 <code>setTimeout</code> 或是 <code>requestAnimationFrame</code> 以及其他的时候</li>
+</ul>
+<h1 id="第一个例子">第一个例子</h1>
+<p>你一般注册的一个事件侦听是这样的：</p>
+<pre><code><code>document.addEventListener(&#39;click&#39;, () =&gt; console.log(&#39;Clicked!&#39;));</code></pre>
+<p>使用 RxJS 你可以创建一个可观察的对象来替代：</p>
+<pre class="javascript"><code>import { fromEvent } from &#39;rxjs&#39;;
+fromEvent(document, &#39;click&#39;).subscribe(() =&gt; console.log(&#39;Clicked!&#39;));</code></pre>
+<h1 id="纯粹purity">纯粹（Purity）</h1>
+<p>RxJS 之所以强大，是因为它能使用纯函数来生成值。也就是说你的代码很少发生错误。</p>
+<p>通常你会新建一个非纯函数，在你的代码片段里面会混乱你自己的状态</p>
+<pre class="javascript"><code>let count = 0;
+document.addEventlistener(&#39;click&#39;, () =&gt; console.log(`Clicked ${++count} times`));</code></pre>
+<p>而 RxJS 会隔离你的状态</p>
+<pre class="javascript"><code>import { fromEvent } from &#39;rxjs&#39;;
+import { scan } from &#39;rxjs/operators&#39;;
+
+fromEvent(document, &#39;click&#39;)
+    .pipe(scan(count =&gt; count + 1, 0))
+    .subscribe(count =&gt; console.log(`Click ${count} times`));</code></pre>
+<p>scan 操作的工作就像数组的 reduce 一样。它会传递一个值给回调函数。回调函数会返回一个值，并且返回的值将成为下一次回调运行传递的下一个值。</p>
+<h1 id="流flow">流（Flow）</h1>
+<p>RxJS 有一个完整的操作符，它们都能帮助你通过你的 ovservables 控制事件流。</p>
+<p>下面这段代码就是展示你将允许每秒最多一次点击之后，用原生 javascript</p>
+<pre class="javascript"><code>let count = 0;
+let rate = 1000;
+let lastClick = Date.now() - rate;
+document.addEventListener(&#39;click&#39;, () =&gt; {
+    if(Date.now() - lastClick &gt;= rate){
+        console.log(`Click ${++count} times`);
+        lastChild = Date.now();
+    }
+});</code></pre>
+<p>RxJS：</p>
+<pre class="javascript"><code>import { fromEvent } from &#39;rxjs&#39;;
+import { throttleTime, scan } from &#39;rxjs/operators&#39;;
+
+fromEvent(document, &#39;Click&#39;)
+    .pipe(
+        throttleTime(1000),
+        scan(count =&gt; count + 1, 0)
+    )
+    .subscribe(count =&gt; console.log(`Click ${count} times`));   </code></pre>
+<p>还有其他的流控制像 <code>filter,delay,debounceTime,take,takeUtil,distinct,distinctUntilChanged</code> 等等。</p>
+<h1 id="值">值</h1>
+<p>你可以在你自己的可观察对象之间传递值<br />
+这里告诉你怎么在每次点击的时候加当前鼠标的 x 坐标，用 javascript 代码：</p>
+<pre class="javascript"><code>let count = 0;
+const rate = 1000;
+let lastClick = Date.now() - rate;
+document.addEventListener(&#39;click&#39;, event =&gt; {
+  if (Date.now() - lastClick &gt;= rate) {
+    count += event.clientX;
+    console.log(count);
+    lastClick = Date.now();
+  }
+});</code></pre>
+<p>用 RxJS：</p>
+<pre class="javascript"><code>import { fromEvent } from &#39;rxjs&#39;;
+import { throttleTime, map, scan } from &#39;rxjs/operators&#39;;
+
+fromEvent(documeht, &#39;click&#39;)
+    .pipe(
+        throttleTime(1000),
+        map(event =&gt; event.clientX),
+        scan((count, clientX) =&gt; count + clientX, 0)
+    )
+    .subscribe(count =&gt; console.log(count));</code></pre>
+<p>其他产生值的操作还有 <code>pluck,pairwise,sample</code> 等</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

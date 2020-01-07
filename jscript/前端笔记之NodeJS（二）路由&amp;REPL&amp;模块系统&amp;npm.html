@@ -1,0 +1,963 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm</center></div><div class='banquan'>原文出处:本文由博客园博主RopeHuo提供。<br/>
+原文连接:https://www.cnblogs.com/rope/p/10725857.html</div><br>
+    <h1>一、<strong>路由机制（静态资源文件处理）</strong></h1>
+<h2><strong>1.1 Nodejs<span style="font-family: 宋体;">没有根目录</span></strong></h2>
+<p>MIME<span style="font-family: 宋体;">类型：</span><a href="http://www.w3school.com.cn/media/media_mimeref.asp"><span style="text-decoration: underline;">http://www.w3school.com.cn/media/media_mimeref.asp</span></a></p>
+<p><span style="font-family: 宋体;">在</span>Apache<span style="font-family: 宋体;">中，它会自动将</span><span style="font-family: Consolas;">htdocs</span><span style="font-family: 宋体;">文件夹提供静态化路由服务。</span></p>
+<p><span style="font-family: 宋体;"><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm0.png" alt="" /></span></p>
+<p><span style="font-family: 宋体;">但是</span>Nodejs<span style="font-family: 宋体;">没有这个机制。</span></p>
+<p>&nbsp;</p>
+<p>在文件夹中创建这样的层次目录：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┠ www
+
+┋┠ a
+
+┋┋┠ b
+
+┋┋┋┠ page.html
+
+┠ </span>11-Nodejs没有根目录容器.js</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">访问的时候，可以看见</span>page.html<span style="font-family: 宋体;">页面：</span>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> http = require('http'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> fs = require('fs'<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">var</span> server = http.createServer(<span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    res.setHeader(</span>"Content-Type", "text/html;charset=UTF8"<span style="color: #000000;">);
+
+    <span style="color: #ff0000;">fs.readFile(</span></span><span style="color: #ff0000;"><span style="color: #333399;">"./www/page.html"</span> , (err,data)=&gt;</span><span style="color: #000000;"><span style="color: #ff0000;">{
+        res.end(data.toString());
+    })</span>
+});
+
+server.listen(</span>3000);</pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm1.png" alt="" /></p>
+<p><span style="font-family: 宋体;">会发现</span>URL<span style="font-family: 宋体;">中看不出来物理文件的真实位置。</span></p>
+<p>&nbsp;</p>
+<p>可以用req.url<span style="font-family: 宋体;">来识别</span><span style="font-family: Consolas;">url</span><span style="font-family: 宋体;">地址，从而呈递不同的文件：</span></p>
+<p>page.html<span style="font-family: 宋体;">页面：</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span> <span style="color: #0000ff;">/&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/css"</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #800000;">
+        div</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">
+            width</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 300px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+            height</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 100px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+            background</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> orange</span><span style="background-color: #f5f5f5; color: #000000;">;</span>
+        <span style="background-color: #f5f5f5; color: #000000;">}</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+   <span style="color: #ff0000;"> &lt;link rel="stylesheet" href="aaa"&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>page页面！<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    　 <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #ff0000;">="images/d1.jpg"</span><span style="color: #0000ff;">&gt;</span>
+　　　　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #ff0000;">="images/d2.jpg"</span><span style="color: #0000ff;">&gt;</span>
+     　<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">img </span><span style="color: #ff0000;">src</span><span style="color: #ff0000;">="images/d3.jpg"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> server = http.createServer(<span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    console.log(req.url)
+    </span><span style="color: #ff0000;">if(req.url == "/"</span><span style="color: #000000;"><span style="color: #ff0000;">){</span>
+        fs.readFile(</span><span style="color: #0000ff;">"./www/page.html"</span>,(err,data)=&gt;<span style="color: #000000;">{
+            res.setHeader(</span>"Content-type","text/html;charset=UTF8"<span style="color: #000000;">);
+            res.end(data.toString());
+        });
+<span style="color: #ff0000;">    }</span></span><span style="color: #ff0000;">else if(req.url == "/images/d1.jpg"</span><span style="color: #000000;"><span style="color: #ff0000;">){</span>
+        fs.readFile(</span><span style="color: #0000ff;">"./www/images/baby1.jpg"</span>,(err,data)=&gt;<span style="color: #000000;">{
+            res.setHeader(</span>"Content-type","image/jpeg"<span style="color: #000000;">);
+            res.end(data);
+        });
+  <span style="color: #ff0000;">  }</span></span><span style="color: #ff0000;">else if(req.url == "/images/d2.jpg"</span><span style="color: #000000;"><span style="color: #ff0000;">){</span>
+        fs.readFile(</span><span style="color: #0000ff;">"./www/images/d2.jpg"</span>,(err,data)=&gt;<span style="color: #000000;">{
+            res.end(data);
+        });
+  <span style="color: #ff0000;">  }</span></span><span style="color: #ff0000;">else if(req.url == "/d3.jpg"</span><span style="color: #000000;"><span style="color: #ff0000;">){</span>
+        fs.readFile(</span><span style="color: #0000ff;">"./www/images/d3.jpg"</span>,(err,data)=&gt;<span style="color: #000000;">{
+            res.end(data);
+        });
+    <span style="color: #ff0000;">}</span></span><span style="color: #ff0000;">else if(req.url == "aaa"</span><span style="color: #000000;"><span style="color: #ff0000;">){</span>
+        fs.readFile(</span><span style="color: #0000ff;">"./www/css/css.css"</span>,(err,data)=&gt;<span style="color: #000000;">{
+            res.setHeader(</span>"Content-type","text/css"<span style="color: #000000;">);
+            res.end(data);
+        });
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        res.setHeader(</span>"Content-type","text/html;charset=UTF8"<span style="color: #000000;">);
+        res.end(</span>"404，没有这个页面！"<span style="color: #000000;">);
+    }
+});</span></pre>
+</div>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">红色部分是发出的</span>url<span style="font-family: 宋体;">请求，蓝色部分是根据请求的</span><span style="font-family: Consolas;">url</span><span style="font-family: 宋体;">从而呈递真实的文件，</span><span style="font-family: Consolas;">URL</span><span style="font-family: 宋体;">和真实的物理文件的路径没有任何关系！</span></strong></span></p>
+<p><span style="font-family: 宋体;">比如</span>www/a/b/c/d1.jpg<span style="font-family: 宋体;">可以被路由显示为</span><span style="font-family: Consolas;">/d1.jpg</span></p>
+<hr />
+<h2><strong>1.2<span style="font-family: 宋体;">顶级路由设计</span></strong></h2>
+<p>Nodejs<span style="font-family: 宋体;">开启了</span><span style="font-family: Consolas;">RestFul</span><span style="font-family: 宋体;">路由设计风格。简单来说是：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">可以通过这样的路径来查看100001号用户的信息：
+http:</span><span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:3000/student/100001<br /><br /></span>
+<span style="color: #000000;">而不是老土的：
+http:</span><span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:3000/showinfo.php?id=100001</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">后面将知道可以利用</span>POST<span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">GET</span><span style="font-family: 宋体;">请求的不同，也可以让一个</span><span style="font-family: Consolas;">URL</span><span style="font-family: 宋体;">有不同的操作。</span></p>
+<p>这样的路由的好处就是：<strong><span style="text-decoration: underline;">不需要开辟过多的文件夹、并且不暴露技术细节</span></strong>。</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">可以用字符串</span>match<span style="font-family: 宋体;">方法，结合正则获取路由中的某部分：</span></p>
+<p><span style="font-family: 宋体;"><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm2.png" alt="" /></span></p>
+<hr />
+<h2><strong>1.3 url<span style="font-family: 宋体;">模块和</span><span style="font-family: 华文中宋;">path</span><span style="font-family: 宋体;">模块</span></strong></h2>
+<p><span style="font-family: 宋体;">一个完整的</span>URL<span style="font-family: 宋体;">，包括</span><span style="font-family: Consolas;">querystring</span><span style="font-family: 宋体;">部分（就是</span><span style="font-family: Consolas;">get</span><span style="font-family: 宋体;">请求字符串部分）、</span><span style="font-family: Consolas;">hash</span><span style="font-family: 宋体;">部分。</span></p>
+<div class="cnblogs_code">
+<pre><code>http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:3000/a/b.html?id=123&amp;name=xiaoming#aaa</span></pre>
+</div>
+<p><span style="font-family: 宋体;">此时的</span>req.url<span style="font-family: 宋体;">是：</span></p>
+<p>&nbsp;<img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm3.png" alt="" /></p>
+<p>也就是说，querystring<span style="font-family: 宋体;">部分属于</span><span style="font-family: Consolas;">req.url</span><span style="font-family: 宋体;">，但是</span><span style="font-family: Consolas;">hash</span><span style="font-family: 宋体;">不属于。</span></p>
+<p><span style="font-family: 宋体;">但是我们要得到文件名部分，不想要</span>querystring<span style="font-family: 宋体;">部分，如果正则匹配，太麻烦。</span></p>
+<p><span style="font-family: 宋体;">此时</span>node<span style="font-family: 宋体;">中提供内置模块：</span><span style="font-family: Consolas;">url</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">path</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">querystring</span><span style="font-family: 宋体;">，他们都可以用于</span><span style="font-family: Consolas;">URL</span><span style="font-family: 宋体;">的识别。</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> http = require("http"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> fs = require("fs"<span style="color: #000000;">);
+</span><span style="color: #ff0000;">var url = require("url");
+
+</span><span style="color: #0000ff;">var</span> server = http.createServer(<span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+   <span style="color: #ff0000;"> console.log(url.parse(req.url))</span>
+});</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>网址：http:<span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:3000/haha/1.html?id=123&amp;name=xiaoming&amp;sex=男#abc</span></pre>
+</div>
+<p>输出的内容：</p>
+<p>&nbsp;<img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm4.png" alt="" /></p>
+<p><span style="font-family: 宋体;">没有正确识别</span>protocol<span style="font-family: 宋体;">协议、</span>host<span style="font-family: 宋体;">主机名、</span><span style="font-family: Consolas;">port</span><span style="font-family: 宋体;">端口号等等，因为是</span><span style="font-family: Consolas;">Windows</span><span style="font-family: 宋体;">环境，有这个问题。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">如果加上</span>true<span style="font-family: 宋体;">，此时</span><span style="font-family: Consolas;">query</span><span style="font-family: 宋体;">部分将自动变为对象，方便我们操作</span></p>
+<div class="cnblogs_code">
+<pre><code>url.parse(req.url,<span style="color: #ff0000;">true</span>);</pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>还有两个模块path<span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">querystring</span><span style="font-family: 宋体;">它们都是服务于</span><span style="font-family: Consolas;">url</span><span style="font-family: 宋体;">的</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> http = require('http'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> fs = require('fs'<span style="color: #000000;">);
+</span><span style="color: #ff0000;">var url = require('url');
+var path = require('path');
+
+</span><span style="color: #0000ff;">var</span> server = http.createServer(<span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">将url字符串转为json对象</span>
+   <span style="color: #ff0000;"> var urljson = url.parse(req.url,true);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">得到文件路径</span>
+    <span style="color: #ff0000;">var pathname = urljson.pathname;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">得到文件扩展名</span>
+    <span style="color: #ff0000;">var extname =</span><span style="color: #000000;"><span style="color: #ff0000;"> path.extname(pathname);</span>
+
+    console.log(extname)
+});
+
+server.listen(</span>3000);</pre>
+</div>
+<hr />
+<h2><strong>1.4<span style="font-family: 宋体;">自动路由</span></strong></h2>
+<p><span style="font-family: 宋体;">创建一个</span>www<span style="font-family: 宋体;">根目录文件夹，我们的程序能够自动为里面的文件、图片、</span><span style="font-family: Consolas;">css</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">加上路由，实现一个</span><span style="font-family: Consolas;">Apache</span><span style="font-family: 宋体;">。</span></p>
+<p>思想：<span style="color: #ff0000;"><strong><span style="text-decoration: underline;"><span style="font-family: 宋体;">用户输入什么</span>URL<span style="font-family: 宋体;">，就用</span><span style="font-family: Consolas;">fs</span><span style="font-family: 宋体;">去读那个文件</span></span></strong>。</span></p>
+<p><span style="font-family: 宋体;">访问</span>/a.png <span style="font-family: 宋体;">，就自动读取</span><span style="font-family: Consolas;">www/a/b/c/a.png</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">url可能很复杂，比如：
+<span style="color: #0000ff;">http:</span></span><span style="color: #0000ff;">//127.0.0.1:3000<span style="color: #ff0000;">/a/b/c.html</span>?id=123&amp;asf=32434#3243</span>
+要读取c.html。就要过滤掉蓝色的部分，当中有协议、域名、端口号、get请求查询字符串、hash。</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">使用内置url模块：
+</span><span style="color: #0000ff;">var</span> pathname =<span style="color: #000000;"> url.parse(req.url).pathname;
+url.parse(req.url) 可以将这个url拆分，比如.pathname表示上面红色的部分。</span></pre>
+</div>
+<p><span style="font-family: 宋体;">有几个不好用的地方，首先就是</span>content-type<span style="font-family: 宋体;">的事，</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">如果我们访问的是</span>.html<span style="font-family: 宋体;">文件，</span><span style="font-family: Consolas;">content-type</span><span style="font-family: 宋体;">就应该是</span><span style="font-family: Consolas;">text/html</span><span style="font-family: 宋体;">。如果访问一个</span><span style="font-family: Consolas;">.jpg</span><span style="font-family: 宋体;">，此时应该是</span><span style="font-family: Consolas;">image/jpeg</span><span style="font-family: 宋体;">。请参考：</span><span style="text-decoration: underline;"><a href="http://www.w3school.com.cn/media/media_mimeref.asp">http://www.w3school.com.cn/media/media_mimeref.asp</a></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">然后就是不能自动识别index文件。比如我们输入：
+http:</span><span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:3000/a</span>
+应该读取www中的a文件夹中的index.html</pre>
+</div>
+<p><span style="font-family: 宋体;">解决办法：这种路径都没有拓展名，如果用户输入了一个</span>URL<span style="font-family: 宋体;">不存在拓展名，则自动补充</span><span style="font-family: Consolas;">/index.html</span><span style="font-family: 宋体;">即可。</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('f0d7bf74-404e-49ab-8793-d79377847275')"><img id="code_img_closed_f0d7bf74-404e-49ab-8793-d79377847275" class="code_img_closed" src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm6.png" alt="" /><img id="code_img_opened_f0d7bf74-404e-49ab-8793-d79377847275" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('f0d7bf74-404e-49ab-8793-d79377847275',event)" src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm7.png" alt="" />
+<div id="cnblogs_code_open_f0d7bf74-404e-49ab-8793-d79377847275" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">var</span> http = require("http"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> fs = require("fs"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> url = require("url"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> path = require("path"<span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">准备mime类型的json</span>
+<span style="color: #0000ff;">var</span> mimejson =<span style="color: #000000;"> {
+    </span>".jpg" : "image/jpeg"<span style="color: #000000;">,
+    </span>".png" : "image/png"<span style="color: #000000;">,
+    </span>".gif" : "image/gif"<span style="color: #000000;">,
+    </span>".html": "text/html;charset=UTF8"<span style="color: #000000;">,
+    </span>".css" : "text/css"<span style="color: #000000;">,
+    </span>".js" : "application/x-javascript"<span style="color: #000000;">,
+    </span>".ogg" : "audio/ogg"<span style="color: #000000;">,
+    </span>".mp3" : "audio/mpeg"<span style="color: #000000;">
+}
+
+</span><span style="color: #0000ff;">var</span> server = http.createServer(<span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">访问路径</span>
+    <span style="color: #0000ff;">var</span> pathname =<span style="color: #000000;"> url.parse(req.url).pathname;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">得到扩展名</span>
+    <span style="color: #0000ff;">var</span> extname =<span style="color: #000000;"> path.extname(pathname)
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">如果当前路径不以扩展名结尾，此时表示这是一个文件夹形式的路径，要自动补全index.html</span>
+    <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">extname){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">如果不是以&ldquo;/&rdquo;结尾，此时会早浏览器识别图片路径层次有问题</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">比如http://127.0.0.1:3000/a和http://127.0.0.1:3000/a/不一样</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">前者认为是同级目录下的，后者认为是a文件夹中的</span>
+        <span style="color: #0000ff;">if</span>(pathname.substr(-1) != "/"<span style="color: #000000;">){
+            res.writeHead(</span>302, {"Location": pathname + "/"<span style="color: #000000;">})
+        }
+
+        pathname </span>= pathname + "index.html"<span style="color: #000000;">;
+        extname </span>= "./html"<span style="color: #000000;">;
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">检查是否属于已知的mime类型</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;">(mimejson.hasOwnProperty(extname)){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">设置MIME类型（下行报文头）</span>
+        res.setHeader("Content-type"<span style="color: #000000;">, mimejson[extname]);
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">读取对应的真实文件路径，这里将当前文件的路径和www文件夹和访问的路径合并</span>
+    fs.readFile("./www/" + pathname , <span style="color: #0000ff;">function</span><span style="color: #000000;">(err,data){
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(err){
+            res.end(</span>"没有这个文件"<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        res.end(data);
+    })
+});
+
+server.listen(</span>3000,<span style="color: #0000ff;">function</span><span style="color: #000000;">(err){
+    console.log(</span>"服务器开启成功，在3000端口，快打开浏览器看看吧！"<span style="color: #000000;">);
+})</span></pre>
+</div>
+<span class="cnblogs_code_collapse">解决方案</span></div>
+<hr />
+<h1><strong><span style="font-family: 宋体;">二、总结</span><span style="font-family: 宋体;">和</span>REPL<span style="font-family: 宋体;">环境</span></strong></h1>
+<h2><strong>2.1复习<span style="font-family: 宋体;"><br /></span></strong></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">NodeJS是什么？
+　　JavaScript RunTime（JavaScript运行环境），是将Chrome V8引擎移植到了服务器上追求自治性能的技术，可以搭建http服务器。<br />　　使用的语言还是JavaScript，将js的触角伸到了服务器端。</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">NodeJS有什么特点？
+　　Single Thread（单线程）
+　　Non</span>-Blocking I/O（异步I/O，非阻塞I/O）
+　　Event-Driven（事件驱动）</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">NodeJS适合开发什么样的业务？
+　　适合I</span>/O频繁的业务：留言本、贴吧、微博等等。
+　　不适合计算多的业务：语音识别、图像识别等等。</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">NodeJS如何安装？
+    在windows下安装了node，此时你的环境变量中就有了node文件夹的路    径，此时用CMD命令就可以运行nodejs程序了。</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">如何执行NodeJS程序？
+　　① 用CMD的cd命令进入项目文件夹
+　　② 执行谁就node谁</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">内置模块
+　　Nodejs中为了方便开发和最终的编译的轻量，所以使用了&ldquo;模块&rdquo;（modules）的概念。<br />　　模块指的是功能相关的js文件的集合，就称为一个模块。一个module指的是一个文件组，或者说一组文件。<br />　　这一组文件可以小到只有一个文件，也就是说这一个module就只有一个js文件；也可以大到很多文件，甚至这一个module中还有其他module。</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">模块用</span>require()<span style="font-family: 宋体;">进行引用，我们学习的内置模块有：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">fs模块用来处理文件
+</span><span style="color: #0000ff;">var</span> fs = require("fs"<span style="color: #000000;">);
+fs.readFile(</span>"./test.txt",(err,data)=&gt;<span style="color: #000000;">{
+
+});</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">http模块，创建服务器：
+</span><span style="color: #0000ff;">var</span> http = require("http"<span style="color: #000000;">);
+http.createServer((req,res)</span>=&gt;<span style="color: #000000;">{
+　　req.url </span><span style="color: #008000;">//</span><span style="color: #008000;">用户访问的路径</span>
+　　<span style="color: #000000;">res.write();
+　　res.end();
+}).listen(</span>3000,<span style="color: #0000ff;">function</span>(err){})</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">path模块，主要负责和文件路径有关系的事情：
+</span><span style="color: #0000ff;">var</span> path = require("path"<span style="color: #000000;">);
+path.extname(); </span><span style="color: #008000;">//</span><span style="color: #008000;">获得文件拓展名</span>
+path.resolve(); <span style="color: #008000;">//</span><span style="color: #008000;">智能合并</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">url模块，主要负责url地址的拆分等一些功能：
+</span><span style="color: #0000ff;">var</span> url= require("url"<span style="color: #000000;">);
+url.parse();</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>Nodejs<span style="font-family: 宋体;">中的路由：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Nodejs和apache不一样，apache有自动的路由，但是nodejs没有自动路由。
+必须用req.url来识别访问的路径，然后用fs.readFile()去读取某一个文件，然后res.end()出去。</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Nodejs非常方便进行顶级路由设计，比如twitter的路由：
+http:</span><span style="color: #008000;">//</span><span style="color: #008000;">www.twitter.com/telangpu/followers</span>
+此时并没有一个叫做telangpu的文件夹，也没有followers的子文件夹！</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>什么是路由？</strong></p>
+<p><strong><span style="font-family: 宋体;">路由可以理解成根据请求不同的</span>URL<span style="font-family: 宋体;">，映射到不同处理程序上。反过来，需要对每个不同的页面定义不同的路由来实现区分界面。</span></strong></p>
+<p><span style="font-family: 宋体;">简单来说，路由就是给指定的页面分配一个</span>url<span style="font-family: 宋体;">地址。通过这个</span><span style="font-family: Consolas;">url</span><span style="font-family: 宋体;">地址，就能访问到该页面了。</span></p>
+<p><span style="font-family: 宋体;">比如写了一个页面：</span>/static/public/game/index.html</p>
+<p>服务器域名地址是：<a href="http://www.iqianduan.cn"><span style="text-decoration: underline;">www.iqianduan.cn</span></a>&nbsp;<span style="font-family: 宋体;">通过一些方式，给该页面配置了一个路由地址</span>/game</p>
+<p>那么，就可以通过<a href="http://www.iqianduan.cn/game"><span style="text-decoration: underline;">http://www.iqianduan.cn/game</span></a><span style="font-family: 宋体;">访问到上面这个</span>index.html<span style="font-family: 宋体;">文件了</span></p>
+<p><span style="font-family: 宋体;">支持</span>RESTful<span style="font-family: 宋体;">的路由，遵循国际规范。</span></p>
+<hr />
+<h2><strong>2.2 REPL<span style="font-family: 宋体;">环境</span></strong></h2>
+<p><span style="font-family: 宋体;">介绍</span>Nodejs<span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">REPL</span><span style="font-family: 宋体;">环境。</span></p>
+<p>Node.js REPL(Read Eval Print Loop:<span style="font-family: 宋体;">交互式解释器</span><span style="font-family: Consolas;">) </span><span style="font-family: 宋体;">表示一个电脑的环境，类似 </span><span style="font-family: Consolas;">Window </span><span style="font-family: 宋体;">系统的终端或 </span><span style="font-family: Consolas;">Unix/Linux shell</span><span style="font-family: 宋体;">，我们可以在终端中输入命令，并接收系统的响应。</span></p>
+<p>l&nbsp;<span style="font-family: 宋体;">读取</span>&nbsp;- <span style="font-family: 宋体;">读取用户输入，解析输入了</span><span style="font-family: Consolas;">Javascript </span><span style="font-family: 宋体;">数据结构并存储在内存中。</span></p>
+<p>l&nbsp;<span style="font-family: 宋体;">执行</span>&nbsp;- <span style="font-family: 宋体;">执行输入的数据结构</span></p>
+<p>l&nbsp;<span style="font-family: 宋体;">打印</span>&nbsp;- <span style="font-family: 宋体;">输出结果</span></p>
+<p>l&nbsp;<span style="font-family: 宋体;">循环</span>&nbsp;- <span style="font-family: 宋体;">循环操作以上步骤直到用户两次按下</span><span style="font-family: Consolas;">&nbsp;ctrl</span>+c&nbsp;<span style="font-family: 宋体;">按钮退出</span><span style="font-family: Consolas;">Node REPL</span><span style="font-family: 宋体;">。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm8.png" alt="" /></p>
+<p><span style="font-family: 宋体;">这里和</span>Chrome<span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">F12</span><span style="font-family: 宋体;">功能一样，可以直接输入语句，然后执行。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm9.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>在REPL<span style="font-family: 宋体;">环境下，测试一下</span><span style="font-family: Consolas;">url.parse()</span><span style="font-family: 宋体;">语句：</span></p>
+<p>&nbsp;<img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm10.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>url.parse()<span style="font-family: 宋体;">功能就是拆分</span><span style="font-family: Consolas;">url</span><span style="font-family: 宋体;">地址。</span></p>
+<div class="cnblogs_code">
+<pre><code>path.extname(url.parse("http://www.aaa.com/a/b/c.php?id=1&amp;name=小明#12").pathname);</pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm11.png" alt="" /></p>
+<hr />
+<p>&nbsp;</p>
+<h1>三、<strong>Nodejs<span style="font-family: 宋体;">的模块系统</span></strong></h1>
+<h2><strong>3.1<span style="font-family: 宋体;">先复习</span><span style="font-family: 华文中宋;">HTML</span><span style="font-family: 宋体;">环境下的</span><span style="font-family: 华文中宋;">js</span><span style="font-family: 宋体;">文件的关系</span></strong></h2>
+<p><span style="font-family: 宋体;">知识点</span>1<span style="font-family: 宋体;">：在</span><span style="font-family: Consolas;">HTML</span><span style="font-family: 宋体;">中，</span><span style="font-family: Consolas;">script</span><span style="font-family: 宋体;">引用了谁，就会执行谁，浏览器一定能够保证加载、运行顺序的</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Document<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #ff0000;">&lt;script type="text/javascript" src="a.js"&gt;&lt;/script&gt;
+    &lt;script type="text/javascript" src="b.js"&gt;&lt;/script&gt;
+    &lt;script type="text/javascript" src="c.js"&gt;&lt;/script&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm12.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;知识点2：js<span style="font-family: 宋体;">文件不能&ldquo;关住&rdquo;变量作用域</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">a.js文件：
+</span><span style="color: #0000ff;">var</span> zhongguoyidong = 10086;  <span style="color: #008000;">//</span><span style="color: #008000;">相当于给window添加了属性</span>
+<span style="color: #000000;"><span style="color: #ff0000;">
+b.js文件：</span>
+alert(zhongguoyidong);       </span><span style="color: #008000;">//</span><span style="color: #008000;">相当于访问window的属性</span></pre>
+</div>
+<p><span style="font-family: 宋体;">此时能够弹出</span>10086<span style="font-family: 宋体;">，也就是说</span><span style="font-family: Consolas;">a.js</span><span style="font-family: 宋体;">文件中定义的变量，</span><span style="font-family: Consolas;">b.js</span><span style="font-family: 宋体;">文件中能够看见！</span></p>
+<p><span style="font-family: 宋体;">全局变量是</span>window<span style="font-family: 宋体;">对象的属性。</span></p>
+<p>&nbsp;</p>
+<p>&nbsp;<strong><span style="font-family: 宋体;">知识点</span>3<span style="font-family: 宋体;">：</span><span style="font-family: Consolas;">IIFE</span><span style="font-family: 宋体;">关闭某个</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">文件时，这个</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">文件想向外&ldquo;暴露&rdquo;某些对象</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span> pi = 3.14<span style="color: #000000;">;
+
+    <span style="color: #ff0000;">window.mianji</span> </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(r){
+        </span><span style="color: #0000ff;">return</span> pi * r *<span style="color: #000000;"> r;
+    }
+    <span style="color: #ff0000;">window.zhouchang </span></span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(r){
+        </span><span style="color: #0000ff;">return</span> 2 * pi *<span style="color: #000000;"> r;
+    }
+})();</span></pre>
+</div>
+<p>主页面：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script type="text/javascript" src="a.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;<span style="color: #000000;">
+     alert(<span style="color: #ff0000;">mianji</span>(</span>10<span style="color: #000000;">))
+     alert(<span style="color: #ff0000;">zhouchang</span>(</span>10<span style="color: #000000;">))
+</span>&lt;/script&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">看一种复杂的情况，</span>a.js<span style="font-family: 宋体;">文件和</span><span style="font-family: Consolas;">b.js</span><span style="font-family: 宋体;">文件都向外暴露了相同的函数：</span></p>
+<p>a.js<span style="font-family: 宋体;">：</span></p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span> pi = 3.14<span style="color: #000000;">;
+
+   <span style="color: #ff0000;"> window.mianji </span></span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(r){
+        </span><span style="color: #0000ff;">return</span> pi * r *<span style="color: #000000;"> r;
+    }
+    <span style="color: #ff0000;">window.zhouchang </span></span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(r){
+        </span><span style="color: #0000ff;">return</span> 2 * pi *<span style="color: #000000;"> r;
+    }
+})();</span></pre>
+</div>
+<p>b.js</p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span> pi = 3.14<span style="color: #000000;">;
+
+    <span style="color: #ff0000;">window.mianji </span></span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(d,g){
+        </span><span style="color: #0000ff;">return</span> 0.5 * d *<span style="color: #000000;"> g;
+    }
+})();</span></pre>
+</div>
+<p>index.html</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script type="text/javascript" src="a.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript" src="b.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;<span style="color: #000000;">
+     alert(mianji(</span>10,2<span style="color: #000000;">))
+     alert(zhouchang(</span>10<span style="color: #000000;">))
+</span>&lt;/script&gt;</pre>
+</div>
+<p>b<span style="font-family: 宋体;">里面的</span><span style="font-family: Consolas;">mianji</span><span style="font-family: 宋体;">函数，将</span><span style="font-family: Consolas;">a</span><span style="font-family: 宋体;">里面的</span><span style="font-family: Consolas;">mianji</span><span style="font-family: 宋体;">函数覆盖了。</span></p>
+<hr />
+<h2><strong>3.2 Nodejs<span style="font-family: 宋体;">中的模块概念</span></strong></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ modules
+│┣ a.js
+┣</span>01.js</pre>
+</div>
+<p>nodejs<span style="font-family: 宋体;">通过</span><span style="font-family: Consolas;">require()</span><span style="font-family: 宋体;">函数引用自己写</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">文件，</span><span style="font-family: Consolas;">require</span><span style="font-family: 宋体;">谁，就立即运行谁。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;"><span style="color: #ff0000;">a.js</span>
+console.log(</span>"我是a.js文件"<span style="color: #000000;">);
+<br /><br /></span><span style="color: #ff0000;">01</span><span style="color: #000000;"><span style="color: #ff0000;">.js</span>
+require(</span>"./modules/a.js");</pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm13.png" alt="" /></p>
+<p><span style="font-family: 宋体;">新增一个</span>b.js<span style="font-family: 宋体;">文件</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ modules
+│┣ a.js
+│┣ b.js
+┣</span>01.js</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>require("./modules/a.js"); <span style="color: #008000;">//</span><span style="color: #008000;">定义了一个变量</span>
+require("./modules/b.js"); <span style="color: #008000;">//</span><span style="color: #008000;">输出这个变量</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">a.js
+</span><span style="color: #0000ff;">var</span> aaa = 100<span style="color: #000000;">;
+<br /><span style="color: #ff0000;">b.js</span>
+console.log(aaa);</span></pre>
+</div>
+<p>运行01.js<span style="font-family: 宋体;">报错。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm14.png" alt="" /></p>
+<p><span style="color: #ff0000;"><strong>Nodejs<span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">文件是天生隔离作用域的，因为没有全局</span><span style="font-family: Consolas;">window</span><span style="font-family: 宋体;">对象的概念了。</span></strong></span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">即使将在01.js主文件中，也不能使用这个aaa变量
+require(</span>"./modules/a.js");  <span style="color: #008000;">//</span><span style="color: #008000;">天生有闭包</span>
+console.log(aaa)    <span style="color: #008000;">//</span><span style="color: #008000;">报错</span></pre>
+</div>
+<hr />
+<h2><strong>3.3<span style="font-family: 宋体;">变量的暴露（</span><span style="font-family: 华文中宋;">exports.** = **</span><span style="font-family: 宋体;">）</span></strong></h2>
+<p><span style="font-family: 宋体;">如果</span>js<span style="font-family: 宋体;">文件中想要暴露什么，使用</span><span style="font-family: Consolas;">exports</span><span style="font-family: 宋体;">对象：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ modules
+│┣ a.js
+┣</span>01.js</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">a.js<br />
+</span><span style="color: #0000ff;">var</span> zhongguoliantong = 10000<span style="color: #000000;">;
+<span style="color: #ff0000;">exports.zhongguoliantong</span> </span>= zhongguoliantong; <span style="color: #008000;">//</span><span style="color: #008000;">向外暴露变量</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">01</span><span style="color: #000000;"><span style="color: #ff0000;">.js</span><br />
+</span><span style="color: #0000ff;">var</span> a = require("./modules/a.js"); <span style="color: #008000;">//</span><span style="color: #008000;">接收暴露的对象</span>
+console.log(<span style="color: #ff0000;">a.zhongguoliantong</span>);</pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm15.png" alt="" /></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">注意两点（约定俗成）：
+向外暴露的时候，变量本身叫什么名，暴露的名字就叫什么。
+exports.<span style="color: #ff0000;">zhongguoliantong </span></span><span style="color: #ff0000;">=</span><span style="color: #000000;"><span style="color: #ff0000;"> zhongguoliantong;</span> 
+
+require接收时，模块文件名（js文件名）是什么，接收的变量就叫什么名字
+</span><span style="color: #0000ff;">var</span> a = require("./modules/a.js"); </pre>
+</div>
+<p><strong>Nodejs<span style="font-family: 宋体;">的这种</span><span style="font-family: Consolas;">require + exports</span><span style="font-family: 宋体;">的模式叫</span><span style="font-family: Consolas;">CMD</span><span style="font-family: 宋体;">规范（</span><span style="font-family: Consolas;">Commond Module Definition</span><span style="font-family: 宋体;">），但不是</span><span style="font-family: Consolas;">nodejs</span><span style="font-family: 宋体;">发明的，</span></strong></p>
+<p><strong><span style="font-family: 宋体;">后面会介绍</span><span style="font-family: Consolas;">CMD</span><span style="font-family: 宋体;">和</span><span style="font-family: Consolas;">AMD</span><span style="font-family: 宋体;">规范（</span><span style="font-family: Consolas;">Common.js</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">Sea.js</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">require.js</span><span style="font-family: 宋体;">）</span></strong></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">现在有两个模块，都向外暴露</span>mianji<span style="font-family: 宋体;">函数</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ modules
+│┣ yuan.js
+│┣ sanjiaoxing.js
+┣</span>02.js</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;"><span style="color: #ff0000;">yuan.js</span><br />
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> mianji(r){
+    </span><span style="color: #0000ff;">return</span> 3.14 * r *<span style="color: #000000;"> r;
+}
+<span style="color: #ff0000;">exports.mianji </span></span><span style="color: #ff0000;">= mianji;</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;"><span style="color: #ff0000;">sanjiaoxing.js</span><br />
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> mianji(i,h){
+    </span><span style="color: #0000ff;">return</span> 0.5 * i *<span style="color: #000000;"> h;
+}
+<span style="color: #ff0000;">exports.mianji </span></span><span style="color: #ff0000;">= mianji;</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">02</span><span style="color: #000000;"><span style="color: #ff0000;">.js</span><br />
+</span><span style="color: #0000ff;">var</span> <span style="color: #ff0000;">yuan</span> = require("./modules/yuan.js"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> <span style="color: #ff0000;">sanjiaoxing</span> = require("./modules/sanjiaoxing.js"<span style="color: #000000;">);
+
+console.log(<span style="color: #ff0000;">yuan.mianji(</span></span><span style="color: #ff0000;">10</span><span style="color: #000000;"><span style="color: #ff0000;">)</span>);
+console.log(<span style="color: #ff0000;">sanjiaoxing.mianji(</span></span><span style="color: #ff0000;">10,3)</span>);</pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm16.png" alt="" /></p>
+<p><span style="font-family: 宋体;">如果一个</span>js<span style="font-family: 宋体;">文件有多个对象要暴露（就是这个模块的</span><span style="font-family: Consolas;">API</span><span style="font-family: 宋体;">），此时写多个</span><span style="font-family: Consolas;">exports.** = **</span><span style="font-family: 宋体;">即可。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> mianji(r){
+    </span><span style="color: #0000ff;">return</span> 3.14 * r *<span style="color: #000000;"> r;
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> zhouchang(r){
+    </span><span style="color: #0000ff;">return</span> 2 * 3.14 *<span style="color: #000000;"> r;
+}
+
+exports.mianji </span>=<span style="color: #000000;"> mianji;
+exports.zhouchang </span>= zhouchang;</pre>
+</div>
+<hr />
+<h2><strong>3.4<span style="font-family: 宋体;">默认暴露（</span><span style="font-family: 华文中宋;">module.exports = **</span><span style="font-family: 宋体;">）</span></strong></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ modules
+│┣ People.js
+┣</span>03.js</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">People.js中，普通暴露的写法<br /><br />
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> People(name){
+    </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+}
+People.prototype.changge </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    console.log(</span><span style="color: #0000ff;">this</span>.name + "在唱歌！"<span style="color: #000000;">);
+}
+<span style="color: #ff0000;">exports.People </span></span><span style="color: #ff0000;">= People;</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">03.js<br />
+</span><span style="color: #0000ff;">var</span> <span style="color: #ff0000;">People</span> = require("./modules/People.js"<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">var</span> xiaoming = <span style="color: #0000ff;">new</span> <span style="color: #ff0000;">People</span>.People("小明"<span style="color: #000000;">);
+xiaoming.changge();</span></pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm17.png" alt="" /></p>
+<p>此时new<span style="font-family: 宋体;">的时候</span><span style="font-family: Consolas;">People.People</span><span style="font-family: 宋体;">这种写法不优雅，因为模块用普通暴露，普通暴露接收的</span><span style="font-family: Consolas;">People</span><span style="font-family: 宋体;">将自动成为</span><span style="font-family: Consolas;">exports</span><span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">对象，</span><span style="font-family: Consolas;">People.People()</span><span style="font-family: 宋体;">才是函数。</span></p>
+<p>&nbsp;</p>
+<p>怎么办？换一种暴露方法即可：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> People(name){
+    </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name;
+}
+People.prototype.changge </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    console.log(</span><span style="color: #0000ff;">this</span>.name + "在唱歌！"<span style="color: #000000;">);
+}
+
+<span style="color: #ff0000;">module.exports </span></span><span style="color: #ff0000;">= People;
+
+</span><span style="color: #0000ff;">var</span> <span style="color: #ff0000;">People</span> = require("./modules/People.js"<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">var</span> xiaoming = <span style="color: #0000ff;">new</span> <span style="color: #ff0000;">People</span>("小明"<span style="color: #000000;">);
+xiaoming.changge();</span></pre>
+</div>
+<p><span style="font-family: 宋体;">这条语句和</span>exports.** = **<span style="font-family: 宋体;">不同，</span><span style="font-family: Consolas;">module.exports = **</span><span style="font-family: 宋体;">写法，接收的变量就成为你暴露的这个函数。</span></p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">注意：一个文件夹不允许出现</span>module.exports<span style="font-family: 宋体;">多次，只能出现一次。</span></strong></span></p>
+<p><span style="color: #ff0000;"><strong>总结：</strong></span></p>
+<p><span style="color: #ff0000;">&nbsp;<strong><span style="font-family: 宋体;">一个</span>js<span style="font-family: 宋体;">文件如果有多个暴露（通过是多个</span><span style="font-family: Consolas;">API</span><span style="font-family: 宋体;">），使用</span><span style="font-family: Consolas;">exports.** = **</span><span style="font-family: 宋体;">的写法</span></strong></span></p>
+<p><span style="color: #ff0000;">&nbsp;<strong><span style="font-family: 宋体;">一个</span>js<span style="font-family: 宋体;">文件如果只要暴露一个对象，通常是类（构造函数），使用</span><span style="font-family: Consolas;">module.exports = **</span><span style="font-family: 宋体;">写法</span></strong></span></p>
+<hr />
+<h2><strong>3.5<span style="font-family: 宋体;">注意事项</span></strong></h2>
+<p>l&nbsp;模块如果要引用另一个模块，使用相对路径，相对自己出发，找到别人：</p>
+<p><span style="color: #ff0000;">l&nbsp;<strong>require<span style="font-family: 宋体;">的模块中如果有异步语句，还是遵循昨天的&ldquo;服务员&rdquo;工作模式：</span></strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ modules
+┃ ┣ loop1.js
+┃ ┣ loop1.js
+┣ </span>04.js</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">04.js<br />
+</span><span style="color: #0000ff;">var</span> loop1 = require("./modules/loop1.js");</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;"><span style="color: #ff0000;">loop1.js<br /><br /></span>
+require(</span>"./loop2.js"<span style="color: #000000;">);
+console.log(</span>"我是loop1文件");</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">loop2.js有异步语句：<br /><br />
+</span><span style="color: #0000ff;">var</span> fs = require("fs"<span style="color: #000000;">);
+console.log(</span>"我是loop2文件"<span style="color: #000000;">)
+fs.readFile(</span>"./modules/test.txt",<span style="color: #0000ff;">function</span><span style="color: #000000;">(err,data){
+    console.log(data.toString())
+})</span></pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm18.png" alt="" /></p>
+<p>原则上require<span style="font-family: 宋体;">按顺序执行，但如果模块有异步语句，此时不会傻等模块执行完毕。</span></p>
+<hr />
+<h1>四、<strong><span style="font-family: 宋体;">神奇的</span>node_modules<span style="font-family: 宋体;">文件夹和模块概念</span></strong></h1>
+<p>node_modules<span style="font-family: 宋体;">是一个特殊的文件夹，只要放在这个文件夹中的</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">文件，在被</span><span style="font-family: Consolas;">require</span><span style="font-family: 宋体;">的时候，不需要详细写清楚路径，</span><span style="font-family: Consolas;">nodejs</span><span style="font-family: 宋体;">可以自动向上查找找到它，</span><span style="font-family: Consolas;">node_modules</span><span style="font-family: 宋体;">还可以出现在项目目录的任意父路径层级上。但不会向下查找，只向上查找。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ node_modules
+┃ ┣ yuan.js
+┣ </span>05.js</pre>
+</div>
+<p>&nbsp;</p>
+<p>05.js<span style="font-family: 宋体;">引用</span><span style="font-family: Consolas;">yuan.js</span><span style="font-family: 宋体;">的时候，没有详细些它的路径，也能引用成功：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">var yuan = require("yuan.js");  //而不是require("./node_modules")</span>
+console.log(yuan.mianji(10));</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">将</span>node_modules<span style="font-family: 宋体;">文件夹放到</span><span style="font-family: Consolas;">day02</span><span style="font-family: 宋体;">文件夹外面，就是上一层路径中，还可以运行：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ node_modules
+┃ ┣ yuan.js
+┣ day02
+┣┣  </span>05.js</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">也就是说</span>C:\node_study\day02\05.js<span style="font-family: 宋体;">文件可以依法引用以下：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">C:\node_study\day02\node_modules\yuan.js
+C:\node_study\node_modules\yuan.js
+C:\node_modules\yuan.js</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>进一步的深入：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ node_modules
+┃ ┣ yuan.js
+┃ ┣ sanjiaoxing
+┃ ┃ ┣<span style="color: #ff0000;"> index.js</span>
+┣┣  </span>05.js</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> yuan = require("yuan.js"<span style="color: #000000;">);
+</span><span style="color: #ff0000;">var sanjiaoxing = require("sanjiaoxing"</span><span style="color: #000000;"><span style="color: #ff0000;">);</span>
+console.log(yuan.mianji(</span>10<span style="color: #000000;">))
+console.log(sanjiaoxing.mianji(</span>10,2))</pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm19.png" alt="" /></p>
+<p><span style="font-family: 宋体;">如果</span>require<span style="font-family: 宋体;">的路径没有写扩展名，表示引用的是</span><span style="font-family: Consolas;">node_modules</span><span style="font-family: 宋体;">文件夹中的</span><span style="font-family: Consolas;">sanjiaoxing</span><span style="font-family: 宋体;">文件夹中的</span><span style="font-family: Consolas;">index.js</span><span style="font-family: 宋体;">文件。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">小题目，下面</span>require<span style="font-family: 宋体;">实际上</span><span style="font-family: Consolas;">require </span><span style="font-family: 宋体;">了谁？</span></p>
+<p><span style="font-family: 宋体;">比如项目目录是：</span>C:\nodejs_study\day02\</p>
+<div class="cnblogs_code">
+<pre><code>require("./a.js"<span style="color: #000000;">);             C:\nodejs_study\day02\a.js
+require(</span>"./haha/a.js"<span style="color: #000000;">);    　　C:\nodejs_study\day02\haha\a.js
+require(</span>"./haha"<span style="color: #000000;">);             C:\nodejs_study\day02\haha\index.js
+require(</span>"a"<span style="color: #000000;">);                 C:\nodejs_study\day02\node_modules\a\index.js
+require(</span>"a.js");             C:\nodejs_study\day02\node_modules\a.js</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">用</span>shuxue<span style="font-family: 宋体;">文件夹，去统领所有的模块：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">┣ node_modules
+┃ ┃ shuxue
+┃ ┃ ┣ yuan.js
+┃ ┃ ┣ sanjiaoxing.js
+┃ ┃ ┣ <span style="color: #ff0000;">index.js</span>
+┣┣  </span>06.js</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;<span style="font-family: 宋体;">数学这个文件夹对外表示一种功能，就是数学的计算函数，此时</span>shuxue<span style="font-family: 宋体;">就是一个模块。</span></p>
+<p>模块是一根抽象的文件夹的关系概念，而不是物理的文件位置概念：</p>
+<p>node_modules/shuxue/index.js<span style="font-family: 宋体;">：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> yuan = require("./yuan.js"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> sanjiaoxing = require("./sanjiaoxing.js"<span style="color: #000000;">);
+
+exports.yuan </span>=<span style="color: #000000;"> yuan;
+exports.sanjiaoxing </span>= sanjiaoxing;</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">06.js主文件使用模块<br />
+</span><span style="color: #0000ff;">var</span> shuxue = require("shuxue"<span style="color: #000000;">);
+console.log(shuxue.yuan.mianji(</span>10<span style="color: #000000;">))
+console.log(shuxue.yuan.zhouchang(</span>10<span style="color: #000000;">))
+console.log(shuxue.sanjiaoxing.mianji(</span>10,2))</pre>
+</div>
+<hr />
+<h1>五、<strong>npm<span style="font-family: 宋体;">包管理工具</span></strong></h1>
+<p><span style="font-family: 宋体;">随着</span> web <span style="font-family: 宋体;">应用越来越复杂，项目的结构和代码量也变的愈加庞大，前端人员越来越需要在工程化的层面提高开发效率，前端开发是一个飞速发展的领域，市面上现在有各种各样的工具来辅助我们开发，比如说我们在开发过程中就可能会用到下面这些工具：</span><span style="font-family: Consolas;">npm</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">webpack</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">babel</span><span style="font-family: 宋体;">等。</span></p>
+<p><strong>5.1 npm install<span style="font-family: 宋体;">命令</span></strong></p>
+<p>社区官网：<a href="https://www.npmjs.com/"><span style="text-decoration: underline;">https://www.npmjs.com/</span></a></p>
+<p>中文文档：<a href="https://www.npmjs.com.cn/"><span style="text-decoration: underline;">https://www.npmjs.com.cn/</span></a></p>
+<p>中文文档：<a href="http://www.runoob.com/nodejs/nodejs-npm.html"><span style="text-decoration: underline;">http://www.runoob.com/nodejs/nodejs-npm.html</span></a></p>
+<p>&nbsp;<span style="font-family: 宋体;">全</span> &nbsp;&nbsp;&nbsp;<span style="font-family: 宋体;">称：</span>node package management<span style="font-family: 宋体;">（</span><span style="font-family: Consolas;">node</span><span style="font-family: 宋体;">包管理器）。</span></p>
+<p>大家在这里共享自己编写的模块。</p>
+<p>&nbsp;</p>
+<p><strong>NPM <span style="font-family: 宋体;">使用介绍</span></strong><strong>：</strong></p>
+<p>NPM<span style="font-family: 宋体;">是随同</span><span style="font-family: Consolas;">NodeJS</span><span style="font-family: 宋体;">一起安装的包管理工具，能解决</span><span style="font-family: Consolas;">NodeJS</span><span style="font-family: 宋体;">代码部署上的很多问题，常见使用场景有以下几种：</span></p>
+<p>l&nbsp;<span style="font-family: 宋体;">允许用户从</span>NPM<span style="font-family: 宋体;">服务器下载别人编写的第三方包到本地使用。</span></p>
+<p>l&nbsp;<span style="font-family: 宋体;">允许用户从</span>NPM<span style="font-family: 宋体;">服务器下载并安装别人编写的命令行程序到本地使用。</span></p>
+<p>l&nbsp;<span style="font-family: 宋体;">允许用户将自己编写的包或命令行程序上传到</span>NPM<span style="font-family: 宋体;">服务器供别人使用。</span></p>
+<p><span style="font-family: 宋体;">由于新版的</span>Nodejs<span style="font-family: 宋体;">已经集成了</span><span style="font-family: Consolas;">npm</span><span style="font-family: 宋体;">，所以之前</span><span style="font-family: Consolas;">npm</span><span style="font-family: 宋体;">也一并安装好了。</span></p>
+<p><span style="font-family: 宋体;">可以通过</span>CMD<span style="font-family: 宋体;">输入</span>"npm -v"&nbsp;<span style="font-family: 宋体;">测试是否成功安装。命令如下，出现版本提示表示安装成功</span><span style="font-family: Consolas;">:</span></p>
+<div class="cnblogs_code">
+<pre><code>$ npm -v</pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm20.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">比如现在有一个项目，要将数字换成大写人民币写法，</span>12345<span style="font-family: 宋体;">换成&ldquo;一万两千三百四十五元整&rdquo;。</span></p>
+<p><span style="font-family: 宋体;">我们去</span>npm<span style="font-family: 宋体;">社区搜索&ldquo;大写金额&rdquo;：</span></p>
+<p>&nbsp;<img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm21.png" alt="" /></p>
+<p>我们觉得nzh<span style="font-family: 宋体;">这个模块号，决定用它。</span></p>
+<p><span style="font-family: 宋体;">下载方式是使用</span>CMD<span style="font-family: 宋体;">命令，输入：</span></p>
+<div class="cnblogs_code">
+<pre><code>npm install nzh <span style="color: #008000;">//install表示安装，nzh就是这个包（模块）的名字</span></pre>
+<p>　语法：npm install <span style="font-family: 宋体;">包名字</span>　　</p>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm22.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;01.js <span style="font-family: 宋体;">当然</span><span style="font-family: Consolas;">API</span><span style="font-family: 宋体;">都是从这</span><span style="font-family: Consolas;">https://www.npmjs.com/package/nzh</span><span style="font-family: 宋体;">抄的：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> Nzh = require("nzh"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> nzhcn = Nzh.cn;                 <span style="color: #008000;">//</span><span style="color: #008000;"> 使用简体中文,  另外有 Nzh.hk -- 繁体中文</span>
+<span style="color: #000000;">
+console.log(nzhcn.encodeS(</span>123456));              <span style="color: #008000;">//</span><span style="color: #008000;"> 转中文小写 &gt;&gt; 十万零一百一十一</span>
+console.log(nzhcn.encodeB(123456));              <span style="color: #008000;">//</span><span style="color: #008000;"> 转中文大写 &gt;&gt; 壹拾万零壹佰壹拾壹</span>
+console.log(nzhcn.encodeS("1.23456789e+21"));  <span style="color: #008000;">//</span><span style="color: #008000;"> 科学记数法字符串 &gt;&gt; 十二万三千四百五十六万万七千八百九十万亿</span>
+console.log(nzhcn.toMoney("100111.11")); <span style="color: #008000;">//</span><span style="color: #008000;"> 转中文金额 &gt;&gt; 人民币壹拾万零壹佰壹拾壹元壹角壹分</span></pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm23.png" alt="" /></p>
+<p>上面的代码谁背谁傻。</p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">新的需求又来了，老板说，我们要知道农历，比如要查找</span>2018<span style="font-family: 宋体;">年</span><span style="font-family: Consolas;">8</span><span style="font-family: 宋体;">月</span><span style="font-family: Consolas;">8</span><span style="font-family: 宋体;">日的农历是多少？</span></strong></p>
+<p><span style="font-family: 宋体;">于是又去</span>npm<span style="font-family: 宋体;">社区搜索相关模块：</span></p>
+<p>&nbsp;<img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm24.png" alt="" /></p>
+<p><span style="font-family: 宋体;">决定使用</span>solarlunar <span style="font-family: 宋体;">，此时</span><span style="font-family: Consolas;">npm</span><span style="font-family: 宋体;">下载：</span></p>
+<div class="cnblogs_code">
+<pre><code>npm install solarlunar</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">看</span>API<span style="font-family: 宋体;">文件，直接抄代码：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> solarLunar = require("solarLunar"<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">var</span> solar2lunarData = solarLunar.solar2lunar(2018, 8, 8); <span style="color: #008000;">//</span><span style="color: #008000;"> 阳历转为农历</span>
+<span style="color: #0000ff;">var</span> lunar2solarData = solarLunar.lunar2solar(2018, 8, 8); <span style="color: #008000;">//</span><span style="color: #008000;"> 农历转为阳历</span>
+<span style="color: #000000;">console.log(solar2lunarData)
+console.log(lunar2solarData)</span></pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm25.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong>需求：用</strong><strong>JS<span style="font-family: 宋体;">程序批量改图片尺寸</span></strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> fs = require('fs'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> gm = require('gm').subClass({imageMagick: <span style="color: #0000ff;">true</span><span style="color: #000000;">});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">读取文件目录</span>
+fs.readdir("./images/", <span style="color: #0000ff;">function</span><span style="color: #000000;">(err,files){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">批量循环遍历-修改尺寸</span>
+    <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0;i &lt; files.length;i++<span style="color: #000000;">){
+        gm(</span>'./images/' + files[i]).resize(50,50).write('./img/'+ files[i], <span style="color: #0000ff;">function</span><span style="color: #000000;">(err){
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(err){
+                console.log(</span>"失败"<span style="color: #000000;">);
+            }
+        });
+    }
+})</span></pre>
+</div>
+<p>之后，发现现在JS<span style="font-family: 宋体;">程序可以批量更改图片尺寸了！</span></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">又来需求了，老板让我把这个月的销售额（已经在程序的数组中），生在</span>Excel<span style="font-family: 宋体;">文件中：</span></strong></p>
+<p><a href="https://www.npmjs.com/package/node-xlsx"><span style="text-decoration: underline;">https://www.npmjs.com/package/node-xlsx</span></a></p>
+<div class="cnblogs_code">
+<pre><code>npm install node-xlsx</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">下载完毕</span>node-xlsx<span style="font-family: 宋体;">后，参考</span><span style="font-family: Consolas;">API</span><span style="font-family: 宋体;">写代码：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> xlsx = require("node-xlsx"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> fs = require("fs"<span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">数据</span>
+<span style="color: #0000ff;">var</span> data = [["月份","销售额（万）"],[1,90], [2,30], [3,190], [4,500<span style="color: #000000;">]];
+</span><span style="color: #008000;">//</span><span style="color: #008000;">生成Excel格式的数据</span>
+<span style="color: #0000ff;">var</span> buffer = xlsx.build([{name: "销售表"<span style="color: #000000;">, data: data}]);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">生成Excel文件，并且将数据写入</span>
+fs.writeFile("./销售表.xlsx", buffer, <span style="color: #0000ff;">function</span><span style="color: #000000;">(err){
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(err){
+        console.log(</span>"生成失败"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+    }
+    console.log(</span>"生成成功"<span style="color: #000000;">)
+})</span></pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm26.png" alt="" /></p>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm27.png" alt="" /></p>
+<p>所以npm<span style="font-family: 宋体;">真的是好东西</span></p>
+<p>l&nbsp;资源很多</p>
+<p>l&nbsp;下载方便</p>
+<p>l&nbsp;依赖管理方便</p>
+<hr />
+<h2><strong>5.2<span style="font-family: 宋体;">包依赖管理</span></strong></h2>
+<p>package.json<span style="font-family: 宋体;">是</span><span style="font-family: Consolas;">npm</span><span style="font-family: 宋体;">安装模块时的依据。</span></p>
+<p><span style="font-family: 宋体;">每个项目的根目录下面，一般都有一个</span>package.json<span style="font-family: 宋体;">文件，定义了这个项目所需要的各种模块，以及项目的配置信息（比如名称、版本、许可证等数据）。</span><span style="font-family: Consolas;">npm install</span><span style="font-family: 宋体;">命令根据这个配置文件，自动下载所需的模块，也就是配置项目所需的运行和开发环境。</span></p>
+<p><span style="font-family: 宋体;">使用场景：我需要</span>A<span style="font-family: 宋体;">，</span><span style="font-family: Consolas;">A</span><span style="font-family: 宋体;">依赖</span><span style="font-family: Consolas;">B</span><span style="font-family: 宋体;">，</span><span style="font-family: Consolas;">B</span><span style="font-family: 宋体;">依赖</span><span style="font-family: Consolas;">C</span></p>
+<p>常见的包管理工具都有循环依赖的功能，你只需要记住你要什么东西</p>
+<p>&nbsp;</p>
+<p>package.json<span style="font-family: 宋体;">文件可以手工编写，也可以使用</span><span style="font-family: Consolas;">npm init</span><span style="font-family: 宋体;">命令自动生成</span></p>
+<p><span style="font-family: 宋体;">创建一个身份证记录自己的项目依赖了哪些</span>npm<span style="font-family: 宋体;">包。</span></p>
+<p><span style="font-family: 宋体;">所以删除</span>node_modules<span style="font-family: 宋体;">文件夹，重新下载一次，这次要加上</span><span style="font-family: Consolas;">--save</span><span style="font-family: 宋体;">保存到身份证中。</span></p>
+<div class="cnblogs_code">
+<pre><code>npm init</pre>
+</div>
+<p><span style="font-family: 宋体;">这个命令可以创建</span>package.json<span style="font-family: 宋体;">文件。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm28.png" alt="" /></p>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm29.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>此时生成了一个package.json<span style="font-family: 宋体;">文件，这是项目的身份证：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  </span>"name": "02-npm_study",   <span style="color: #008000;">//</span><span style="color: #008000;">项目名称</span>
+  "version": "1.0.0",       <span style="color: #008000;">//</span><span style="color: #008000;">版本号</span>
+  "description": "这是我们的学习npm案例",    <span style="color: #008000;">//</span><span style="color: #008000;">描述</span>
+  "main": "app.js",         <span style="color: #008000;">//</span><span style="color: #008000;">入口文件</span>
+  "scripts": { <span style="color: #008000;">//</span><span style="color: #008000;">调试命令</span>
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1"<span style="color: #000000;">
+  },
+  </span>"keywords"<span style="color: #000000;">: [
+    </span>"牛逼"  <span style="color: #008000;">//</span><span style="color: #008000;">关键词</span>
+<span style="color: #000000;">  ],
+  </span>"author": "rope",   <span style="color: #008000;">//</span><span style="color: #008000;">作者</span>
+  "license": "ISC"      <span style="color: #008000;">//</span><span style="color: #008000;">版权协议</span>
+}</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">然后按照依赖，此时还是用</span>npm install<span style="font-family: 宋体;">命令，但是要加上</span><span style="font-family: Consolas;">--save</span><span style="font-family: 宋体;">参数，表示记录到</span><span style="font-family: Consolas;">package.json</span><span style="font-family: 宋体;">中</span></p>
+<div class="cnblogs_code">
+<pre><code>npm install nzh <span style="color: #ff0000;">--save</span></pre>
+</div>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">或</span></p>
+<div class="cnblogs_code">
+<pre><code>npm install <span style="color: #ff0000;">--save</span> nzh</pre>
+</div>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;"><span style="font-family: 宋体;">此时</span>node_modules<span style="font-family: 宋体;">文件夹还是会下载这些模块，并且</span><span style="font-family: Consolas;">package.json</span><span style="font-family: 宋体;">文件中多出了</span><span style="font-family: Consolas;">dependencies</span><span style="font-family: 宋体;">依赖项：</span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  </span>"name": "02-npm_study"<span style="color: #000000;">,
+  </span>"version": "1.0.0"<span style="color: #000000;">,
+  </span>"description": "这是我们的学习npm案例"<span style="color: #000000;">,
+  </span>"main": "app.js"<span style="color: #000000;">,
+  </span>"scripts"<span style="color: #000000;">: {
+    </span>"test": "echo \"Error: no test specified\" &amp;&amp; exit 1"<span style="color: #000000;">
+  },
+  </span>"keywords"<span style="color: #000000;">: [
+    </span>"牛逼"<span style="color: #000000;">
+  ],
+  </span>"author": "rope"<span style="color: #000000;">,
+  </span>"license": "ISC"<span style="color: #000000;">,
+  </span><span style="color: #ff0000;">"dependencies": {
+    "gm": "^1.23.1",
+    "node-xlsx": "^0.12.1",
+    "nzh": "^1.0.3",
+    "solarlunar": "^2.0.3"</span><span style="color: #000000;"><span style="color: #ff0000;">
+  }</span>
+}</span></pre>
+</div>
+<p class="MsoNormal">&nbsp;</p>
+<p class="MsoNormal"><span style="mso-spacerun: 'yes'; font-family: 宋体; mso-ascii-font-family: Consolas; mso-hansi-font-family: Consolas; mso-bidi-font-family: 'Times New Roman'; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">项目身份证的意义在于，记录你的项目依赖了什么模块，可以使用以下命令一次性下载回来：</span></p>
+<div class="cnblogs_code">
+<pre><code>npm install </pre>
+</div>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; color: #ff0000; font-size: 10.5pt;"><span style="font-family: 宋体;">不指定任何包的名字，此时将会拉取所有</span>package.json<span style="font-family: 宋体;">中声明的</span><span style="font-family: Consolas;">dependencies</span><span style="font-family: 宋体;">依赖项</span></span></strong></p>
+<p class="MsoNormal" style="margin-left: 21.0000pt; mso-para-margin-left: 0.0000gd; text-indent: -21.0000pt; mso-char-indent-count: 0.0000; mso-list: l0 level1 lfo1;"><!--[if !supportLists]--><span style="font-family: Wingdings; mso-fareast-font-family: 宋体; mso-bidi-font-family: 'Times New Roman'; color: #00b050; font-weight: bold; font-size: 10.5000pt; mso-font-kerning: 1.0000pt;">l&nbsp;</span><!--[endif]--><strong><span style="font-family: 宋体; color: #00b050; font-size: 10.5pt;">如何区分开发依赖和运行依赖（生产依赖）</span></strong></p>
+<p class="MsoNormal"><strong><span style="font-family: 宋体; color: #00b050; font-size: 10.5pt;"><span style="font-family: 宋体;">当你的项目放到浏览器去运行的时候你还需要这个依赖吗？如果需要那它就是生产</span>(<span style="font-family: 宋体;">运行</span><span style="font-family: Consolas;">)</span><span style="font-family: 宋体;">依赖，反之是开发依赖。</span></span></strong></p>
+<hr />
+<p class="MsoNormal">&nbsp;</p>
+<h2><strong>5.3<span style="font-family: 宋体;">版本符号的意思</span></strong></h2>
+<p>package.json<span style="font-family: 宋体;">文件的详细介绍：</span><a href="https://docs.npmjs.com/files/package.json"><span style="text-decoration: underline;">https://docs.npmjs.com/files/package.json</span></a></p>
+<p><span style="text-decoration: underline;"><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm30.png" alt="" /></span></p>
+<hr />
+<h2><strong>5.4<span style="font-family: 宋体;">淘宝镜像</span></strong></h2>
+<p>npm<span style="font-family: 宋体;">在中国大陆没有镜像，下载速度慢，淘宝为我们搭建了民间镜像。</span></p>
+<p><a href="http://npm.taobao.org/"><span style="text-decoration: underline;">http://npm.taobao.org/</span></a></p>
+<p class="MsoNormal">&nbsp;</p>
+<p>安装淘宝镜像特别简单，直接使用：</p>
+<div class="cnblogs_code">
+<pre><code>npm install <span style="color: #ff0000;">-g</span> cnpm --registry=https:<span style="color: #008000;">//</span><span style="color: #008000;">registry.npm.taobao.org</span></pre>
+</div>
+<p>-g<span style="font-family: 宋体;">表示在全局位置安装</span></p>
+<p><span style="font-family: 宋体;">这条语句表示：在电脑安装了一个叫</span>cnpm<span style="font-family: 宋体;">的命令行工具，并且附加参数</span><span style="font-family: Consolas;">--registry</span><span style="font-family: 宋体;">为一个地址。</span></p>
+<p>&nbsp;</p>
+<p>-g<span style="font-family: 宋体;">到底安装在哪？用下面命令查看具体安装位置：</span></p>
+<div class="cnblogs_code">
+<pre><code>npm root -g</pre>
+</div>
+<p><img src="./images/前端笔记之NodeJS（二）路由&amp;REPL&amp;模块系统&amp;npm31.png" alt="" /></p>
+<p><span style="font-family: 宋体;">这里相当于系统的一个底层位置，这可以安装系统的</span>CLI<span style="font-family: 宋体;">，也就是说</span><span style="font-family: Consolas;">-g</span><span style="font-family: 宋体;">安装的不是项目依赖，也不是模块。而是系统的</span><span style="font-family: Consolas;">CLI</span><span style="font-family: 宋体;">，就是给</span><span style="font-family: Consolas;">CMD</span><span style="font-family: 宋体;">丰富了一些功能，比如丰富了</span><span style="font-family: Consolas;">cnpm</span><span style="font-family: 宋体;">命令。</span></p>
+<p>&nbsp;</p>
+<p>不需要知道那么多，总而言之，<span style="color: #ff0000;"><strong>-g<span style="font-family: 宋体;">安装的东西，一般都是用来</span><span style="font-family: Consolas;">CMD</span><span style="font-family: 宋体;">控制台当命令用。</span></strong></span></p>
+<p><strong><span style="font-family: 宋体;">命令行界面</span></strong><span style="font-family: 宋体;">（英语：</span><strong>C</strong><strong>ommand-</strong><strong>L</strong><strong>ine </strong><strong>I</strong><strong>nterface</strong><span style="font-family: 宋体;">，</span><a href="https://baike.baidu.com/item/%E7%BC%A9%E5%86%99"><span style="font-family: 宋体;">缩写</span></a><span style="font-family: 宋体;">：</span><strong>CLI</strong><span style="font-family: 宋体;">）是在</span><a href="https://baike.baidu.com/item/%E5%9B%BE%E5%BD%A2%E7%94%A8%E6%88%B7%E7%95%8C%E9%9D%A2"><span style="font-family: 宋体;">图形用户界面</span></a><span style="font-family: 宋体;">得到普及之前使用最为广泛的</span><a href="https://baike.baidu.com/item/%E7%94%A8%E6%88%B7%E7%95%8C%E9%9D%A2"><span style="font-family: 宋体;">用户界面</span></a><span style="font-family: 宋体;">，它通常不支持</span><a href="https://baike.baidu.com/item/%E9%BC%A0%E6%A0%87"><span style="font-family: 宋体;">鼠标</span></a><span style="font-family: 宋体;">，用户通过键盘输入指令，计算机接收到指令后，予以执行。也有人称之为</span><strong><span style="font-family: 宋体;">字符用户界面</span></strong><span style="font-family: 宋体;">（</span><a href="https://baike.baidu.com/item/CUI/7671744">CUI</a><span style="font-family: 宋体;">）。</span></p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">今后完全可以用</span></strong><strong>cnpm<span style="font-family: 宋体;">代替</span><span style="font-family: Arial;">npm</span><span style="font-family: 宋体;">使用。</span></strong></span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>cnpm install</pre>
+</div>
+<p>&nbsp;</p>
+<hr />
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,413 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信小程序中悬浮窗功能的实现（主要探讨和解决在原生组件上的拖动）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信小程序中悬浮窗功能的实现（主要探讨和解决在原生组件上的拖动）</center></div><div class='banquan'>原文出处:本文由博客园博主韩子卢提供。<br/>
+原文连接:https://www.cnblogs.com/vvjiang/p/11286880.html</div><br>
+    <h2 id="问题场景">问题场景</h2>
+<p>所谓悬浮窗就是图中微信图标的按钮，采用fixed定位，可拖动和点击。</p>
+<p>这算是一个比较常见的实现场景了。</p>
+<p><img src="./images/微信小程序中悬浮窗功能的实现（主要探讨和解决在原生组件上的拖动）0.png" /></p>
+<h2 id="为什么要用cover-view做悬浮窗原生组件出来背锅了">为什么要用cover-view做悬浮窗？原生组件出来背锅了~</h2>
+<p>最初我做悬浮窗用的不是cover-view，而是view。</p>
+<p>这是简化的代码结构：</p>
+<p>index.wxml:</p>
+<pre><code><code>&lt;view class=&quot;move-view&quot; style=&quot; top:{{top}}px;left:{{left}}px;&quot; bindtap=&quot;goToHome&quot; catchtouchmove=&quot;setTouchMove&quot;&gt;
+    &lt;image class=&quot;img&quot; src=&quot;https://ss2.baidu.com/6ONYsjip0QIZ8tyhnq/it/u=4294841024,3545417298&amp;fm=179&amp;app=42&amp;f=PNG?w=56&amp;h=56&quot;&gt;
+    &lt;/image&gt;
+&lt;/view&gt;
+&lt;textarea placeholder=&#39;我是textarea组件，用来输入一些信息&#39;&gt;&lt;/textarea&gt;
+&lt;view&gt;
+  一大段test，占个位，表示下存在感
+&lt;/view&gt;</code></pre>
+<p>index.js:</p>
+<pre><code><code>Page({
+
+  /**
+  * 页面的初始数据
+  */
+  data: {
+    left: 20,
+    top: 250,
+    isIos: true
+  },
+  /**
+  * 拖拽移动
+  */
+  setTouchMove: function (e) {
+    if (e.touches[0].clientX &gt; 0 &amp;&amp; e.touches[0].clientY &gt; 0) {
+      this.setData({
+        left: e.touches[0].clientX - 30,
+        top: e.touches[0].clientY - 30
+      })
+    } else {
+      this.setData({
+        left: 20, //默认显示位置 left距离
+        top: 250  //默认显示位置 top距离
+      })
+    }
+  },
+  /**
+  * 返回首页
+  */
+  goToHome: () =&gt; {
+    wx.reLaunch({
+      url: &#39;/pages/index/index&#39;,
+    })
+  }
+})</code></pre>
+<p>为什么要用cover-view呢？</p>
+<p>因为页面上有个textarea组件，这个组件是原生组件，当悬浮窗移动到这个textarea组件上时，将无法继续拖动和点击。</p>
+<p>如果悬浮窗一开始就定位在textarea上，那么就更惨了，一开始就不能点击和拖动了。</p>
+<p>这个原因是因为微信小程序的原生组件层级高于非原生组件，不是你修改几下样式就能解决的问题。</p>
+<p>这里就不讲什么原生组件了，如果想进一步了解，可以参考我之前写的一篇博客：<a href="https://www.cnblogs.com/vvjiang/p/11161103.html">微信小程序在ios下Echarts图表不能滑动的解决方案</a>。</p>
+<p>如果你的页面上面没有原生组件，那么像上面的代码一样用view做悬浮窗即可。</p>
+<p>如果有，那么就可以跟着我继续踩坑，使用cover-view这个原生组件层级的组件来做悬浮窗。</p>
+<h2 id="安卓下的cover-view拖动起来抖得不像帕金森像是魔鬼的步伐">安卓下的cover-view拖动起来，抖得不像帕金森，像是魔鬼的步伐</h2>
+<p>以下是我们修改为cover-view之后的代码：</p>
+<pre><code><code>&lt;cover-view class=&quot;move-view&quot; style=&quot; top:{{top}}px;left:{{left}}px;&quot; bindtap=&quot;goToHome&quot; catchtouchmove=&quot;setTouchMove&quot;&gt;
+    &lt;cover-image class=&quot;img&quot; src=&quot;https://ss2.baidu.com/6ONYsjip0QIZ8tyhnq/it/u=4294841024,3545417298&amp;fm=179&amp;app=42&amp;f=PNG?w=56&amp;h=56&quot;&gt;
+    &lt;/cover-image&gt;
+&lt;/cover-view&gt;
+&lt;textarea placeholder=&#39;我是textarea组件，用来输入一些信息&#39;&gt;&lt;/textarea&gt;
+&lt;view&gt;
+  一大段test，占个位，表示下存在感
+&lt;/view&gt;</code></pre>
+<p>注意这里，我们的image也改为了cover-image，因为cover-view只支持嵌套 cover-view、cover-image，不过可在 cover-view 中使用 button。</p>
+<p>这样虽然解决了可在原生组件上自由拖动点击的问题，但是在安卓上出现了一个很奇怪的现象，以至于我认为已经无法用抖动可以来形容了：</p>
+<p><img src="./images/微信小程序中悬浮窗功能的实现（主要探讨和解决在原生组件上的拖动）1.png" /></p>
+<p>上图是就是我滑动这个悬浮窗之后的效果，我只是很缓慢地在移动手指，但是这个悬浮窗的表现简直就像一个受惊的兔子。</p>
+<p>当我第一眼看见这个效果的时候一脸懵逼，我都不知道说什么好。</p>
+<p>虽然在ios上cover-view移动起来表现良好，但是在安卓上拖动起来的表现简直没法看。</p>
+<h2 id="勉强能看的补丁方案">勉强能看的补丁方案</h2>
+<p>安卓上这么挫，还不如原来的呢。</p>
+<p>所以来个补丁方案好了，在ios下用cover-view完美拖动，在安卓上用view先跑着。</p>
+<pre><code><code>&lt;cover-view wx-if=&quot;{{isIos}}&quot; class=&quot;move-view&quot; style=&quot; top:{{top}}px;left:{{left}}px;&quot; bindtap=&quot;goToHome&quot; catchtouchmove=&quot;setTouchMove&quot;&gt;
+    &lt;cover-image class=&quot;img&quot; src=&quot;https://ss2.baidu.com/6ONYsjip0QIZ8tyhnq/it/u=4294841024,3545417298&amp;fm=179&amp;app=42&amp;f=PNG?w=56&amp;h=56&quot;&gt;
+    &lt;/cover-image&gt;
+&lt;/cover-view&gt;
+&lt;view wx-if=&quot;{{!isIos}}&quot; class=&quot;move-view&quot; style=&quot; top:{{top}}px;left:{{left}}px;&quot; bindtap=&quot;goToHome&quot; catchtouchmove=&quot;setTouchMove&quot;&gt;
+    &lt;image class=&quot;img&quot; src=&quot;https://ss2.baidu.com/6ONYsjip0QIZ8tyhnq/it/u=4294841024,3545417298&amp;fm=179&amp;app=42&amp;f=PNG?w=56&amp;h=56&quot;&gt;
+    &lt;/image&gt;
+&lt;/view&gt;
+&lt;textarea placeholder=&#39;我是textarea组件，用来输入一些信息&#39;&gt;&lt;/textarea&gt;
+&lt;view&gt;
+  一大段test，占个位，表示下存在感
+&lt;/view&gt;</code></pre>
+<p>当然少不了要在js里面加上这句代码：</p>
+<pre><code><code>onLoad: function (options) {
+  wx.getSystemInfo({
+    success: (res) =&gt; {
+      if (res.platform == &quot;android&quot;) {
+        this.setData({
+          isIos: false
+        })
+      }
+    }
+  })
+}</code></pre>
+<p>不要忘记isIos默认为true哦。</p>
+<p>反正ios环境下可以完美使用了，至于安卓下拖到textarea组件上没法再拖的问题，调整下悬浮框的初始位置就好了。</p>
+<p>而且只要不是刻意移动到textarea组件上，拖动着悬浮框经过textarea组件也是没有问题的嘛。</p>
+<p>像我这么聪明的用户还懂得滑动下面的页面来使悬浮窗移动到非原生组件的地方，这样就又可以拖动了嘛。</p>
+<p>你又以为你的测试一定能发现这个问题？发现了又怎样，我已经尽力了，还给你整出这么多理论依据，足够你把锅牢牢地按在微信小程序官方的头上。</p>
+<h2 id="使用movable-view仿佛发现了新大陆结果发现这个还是个弟弟">使用movable-view：仿佛发现了新大陆，结果发现这个还是个弟弟</h2>
+<p>甩锅是一定要甩锅的，但是段位要高。</p>
+<p>所以要遍查官方文档，探讨一切可能性，以免甩锅的时候被打脸。</p>
+<p>我们仔细观察小程序官方文档，发现还是有个专门用来拖动的组件叫movable-view。</p>
+<p>这个组件和cover-view摆放在一起仿佛很厉害的样子，紧接着我们在原生组件使用限制文档中发现了它并不是原生组件。</p>
+<p>也就是说这个东西的层级一定还是低于咱们的textarea组件的。</p>
+<p>虽然已经很确定这个东西没什么用了，但是最后还是试探一把，结果发现是个真弟弟，这里就不给出代码了。</p>
+<p>我写这个弟弟方案放在这里的目的主要是为了不要浪费你的验证时间。</p>
+<h2 id="理论上行得通的方案将拖动事件的捕获放在父级">理论上行得通的方案：将拖动事件的捕获放在父级</h2>
+<p>现在我们确认的最优甩锅方案里，已经实现了功能和甩锅两不误。</p>
+<p>那么作为一名有追求的技术人员，还是需要去探讨以下这个问题到底有没有完美的解决方案。</p>
+<p>因为我最开始是把这个悬浮窗做成了一个组件，那么作为组件来讲，这个东西就只能做到这个地步了。</p>
+<p>不过如果你是像我现在的例子一样直接做在了页面里，那么实现起来也不是说没有办法的。</p>
+<p>我们将拖动的事件放在父级上就可以了，请看接下来的代码：</p>
+<p>index.wxml:</p>
+<pre><code><code>&lt;view bindtouchmove=&quot;setTouchMove&quot;&gt;
+    &lt;view class=&quot;move-view&quot; style=&quot; top:{{top}}px;left:{{left}}px;&quot; bindtap=&quot;goToHome&quot;&gt;
+        &lt;image class=&quot;img&quot; src=&quot;https://ss2.baidu.com/6ONYsjip0QIZ8tyhnq/it/u=4294841024,3545417298&amp;fm=179&amp;app=42&amp;f=PNG?w=56&amp;h=56&quot;&gt;
+        &lt;/image&gt;
+    &lt;/view&gt;
+    &lt;textarea placeholder=&#39;我是textarea组件，用来输入一些信息&#39;&gt;&lt;/textarea&gt;
+    &lt;view&gt;
+      一大段test，占个位，表示下存在感
+    &lt;/view&gt;
+&lt;/view&gt;</code></pre>
+<p>index.js:</p>
+<pre><code><code>Page({
+
+  /**
+  * 页面的初始数据
+  */
+  data: {
+    left: 20,
+    top: 250
+  },
+
+  /**
+  * 拖拽移动
+  */
+  setTouchMove: function (e) {
+    const MOVE_VIEW_RADIUS = 30 // 悬浮窗半径
+
+    const touchPosX = e.touches[0].clientX
+    const touchPosY = e.touches[0].clientY
+
+    const moveViewCenterPosX = this.data.left + MOVE_VIEW_RADIUS
+    const moveViewCenterPosY = this.data.top + MOVE_VIEW_RADIUS
+
+    // 确保手指在悬浮窗上才可以移动
+    if (Math.abs(moveViewCenterPosX - touchPosX) &lt; MOVE_VIEW_RADIUS + 60 &amp;&amp; Math.abs(moveViewCenterPosY - touchPosY) &lt; MOVE_VIEW_RADIUS + 60) {
+      if (touchPosX &gt; 0 &amp;&amp; touchPosY &gt; 0) {
+        this.setData({
+          left: touchPosX - MOVE_VIEW_RADIUS,
+          top: touchPosY - MOVE_VIEW_RADIUS
+        })
+      } else {
+        this.setData({
+          left: 20, // 默认显示位置 left距离
+          top: 250  // 默认显示位置 top距离
+        })
+      }
+    }
+  },
+  /**
+  * 返回首页
+  */
+  goToHome: () =&gt; {
+    wx.reLaunch({
+      url: &#39;/pages/index/index&#39;,
+    })
+  }
+})</code></pre>
+<p>关键代码就是这块了：</p>
+<pre><code><code>// 确保手指在悬浮窗上才可以移动
+if (Math.abs(moveViewCenterPosX - touchPosX) &lt; MOVE_VIEW_RADIUS + 60 &amp;&amp; Math.abs(moveViewCenterPosY - touchPosY) &lt; MOVE_VIEW_RADIUS + 60) {
+
+}</code></pre>
+<p>只要确保手指在悬浮窗的范围内就可以触发移动了，这里的60是为了确保你的手指太大，或者移动得比较快时超出了悬浮窗区域依然可以触发拖动，这个可以自己设定数值。</p>
+<p>这个方案在理论上很合理，并且还加上了60这个缓冲区域，但是实际在拖动的时候你仍然会面临下面三个问题：</p>
+<p>1.如果悬浮窗下方有滚动区域，那么拖动的时候就会滚动页面，效果会显得比较奇怪。<br />
+2.实际移动没法移动太顺畅，只能拖着悬浮窗亦步亦趋,要不然很容易超过60这个缓冲区域，导致拖动不继续触发。<br />
+2.如果将缓冲区域设置过大，那么又会出现一种比较奇怪的场景：明明不准备拖动悬浮窗，只是准备滑动页面，悬浮窗却跳到自己手指这里了。</p>
+<h2 id="进阶解决方案禁止冒泡的拖动-理论方案">进阶解决方案：禁止冒泡的拖动 + 理论方案</h2>
+<p>这个解决方案基于我们的最初方案，并且使用我们的理论方案作为补充。</p>
+<p>先上代码：</p>
+<p>index.wxml：</p>
+<pre><code><code>&lt;view bindtouchmove=&quot;handleSetMoveViewPos&quot;&gt;
+    &lt;view class=&quot;move-view&quot; style=&quot; top:{{top}}px;left:{{left}}px;&quot; bindtap=&quot;goToHome&quot; catchtouchmove=&quot;handleTouchMove&quot;&gt;
+        &lt;image class=&quot;img&quot; src=&quot;https://ss2.baidu.com/6ONYsjip0QIZ8tyhnq/it/u=4294841024,3545417298&amp;fm=179&amp;app=42&amp;f=PNG?w=56&amp;h=56&quot;&gt;
+        &lt;/image&gt;
+    &lt;/view&gt;
+    &lt;textarea placeholder=&#39;我是textarea组件，用来输入一些信息&#39;&gt;&lt;/textarea&gt;
+    &lt;view&gt;
+      一大段test，占个位，表示下存在感
+    &lt;/view&gt;
+&lt;/view&gt;</code></pre>
+<p>index.js：</p>
+<pre><code><code>Page({
+  /**
+  * 页面的初始数据
+  */
+  data: {
+    left: 20,
+    top: 250
+  },
+  /**
+  * 拖拽移动(补丁)
+  */
+  handleSetMoveViewPos: function (e) {
+    const MOVE_VIEW_RADIUS = 30 // 悬浮窗半径
+
+    const touchPosX = e.touches[0].clientX
+    const touchPosY = e.touches[0].clientY
+
+    const moveViewCenterPosX = this.data.left + MOVE_VIEW_RADIUS
+    const moveViewCenterPosY = this.data.top + MOVE_VIEW_RADIUS
+
+    // 确保手指在悬浮窗上才可以移动
+    if (Math.abs(moveViewCenterPosX - touchPosX) &lt; MOVE_VIEW_RADIUS+30 &amp;&amp; Math.abs(moveViewCenterPosY - touchPosY) &lt; MOVE_VIEW_RADIUS+30 ) {
+      if (touchPosX &gt; 0 &amp;&amp; touchPosY &gt; 0) {
+        this.setData({
+          left: touchPosX - MOVE_VIEW_RADIUS,
+          top: touchPosY - MOVE_VIEW_RADIUS
+        })
+      } else {
+        this.setData({
+          left: 20, // 默认显示位置 left距离
+          top: 250  // 默认显示位置 top距离
+        })
+      }
+    }
+  },
+  /**
+  * 拖拽移动
+  */
+  handleTouchMove: function (e) {
+    const MOVE_VIEW_RADIUS = 30 // 悬浮窗半径
+
+    const touchPosX = e.touches[0].clientX
+    const touchPosY = e.touches[0].clientY
+
+    if (touchPosX &gt; 0 &amp;&amp; touchPosY &gt; 0) {
+      this.setData({
+        left: touchPosX - MOVE_VIEW_RADIUS,
+        top: touchPosY - MOVE_VIEW_RADIUS
+      })
+    } else {
+      this.setData({
+        left: 20, //默认显示位置 left距离
+        top: 250  //默认显示位置 top距离
+      })
+    }
+  },
+  /**
+  * 返回首页
+  */
+  goToHome: () =&gt; {
+    wx.reLaunch({
+      url: &#39;/pages/index/index&#39;,
+    })
+  }
+})</code></pre>
+<p>这个方案的核心点在于：<strong>catchtouchmove=&quot;handleTouchMove&quot;</strong> 。</p>
+<p>当我们正常拖动悬浮窗时，通过catchtouchmove，我们可以捕获在悬浮窗上的滑动事件，并且不冒泡到父元素，那么我们绑在父层级的滑动事件就不会触发。</p>
+<p>而当我们拖动在原生组件之上的悬浮窗时，因为点不到这个悬浮窗，就不会触发handleTouchMove函数，只会触发绑定在父元素上的handleSetMoveViewPos函数。</p>
+<p>另外如果你细心的话，就会发现在handleSetMoveViewPos函数这里我缩小了那个60的缓冲区域为30，这样做的目的是因为触发这个函数只会在原生组件上，所以多番权衡距离之后，尽量避免近距离滑动操作就触发拖动悬浮框。</p>
+<p>通过我们的方案，我们可以在非原生组件上自由拖动，在原生组件上比较顺畅地拖动。</p>
+<p>本来我是准备将这个方案作为最终方案的，但是ios下，悬浮窗在原生组件上时，在父元素上的滑动事件竟然不触发。</p>
+<p>棋差一招，棋差一招啊！</p>
+<h2 id="最终解决方案更多的补丁更多的快乐">最终解决方案：更多的补丁，更多的快乐</h2>
+<p>这个最终解决方案，当然是把我们之前所有的补丁方案全部结合起来。</p>
+<p>代码如下：</p>
+<p>index.wxml:</p>
+<pre><code><code>&lt;view bindtouchmove=&quot;handleSetMoveViewPos&quot;&gt;
+    &lt;view wx-if=&quot;{{!isIos}}&quot; class=&quot;move-view&quot; style=&quot; top:{{top}}px;left:{{left}}px;&quot; bindtap=&quot;goToHome&quot; catchtouchmove=&quot;handleTouchMove&quot;&gt;
+        &lt;image class=&quot;img&quot; src=&quot;https://ss2.baidu.com/6ONYsjip0QIZ8tyhnq/it/u=4294841024,3545417298&amp;fm=179&amp;app=42&amp;f=PNG?w=56&amp;h=56&quot;&gt;
+        &lt;/image&gt;
+    &lt;/view&gt;
+    &lt;cover-view wx-if=&quot;{{isIos}}&quot; class=&quot;move-view&quot; style=&quot; top:{{top}}px;left:{{left}}px;&quot; bindtap=&quot;goToHome&quot; catchtouchmove=&quot;handleTouchMove&quot;&gt;
+        &lt;cover-image class=&quot;img&quot; src=&quot;https://ss2.baidu.com/6ONYsjip0QIZ8tyhnq/it/u=4294841024,3545417298&amp;fm=179&amp;app=42&amp;f=PNG?w=56&amp;h=56&quot;&gt;
+        &lt;/cover-image&gt;
+    &lt;/cover-view&gt;
+    &lt;textarea placeholder=&#39;我是textarea组件，用来输入一些信息&#39;&gt;&lt;/textarea&gt;
+    &lt;view&gt;
+      一大段test，占个位，表示下存在感
+    &lt;/view&gt;
+&lt;/view&gt;</code></pre>
+<p>index.js:</p>
+<pre><code><code>Page({
+
+  /**
+  * 页面的初始数据
+  */
+  data: {
+    left: 20,
+    top: 250,
+    isIos: true
+  },
+
+  /**
+  * 生命周期函数--监听页面加载
+  */
+  onLoad: function (options) {
+    wx.getSystemInfo({
+      success: (res) =&gt; {
+        if (res.platform == &quot;android&quot;) {
+          this.setData({
+            isIos: false
+          })
+        }
+      }
+    })
+  },
+
+  /**
+  * 拖拽移动(补丁)
+  */
+  handleSetMoveViewPos: function (e) {
+    // 在ios下永远都不会走这个方案，以免引起无用的计算
+    if (!ios) {
+      const MOVE_VIEW_RADIUS = 30 // 悬浮窗半径
+
+      const touchPosX = e.touches[0].clientX
+      const touchPosY = e.touches[0].clientY
+
+      const moveViewCenterPosX = this.data.left + MOVE_VIEW_RADIUS
+      const moveViewCenterPosY = this.data.top + MOVE_VIEW_RADIUS
+
+      // 确保手指在悬浮窗上才可以移动
+      if (Math.abs(moveViewCenterPosX - touchPosX) &lt; MOVE_VIEW_RADIUS &amp;&amp; Math.abs(moveViewCenterPosY - touchPosY) &lt; MOVE_VIEW_RADIUS) {
+        if (touchPosX &gt; 0 &amp;&amp; touchPosY &gt; 0) {
+          this.setData({
+            left: touchPosX - MOVE_VIEW_RADIUS,
+            top: touchPosY - MOVE_VIEW_RADIUS
+          })
+        } else {
+          this.setData({
+            left: 20, // 默认显示位置 left距离
+            top: 250  // 默认显示位置 top距离
+          })
+        }
+      }
+    }
+  },
+  /**
+  * 拖拽移动
+  */
+  handleTouchMove: function (e) {
+    const MOVE_VIEW_RADIUS = 30 // 悬浮窗半径
+
+    const touchPosX = e.touches[0].clientX
+    const touchPosY = e.touches[0].clientY
+
+    if (touchPosX &gt; 0 &amp;&amp; touchPosY &gt; 0) {
+      this.setData({
+        left: touchPosX - MOVE_VIEW_RADIUS,
+        top: touchPosY - MOVE_VIEW_RADIUS
+      })
+    } else {
+      this.setData({
+        left: 20, //默认显示位置 left距离
+        top: 250  //默认显示位置 top距离
+      })
+    }
+  },
+  /**
+  * 返回首页
+  */
+  goToHome: () =&gt; {
+    wx.reLaunch({
+      url: &#39;/pages/index/index&#39;,
+    })
+  }
+})</code></pre>
+<p>这个最终解决方案在ios下直接使用cover-view来做悬浮窗，而在android的非原生组件上移动时，使用view来做悬浮窗，不冒泡滑动事件，在原生组件上移动时捕获冒泡的滑动事件来继续移动操作。</p>
+<h2 id="总结">总结</h2>
+<p>虽然问题解决了，但是这仍然只是一个补丁方案。</p>
+<p>最好的方式依然是微信小程序官方能修复cover-view在安卓移动时的BUG，但是我发现最早有人反馈这个问题是在2018年11月，到了现在2019年8月都没有结果。</p>
+<p>如果不是微信小程序的官方态度有问题，那么只能说明这个问题的解决确实有难度或者优先级并不高，无论是哪一种，暂时都还是得用补丁方案。</p>
+<p>这个方案并没有那么完美，他在一些边界的衔接上面可能还是会存在一些小问题，但它至少可用，并且应该是大多数用户可以接受的。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

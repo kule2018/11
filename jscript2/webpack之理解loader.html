@@ -1,0 +1,89 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack之理解loader' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack之理解loader</center></div><div class='banquan'>原文出处:本文由博客园博主scoop_zm提供。<br/>
+原文连接:https://www.cnblogs.com/minz/p/10651965.html</div><br>
+    <p>我们在写webpack配置文件的时候，应该有注意到经常用到loader这个配置项，那么loader是用来做什么的呢？<br />
+loader其实是用来将源文件经过转化处理之后再输出新文件。<br />
+如果是数组形式的话，它的执行顺序是相反的，最后一个loader最早被调用，下一个loader传入的是上一个loader的返回结果。</p>
+<h4 id="基础的loader文件">基础的loader文件</h4>
+<p>首先在<code>webpack.config.js</code>里调用新建的loader文件</p>
+<pre><code><code>const path = require(&#39;path&#39;);
+module.exports = {
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: path.resolve(&#39;./loader/index.js&#39;),
+                    options: {}
+                }
+            }
+        ]
+    }
+}</code></pre>
+<p>代码在传入loader文件的时候已经被转为string了，loader文件最终也必须返回string数据。loader文件里代码如下：</p>
+<pre><code><code>module.exports = function (content) {
+    console.log(&#39;loader文件&#39;, content);
+    return content;
+}</code></pre>
+<h4 id="获取options配置数据">获取options配置数据</h4>
+<p><code>webpack.config.js</code>文件里，在配置loader的同时，还可以配置options。</p>
+<pre><code><code>const path = require(&#39;path&#39;);
+module.exports = {
+    module: {
+        rules: [
+            {
+                test: /\.js$/,
+                exclude: /node_modules/,
+                use: {
+                    loader: path.resolve(&#39;./loader/index.js&#39;),
+                    options: {
+                        data: ’自定义的配置&#39;
+                    }
+                }
+            }
+        ]
+    }
+}</code></pre>
+<p>在loader文件里面可以利用webpack提供的<code>loader-utils</code>来获取options。</p>
+<pre><code><code>const loaderUtils = require(&#39;loader-utils&#39;);
+module.exports = function (content) {
+    // this是loader函数的执行上下文
+    const options = loaderUtils.getOptions(this);
+    console.log(&#39;配置文件&#39;, options); // {data:&#39;自定义的配置&#39;}
+    return content;
+}</code></pre>
+<h4 id="异步loader">异步loader</h4>
+<p>之前举的例子都是在同步的情况下，那么在异步的情况中，必须调用<code>this.async()</code>来告知loader等待异步结果，它会返回<code>this.callback()</code>回调函数，这时候loader必须返回<code>undefined</code></p>
+<pre><code><code>module.exports = function(content) {
+  const callback = this.async();
+  someAsyncOperation(content, function(err, result) {
+    if (err) return callback(err);
+    callback(null, result, map, meta);
+  });
+};</code></pre>
+<h4 id="总结">总结</h4>
+<p>开头就提到过了，loader实质上是用来处理源文件的，在loader函数里面一般都会对代码进行转化处理，这里就会用到AST，将代码转换为AST方便对代码进行处理。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

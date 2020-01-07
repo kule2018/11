@@ -1,0 +1,214 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修lodop+art-template实现web端漂亮的小票样式打印' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>lodop+art-template实现web端漂亮的小票样式打印</center></div><div class='banquan'>原文出处:本文由博客园博主Java技术干货提供。<br/>
+原文连接:https://www.cnblogs.com/werewolfBoy/p/11060156.html</div><br>
+    <h3 id="一.-现状">一. 现状</h3>
+<p>由于之前采用Lodop打印控件(商业版付费,可以使用免费版 但是会有水印)去打印小票，是一行一行的打印，但是不满足UI给到复杂布局的小票样式，所以得重新考虑如何来实现。</p>
+<h3 id="二.-介绍">二. 介绍</h3>
+<h4 id="art-template介绍">art-template介绍</h4>
+<p>art-template 是一个简约、超快的模板引擎。</p>
+<p>它采用作用域预声明的技术来优化模板渲染速度，从而获得接近 JavaScript 极限的运行性能，并且同时支持 NodeJS 和浏览器。<a href="https://aui.github.io/art-template/rendering-test/">在线速度测试</a>。</p>
+<blockquote>
+<ul>
+<li>中文文档：<a href="https://aui.github.io/art-template/zh-cn/docs/">art-template中文文档</a></li>
+</ul>
+</blockquote>
+<p>跟着文档首先熟悉一下，然后看一下语法，跟着语法去实践一下，很快就可以上手完成功能。</p>
+<h4 id="lodop打印控件介绍">Lodop打印控件介绍</h4>
+<p>Lodop是支持浏览器端的web打印控件， 功能挺强大的。</p>
+<blockquote>
+<p>官网地址：<a href="http://www.lodop.net/" class="uri">http://www.lodop.net/</a></p>
+</blockquote>
+<p>目前客户端有很多是基于浏览器内核套的壳，那么在需要特殊打印的场景下，可以试下这个控件。</p>
+<h3 id="三.-方案选择">三. 方案选择</h3>
+<blockquote>
+<ul>
+<li>方案一：用html+css进行网页布局，html2canvas.js 来实现将网页转换成图片，然后直接用Lodop打印图片， 但是经过测试，打印出来的图片模糊不清，而且html2canvas.js的兼容性IE&gt;8，所以不符合</li>
+</ul>
+</blockquote>
+<blockquote>
+<ul>
+<li>方案二：将这部分功能让后端去完成模板+数据渲染并生成图片去打印，但是发现跟方案一有相似的地方，解决不了图片打印模糊不清，但是可以解决兼容性问题，依然不符合</li>
+</ul>
+</blockquote>
+<blockquote>
+<ul>
+<li>方案三：采用html+css进行网页布局，用art-template进行模板渲染后生成html字符串，然后采用Lodop打印控件来直接打印网页。经过实际测试，打印出来的字迹清晰，而且art-template的兼容性在IE5下的功能也是正常的。所以最终就采用该方案</li>
+</ul>
+</blockquote>
+<h3 id="四.-方案落地">四. 方案落地</h3>
+<p>art-template模板编写</p>
+<pre><code><code>&lt;!-- 58小票打印样式 --&gt;
+&lt;script id=&quot;print58-tpl&quot; type=&quot;text/html&quot;&gt;
+    &lt;!DOCTYPE html&gt; &lt;html&gt; &lt;head&gt; &lt;meta charset=&quot;utf-8&quot; /&gt;
+        &lt;style type=&quot;text/css&quot;&gt;
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100%; 
+            }
+            .clearfloat {
+                overflow: hidden;
+            }
+            .left{
+                float:left;
+            }
+            .right{
+                float:right;
+            }
+            .font10 {
+                font-size: 14px;
+            }
+            .fontW {
+                font-weight:bold;
+            }
+            .font8 {
+                font-size: 12px;
+            }
+
+            .margin2{
+                margin: 2px 0;
+            }
+            .margin5{
+                margin: 5px 0 !important;
+            }
+
+            .printer{
+                width: 174px;
+            }
+            .title {
+                text-align: center;
+                width:90%;
+                margin:auto;
+                padding: 5px 0;
+            }
+            .divide {
+                text-align:center;
+                margin:auto;
+            }
+            .detail {
+                margin: 2px 0;
+            }
+            .detail&gt;.left {
+                margin-left: 10px;
+            }   
+            .quan&gt;.left {
+                margin-left: 10px;
+            }   
+            .bottom{
+                width:100%;
+                height:200px;
+                background:pink;
+                clear:both;/* 位于上方写了float的div，下面这个div必须加这一句 */
+            }
+
+        &lt;/style&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;div class=&quot;printer&quot;&gt;
+            &lt;div class=&quot;title font10 fontW&quot;&gt;
+                &lt;div&gt;{{shopName}}&lt;/div&gt;
+                &lt;div style=&quot;margin-top:2px;&quot;&gt;交易汇总&lt;/div&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;divide&quot;&gt;===================&lt;/div&gt;
+            &lt;div class=&quot;haha clearfloat font8&quot;&gt;
+                &lt;span class=&quot;left&quot;&gt;开始日期:&lt;/span&gt;
+                &lt;span class=&quot;right&quot;&gt;{{startTime}}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;haha clearfloat font8&quot;&gt;
+                &lt;span class=&quot;left&quot;&gt;结束日期:&lt;/span&gt;
+                &lt;span class=&quot;right&quot;&gt;{{endTime}}&lt;/span&gt;
+            &lt;/div&gt;
+            &lt;div class=&quot;content&quot;&gt;
+                &lt;div class=&quot;divide&quot;&gt;-----------------------------&lt;/div&gt;
+                &lt;div class=&quot;head font8 clearfloat fontW&quot;&gt;
+                    &lt;span class=&quot;left&quot;&gt;总收款:&lt;/span&gt;
+                        &lt;span class=&quot;right&quot;&gt;{{totalAmount | toFixed}}元({{totalCount}}笔)&lt;/span&gt;
+                &lt;/div&gt;
+                {{each tradeList temp}}
+                &lt;div class=&quot;detail font8 clearfloat&quot;&gt;
+                    &lt;span class=&quot;left&quot;&gt;{{temp.pay_type_desc}}:&lt;/span&gt;
+                    {{if depositState == 1 &amp;&amp; temp.pay_type != 2}}
+                        {{if temp.tradeLogCount &gt; 0}}
+                            &lt;span class=&quot;right&quot;&gt;{{temp.consume_money | toFixed}}元({{temp.tradeLogCount}}笔)&lt;/span&gt;
+                        {{/if}}
+                    {{else}}
+                        &lt;span class=&quot;right&quot;&gt;{{temp.money | toFixed}}元({{temp.tradeLogCount}}笔)&lt;/span&gt;
+                    {{/if}}
+                &lt;/div&gt;
+                {{/each}}
+                {{if depositState == 1}}
+                    &lt;div class=&quot;detail font8 clearfloat&quot;&gt;
+                        &lt;span class=&quot;left&quot;&gt;押金:&lt;/span&gt;
+                        &lt;span class=&quot;right&quot;&gt;{{depositMoney | toFixed}}元&lt;/span&gt;
+                    &lt;/div&gt;
+                {{/if}}
+            
+                &lt;div class=&quot;divide margin5&quot;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&gt;&lt;/div&gt;
+                &lt;div class=&quot;font8 clearfloat margin2&quot;&gt;
+                    &lt;span class=&quot;left&quot;&gt;打印人:&lt;/span&gt;
+                    &lt;span class=&quot;right&quot;&gt;{{printer}}&lt;/span&gt;
+                &lt;/div&gt;
+                &lt;div class=&quot;font8 clearfloat margin2&quot;&gt;
+                    &lt;span class=&quot;left&quot;&gt;打印时间:&lt;/span&gt;
+                    &lt;span class=&quot;right&quot;&gt;{{printTime}}&lt;/span&gt;
+                &lt;/div&gt;
+            &lt;/div&gt;
+        &lt;div&gt;
+    &lt;/body&gt;
+&lt;/html&gt;
+&lt;/script&gt;</code></pre>
+<p>上面的可以按照自己的样式效果，先写好静态页面，然后在根据art-template的语法动态设置</p>
+<p>渲染数据：</p>
+<pre><code><code>// 增加过滤器
+template.defaults.imports.toFixed = function(num) {
+    return Number(num).toFixed(2);
+}
+
+var printhtml =  template(&#39;print58-tpl&#39;, detail);
+$(&quot;#printerView&quot;).html(printhtml);
+var height = $(&quot;#printerView&quot;).outerHeight();  // 为了动态获取页面渲染过后的高度，传递到打印控件，指定打印多少。
+    // 创建打印页
+    // 初始化小票打印身份信息
+    initLodopLicences();
+    
+    // 创建小票打印头信息
+    //createPayTitle(&quot;汇总打印凭证&quot;, &quot;汇总信息&quot;);
+    try{
+
+        LODOP.PRINT_INIT(&quot;打印小票&quot;);
+        LODOP.SET_PRINT_PAGESIZE(3,&quot;58mm&quot;,20,&quot;&quot;);
+        LODOP.ADD_PRINT_HTM(&quot;9mm&quot;,&quot;0mm&quot;,&quot;RightMargin:0mm&quot;,height+&quot;px&quot;, printhtml);
+        }catch(err){
+            
+        }
+    
+    createPayFooter();
+    
+    // 开始打印
+    startPayPrint(pcPrinterName);</code></pre>
+<h3 id="五.-总结">五. 总结</h3>
+<p>经过为期1天左右的时间，从方案的筛选到最终完成功能，学习到对于需要打印小票的场景，又多了一点点体会。</p>
+<p><img src="./images/lodop+art-template实现web端漂亮的小票样式打印0.png" alt="关注不迷路" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

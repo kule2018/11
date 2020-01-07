@@ -1,0 +1,179 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Promise详解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Promise详解</center></div><div class='banquan'>原文出处:本文由博客园博主Jade_g提供。<br/>
+原文连接:https://www.cnblogs.com/gxp69/p/10996584.html</div><br>
+    <h2>一、简介</h2>
+<p>　　Promise，他是一个对象，是用来处理异步操作的，可以让我们写异步调用的时候写起来更加优雅，更加美观便于阅读。顾名思义为承诺、许诺的意思，意思是使用了Promise之后他肯定会给我们答复，无论成功或者失败都会给我们一个答复，所以我们就不用担心他跑了哈哈。所以，Promise有三种状态：pending（进行中），resolved（完成），rejected（失败）。只有异步返回的结构可以改变其状态。所以，promise的过程一般只有两种：pending-&gt;resolved或者pending-&gt;rejected。</p>
+<p>　　状态详解：</p>
+<div>（1）promise&nbsp;从未完成的状态开始，如果成功它将会是完成态，如果失败将会是失败态。</div>
+<div>（2）当一个&nbsp;promise&nbsp;移动到完成态，所有注册到它的成功回调将被调用，而且会将成功的结果值传给它。另外，任何注册到&nbsp;promise&nbsp;的成功回调，将会在它已经完成以后立即被调用。</div>
+<div>（3）同样的，当一个&nbsp;promise&nbsp;移动到失败态的时候，它调用的是失败回调而不是成功回调。</div>
+<div>（4）对包含前进特性的实现来说，promise&nbsp;在它离开未完成状态以前的任何时刻，都可以更新它的&nbsp;progress。当&nbsp;progress&nbsp;被更新，所有的前进回调(progress callbacks)会被传递以&nbsp;progress&nbsp;的值，并被立即调用。前进回调被以不同于成功和失败回调的方式处理；如果你在一个&nbsp;progress&nbsp;更新已经发生以后注册了一个前进回调，新的前进回调只会在它被注册以后被已更新的&nbsp;progress&nbsp;调用。</div>
+<div>（5）注意：只有异步操作的结果，可以决定当前是哪一种状态，任何其他操作都无法改变这个状态。</div>
+<div>&nbsp;</div>
+<div>
+<h2>二、使用promises</h2>
+<h3>1、错误捕获</h3>
+<p>如果在执行器内部抛出了错误，那么 Promise 的拒绝处理函数就会被调用。例如：</p>
+<div class="cnblogs_code">
+<pre><code>let promise = <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　</span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Error("Explosion!"<span style="color: #000000;">);
+});
+promise.</span><span style="color: #0000ff;">catch</span>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(error) {
+　　console.log(error.message); </span><span style="color: #008000;">//</span><span style="color: #008000;"> "Explosion!"</span>
+});</pre>
+</div>
+<p>在此代码中，执行器故意抛出了一个错误。此处在每个执行器之内并没有显式的 try-catch<br />，因此错误就被捕捉并传递给了拒绝处理函数。这个例子等价于：</p>
+<div class="cnblogs_code">
+<pre><code>let promise = <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Error("Explosion!"<span style="color: #000000;">);
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (ex) {
+        reject(ex);
+    }
+});
+promise.</span><span style="color: #0000ff;">catch</span>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(error) {
+    console.log(error.message); </span><span style="color: #008000;">//</span><span style="color: #008000;"> "Explosion!"</span>
+});        </pre>
+</div>
+<p><br />执行器处理程序捕捉了抛出的任何错误，以简化这种常见处理。但在执行器内抛出的错误仅<br />当存在拒绝处理函数时才会被报告，否则这个错误就会被隐瞒。</p>
+<h3>2、创建已决的 Promise</h3>
+<p>基于 Promise 执行器行为的动态本质， Promise 构造器就是创建未决的 Promise 的最好方<br />式。但若你想让一个 Promise 代表一个已知的值，那么安排一个单纯传值给  resolve()  函数<br />的作业并没有意义。相反，有两种方法可使用指定值来创建已决的 Promise 。<br />使用 Promise.resolve()<br />Promise.resolve()  方法接受单个参数并会返回一个处于完成态的 Promise 。这意味着没有<br />任何作业调度会发生，并且你需要向 Promise 添加一个或更多的完成处理函数来提取这个参<br />数值。例如：</p>
+<div class="cnblogs_code">
+<pre><code>let promise = Promise.resolve(42<span style="color: #000000;">);
+promise.then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+　　console.log(value); </span><span style="color: #008000;">//</span><span style="color: #008000;"> 42</span>
+});</pre>
+</div>
+<p>此代码创建了一个已完成的 Promise ，因此完成处理函数就接收到 42 作为 value 参数。若<br />一个拒绝处理函数被添加到此 Promise ，该拒绝处理函数将永不会被调用，因为此 Promise<br />绝不可能再是拒绝态。<br />使用 Promise.reject()<br />你也可以使用  Promise.reject()  方法来创建一个已拒绝的 Promise 。此方法像<br />Promise.resolve()  一样工作，区别是被创建的 Promise 处于拒绝态，如下：</p>
+<div class="cnblogs_code">
+<pre><code>let promise = Promise.reject(42<span style="color: #000000;">);
+promise.</span><span style="color: #0000ff;">catch</span>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+　　console.log(value); </span><span style="color: #008000;">//</span><span style="color: #008000;"> 42</span>
+});</pre>
+</div>
+<p>&nbsp;</p>
+<h3>3、监视多个 Promise</h3>
+<p>有时你会想监视多个 Promise的进程，以便决定下一步行动。 ES6 提供了能监视多个 Promise 的两个方法：<br />Promise.all()  与  Promise.race()  。</p>
+<p><strong>Promise.all() 方法：</strong></p>
+<p>Promise.all() 方法接收单个可迭代对象（如数组）作为参数，并返回一个 Promise 。这个<br />可迭代对象的元素都是 Promise ，只有在它们都完成后，所返回的 Promise 才会被完成。例<br />如：</p>
+<div class="cnblogs_code">
+<pre><code>let p1 = <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>42<span style="color: #000000;">);
+});
+let p2 </span>= <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>43<span style="color: #000000;">);
+});
+let p3 </span>= <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>44<span style="color: #000000;">);
+});
+let p4 </span>=<span style="color: #000000;"> Promise.all([p1, p2, p3]);
+p4.then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+　　console.log(Array.isArray(value)); </span><span style="color: #008000;">//</span><span style="color: #008000;"> true</span>
+　　console.log(value[0]); <span style="color: #008000;">//</span><span style="color: #008000;"> 42</span>
+　　console.log(value[1]); <span style="color: #008000;">//</span><span style="color: #008000;"> 43</span>
+　　console.log(value[2]); <span style="color: #008000;">//</span><span style="color: #008000;"> 44</span>
+});</pre>
+</div>
+<p>此处前面的每个 Promise 都用一个数值进行了决议，对 Promise.all() 的调用创建了新的<br />Promise  p4  ，在  p1  、  p2  与  p3  都被完成后，  p4  最终会也被完成。传递给  p4  的完<br />成处理函数的结果是一个包含每个决议值（ 42 、 43 与 44 ）的数组，这些值的存储顺序保<br />持了待决议的 Promise 的顺序（与完成的先后顺序无关），因此你可以将结果匹配到每个<br />Promise 。<br />若传递给  Promise.all()  的任意 Promise 被拒绝了，那么方法所返回的 Promise 就会立刻被<br />拒绝，而不必等待其他的 Promise 结束：</p>
+<div class="cnblogs_code">
+<pre><code>let p1 = <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>42<span style="color: #000000;">);
+});
+let p2 </span>= <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　reject(</span>43<span style="color: #000000;">);
+});
+let p3 </span>= <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>44<span style="color: #000000;">);
+});
+let p4 </span>=<span style="color: #000000;"> Promise.all([p1, p2, p3]);
+p4.</span><span style="color: #0000ff;">catch</span>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+　　console.log(Array.isArray(value)) </span><span style="color: #008000;">//</span><span style="color: #008000;"> false</span>
+　　console.log(value); <span style="color: #008000;">//</span><span style="color: #008000;"> 43</span>
+});</pre>
+</div>
+<p>在此例中， p2 被使用数值 43 进行了拒绝，则 p4 的拒绝处理函数就立刻被调用，而不会<br />等待  p1  或  p3  结束执行（它们仍然会各自结束执行，只是  p4  不等它们）。<br />拒绝处理函数总会接收到单个值，而不是一个数组，该值就是被拒绝的 Promise 所返回的拒<br />绝值。本例中的拒绝处理函数被传入了 43 ，反映了来自  p2  的拒绝。</p>
+<p><strong>Promise.race() 方法：</strong></p>
+<p>Promise.race() 提供了监视多个 Promise 的一个稍微不同的方法。此方法也接受一个包含需<br />监视的 Promise 的可迭代对象，并返回一个新的 Promise ，但一旦来源 Promise 中有一个被<br />解决，所返回的 Promise 就会立刻被解决。与等待所有 Promise 完成的  Promise.all()  方法<br />不同，在来源 Promise 中任意一个被完成时，  Promise.race()  方法所返回的 Promise 就能<br />作出响应。例如：</p>
+<div class="cnblogs_code">
+<pre><code>let p1 = Promise.resolve(42<span style="color: #000000;">);
+let p2 </span>= <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>43<span style="color: #000000;">);
+});
+let p3 </span>= <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>44<span style="color: #000000;">);
+});
+let p4 </span>=<span style="color: #000000;"> Promise.race([p1, p2, p3]);
+p4.then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+　　console.log(value); </span><span style="color: #008000;">//</span><span style="color: #008000;"> 42</span>
+});</pre>
+</div>
+<p>在此代码中， p1 被创建为一个已完成的 Promise ，而其他的 Promise 则需要调度作业。<br />p4  的完成处理函数被使用数值 42 进行了调用，并忽略了其他的 Promise 。传递给<br />Promise.race()  的 Promise 确实在进行赛跑，看哪一个首先被解决。若胜出的 Promise 是被<br />完成，则返回的新 Promise 也会被完成；而胜出的 Promise 若是被拒绝，则新 Promise 也会<br />被拒绝</p>
+<h3>4、串联 Promise</h3>
+<p>存在多种方式来将 Promise 串联在一起，以完成更复杂的异步行为。<br />每次对  then()  或  catch()  的调用实际上创建并返回了另一个 Promise ，仅当前一个<br />Promise 被完成或拒绝时，后一个 Promise 才会被决议</p>
+<p><strong>在 Promise 链中返回值</strong></p>
+<p>Promise 链的另一重要方面是能从一个 Promise 传递数据给下一个 Promise 的能力。传递给<br />执行器中的  resolve()  处理函数的参数，会被传递给对应 Promise 的完成处理函数，这点你<br />前面已看到过了。你可以指定完成处理函数的返回值，以便沿着一个链继续传递数据。例<br />如：</p>
+<div class="cnblogs_code">
+<pre><code>let p1 = <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>42<span style="color: #000000;">);
+});
+p1.then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+　　console.log(value); </span><span style="color: #008000;">//</span><span style="color: #008000;"> "42"</span>
+　　<span style="color: #0000ff;">return</span> value + 1<span style="color: #000000;">;
+}).then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+　　console.log(value); </span><span style="color: #008000;">//</span><span style="color: #008000;"> "43"</span>
+});</pre>
+</div>
+<p>p1 的完成处理函数在被执行时返回了 value + 1 。由于 value 的值为 42 （来自执行<br />器），此完成处理函数就返回了 43 。这个值随后被传递给第二个 Promise 的完成处理函数，<br />并被其输出到控制台。</p>
+<p><strong>在 Promise 链中返回 Promise</strong></p>
+<p>从完成或拒绝处理函数中返回一个基本类型值，能够在 Promise 之间传递数据，但若你返回<br />的是一个对象呢？若该对象是一个 Promise ，那么需要采取一个额外步骤来决定如何处理。<br />研究以下例子：</p>
+<div class="cnblogs_code">
+<pre><code>let p1 = <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>42<span style="color: #000000;">);
+});
+let p2 </span>= <span style="color: #0000ff;">new</span> Promise(<span style="color: #0000ff;">function</span><span style="color: #000000;">(resolve, reject) {
+　　resolve(</span>43<span style="color: #000000;">);
+});
+p1.then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;"> 第一个完成处理函数</span>
+　　console.log(value); <span style="color: #008000;">//</span><span style="color: #008000;"> 42</span>
+　　<span style="color: #0000ff;">return</span><span style="color: #000000;"> p2;
+}).then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+　　</span><span style="color: #008000;">//</span><span style="color: #008000;"> 第二个完成处理函数</span>
+　　console.log(value); <span style="color: #008000;">//</span><span style="color: #008000;"> 43</span>
+});</pre>
+</div>
+<p>在此代码中， p1 安排了一个决议 42 的作业， p1 的完成处理函数返回了一个已处于决议<br />态的 Promise ：  p2  。由于  p2  已被完成，第二个完成处理函数就被调用了。而若  p2  被<br />拒绝，会调用拒绝处理函数（如果存在的话），而不调用第二个完成处理函数。</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

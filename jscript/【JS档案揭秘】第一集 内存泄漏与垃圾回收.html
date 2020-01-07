@@ -1,0 +1,57 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【JS档案揭秘】第一集 内存泄漏与垃圾回收' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【JS档案揭秘】第一集 内存泄漏与垃圾回收</center></div><div class='banquan'>原文出处:本文由博客园博主陌上兮月提供。<br/>
+原文连接:https://www.cnblogs.com/zhangnan35/p/11268020.html</div><br>
+    <p>程序的运行需要内存，对于一些需要持续运行很久的程序，尤其是服务器进程，如果不及时释放掉不再需要的内存，就会导致内存堆中的占用持续走高，最终可能导致程序崩溃。</p>
+<p><strong>不再需要使用的内存，却一直占用着空间，得不到释放，这就叫内存泄漏</strong>。</p>
+<p>在JS中，我们都知道，基本数据类型是存在栈（stack）中，而引用数据类型是存在堆（heap）中。存在栈中的数据，会被自动处理掉。但存在堆中的数据则不然。</p>
+<p>JS引擎有个垃圾回收机制，可以帮助我们来清除不需要的数据。关键来了，我们怎么告诉JS引擎这个我不再需要这个数据呢？</p>
+<p>答案就是：<strong>切断它的引用，让它变成一座无法到达的岛屿</strong>。</p>
+<p>这就是所谓的&ldquo;标记清除&rdquo;。也就是说，我们对堆中的引用类型数据做一个遍历，标记一下它们是否是可以被外部访问到的：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>let a = {name:'zhang'};
+let b = a;
+
+let c = {name:'zhao'};
+c = null;</pre>
+</div>
+<p>在上面的这段代码中，{name:'zhang'}这个对象分别被变量a和变量b引用。{name:'zhao'}这个对象一开始被变量c引用，后来c被重新赋值，{name:'zhao'}这个对象的引用突然被切断，再也无法被访问到了，自己变成了一个&ldquo;孤岛式数据&rdquo;，无法被外部访问，被当成了垃圾。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/【JS档案揭秘】第一集 内存泄漏与垃圾回收0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>而垃圾的宿命，就是被JS引擎回收。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/【JS档案揭秘】第一集 内存泄漏与垃圾回收1.png" alt="" /></p>
+<p>我们来执行一下上述这段代码，每点击一次，就给obj存入1000个不同对象的引用，连续点击10s，停止30s。并把这个过程录制下来。</p>
+<p>怎么录？打开chrome的performance即可录制，看看这40s的内存堆（JS heap）的走势。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/【JS档案揭秘】第一集 内存泄漏与垃圾回收2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p style="text-align: center;">&nbsp;（结果是令人寒心的，堆内存占用从15M左右飙到最高30M，且基本没有什么回落，居高不下）</p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">现在我们把代码改一改，在末尾增加一句this.obj = []。用于清除本次操作产生的1000个引用。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/【JS档案揭秘】第一集 内存泄漏与垃圾回收3.png" alt="" /></p>
+<p>按照同样的手法，点击10s，停止30s，总共录制40s。效果如下：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/【JS档案揭秘】第一集 内存泄漏与垃圾回收4.png" alt="" /></p>
+<p style="text-align: center;">（可以看到中途最高飙到24.7M，但是垃圾回收在第5s和第10s都介入了一次，使得内存占用大幅减少）</p>
+<p>&nbsp;</p>
+<p>可以看到垃圾回收还是很有用的，同时也可以看到，垃圾回收并不是无时无刻都在进行，因为垃圾回收这个操作也有性能损耗，从我实测的结果来看，它是按照一定的时间间隔进行的。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,160 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修sockjs+stomp的websocket插件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>sockjs+stomp的websocket插件</center></div><div class='banquan'>原文出处:本文由博客园博主littleboyck提供。<br/>
+原文连接:https://www.cnblogs.com/littleboyck/p/11927810.html</div><br>
+    <div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 依赖文件sockjs.js、stomp.js
+ * </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+;</span>!(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (window) {
+    </span>'use strict'<span style="color: #000000;">
+    let WS </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">保存所有的订阅事件 {Aevent:[pubfun(status,data),pubfun(status,data),...]}</span>
+        <span style="color: #0000ff;">this</span>.subEvents =<span style="color: #000000;"> {};
+        </span><span style="color: #0000ff;">this</span>.isConnect = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.stompClient = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.selfClose = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.ws = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.url = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    };
+
+    WS.prototype </span>=<span style="color: #000000;"> {
+        constructor: WS
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">设置连接状态</span>
+<span style="color: #000000;">        , setConnect(status) {
+            </span><span style="color: #0000ff;">this</span>.isConnect =<span style="color: #000000;"> status;
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">建立连接</span>
+<span style="color: #000000;">        , connect(url) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">若没有连接，才连接</span>
+            <span style="color: #0000ff;">this</span>.isConnect = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">this</span>.url =<span style="color: #000000;"> url;
+            </span><span style="color: #0000ff;">this</span>.ws = <span style="color: #0000ff;">new</span><span style="color: #000000;"> SockJS(url);
+            </span><span style="color: #0000ff;">this</span>.stompClient =<span style="color: #000000;"> Stomp.over(ws);
+            </span><span style="color: #0000ff;">this</span>.stompClient.connect({}, (data) =&gt;<span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">this</span>.setConnect(<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">this</span>.connectSuc.apply(<span style="color: #0000ff;">this</span><span style="color: #000000;">, [stompClient, data]);
+            }, (error) </span>=&gt;<span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">this</span>.setConnect(<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+                </span><span style="color: #0000ff;">this</span>.connectErr.apply(<span style="color: #0000ff;">this</span><span style="color: #000000;">,[stompClient,error]);
+            });
+            </span><span style="color: #0000ff;">this</span>.ws.onclose =  (e) =&gt;<span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">this</span>.isConnect = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">if</span>(!<span style="color: #0000ff;">this</span><span style="color: #000000;">.selfClose){
+                    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.reConnect();
+                }
+            }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> stompClient;
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">手动断开连接</span>
+<span style="color: #000000;">        , disconnect() {
+            </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.stompClient != <span style="color: #0000ff;">null</span> &amp;&amp; <span style="color: #0000ff;">this</span><span style="color: #000000;">.isConnect) {
+                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.stompClient.disconnect();
+                </span><span style="color: #0000ff;">this</span>.isConnect = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">this</span>.selfClose = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">this</span>.ws = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+                </span><span style="color: #0000ff;">this</span>.stompClient = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            }
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">重连</span>
+<span style="color: #000000;">        , reConnect(){
+            </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.isConnect){<span style="color: #0000ff;">return</span><span style="color: #000000;">;}
+            </span><span style="color: #0000ff;">this</span>.connect(<span style="color: #0000ff;">this</span><span style="color: #000000;">.url);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">连接成功后的回调</span>
+<span style="color: #000000;">        , connectSuc(stompClient, data) {
+            </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span><span style="color: #000000;">.isConnect){
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">发布连接成功事件</span>
+                <span style="color: #0000ff;">this</span>.trigger.apply(<span style="color: #0000ff;">this</span>, ['connectSuc'<span style="color: #000000;">, stompClient.subscribe.bind(stompClient), data]);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">发布发送消息到服务端事件</span>
+                <span style="color: #0000ff;">this</span>.trigger.apply(<span style="color: #0000ff;">this</span>, ['sendMessage'<span style="color: #000000;">, stompClient.send.bind(stompClient), data]);
+            }
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">连接失败后的回调</span>
+<span style="color: #000000;">        , connectErr(stompClient, data){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">发布连接失败事件</span>
+            <span style="color: #0000ff;">this</span>.trigger.apply(<span style="color: #0000ff;">this</span>, ['connectErr'<span style="color: #000000;">, stompClient, data]);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">发布函数</span>
+<span style="color: #000000;">        , trigger(eventType, ...data) {
+            eventType </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.subEvents[eventType];
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; eventType.length; i++<span style="color: #000000;">) {
+                eventType[i].apply(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">, data);
+            }
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">订阅方法 ---&gt;用于订阅指定事件</span>
+<span style="color: #000000;">        , on(eventType, handle) {
+            </span><span style="color: #0000ff;">if</span> (!(eventType <span style="color: #0000ff;">in</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.subEvents)) {
+                </span><span style="color: #0000ff;">this</span>.subEvents[eventType] =<span style="color: #000000;"> [];
+            }
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.subEvents[eventType].push(handle);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">删除订阅</span>
+<span style="color: #000000;">        , off(eventType, handle) {
+            eventType </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.subEvents[eventType];
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (eventType) {
+                let handleIndex </span>=<span style="color: #000000;"> eventType.indexOf(handle);
+                </span><span style="color: #0000ff;">if</span> (handleIndex &gt;= 0<span style="color: #000000;">) {
+                    eventType.splice(handleIndex, </span>1<span style="color: #000000;">);
+                }
+            }
+        }
+    };
+    window.WS </span>=<span style="color: #000000;"> WS;
+})(window);
+
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ *
+ *  var ws = new WS();
+    ws.connect("/helloWebsocket");
+
+    ws.on('connectSuc',function (subscribe,data) {
+        subscribe('/topic/serverSend', function(response){
+            info.innerHTML += "&lt;div&gt;"+response+"&lt;/div&gt;";
+        });
+        subscribe('/topic/serverResponse',function (response) {
+            info.innerHTML += "&lt;div&gt;"+response+"&lt;/div&gt;";
+        });
+    });
+
+    ws.on('connectErr',function (stompClient,data) {
+
+    });
+
+    //客户端发送消息给服务端
+    ws.on('sendMessage',function (send,data) {
+        send("/client/clientSendMessage",{},"hello server !!");
+    });
+
+
+
+     //强制关闭窗口后,断开连接
+    window.onunload = function (ev) {
+        ws.disconnect();
+    }
+ *
+ * </span><span style="color: #008000;">*/</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

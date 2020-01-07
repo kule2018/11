@@ -1,0 +1,207 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript 之 对象属性的特性 和defineProperty方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript 之 对象属性的特性 和defineProperty方法</center></div><div class='banquan'>原文出处:本文由博客园博主张最棒提供。<br/>
+原文连接:https://www.cnblogs.com/jiaobaba/p/11891276.html</div><br>
+    <p><span style="font-family: 仿宋; font-size: 18px;">对象是无序属性的集合，而这些属性在创建是都带有一些特征值（可以理解为属性的属性,天生自带的），这些特征值是为了实现JavaScript引擎用的，因此JavaScript不能直接访问。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">JavaScript通过这些特征值来定义属性的行为（属性是否删除，枚举，修改等）。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">例如，在全局定义的属性是会挂载到window上的。当想删除window上的这个属性，是不可以的。也就是说window上的属性是不可配置的。</span>delete window.obj&nbsp; &nbsp; &nbsp;//false&nbsp;&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;">Function.prototype当你修改成其他值，其原始值并没有改变。是不可写的。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">在比如，我们的for in是可以枚举原型链上属性的，但所有的原型顶端都是Object.prototype.但for in 并没有枚举出来。所以Object.prototype是不可枚举的。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">属性分为两种类型：1数据属性 2访问器属性。例如：一般我们自己在对象设置的属性默认是数据属性，而Window上的那么属性是访问器属性。</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">怎样知道这个属性到底是数据属性还是访问器属性？</span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">使用Object.getOwnPropertyDescriptor(属性所在的对象，属性)方法。 返回一个对象，当时访问器属性时，该对象属性有enumerable，configurable,get,set。当时数据属性，该对象返回的属性有value，writable,enumerable,configurable.</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">var obj  = {name:'zwq',age:18};
+console.log(Object.getOwnPropertyDescriptor(obj,'name'));  //name属性属性<br />//{value: "zwq", writable: true, enumerable: true, configurable: true}<br />
+console.log(Object.getOwnPropertyDescriptor(window,'name'));  //window上的name属性时访问器属性<br />//enumerable: true, configurable: true, get: &fnof;, set: &fnof;}   </span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 仿宋; font-size: 18px;">数据属性</span></strong></p>
+<ul>
+<li><span style="font-family: 仿宋; font-size: 18px;">数据上行包含一个数据值的位置，可以读取和写入值，数据属性有4个描述其行为的属性，由于是这些值不能直接访问，是内部值，所以该规范把他们放在两对括号中。</span></li>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">属性是否可配置：</span></span><span style="font-family: 仿宋;"><span style="font-size: 18px;">[[Configurable]]:表能否通过delete删除属性，能够修改属性的特性，能否把属性修改为访问器属性</span></span></li>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">属性是否可枚举：[[Enumerable]]:表能否通过for-in循环返回属性</span></span></li>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">属性是否可修改：[[Writable]]</span></span></li>
+<li><span style="font-family: 仿宋;"><span style="font-size: 18px;">属性的数据值　：[[value]]读取属性的时候，从这个位置读，写入属性的时候，把新值保存到这个位置。</span></span></li>
+</ul>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">普通定义的属性 默认值前三个都是true，最后一个是undefined。</span></span></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">当我们想到修改属性默认的特性，使用Object.defineProperty(属性所在对象，属性的名字，描述符对象)方法。</span></span></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">当使用Object.defineProperty方法第二个参数属性的名字不存在时，该方法会创建这个属性，并且该属性的特性除了value剩下的特性的默认值都是false。也就是说当你想让这个用Object.defineProperty方法创建的属性跟正常的属性一样可枚举，配置，写入，必须把这个属性值的特性都改为true。否则就是false。</span></span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">　　　　　var obj  = {name:'zwq',age:18};<br />
+        Object.defineProperty(obj,'name',{ 修改name属性的特性，值为haha,并且name属性不能修改值
+            value:'haha',
+            writable:false  //默认值是true，改为false，不可写。
+        })<br />
+        Object.defineProperty(obj,'sex',{创建一个sex属性，这个属性不可枚举
+            value:'woman',
+            writable:true,
+            configurable:true,
+        })</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;"><img src="./images/JavaScript 之 对象属性的特性 和defineProperty方法0.png" alt="" /></span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;">&nbsp;<strong>访问器属性</strong></span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">访问器属性不包含writable和value,他包含的是一对getter和setter函数，在读取访问器属性是，会调用getter函数，并返回有效的值，在写入访问器属性时（修改属性）会调用setter函数并传入新值。访问器包含4个特性</span></p>
+<p>&nbsp;</p>
+<ul>
+<li><span style="font-family: 仿宋; font-size: 18px;">属性是否可配置：[[Configurable]]:表能否通过delete删除属性，能够修改属性的特性，能否把属性修改为访问器属性</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">属性是否可枚举：[[Enumerable]]:表能否通过for-in循环返回属性</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">[[Get]]:在读取属性时调用的函数。默认值是undefined。</span></li>
+<li><span style="font-family: 仿宋; font-size: 18px;">[[Set]]:在写入（或修改）属性时调用的函数。默认值undefined。</span></li>
+</ul>
+<p><span style="font-family: 仿宋; font-size: 18px;">定义访问器属性，同样也必须商用Object.defineProperty().</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">　　　　 function Person(){
+            this._name = 'zwq',
+            this.age =  18
+        }
+        var person = new Person();
+        
+        
+        Object.defineProperty(person,'name',{
+            set(newValue){
+                console.log('set');
+                this._name = newValue   //设置或修改属性时，会调用set函数，把设置的值通过参数传进去后，用一个变量或属性保存。并且当调用get，return就是返回的这个值
+            },
+            get(){
+                return this._name;   //当读取属性时 返回return的值
+            }
+            
+        })</span></pre>
+</div>
+<p><span style="font-family: 仿宋; font-size: 18px;">&nbsp;不一定非要同时指定getter和setter，只指定getter意味着属性是不能写。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋; font-size: 18px;">vue的双向数据劫持绑定（主要应用于表单中）的原理就是利用Object.defineProperty来检测数据的变化。</span></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">双向劫持绑定时当视图（页面的某一元素）发生改变时，数据跟着改变，当数据改变时，视图也跟着改变。例如下面的输入框里面的内容改变时，数据（对象或数组）改变。检测数据改变。底下的div文本根据数据的改变而改变。</span></span></p>
+<p><img src="./images/JavaScript 之 对象属性的特性 和defineProperty方法1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;<span style="font-family: 仿宋; font-size: 18px;">上面我们介绍到，当数据改变时会触发set方法。由此我们就可以检测数据的变化。</span><span style="color: #800000;"><br /></span></p>
+<div class="cnblogs_code">
+<pre><code><em id="__mceDel"><em id="__mceDel"><span style="color: #0000ff;">　　　　//检测对象的变化。</span><span style="color: #000000;">
+　　　　 var input = document.getElementById('Oinput');
+        var view = document.getElementById('view');
+
+        var data = {
+            valueObj :{
+                value:'zwq'
+            }
+        }
+        //当输入框数据发生改变时，数据跟着改变
+        input.oninput = function(){
+            data.valueObj.value = this.value;
+        }
+        
+        // 更新视图
+        function upData(){   
+            view.innerText = data.valueObj.value;
+        }
+        
+        upData(data);
+        obServe(data);
+
+        // 监控某个对象是否发生改变
+        function obServe(data){
+           <span style="color: #cc99ff;">//判断当前传的是否是对象，如果不是，直接return</span>
+            if(!data || !(data instanceof Object)){return data}<br /> 　　　　　　<span style="color: #cc99ff;">//获取所有属性名。使用keys方法可以获取所有属性名（包括原型上的）并保存带数组中</span>
+            var arrProperty = Object.keys(data);<br />　　　　　　 <span style="color: #cc99ff;">//遍历数组，调用defindRective检测每一个属性值的改变　</span>
+            arrProperty.forEach(function(key){<br />　　　　　　　　　　defindRective(data,key,data[key]); <span style="color: #cc99ff;">//传入3个参数，当前对象，当前属性，当前属性值</span>
+            })
+        }
+
+        function defindRective(obj,key,val){
+           obServe(val);   <span style="color: #cc99ff;">//使用递归，当想上面的数组，对象套对象的形式，由于里面的对象是一个引用值，无法检测里面的数据变化，所以使用递归。</span>
+            Object.defineProperty(obj,key,{  <span style="color: #cc99ff;">//核心:使用Object,definPropert的set检测数据的改变。</span>
+                set(newValue){
+                    console.log(5);
+                    if(newValue == val) return val;
+                    val = newValue;
+                    upData();   <span style="color: #cc99ff;">//当数据变化，跟新视图</span>
+                },
+                get(){
+                    return  val;
+                }
+            })
+        }</span></em></em></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">// 监测数组，将数组原型重写
+// 当操作数组的arr push pop unshift slice...才会检测
+        let {push} = Array.prototype;
+        var arr = [1,2,3];
+        function upData(){
+            console.log('更新');
+        }
+        Object.defineProperty(Array.prototype,'push',{
+            value:(function(){
+                return (...arg) =&gt; {
+                    upData();
+                    push.apply(arr,arg);
+                }
+            })()
+        })
+ arr.push(8,9);</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">&nbsp;</span></span></p>
+<p><span style="font-family: 仿宋; font-size: 18px;">由于使用Object.defineProperty检测数组和对象变化要分开实现。而且，当添加数据时，不会检测到的。</span></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">所以ES6中添加了Proxy来实现。</span></span></p>
+<p><strong><span style="font-family: 仿宋;"><span style="font-size: 18px;">Proxy&amp;reflect简介：</span></span></strong><span style="font-family: 仿宋;"><span style="font-size: 18px;">植入代理的模式，以简洁易懂的方式控制对外部对象的访问，利用set，get方法控制属性的读写功能，还有其余的has，desProperty。。等方法。但proxy兼容性不好，使用时要注意。</span></span></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">proxy是一个构造函数，通过代理的方式将你想到代理的对象传给构造函数，并且需要传入参数对象对读和写进行控制。使用new方法实例化代理的对象，</span></span></p>
+<p><span style="font-family: 仿宋;"><span style="font-size: 18px;">此后，当修改，或添加属性都使用代理的对象。</span></span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">let data = {
+    value:'zwq',
+}
+// let data = [1,2]；
+let oProxyData = new Proxy(data,{
+    set(target,key,value,receiver){  //传入4个参数 对象 属性 属性值 代理的对象
+        // target[key] = value;
+        Reflect.set(target,key,value); //等同于上一步
+        upData();
+　　},
+    get(target,key,receiver){
+        // console.log(target,key);
+        Reflect.get(target, key);
+    },
+    has(target,key){ //当使用in时触发当前函数。
+        return key in target;   //in --检测对象能否访问该属性，能访问返回true，不能false，无论是在实例还是原型中。
+    }
+});
+
+console.log('valu' in oProxyData);
+
+function upData(){
+    console.log("更新啦");
+}<br /></span></pre>
+<pre><code><span>oProxyData.value = 20;    </span></pre>
+<pre><code></pre>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

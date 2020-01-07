@@ -1,0 +1,318 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修浅谈浏览器存储（cookie、localStorage、sessionStorage）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>浅谈浏览器存储（cookie、localStorage、sessionStorage）</center></div><div class='banquan'>原文出处:本文由博客园博主喵小Q提供。<br/>
+原文连接:https://www.cnblogs.com/qiujianmei/p/10824682.html</div><br>
+    <p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">今天我们从前端的角度了解一下浏览器存储，我们常见且常用的存储方式主要由两种：cookie、webStorage（localStorage和sessionStorage）。下面我们来一一认识它们。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><strong>Cookie基于HTTP规范，用来识别用户。</strong></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">Cookie是服务器发送到浏览器的一小段数据，会在浏览器下次向同一服务器再发起请求时被携带并发送到服务器上。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">Cookie诞生之初的作用就是解决HTTP的无状态请求，用来记录一些用户相关的一些状态。</span></p>
+<ul>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">会话状态管理（如用户登录状态、购物车、游戏分数或其它需要记录的信息）</span></li>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">个性化设置（如用户自定义设置、主题等）</span></li>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">浏览器行为跟踪（如跟踪分析用户行为等）</span></li>
+</ul>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">因为一些前端交互的需要，后来cookie也被用于存储一些客户端的数据。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">Cookie的原生api不友好，需要自行封装一下。下面是封装后的方法。</span></p>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>创建cookie</strong></span></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+
+* @description js原生设置cookie
+
+* @param {String} name 给你要设置的cookie起个名字（key）
+
+* @param {String} value cookie的具体内容(value)
+
+* @param {String} expiredays 设置cookie的过期时间，单位：天
+
+</span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">function</span> <span style="color: #008080;">setCookie</span>(name, value,<span style="color: #000000;"> expiredays) {
+
+</span><span style="color: #0000ff;">var</span> exdate=<span style="color: #0000ff;">new</span> <span style="color: #008080;">Date</span><span style="color: #000000;">();
+
+exdate</span>.setDate(exdate.<span style="color: #008080;">getDate</span>() +<span style="color: #000000;"> expiredays);
+
+document</span>.cookie = name + '=' + escape(value)+ ((expiredays == <span style="color: #0000ff;">null</span>) ? '' : ';expires=' +exdate.<span style="color: #000000;">toGMTString());
+
+}</span></pre>
+</div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>获取cookie</strong></span></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+
+* @description js原生获取cookie方法1
+
+* @param {String} name 你要获取的cookie名
+
+</span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> getCookie(name) {
+
+　　</span><span style="color: #0000ff;">if</span> (document.cookie.length &gt; 0<span style="color: #000000;">) {
+
+　　　　</span><span style="color: #0000ff;">var</span> start = document.cookie.indexOf(name + '='<span style="color: #000000;">);
+
+　　　　</span><span style="color: #0000ff;">if</span> (start !== -1<span style="color: #000000;">) {
+
+　　　　　　start </span>= start + name.length + 1<span style="color: #000000;">;
+
+　　　　　　</span><span style="color: #0000ff;">var</span> <span style="color: #008080;">end</span> = document.cookie.indexOf(';',<span style="color: #000000;"> start);
+
+　　　　　　</span><span style="color: #0000ff;">if</span> (<span style="color: #008080;">end</span> === -1<span style="color: #000000;">) {
+
+　　　　　　　　</span><span style="color: #008080;">end</span> = document.cookie.<span style="color: #000000;">length;
+
+　　　　　　　　</span><span style="color: #0000ff;">return</span> unescape(document.cookie.substring(start, <span style="color: #008080;">end</span><span style="color: #000000;">));
+
+　　　　　　}
+　　　}
+
+　　}
+
+　　</span><span style="color: #0000ff;">return</span> ''<span style="color: #000000;">;<br />}</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+
+* @description js原生获取cookie方法2
+
+* @param {String} name 你要获取的cookie名
+
+</span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> getCookie(name) {
+
+　　</span><span style="color: #0000ff;">var</span> cookieArr = document.cookie.<span style="color: #008080;">split</span>(';') ||<span style="color: #000000;"> [];
+
+　　</span><span style="color: #0000ff;">if</span>(!cookieArr.<span style="color: #000000;">length){
+
+　　　　</span><span style="color: #0000ff;">return</span> ''<span style="color: #000000;">;
+
+　　}
+
+　　</span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; cookieArr.length; i ++<span style="color: #000000;">){
+
+　　　　</span><span style="color: #0000ff;">var</span> <span style="color: #008080;">key</span> = $.<span style="color: #008080;">trim</span>(cookieArr[i]).<span style="color: #008080;">split</span>('=')[0<span style="color: #000000;">];
+
+　　　　</span><span style="color: #0000ff;">var</span> value = $.<span style="color: #008080;">trim</span>(cookieArr[i]).<span style="color: #008080;">split</span>('=')[1<span style="color: #000000;">];
+
+　　　　</span><span style="color: #0000ff;">if</span>(<span style="color: #008080;">key</span> ===<span style="color: #000000;"> name){
+
+　　　　　　</span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value;
+
+　　　　}
+
+　　}
+
+}</span></pre>
+</div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>检查cookie是否已存在</strong></span></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> checkCookie() {
+
+　　username </span>= getCookie('username'<span style="color: #000000;">);
+
+　　</span><span style="color: #0000ff;">if</span> (username !== <span style="color: #0000ff;">null</span> &amp;&amp; username !== ''<span style="color: #000000;">) {
+
+　　　　alert(</span>'Welcome again ' + username + '!'<span style="color: #000000;">);
+
+　　} </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+
+　　　　username </span>= prompt('Please enter your name:', ''<span style="color: #000000;">);
+
+　　　　</span><span style="color: #0000ff;">if</span> (username !== <span style="color: #0000ff;">null</span> &amp;&amp; username !== ''<span style="color: #000000;">) {
+
+　　　　　　</span><span style="color: #008080;">setCookie</span>('username',username,365<span style="color: #000000;">);
+
+　　　　}
+
+　　}
+
+}</span></pre>
+</div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>jquery.cookie.js封装的cookie设置方法：</strong></span></h2>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>创建cookie</strong></span></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+
+* 'name', cookie命名
+
+* 'value'，cookie的值
+
+* {
+
+* 　　expires: 7, // cookie有效期，单位天；默认值：会话cookie，关闭浏览器cookie失效。
+
+* 　　path: '/', // cookie影响到的路径；值为'/'，表示设置cookie在整个域中可用；默认值：创建cookie的页面路径。
+
+* 　　domain: 'example.com', // 定义cookie有效的域。默认值：创建cookie的页面域。
+
+* 　　secure: false, // 定义cookie安全性，默认值：false，设置为true，则cookie在http中是无效的，cookie的传输需要使用安全协议（https）。
+
+* }
+
+</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+
+$</span>.cookie('name', 'value', { expires: 7, path: '/', domain: 'example.com', secure: <span style="color: #0000ff;">false</span>});</pre>
+</div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>读取cookie</strong></span></h2>
+<div class="cnblogs_code">
+<pre><code>$.cookie('name'); <span style="color: #008000;">//</span><span style="color: #008000;">name存在返回对应value,不存在返回null</span></pre>
+</div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>读取所有可用的cookies：</strong></span></h2>
+<div class="cnblogs_code">
+<pre><code>$.cookie(); <span style="color: #008000;">//{'name': value}</span><span style="color: #008000;"><br /><br />TODO：直接调用会报错？<br /><img src="./images/浅谈浏览器存储（cookie、localStorage、sessionStorage）0.png" alt="" /></span></pre>
+</div>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>删除cookie</strong></span></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">成功删除cookie时返回true，否则返回false</span>
+<span style="color: #000000;">
+$</span>.removeCookie('name'); <span style="color: #008000;">//</span><span style="color: #008000;"> =&gt; true</span>
+<span style="color: #000000;">
+$</span>.removeCookie('nothing'); <span style="color: #008000;">//</span><span style="color: #008000;"> =&gt; false<br /><br /></span>
+<span style="color: #000000;">注意：删除cookie时，必须传递用于设置cookie的完全相同的路径，域和安全选项，除非您依赖于默认选项。
+
+即：设置cookie时如果设置了path属性或secure属性，删除的时候要带着这些属性，否则无法成功删除cookie。
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> This won't work!</span>
+<span style="color: #000000;">
+$</span>.removeCookie('name'); <span style="color: #008000;">//</span><span style="color: #008000;"> =&gt; false
+
+// This will work!</span>
+<span style="color: #000000;">
+$</span>.removeCookie('name', { path: '/' }); <span style="color: #008000;">//</span><span style="color: #008000;"> =&gt; true<br /><br /></span></pre>
+<pre><code><span style="color: #008000;">TODO：$.removeCookie无效？<br />（jquery1.9.1.js + jquery.cookie.js，插件无重复引用的情况，$.removeCookie提示undefined）<br /><img src="./images/浅谈浏览器存储（cookie、localStorage、sessionStorage）1.png" alt="" /></span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">&nbsp;</span></p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><strong>webStorage基于HTML5规范</strong></span></h1>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">HTML5 提供了两种在客户端存储数据的新方法：localStorage和sessionStorage，挂载在window对象下。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">webStorage是本地存储，数据不是由服务器请求传递的。从而它可以存储大量的数据，而不影响网站的性能。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">Web Storage的目的是为了克服由cookie带来的一些限制，当数据需要被严格控制在客户端上时，无须持续地将数据发回服务器。比如客户端需要保存的一些用户行为或数据，或从接口获取的一些短期内不会更新的数据，我们就可以利用Web Storage来存储。</span></p>
+<div class="cnblogs_code">
+<p style="font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; white-space: normal;"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>localStorage</strong>的生命周期是永久性的。localStorage存储的数据，即使关闭浏览器，也不会让数据消失，除非主动的去删除数据。如果 想设置失效时间，需自行封装。</span></p>
+<p style="font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; white-space: normal;"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>sessionStorage</strong>&nbsp;的生命周期是在浏览器关闭前。</span></p>
+<p style="font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; white-space: normal;"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">　　特性：</span></p>
+<ul style="font-family: 'PingFang SC', 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 14px; white-space: normal;">
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">关闭浏览器sessionStorage&nbsp;失效；</span></li>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">页面刷新不会消除数据；</span></li>
+<li><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">只有在当前页面打开的链接，才可以访sessionStorage的数据，使用window.open打开页面和改变localtion.href方式都可以获 取到sessionStorage内部的数据;</span></li>
+</ul>
+</div>
+<p>&nbsp;</p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><strong style="font-family: 'Microsoft YaHei';">总结：</strong></span></h1>
+<table style="height: 738px; width: 1011px;" border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="100">
+<p align="center"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>存储方式</strong></span></p>
+</td>
+<td valign="top" width="168">
+<p align="center"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>作用与特性</strong></span></p>
+</td>
+<td valign="top" width="167">
+<p align="center"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>存储数量及大小</strong></span></p>
+</td>
+<td valign="top" width="229">
+<p align="center"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>api</strong></span></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="100">
+<p align="center"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">cookie</span></p>
+</td>
+<td valign="top" width="168">
+<p align="justify"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● 存储用户信息，获取数据需要与服务器建立连接。</span></p>
+<p align="justify"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● 可存储的数据有限，且依赖于服务器，无需请求服务器的数据尽量不要存放在cookie中，以免影响页面性能。</span></p>
+<p align="justify"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● 可设置过期时间。</span></p>
+</td>
+<td valign="top" width="167">
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● 最好将cookie控制在4095B以内，超出的数据会被忽略。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● IE6或更低版本最多存20个cookie； IE7及以上版本最多可以有50个；Firefox最多50个；chrome和Safari没有做硬性限制。</span></p>
+</td>
+<td valign="top" width="229">
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">原生、$.cookie（详见上文）</span></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="100">
+<p align="center"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">localStorage</span></p>
+</td>
+<td valign="top" width="168">
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● 存储客户端信息，无需请求服务器。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● 数据永久保存，除非用户手动清理客户端缓存。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● 开发者可自行封装一个方法，设置失效时间。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">&nbsp;</span></p>
+</td>
+<td valign="top" width="167">
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">5M左右，各浏览器的存储空间有差异。（感兴趣的同学可以自己试一下）。</span></p>
+</td>
+<td valign="top" width="229">
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">// 保存数据到 localStorage</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #008000;">localStorage.setItem('key',&nbsp;'value');</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">// 从 localStorage 获取数据</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #008000;">let&nbsp;data =&nbsp;localStorage.getItem('key');</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">// 从 localStorage 删除保存的数据</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #008000;">localStorage.removeItem('key');</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">// 从 localStorage 删除所有保存的数据</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #008000;">localStorage.clear();</span></p>
+</td>
+</tr>
+<tr>
+<td valign="top" width="100">
+<p align="center"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">sessionStorage</span></p>
+</td>
+<td valign="top" width="168">
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● 存储客户端信息，无需请求服务器。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">● 数据保存在当前会话，刷新页面数据不会被清除，结束会话（关闭浏览器、关闭页面、跳转页面）数据失效。</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">&nbsp;</span></p>
+</td>
+<td valign="top" width="167">
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">同localStorage</span></p>
+</td>
+<td valign="top" width="229">
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">// 保存数据到 sessionStorage</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #008000;">sessionStorage.setItem('key',&nbsp;'value');</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">// 从 sessionStorage 获取数据</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #008000;">let&nbsp;data =&nbsp;sessionStorage.getItem('key');</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">// 从 sessionStorage 删除保存的数据</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #008000;">sessionStorage.removeItem('key');</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">// 从 sessionStorage 删除所有保存的数据</span></p>
+<p class="pre"><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #008000;">sessionStorage.clear();</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p style="text-align: left;"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">&nbsp;</span></p>
+<h1><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><strong>参考文档：</strong></span></h1>
+<h3 style="text-align: left;"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;"><strong>Cookie API</strong></span></h3>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #000000;"><span style="color: #000000;">https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #000000;">http://www.w3school.com.cn/js/js_cookies.asp</span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #000000;"><span style="color: #000000;">https://github.com/carhartl/jquery-cookie#readme</span></span></p>
+<h3 style="text-align: left;"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">webStorage</span></h3>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #000000;"><span style="color: #000000;">http://www.w3school.com.cn/html5/html_5_webstorage.asp</span></span></p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 14px; color: #000000;">https://developer.mozilla.org/zh-CN/docs/Web/API/Web_Storage_API</span></p>
+<p style="text-align: left;"><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">&nbsp;</span></p>
+<p><img id="uploading_image_64222" src="./images/浅谈浏览器存储（cookie、localStorage、sessionStorage）2.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

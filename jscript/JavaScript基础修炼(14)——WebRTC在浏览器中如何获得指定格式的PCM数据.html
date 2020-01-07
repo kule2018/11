@@ -1,0 +1,183 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript基础修炼(14)——WebRTC在浏览器中如何获得指定格式的PCM数据' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript基础修炼(14)——WebRTC在浏览器中如何获得指定格式的PCM数据</center></div><div class='banquan'>原文出处:本文由博客园博主大史不说话提供。<br/>
+原文连接:https://www.cnblogs.com/dashnowords/p/11795251.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#一.-pcm格式是什么">一. PCM格式是什么</a></li>
+        <li><a href="#二.-浏览器中的音频采集处理">二. 浏览器中的音频采集处理</a></li>
+        <li><a href="#三.-需求实现">三. 需求实现</a><ul>
+        <li><a href="#方案1服务端ffmpeg实现编码">方案1——服务端FFmpeg实现编码</a></li>
+        <li><a href="#方案2scriptprocessornode手动处理数据流">方案2——ScriptProcessorNode手动处理数据流</a></li>
+        </ul></li>
+        <li><a href="#参考文献">参考文献</a></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/JavaScript基础修炼(14)——WebRTC在浏览器中如何获得指定格式的PCM数据0.png" /></p>
+<blockquote>
+<p>示例代码托管在：<a href="https://github.com/dashnowords/blogs/tree/master/Demo/webrtc-demo">http://www.github.com/dashnowords/blogs</a></p>
+<p>博客园地址：<a href="https://www.cnblogs.com/dashnowords/p/10127926.html">《大史住在大前端》原创博文目录</a></p>
+<p>华为云社区地址：<a href="https://bbs.huaweicloud.com/blogs/8ae7e6420a4611e9bd5a7ca23e93a891">【你要的前端打怪升级指南】</a></p>
+</blockquote>
+<blockquote>
+<p>本文中最重要的信息：32为浮点数表示<code>16bit</code>位深数据时是用-1~+1的小数来表示16位的-32768~+32767的！翻遍了<code>MDN</code>都没找到解释，我的内心很崩溃！</p>
+</blockquote>
+<p>最近不少朋友需要在项目中对接<strong>百度语音识别</strong>的<code>REST API</code>接口，在读了我之前写的<a href="https://www.cnblogs.com/dashnowords/p/9557355.html">【Recorder.js+百度语音识别】全栈方案技术细节</a>一文后仍然对Web音频采集和处理的部分比较困惑，本文仅针对音频流处理的部分进行解释，全栈实现方案的技术要点，可以参见上面的博文，本篇不再赘述。</p>
+<h2 id="一.-pcm格式是什么">一. PCM格式是什么</h2>
+<p>百度语音官方文档对于音频文件的要求是：</p>
+<blockquote>
+<p><code>pcm</code>,<code>wav</code>，<code>arm</code>及小程序专用的<code>m4a</code>格式，要求参数为16000采样率，<strong>16bit</strong>位深，单声道。</p>
+</blockquote>
+<p><code>PCM</code>编码，全称为&quot;脉冲编码调制&quot;，是一种将模拟信号转换成数字信号的方法。<strong>模拟信号</strong>通常指连续的物理量，例如温度、湿度、速度、光照、声响等等，模拟信号在任意时刻都有对应的值；<strong>数字信号</strong>通常是模拟信号经过采样、量化和编码等几个步骤后得到的。</p>
+<p>比如现在麦克风采集到了一段2秒的音频模拟信号，它是连续的，我们有一个很菜的声卡，采集频率为<code>10Hz</code>，那么经过采样后就得到了20个离散的数据点，这20个点对应的声音值可能是各种精度的，这对于存储和后续的使用而言都不方便，此时就需要将这些值也离散化，比如在上例中，信号的范围是0~52dB，假设我们希望将0~63dB的值都以整数形式记录下来，如果采用6个<code>bit</code>位来存储，那么就可以识别（2^6-1=63）个数值，这样采集的信号通过四舍五入后都以整数形式保存就可以了，最小精度为1dB；如果用7个<code>bit</code>位来保存，可存储的不同数值个数为(2^7-1=127)个，如果同样将0~63dB映射到这个范围上的话，那么最小精度就是0.5dB，很明显这样的处理肯定是有精度损失的，使用的位数越多精度越高，计算机中自然需要使用8的整数倍的<code>bit</code>位来进行存储，经过上述处理后数据就被转换成了一串<code>0</code>和<code>1</code>组成的序列，这样的音频数据是没有经过任何压缩编码处理的，也被称为“裸流数据”或“原始数据”。从上面的示例中很容易看出，用<code>10Hz</code>的采样率，8<code>bit</code>位存储采样点数值时，记录2秒的数据一共会产生2X10X8 = 160个<code>bit</code>位，而用16<code>bit</code>位来存储采样点数据时，记录1秒的数据也会产生1X10X16 = 160个<code>bit</code>位，如果没有任何附加的说明信息，就无法知道这段数据到底该怎么使用。按照指定要求进行编码后得到的序列就是<code>pcm</code>数据，它在使用之前通常需要声明采集相关的参数。</p>
+<p>下图就是一段采样率为<code>10Hz</code>，位深为<code>3bit</code>的<code>pcm</code>数据，你可以直观地看到每个步骤所做的工作。</p>
+<p><img src="./images/JavaScript基础修炼(14)——WebRTC在浏览器中如何获得指定格式的PCM数据1.png" /></p>
+<p><code>wav</code>格式也是一种无损格式，它是依据规范在<code>pcm</code>数据前添加<code>44</code>字节长度用来填充一些声明信息的，<code>wav</code>格式可以直接播放。而百度语音识别接口中后两种格式都需要经过编码算法处理，通常会有不同程度的精度损失和体积压缩，所以在使用后两种数据时必然会存在额外的编解码时间消耗，所以不难看出，各种格式之间的选择其实就是对时间和空间的权衡。</p>
+<h2 id="二.-浏览器中的音频采集处理">二. 浏览器中的音频采集处理</h2>
+<blockquote>
+<p>浏览器中的音频处理涉及到许多<code>API</code>的协作，相关的概念比较多，想要对此深入了解的读者可以阅读<code>MDN</code>的<a href="https://developer.mozilla.org/zh-CN/docs/Web/%E5%AA%92%E4%BD%93">【Web 媒体技术】</a>篇，本文中只做大致介绍。</p>
+</blockquote>
+<p>首先是实现媒体采集的<code>WebRTC</code>技术，使用的旧方法是<code>navigator.getUserMedia( )</code>,新方法是<code>MediaDevices.getUserMedia( )</code>，开发者一般需要自己做一下兼容处理，麦克风或摄像头的启用涉及到安全隐私，通常网页中会有弹框提示，用户确认后才可启用相关功能，调用成功后，回调函数中就可以得到<code>多媒体流对象</code>，后续的工作就是围绕这个流媒体展开的。</p>
+<p><img src="./images/JavaScript基础修炼(14)——WebRTC在浏览器中如何获得指定格式的PCM数据2.png" /></p>
+<p>浏览器中的音频处理的术语称为<code>AudioGraph</code>，其实就是一个<strong>【中间件模式】</strong>，你需要创建一个<code>source</code>节点和一个<code>destination</code>节点，然后在它们之间可以连接许许多多不同类型的节点，<code>source</code>节点既可以来自流媒体对象，也可以自己填充生成，<code>destination</code>可以连接默认的扬声器端点，也可以连接到媒体录制API<code>MediaRecorder</code>来直接将pcm数据转换为指定媒体编码格式的数据。中间节点的类型有很多种，可实现的功能也非常丰富，包括增益、滤波、混响、声道的合并分离以及音频可视化分析等等非常多功能(可以参考<a href="https://developer.mozilla.org/zh-CN/docs/Web/API/AudioContext">MDN中给出的AudioContext可创建的不同类型节点</a>)。当然想要熟练使用还需要一些信号处理方面的知识，对于非工科背景的开发者而言并不容易学习。</p>
+<h2 id="三.-需求实现">三. 需求实现</h2>
+<p>一般的实现方法是从<code>getUserMedia</code>方法得到原始数据，然后根据相关参数手动进行后处理，相对比较繁琐。</p>
+<h3 id="方案1服务端ffmpeg实现编码">方案1——服务端FFmpeg实现编码</h3>
+<p>很多示例都是将音频源节点直接连接到默认的输出节点（扬声器）上，但是几乎没什么意义，笔者目前还没有找到使用<code>Web Audio API</code>自动输出<code>pcm</code>原始采样数据的方法，可行的方法是使用<code>MediaRecorder</code>来录制一段音频流，但是录制实例需要传入编码相关的参数并指定<code>MIME</code>类型，最终得到的<code>blob</code>对象通常是经过编码后的音频数据而非<code>pcm</code>数据，但也因为经过了编码，这段原始数据的相关参数也就已经存在于输出后的数据中了。百度语音官方文档推荐的方法是使用<code>ffmpeg</code>在服务端进行处理，尽管明显在音频的编解码上绕了弯路，但肯定比自己手动编码难度要低得多，而且<code>ffmepg</code>非常强大，后续扩展也方便。参考数据大致从录音结束到返回结果，PC端耗时约1秒，移动端约2秒。</p>
+<p>核心示例代码(完整示例见附件或开头的<code>github</code>代码仓)：</p>
+<pre><code><code>//WebRTC音频流采集
+navigator.mediaDevices.getUserMedia({audio:true})
+    .then((stream) =&gt; {
+        //实例化音频处理上下文
+        ac = new AudioContext({
+            sampleRate:16000  //设置采样率
+        });
+        //创建音频处理的源节点
+        let source = ac.createMediaStreamSource(stream);
+        //创建音频处理的输出节点
+        let dest = ac.createMediaStreamDestination();
+
+        //直接连接
+        source.connect(dest);
+
+        //生成针对音频输出节点流信息的录制实例,如果不通过ac实例调节采样率，也可以直接将stream作为参数
+        let mediaRecorder = window.mediaRecorder = new MediaRecorder(dest.stream, {
+            mimeType: &#39;&#39;,//chreome中的音轨默认使用格式为audio/webm;codecs=opus
+            audioBitsPerSecond: 128000
+        });
+
+        //给录音机绑定事件
+        bindEventsForMediaRecorder(mediaRecorder);
+    })
+    .catch(err =&gt; {
+        console.log(err);
+    });</code></pre>
+<p>录音机事件绑定：</p>
+<pre><code><code>//给录音机绑定事件
+function bindEventsForMediaRecorder(mediaRecorder) {
+    mediaRecorder.addEventListener(&#39;start&#39;, function (event) {
+        console.log(&#39;start recording!&#39;);
+    });
+    mediaRecorder.addEventListener(&#39;stop&#39;, function (event) {
+        console.log(&#39;stop recording!&#39;);
+    });
+    mediaRecorder.addEventListener(&#39;dataavailable&#39;, function (event) {
+        console.log(&#39;request data!&#39;);
+        console.log(event.data);//这里拿到的blob对象就是编码后的文件，既可以本地试听，也可以传给服务端
+        //用a标签下载;
+        createDownload(event.data);
+        //用audio标签加载
+        createAudioElement(event.data);
+
+    });
+}</code></pre>
+<p>本地测试时，可以将生成的音频下载到本地，然后使用<code>ffmpeg</code>将其转换为目标格式：</p>
+<pre class="shell"><code>ffmpeg -y -i record.webm -f s16le -ac 1 -ar 16000 16k.pcm</code></pre>
+<p>详细的参数说明请移步<a href="http://ffmpeg.org/documentation.html">ffmpeg documentation</a>，至此就得到了符合百度语音识别接口的录音文件。</p>
+<h3 id="方案2scriptprocessornode手动处理数据流">方案2——ScriptProcessorNode手动处理数据流</h3>
+<p>如果觉得使用<code>ffmpeg</code>有点“杀鸡用牛刀”的感觉，那么就需要自己手动处理二进制数据了，这是就需要在<code>audioGraph</code>中添加一个脚本处理节点<code>scriptProcessorNode</code>，按照<code>MDN</code>的信息该接口未来会废弃，用新的<code>Audio Worker API</code>取代，但目前chrome中的情况是，<code>Audio Worker API</code>标记为试验功能，而旧的方法也没有明确的提示说明会移除（通常计划废除的功能，控制台都会有黄色字体的提示）。但无论如何，相关的基本原理是一致的。</p>
+<p><code>scriptProcessorNode</code>节点使用一个缓冲区来分段存储流数据，每当流数据填充满缓冲区后，这个节点就会触发一个<code>audioprocess</code>事件（相当于一段chunk），在回调函数中可以获取到该节点输入信号和输出信号的内存位置指针，然后通过手动操作就可以进行数据处理了。</p>
+<p>先来看一个简单的例子，下面的示例中，处理节点什么都不做，只是把单声道输入流直接拷贝到输出流中：</p>
+<pre><code><code>navigator.mediaDevices.getUserMedia(constraints)
+    .then((stream) =&gt; {
+        ac = new AudioContext({
+            sampleRate:16000
+        });
+    
+        let source = ac.createMediaStreamSource(stream);
+        //构造参数依次为缓冲区大小，输入通道数，输出通道数
+        let scriptNode = ac.createScriptProcessor(4096, 1, 1);
+        //创建音频处理的输出节点
+        let dest = ac.createMediaStreamDestination();
+
+        //串联连接
+        source.connect(scriptNode);
+        scriptNode.connect(dest);
+
+        //添加事件处理
+        scriptNode.onaudioprocess = function (audioProcessingEvent) {
+            //输入流位置
+            var inputBuffer = audioProcessingEvent.inputBuffer;
+            //输出流位置
+            var outputBuffer = audioProcessingEvent.outputBuffer;
+            //遍历通道处理数据，当前只有1个输入1个输出
+            for (var channel = 0; channel &lt; outputBuffer.numberOfChannels; channel++) {
+                var inputData = inputBuffer.getChannelData(channel);
+                var outputData = outputBuffer.getChannelData(channel);
+                //用按钮控制是否记录流信息
+                if (isRecording) {
+                    for (let i = 0; i &lt; inputData.length; i = i + 1) {
+                        //直接将输入的数据传给输出通道
+                        outputData[i] = inputData[i];
+                    }
+                }
+            };
+        }</code></pre>
+<p>在上面的示例加工后，如果直接将结果连接到<code>ac.destination</code>（默认的扬声器节点）就可以听到录制的声音，你会听到输出信号只是重复了一遍输入信号。</p>
+<blockquote>
+<p>但是将数据传给<code>outputData</code>输出后是为了在后续的节点中进行处理，或者最终作为扬声器或<code>MediaRecorder</code>的输入，传出后就无法拿到<code>pcm</code>数据了，所以只能自己来假扮一个<code>MediaRecorder</code>。</p>
+</blockquote>
+<p>首先在上面示例中向输出通道透传数据时，改为自己存储数据，将输入数据打印在控制台后可以看到缓冲区大小设置为4096时，每个chunk中获取到的输入数据是一个长度为4096的<code>Float32Array</code>定型数组，也就是说每个采样点信息是用32位浮点来存储的，<a href="https://github.com/mattdiamond/Recorderjs/blob/master/src/recorder.js">【recorder.js】</a>给出的转换方法如下：</p>
+<pre><code><code>function floatTo16BitPCM(output, offset, input) {
+    for (let i = 0; i &lt; input.length; i++, offset += 2) {
+        let s = Math.max(-1, Math.min(1, input[i]));
+        output.setInt16(offset, s &lt; 0 ? s * 0x8000 : s * 0x7FFF, true);
+    }
+}</code></pre>
+<p>看起来的确是不知道在干嘛，后来参考文献中找到了相关解释：</p>
+<blockquote>
+<p>32位存储的采样帧数值，是用<code>-1</code>到<code>1</code>来映射<code>16bit</code>存储范围-32768~32767的。</p>
+</blockquote>
+<p>现在再来看上面的公式就比较容易懂了：</p>
+<pre><code><code>//下面一行代码保证了采样帧的值在-1到1之间，因为有可能在多声道合并或其他状况下超出范围 
+let s = Math.max(-1, Math.min(1, input[i]));
+//将32位浮点映射为16位整形表示的值
+output.setInt16(offset, s &lt; 0 ? s * 0x8000 : s * 0x7FFF, true);</code></pre>
+<p>如果s&gt;0其实就是将0~1映射到到0~32767，正数第一位符号位为0，所以32767对应的就是<code>0111 1111 1111 1111</code>也就是<code>0x7FFF</code>，直接把s当系数相乘就可以了；当s为负数时，需要将0~-1映射到0~-32768，所以s的值也可以直接当做比例系数来进行转换计算，负数在内存中存储时需要使用补码，补码是原码除符号位以外按位取反再+1得到的，所以-32768原码是<code>1000 0000 0000 0000</code>（溢出的位直接丢弃）,除符号位外按位取反得到<code>1111 1111 1111 1111</code>,最后再+1运算得到<code>1000 0000 0000 0000</code>(溢出的位也直接丢弃)，用16进制表示就是<code>0x8000</code>。顺便多说一句，补码的存在是为了让正值和负值在二进制形态上相加等于0。</p>
+<p>公式里的<code>output</code>很明显是一个<code>ES6-ArrayBuffer</code>中的<code>DataView</code>视图，用它可以实现混合形式的内存读写，最后的<code>true</code>表示小端系统读写，对这一块知识不太熟悉的读者可以阅读阮一峰前辈的<code>ES6</code>指南（前端必备工具书）进行了解。</p>
+<h2 id="参考文献">参考文献</h2>
+<p><a href="https://www.codeproject.com/articles/501521/how-to-convert-between-most-audio-formats-in-net">how-to-convert-between-most-audio-formats-in-net</a>。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

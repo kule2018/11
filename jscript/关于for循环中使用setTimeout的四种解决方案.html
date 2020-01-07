@@ -1,0 +1,91 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于for循环中使用setTimeout的四种解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于for循环中使用setTimeout的四种解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主夜千灯提供。<br/>
+原文连接:https://www.cnblogs.com/wl0804/p/11987833.html</div><br>
+    <p><span style="font-family: 'Microsoft YaHei'; font-size: 14px;">　　我们先来简单了解一下setTimeout延时器的运行机制。setTimeout会先将回调函数放到等待队列中，等待区域内其他主程序执行完毕后，按时间顺序先进先出执行回调函数。本质上是作用域的问题。</span></p>
+<p><span style="font-family: 'Microsoft YaHei';">　　因此若是这样将不会得到想要的结果输出1.2.3.4.5，而会连续输出5个6。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i=1; i&lt;=5; i++<span style="color: #000000;">) {
+    setTimeout( </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> timer() {
+        console.log( i );
+     }, i</span>*1000<span style="color: #000000;"> );
+}</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">　　这是因为setTimeout是异步执行，每一次for循环的时候，setTimeout都执行一次，但是里面的函数没有被执行，而是被放到了任务队列里，等待执行。只有主线上的任务执行完，才会执行任务队列里的任务。也就是说它会等到for循环全部运行完毕后，才会执行fun函数，但是当for循环结束后此时i的值已经变成了6，因此虽然定时器跑了5秒，控制台上的内容依然是6。</span></p>
+<p><span style="font-family: 'Microsoft YaHei';">　　（注意：for循环从开始到结束的过程，需要维持几微秒或几毫秒，当定时器跑完一秒之后for循环早已经做完了。）</span></p>
+<p><span style="font-family: 'Microsoft YaHei';"><strong>　　我们来看另一种情况：</strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i=1; i&lt;=5; i++<span style="color: #000000;">) {
+    (</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+        setTimeout( </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> timer() {
+            console.log( i );
+        }, i</span>*1000<span style="color: #000000;"> );
+    })();
+}</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">　　由setTimeout的运行机制可以知道，首先会运行外部的所有主程序，虽然for循环内形成了闭包，但是fun并没有发现一个实参所以跟第一个例子并无实际差别，仍然是连续输出5个6。</span></p>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><strong>解决方案1：闭包</strong></span></h2>
+<p><span style="font-family: 'Microsoft YaHei';"><strong>　　使用闭包是很经典的一种做法：</strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i=1; i&lt;=5; i++<span style="color: #000000;">) {
+    (</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(j) {
+        setTimeout( </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> timer() {
+            console.log( j );
+        }, j</span>*1000<span style="color: #000000;"> );
+    })(i);
+}</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">　　我们可以发现跟预期结果一致，依次输出1到5，因是因为实际参数跟定时器内部的i有强依赖。</span></p>
+<p class="p"><span style="font-family: 'Microsoft YaHei';">　　通过闭包，将i的变量驻留在内存中，当输出j时，引用的是外部函数的变量值i，i的值是根据循环来的，执行setTimeout时已经确定了里面的的输出了。</span></p>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><strong>解决方案2：拆分结构</strong></span></h2>
+<p><span style="font-family: 'Microsoft YaHei';"><strong>　　我们还可以将setTimeout的定义和调用分别放到不同部分：</strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> timer(i) {
+    setTimeout( console.log( i ), i</span>*1000<span style="color: #000000;"> );
+}
+</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i=1; i&lt;=5;i++<span style="color: #000000;">) {
+    timer(i);
+}</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">　　控制台上输出依然是依次输出1到5。</span></p>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><strong>解决方案3：let</strong></span></h2>
+<p><span style="font-family: 'Microsoft YaHei';"><strong>　　这里再来说一说使用es6的let来解决此问题：</strong></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">for</span> (let i=1; i&lt;=5; i++<span style="color: #000000;">) {
+    setTimeout( </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> timer() {
+        console.log( i );
+     }, i</span>*1000<span style="color: #000000;"> );
+}</span></pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei';">　　这个例子与第一个相比，只是把var更改成了let，可是控制台的结果却是依次输出1到5。</span></p>
+<p><span style="font-family: 'Microsoft YaHei';">　　因为for循环头部的let不仅将i绑定到for循环中，事实上它将其重新绑定到循环体的每一次迭代中，确保上一次迭代结束的值重新被赋值。setTimeout里面的function()属于一个新的域，通过var定义的变量是无法传入到这个函数执行域中的，通过使用let来声明块变量能作用于这个块，所以function就能使用i这个变量了；这个匿名函数的参数作用域和for参数的作用域不一样，是利用了这一点来完成的。这个匿名函数的作用域有点类似类的属性，是可以被内层方法使用的。</span></p>
+<h2><span style="font-family: 'Microsoft YaHei'; font-size: 16px;"><strong>解决方案4：setTimeout第三个参数</strong></span></h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">for</span> (let i=1; i&lt;=5; i++<span style="color: #000000;">) {
+    setTimeout( </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> timer() {
+        console.log( i );
+     }, i</span>*1000<span style="color: #000000;">, i );
+}</span></pre>
+</div>
+<p class="p"><span style="font-family: 'Microsoft YaHei';">　　由于每次传入的参数是从for循环里面取到的值，所以会依次输出1到5。关于setTimeout第三个参数，下一篇会详细讲到，这里大家了解下就好。</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

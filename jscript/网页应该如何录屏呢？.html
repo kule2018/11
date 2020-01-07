@@ -1,0 +1,180 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修网页应该如何录屏呢？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>网页应该如何录屏呢？</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/how-to-record-web-video.html</div><br>
+    <p><strong>摘要：</strong> 网页应该如何录屏呢？</p>
+<ul>
+<li>作者：<a href="https://github.com/LuckyWinty">Winty</a></li>
+<li>原文：<a href="https://juejin.im/post/5d3ea4dae51d4561c541a61b">用户行为录帧调研</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<h3 id="关键点">关键点</h3>
+<ul>
+<li>首先，每一次会话都有一个唯一的session ID，这是串联起所有行为的纽带。</li>
+<li>其次，用户行为又分成两个部分，其一是用户的操作，比如鼠标滑动，点击，页面滚动等，其二是页面的变化。这两者我们都统称为用户行为，记录在同一个队列中。</li>
+<li>一开始的时候，系统会记录下初始的页面作为第一帧，这是唯一的一次完整页面记录。</li>
+<li>针对用户操作，我们会记录事件的类型，鼠标位置等关键信息，保存到队列中。</li>
+<li>针对页面变动，我们会起一个mutationObserve侦听页面的改动，每次只记录改动的部分，保存到队列中。</li>
+<li>无论是事件还是页面改动，都是对等的一帧，每一帧都会有当前时间，与上一帧间隔时间等基本信息用户还原</li>
+<li>一旦出错，SDK就把队列发送到监控系统，并清空当前队列。</li>
+<li>还原端根据记录的行为队列，根据时间逐一播放出来。最终形成一个类似于视频的效果。</li>
+</ul>
+<p><strong>初步思路</strong></p>
+<p>方式一：</p>
+<ul>
+<li>前端收集信息，首先，初始化的时候记录一个页面的初始状态，然后利用 MutationObserver 监听dom的改变事件，然后监听所有的鼠标事件、滚动事件等等所有的页面变化。</li>
+<li>在合理的时机把这些信息队列上传到服务器，如页面出错时等。</li>
+<li>后台分析前端收集到的信息，转为图片，然后形成&quot;视频&quot;，或者用户行为栈。提供对应的调用 api。</li>
+<li>前端需要查找问题时，根据用户id等信息找到对应的出错栈。</li>
+</ul>
+<p>方式二：</p>
+<ul>
+<li>前端根据 html 转为对应的图片(可以转为 base64 格式)</li>
+<li>将图片发送给后台</li>
+<li>后台将图片按序组成&quot;视频&quot;</li>
+</ul>
+<p><strong>现有SDK</strong></p>
+<p><a href="https://www.fundebug.com/">Fundebug</a></p>
+<h3 id="录屏截图">录屏(截图)</h3>
+<ul>
+<li>html2canvas</li>
+<li>puppeteer</li>
+<li>rrweb+rrweb-player+rrweb-snapshot</li>
+</ul>
+<h4 id="html2canvas介绍">html2canvas介绍</h4>
+<p>html2canvas 是通过分析页面中已加载好的 DOM 元素，然后 canvas 将生成的 DOM 节点绘制在画布上，最后转换为图片。它不是真正的截屏，只是根据页面元素信息还原出图片，所以并不是 100% 和页面相同的。</p>
+<p><strong>局限性</strong></p>
+<ul>
+<li>页面中的图片不能跨域</li>
+<li>不是所有的 css 特性都支持，如不支持 box-shadow、filter 等</li>
+<li>不支持截取插件内容,如 Flash</li>
+<li>不支持 iframe 内容</li>
+</ul>
+<p><strong>浏览器支持</strong></p>
+<ul>
+<li>Firefox 3.5+</li>
+<li>Google Chrome</li>
+<li>Opera 12+</li>
+<li>IE9+</li>
+<li>Edge</li>
+<li>Safari 6+</li>
+</ul>
+<h4 id="puppeteer介绍">puppeteer介绍</h4>
+<p>Puppeteer 是 Google Chrome 团队官方的无界面（Headless）Chrome 工具，它是一个 Node 库，提供了一个高级的 API 来控制 DevTools协议上的无头版 Chrome 。</p>
+<p><strong>局限性</strong></p>
+<ul>
+<li>Puppeteer 需要 Chromium。其主要应用在自动化测试上。</li>
+</ul>
+<p><strong>功能</strong></p>
+<ul>
+<li>生成页面的截图和PDF。</li>
+<li>抓取SPA并生成预先呈现的内容（即&quot;SSR&quot;）。</li>
+<li>从网站抓取你需要的内容。</li>
+<li>自动表单提交，UI测试，键盘输入等</li>
+<li>创建一个最新的自动化测试环境。使用最新的JavaScript和浏览器功能，直接在最新版本的Chrome中运行测试。</li>
+<li>捕获您的网站的时间线跟踪，以帮助诊断性能问题。</li>
+</ul>
+<p><strong>结论</strong>html2canvas 更适合于 C 端的用户行为截图跟踪，而 Puppeteer 适用于自动化测试。</p>
+<h4 id="rrweb介绍">rrweb介绍</h4>
+<p>rrweb 主要由 3 部分组成：</p>
+<ul>
+<li>rrweb-snapshot，包含 snapshot 和 rebuild 两个功能。snapshot 用于将 DOM 及其状态转化为可序列化的数据结构并添加唯一标识；rebuild 则是将 snapshot 记录的数据结构重建为对应的 DOM。</li>
+<li>rrweb，包含 record 和 replay 两个功能。record 用于记录 DOM 中的所有变更（mutation）；replay 则是将记录的变更按照对应的时间一一重放。</li>
+<li>rrweb-player，为 rrweb 提供一套 UI 控件，提供基于 GUI 的暂停、快进、拖拽至任意时间点播放等功能。</li>
+</ul>
+<p>rrweb适用场景：</p>
+<ul>
+<li>用户行为分析；</li>
+<li>远程debug；</li>
+<li>录制操作；</li>
+<li>实时协作；</li>
+</ul>
+<p><strong>局限性</strong></p>
+<ul>
+<li>社区资源较少</li>
+<li>部分代码用较旧的模式写的，有未知坑</li>
+</ul>
+<p><strong>最终结论</strong></p>
+<p>综合来看，结合思路一，基于 rrweb 来开发是最可行最快捷的。</p>
+<h4 id="demo">Demo</h4>
+<p>目前，我基于 rrweb 已经做了个 demo 出来。以下是初步成果：<a href="https://github.com/LuckyWinty/UserBehaviorRecord/tree/master">demo代码</a></p>
+<h3 id="补充资料">补充资料</h3>
+<h4 id="rrweb的一些思路原理">rrweb的一些思路原理</h4>
+<p><a href="https://zhuanlan.zhihu.com/p/60639266">rrweb：打开 web 页面录制与回放的黑盒子</a></p>
+<h4 id="mutationobserver介绍">MutationObserver介绍</h4>
+<p>Mutation Observer API 用来监视 DOM 变动。DOM 的任何变动，比如节点的增减、属性的变动、文本内容的变动，这个 API 都可以得到通知。</p>
+<p><strong>特点</strong></p>
+<ul>
+<li>它等待所有脚本任务完成后，才会运行（即异步触发方式）。</li>
+<li>它把 DOM 变动记录封装成一个数组进行处理，而不是一条条个别处理 DOM 变动。</li>
+<li>它既可以观察 DOM 的所有类型变动，也可以指定只观察某一类变动。</li>
+</ul>
+<p><strong>example</strong></p>
+<p>Select the node that will be observed for mutations var targetNode = document.getElementById('some-id');</p>
+<pre><code><code>// Options for the observer (which mutations to observe)
+var config = { attributes: true, childList: true, subtree: true };
+
+// Callback function to execute when mutations are observed
+var callback = function(mutationsList, observer) {
+    for (var mutation of mutationsList) {
+        if (mutation.type == &quot;childList&quot;) {
+            console.log(&quot;A child node has been added or removed.&quot;);
+        } else if (mutation.type == &quot;attributes&quot;) {
+            console.log(
+                &quot;The &quot; + mutation.attributeName + &quot; attribute was modified.&quot;
+            );
+        }
+    }
+};
+
+// Create an observer instance linked to the callback function
+var observer = new MutationObserver(callback);
+
+// Start observing the target node for configured mutations
+observer.observe(targetNode, config);
+
+// Later, you can stop observing
+observer.disconnect();</code></pre>
+<p>observe方法接受两个参数，第一个是所要观察的DOM元素是article，第二个是所要观察的变动类型（子节点变动和属性变动),方法调用时必须指定一种或多种变动类型，否则报错，变动类型如下：</p>
+<pre><code><code>boolean childList = false;
+boolean attributes;
+boolean characterData;
+boolean subtree = false; //表示是否将该观察器应用于该节点的所有后代节点。
+boolean attributeOldValue; //表示观察attributes变动时，是否需要记录变动前的属性值。
+boolean characterDataOldValue; //表示观察characterData变动时，是否需要记录变动前的值。
+sequence&lt;DOMString&gt; attributeFilter;//数组，表示需要观察的特定属性（比如[&#39;class&#39;,&#39;src&#39;]）</code></pre>
+<p>disconnect方法用来停止观察。调用该方法后，DOM 再发生变动，也不会触发观察器。 takeRecords方法用来清除变动记录，即不再处理未处理的变动。该方法返回变动记录的数组。</p>
+<p><strong>MutationRecord对象</strong></p>
+<p>DOM 每次发生变化，就会生成一条变动记录（MutationRecord 实例）。该实例包含了与变动相关的所有信息。Mutation Observer 处理的就是一个个MutationRecord实例所组成的数组。 MutationRecord对象包含了DOM的相关信息，有如下属性：</p>
+<pre><code><code>type：观察的变动类型（attribute、characterData或者childList）。
+target：发生变动的DOM节点。
+addedNodes：新增的DOM节点。
+removedNodes：删除的DOM节点。
+previousSibling：前一个同级节点，如果没有则返回null。
+nextSibling：下一个同级节点，如果没有则返回null。
+attributeName：发生变动的属性。如果设置了attributeFilter，则只返回预先指定的属性。
+oldValue：变动前的值。这个属性只对attribute和characterData变动有效，如果发生childList变动，则返回null。</code></pre>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了20亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家免费试用！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

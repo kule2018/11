@@ -1,0 +1,136 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修DOMContentLoaded vs jQuery.ready vs onload, How To Decide When Your Code Should Run' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>DOMContentLoaded vs jQuery.ready vs onload, How To Decide When Your Code Should Run</center></div><div class='banquan'>原文出处:本文由博客园博主yourebi提供。<br/>
+原文连接:https://www.cnblogs.com/pptu/p/11983686.html</div><br>
+    <h3 id="at-a-glance">At a Glance</h3>
+<ul>
+<li>Script tags have access to any element which appears before them in the HTML.</li>
+<li><code>jQuery.ready</code>&nbsp;/&nbsp;<code>DOMContentLoaded</code>&nbsp;occurs when all of the HTML is ready to interact with, but often before its been rendered to the screen.</li>
+<li>The&nbsp;<code>load</code>&nbsp;event occurs when all of the HTML is loaded,&nbsp;<em>and</em>&nbsp;any subresources like images are loaded.</li>
+<li>Use&nbsp;<code>setTimeout</code>&nbsp;to allow the page to be rendered before your code runs.</li>
+</ul>
+<h3 id="deep-dive">Deep Dive</h3>
+<p>The question of when your JavaScript should run comes down to &lsquo;what do you need to interact with on the page?&rsquo;.</p>
+<p><a href="https://eager.io/blog/everything-I-know-about-the-script-tag/">Scripts</a>&nbsp;have access to all of the elements on the page which are defined in the HTML file&nbsp;before the script tag. This means, if you put your script at the bottom of the&nbsp;<code>&lt;body&gt;</code>&nbsp;you know every element on the page will be ready to access through the DOM:</p>
+<pre><code><span class="cm-tag cm-bracket">&lt;<span class="cm-tag">html<span class="cm-tag cm-bracket">&gt;
+  <span class="cm-tag cm-bracket">&lt;<span class="cm-tag">body<span class="cm-tag cm-bracket">&gt;
+    <span class="cm-tag cm-bracket">&lt;<span class="cm-tag">div <span class="cm-attribute">id=<span class="cm-string">"my-awesome-el"<span class="cm-tag cm-bracket">&gt;<span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">div<span class="cm-tag cm-bracket">&gt;
+
+    <span class="cm-tag cm-bracket">&lt;<span class="cm-tag">script<span class="cm-tag cm-bracket">&gt;
+      <span class="cm-variable">document.<span class="cm-property">querySelector(<span class="cm-string">'#my-awesome-el').<span class="cm-property">innerHTML <span class="cm-operator">= <span class="cm-keyword">new <span class="cm-variable">Date
+    <span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">script<span class="cm-tag cm-bracket">&gt;
+  <span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">body<span class="cm-tag cm-bracket">&gt;
+<span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">html<span class="cm-tag cm-bracket">&gt;
+</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<p>This works just as well for external scripts (specified using the&nbsp;<code>src</code>&nbsp;attribute).</p>
+<p>If, however, your script runs before your element is defined, you&rsquo;re gonna have trouble:</p>
+<pre><code><span class="cm-tag cm-bracket">&lt;<span class="cm-tag">html<span class="cm-tag cm-bracket">&gt;
+  <span class="cm-tag cm-bracket">&lt;<span class="cm-tag">body<span class="cm-tag cm-bracket">&gt;
+    <span class="cm-tag cm-bracket">&lt;<span class="cm-tag">script<span class="cm-tag cm-bracket">&gt;
+      <span class="cm-variable">document.<span class="cm-property">querySelector(<span class="cm-string">'#my-awesome-el').<span class="cm-property">innerHTML <span class="cm-operator">= <span class="cm-keyword">new <span class="cm-variable">Date
+      <span class="cm-comment">/* ERROR! */
+    <span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">script<span class="cm-tag cm-bracket">&gt;
+
+    <span class="cm-tag cm-bracket">&lt;<span class="cm-tag">div <span class="cm-attribute">id=<span class="cm-string">"my-awesome-el"<span class="cm-tag cm-bracket">&gt;<span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">div<span class="cm-tag cm-bracket">&gt;
+  <span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">body<span class="cm-tag cm-bracket">&gt;
+<span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">html<span class="cm-tag cm-bracket">&gt;
+</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<p>There&rsquo;s no technical difference between including your script in the&nbsp;<code>&lt;head&gt;</code>&nbsp;or&nbsp;<code>&lt;body&gt;</code>, all that matters is what is defined before the script tag in the HTML.</p>
+<h3 id="when-all-the-html-dom-is-ready">When All The HTML/DOM Is Ready</h3>
+<p>If you want to be able to access elements which occur later than your script tag, or you don&rsquo;t know where users might be installing your script, you can wait for the entire HTML page to be parsed. This is done using either the&nbsp;<code>DOMContentLoaded</code>&nbsp;event, or if you use jQuery,&nbsp;<code>jQuery.ready</code>&nbsp;(sometimes referred to as&nbsp;<code>$.ready</code>, or just as&nbsp;<code>$()</code>).</p>
+<pre><code><span class="cm-tag cm-bracket">&lt;<span class="cm-tag">html<span class="cm-tag cm-bracket">&gt;
+  <span class="cm-tag cm-bracket">&lt;<span class="cm-tag">body<span class="cm-tag cm-bracket">&gt;
+    <span class="cm-tag cm-bracket">&lt;<span class="cm-tag">script<span class="cm-tag cm-bracket">&gt;
+      <span class="cm-variable">window.<span class="cm-property">addEventListener(<span class="cm-string">'DOMContentLoaded', <span class="cm-keyword">function(){
+        <span class="cm-variable">document.<span class="cm-property">querySelector(<span class="cm-string">'#my-awesome-el').<span class="cm-property">innerHTML <span class="cm-operator">= <span class="cm-keyword">new <span class="cm-variable">Date
+     });
+    <span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">script<span class="cm-tag cm-bracket">&gt;
+
+    <span class="cm-tag cm-bracket">&lt;<span class="cm-tag">div <span class="cm-attribute">id=<span class="cm-string">"my-awesome-el"<span class="cm-tag cm-bracket">&gt;<span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">div<span class="cm-tag cm-bracket">&gt;
+  <span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">body<span class="cm-tag cm-bracket">&gt;
+<span class="cm-tag cm-bracket">&lt;/<span class="cm-tag">html<span class="cm-tag cm-bracket">&gt;
+</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<p>the same script using&nbsp;<code>jQuery</code>:</p>
+<pre class="lang-javascript lang-javascript cm-s-default" data-lang="javascript"><span class="cm-variable">jQuery.<span class="cm-property">ready(<span class="cm-keyword">function(){
+  <span class="cm-variable">document.<span class="cm-property">querySelector(<span class="cm-string">'#my-awesome-el').<span class="cm-property">innerHTML <span class="cm-operator">= <span class="cm-keyword">new <span class="cm-variable">Date
+});
+
+<span class="cm-comment">// OR
+
+<span class="cm-variable">$(<span class="cm-keyword">function(){
+  <span class="cm-variable">document.<span class="cm-property">querySelector(<span class="cm-string">'#my-awesome-el').<span class="cm-property">innerHTML <span class="cm-operator">= <span class="cm-keyword">new <span class="cm-variable">Date
+});
+</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<p>It may seem a little odd that jQuery has so many syntaxes for doing the same thing, but that&rsquo;s just a function of how common this requirement is.</p>
+<h3 id="run-when-a-specific-element-has-loaded">Run When a Specific Element Has Loaded</h3>
+<p><code>DOMContentLoaded</code>/<code>jQuery.ready</code>&nbsp;often occurs after the page has initially rendered. If you want to access an element the exact moment it&rsquo;s parsed, before it&rsquo;s rendered, you can use&nbsp;<code>MutationObservers</code>.</p>
+<pre class="lang-javascript lang-javascript cm-s-default" data-lang="javascript"><span class="cm-keyword">var <span class="cm-variable">MY_SELECTOR <span class="cm-operator">= <span class="cm-string">".blog-post" <span class="cm-comment">// Could be any selector
+
+<span class="cm-keyword">var <span class="cm-variable">observer <span class="cm-operator">= <span class="cm-keyword">new <span class="cm-variable">MutationObserver(<span class="cm-keyword">function(<span class="cm-def">mutations){
+  <span class="cm-keyword">for (<span class="cm-keyword">var <span class="cm-def">i<span class="cm-operator">=<span class="cm-number">0; <span class="cm-variable-2">i <span class="cm-operator">&lt; <span class="cm-variable-2">mutations.<span class="cm-property">length; <span class="cm-variable-2">i<span class="cm-operator">++){
+    <span class="cm-keyword">for (<span class="cm-keyword">var <span class="cm-def">j<span class="cm-operator">=<span class="cm-number">0; <span class="cm-variable-2">j <span class="cm-operator">&lt; <span class="cm-variable-2">mutations[<span class="cm-variable-2">i].<span class="cm-property">addedNodes.<span class="cm-property">length; <span class="cm-variable-2">j<span class="cm-operator">++){
+      <span class="cm-comment">// We're iterating through _all_ the elements as the parser parses them,
+      <span class="cm-comment">// deciding if they're the one we're looking for.
+      <span class="cm-keyword">if (<span class="cm-variable-2">mutations[<span class="cm-variable-2">i].<span class="cm-property">addedNodes[<span class="cm-variable-2">j].<span class="cm-property">matches(<span class="cm-variable">MY_SELECTOR)){
+        <span class="cm-variable">alert(<span class="cm-string">"My Element Is Ready!");
+
+        <span class="cm-comment">// We found our element, we're done:
+        <span class="cm-variable">observer.<span class="cm-property">disconnect();
+      };
+    }
+  }
+});
+
+<span class="cm-variable">observer.<span class="cm-property">observe(<span class="cm-variable">document.<span class="cm-property">documentElement, {
+  <span class="cm-property">childList: <span class="cm-atom">true,
+  <span class="cm-property">subtree: <span class="cm-atom">true
+});
+</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+<p>As this code is listening for when elements are rendered, the&nbsp;<code>MutationObserver</code>&nbsp;must be setup before the element you are looking for in the HTML. This commonly means setting it up in the&nbsp;<code>&lt;head&gt;</code>&nbsp;of the page.</p>
+<p>For more things you can do with&nbsp;<code>MutationObservers</code>, take a look at&nbsp;<a href="https://eager.io/blog/three-real-world-use-cases-for-mutation-observer/">our article</a>&nbsp;on the topic.</p>
+<h3 id="run-when-all-images-and-other-resources-have-loaded">Run When All Images And Other Resources Have Loaded</h3>
+<p>It&rsquo;s less common, but sometimes you want your code to run when not just the HTML has been parsed, but all of the resources like images have been loaded. This is the time the page is fully rendered, meaning if you do add something to the page now, there will be a noticable &lsquo;flash&rsquo; of the page before your new element appears.</p>
+<pre class="lang-javascript lang-javascript cm-s-default" data-lang="javascript"><span class="cm-variable">window.<span class="cm-property">addEventListener(<span class="cm-string">'load', <span class="cm-keyword">function(){
+  <span class="cm-comment">// Everything has loaded!
+});
+</span></span></span></span></span></pre>
+<h3 id="run-when-a-specific-image-has-loaded">Run When A Specific Image Has Loaded</h3>
+<p>If you are waiting on a specific resource, you can bind to the&nbsp;<code>load</code>&nbsp;event of just that element. This code requires access to the element itself, meaning it should appear after the element in the HTML source code, or happen inside a&nbsp;<code>DOMContentLoaded</code>&nbsp;or&nbsp;<code>jQuery.ready</code>&nbsp;handler function.</p>
+<pre class="lang-javascript lang-javascript cm-s-default" data-lang="javascript"><span class="cm-variable">document.<span class="cm-property">querySelector(<span class="cm-string">'img.my-image').<span class="cm-property">addEventListener(<span class="cm-string">'load', <span class="cm-keyword">function(){
+  <span class="cm-comment">// The image is ready!
+});
+</span></span></span></span></span></span></span></pre>
+<p>Note that if the image fails to load for some reason, the&nbsp;<code>load</code>&nbsp;event will never fire. You can, however, bind to the&nbsp;<code>error</code>&nbsp;event in the same manner, allowing you to handle that case as well.</p>
+<h3 id="run-when-my-current-changes-have-actually-rendered">Run When My Current Changes Have Actually Rendered</h3>
+<p>Changes you make in your JavaScript code often don't actually render to the page immediately. In the interest of speed, the browser often waits until the next&nbsp;<em>event loop cycle</em>&nbsp;to render changes. Alternatively, it will wait until you request a property which will likely change after any pending renders happen.. If you need that rendering to occur, you can either wait for the next event loop&nbsp;<em>tick</em>;</p>
+<pre class="lang-javascript lang-javascript cm-s-default" data-lang="javascript"><span class="cm-variable">setTimeout(<span class="cm-keyword">function(){
+  <span class="cm-comment">// Everything will have rendered here
+});
+</span></span></span></pre>
+<p>Or request a property which is known to trigger a render of anything pending:</p>
+<pre class="lang-javascript lang-javascript cm-s-default" data-lang="javascript"><span class="cm-variable">el.<span class="cm-property">offsetHeight <span class="cm-comment">// Trigger render
+
+<span class="cm-comment">// el will have rendered here
+</span></span></span></span></pre>
+<p>The&nbsp;<code>setTimeout</code>&nbsp;trick in particular is also great if you&rsquo;re waiting on other JavaScript code. When your&nbsp;<code>setTimeout</code>&nbsp;function is triggered, you know any other pending JavaScript on the page will have executed.</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

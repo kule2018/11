@@ -1,0 +1,280 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修koa+mysql+vue+socket.io全栈开发之web api篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>koa+mysql+vue+socket.io全栈开发之web api篇</center></div><div class='banquan'>原文出处:本文由博客园博主Jeff.Zhong提供。<br/>
+原文连接:https://www.cnblogs.com/edwardloveyou/p/10673663.html</div><br>
+    <p>原文地址：<a href="https://edwardzhong.github.io/2019/04/08/fullstack/">koa+mysql+vue+socket.io全栈开发之web api篇</a></p>
+<p>目标是建立一个 <strong>web QQ</strong>的项目，使用的技术栈如下：</p>
+<ol>
+<li><p>后端是基于<strong>koa2</strong> 的 web api 服务层，提供curd操作的http接口，登录验证使用的是 <strong>json web token</strong>，跨域方案使用的是 <strong>cors</strong>；</p></li>
+<li><p>数据库使用的是 <strong>mysql</strong>；</p></li>
+<li><p>为了实时通信，使用的是基于websocket协议的 <strong>socket.io</strong> 框架；</p></li>
+<li><p>前端则使用的是 <strong>vue + vuex</strong>。</p></li>
+</ol>
+<!-- more -->
+<p>本篇则讲叙服务端的搭建，之所以使用 <strong>koa</strong>，而不使用其他封装过的框架，比如 <strong>Egg.js</strong>， <strong>Thinkjs</strong>。因为在我看来，<strong>koa2</strong> 已经够方便，插件也足够多，完全可以根据自己的需求，像搭积木一样构建出最适合业务需求的框架。这样不但摒弃了很多用不到的插件，使整个框架更加精简，也能对整个框架知根知底，减少了很多不可预知因素的影响。</p>
+<p>当然我觉得最主要的是我比较懒😄，不想再去学其他框架特有的api，特有的配置。因为前端有太多框架太多api需要掌握了，对于非互联网公认的技术标准，我觉得学习的优先级还是要靠后一点的。因为这些个框架，三天两头就冒出个热门的，简直多不胜数，学不过来啊，而koa基本都是这些框架的底层，明显靠谱多了。</p>
+<h2 id="基本框架搭建">基本框架搭建</h2>
+<p>这几个koa插件大部分项目八九不离十要用到：</p>
+<ul>
+<li>koa-body 解析http数据</li>
+<li>koa-compress gzip压缩</li>
+<li>koa-router 路由</li>
+<li>koa-static 设置静态目录</li>
+<li>koa2-cors 跨域cors</li>
+<li>log4js 老牌的日志组件</li>
+<li>jsonwebtoken jwt 组件</li>
+</ul>
+<h2 id="基本的目录结构">基本的目录结构</h2>
+<pre><code><code>public #公共目录
+src    #前端目录
+server #后端目录
+├── common #工具
+├── config #配置文件
+├── controller #控制器
+├── daos   #数据库访问层
+├── logs   #日志目录
+├── middleware  #中间件目录
+├── socket #socketio目录
+├── app.js #入口文件
+└── router.js #路由               </code></pre>
+<h2 id="入口文件app.js">入口文件app.js</h2>
+<p>主要就是几个中间件配置需要注意一下，这里同时还加载了 socket.io 服务。socket.io 相关的基本知识点可以看我之前写的文章<a href="https://www.cnblogs.com/edwardloveyou/p/10625152.html">关于socket.io的使用</a>。</p>
+<pre class="javascript"><code>//app.js
+//...
+const path = require(&quot;path&quot;);
+const baseDir = path.normalize(__dirname + &quot;/..&quot;);
+
+// gzip
+app.use(
+  compress({
+    filter: function(content_type) {
+      return /text|javascript/i.test(content_type);
+    },
+    threshold: 2048,
+    flush: require(&quot;zlib&quot;).Z_SYNC_FLUSH
+  })
+);
+
+// 解析请求
+app.use(
+  koaBody({
+    jsonLimit: 1024 * 1024 * 5,
+    formLimit: 1024 * 1024 * 5,
+    textLimit: 1024 * 1024 * 5,
+    multipart: true, // 解析FormData数据
+    formidable: { uploadDir: path.join(baseDir, &quot;public/upload&quot;) }//上传文件目录
+  })
+);
+
+// 设置静态目录
+app.use(static(path.join(baseDir, &quot;public&quot;), { index: false }));
+app.use(favicon(path.join(baseDir, &quot;public/favicon.ico&quot;)));
+
+//cors
+app.use(
+  cors({
+    origin: &quot;http://localhost:&quot; + config.clientPort,
+    credentials: true,
+    allowMethods: [&quot;GET&quot;, &quot;POST&quot;, &quot;DELETE&quot;],
+    exposeHeaders: [&quot;Authorization&quot;],
+    allowHeaders: [&quot;Content-Type&quot;, &quot;Authorization&quot;, &quot;Accept&quot;]
+  })
+);
+
+//json-web-token中间件
+app.use(
+  jwt({
+    secret: config.secret,
+    exp: config.exp
+  })
+);
+
+// 登录验证中间件，exclude 表示不验证的页面，include 表示要验证的页面
+app.use(
+  verify({
+    exclude: [&quot;/login&quot;, &quot;/register&quot;, &quot;/search&quot;]
+  })
+);
+
+// 错误处理中间件
+app.use(errorHandler()); 
+
+// 路由
+addRouters(router);
+app.use(router.routes()).use(router.allowedMethods());
+
+// 处理404
+app.use(async (ctx, next) =&gt; {
+  log.error(`404 ${ctx.message} : ${ctx.href}`);
+  ctx.status = 404;
+  ctx.body = { code: 404, message: &quot;404! not found !&quot; };
+});
+
+// 处理中间件和系统错误
+app.on(&quot;error&quot;, (err, ctx) =&gt; {
+  log.error(err); //log all errors
+  ctx.status = 500;
+  ctx.statusText = &quot;Internal Server Error&quot;;
+  if (ctx.app.env === &quot;development&quot;) {
+    //throw the error to frontEnd when in the develop mode
+    ctx.res.end(err.stack); //finish the response
+  } else {
+    ctx.body = { code: -1, message: &quot;Server Error&quot; };
+  }
+});
+
+if (!module.parent) {
+  const { port, socketPort } = config;
+  /**
+   * koa app
+   */
+  app.listen(port);
+  log.info(`=== app server running on port ${port}===`);
+  console.log(&quot;app server running at: http://localhost:%d&quot;, port);
+
+  /**
+   * socket.io
+   */
+  addSocket(io);
+  server.listen(socketPort);
+}</code></pre>
+<h2 id="跨域cors-和-json-web-token">跨域cors 和 json web token</h2>
+<p>这里解释一下 koa-cors 参数的设置，我项目使用的是 json web token，需要把认证字段Authorization添加到header，前端获取该header字段，之后给后台发送http请求的时候，再带上该Authorization。</p>
+<ul>
+<li>origin：如果要访问header里面的字段或者设置cookie，要写具体的域名地址，用 星号 * 是不行的；</li>
+<li>credentials：主要是给前端获取cookie；</li>
+<li>allowMethods：允许访问的方法；</li>
+<li>exposeHeaders：前端如果要获取该header字段，必须写明（json web token用）；</li>
+<li>allowHeaders：添加到header的字段；</li>
+</ul>
+<p>至于 json web token的原理，网上资料齐全，这里不再介绍了。</p>
+<pre class="javascript"><code>app.use(
+  cors({
+    origin: &quot;http://localhost:&quot; + config.clientPort, // 访问header,要写明具体域名才行
+    credentials: true, //将凭证暴露出来, 前端才能获取cookie
+    allowMethods: [&quot;GET&quot;, &quot;POST&quot;, &quot;DELETE&quot;],
+    exposeHeaders: [&quot;Authorization&quot;], // 将header字段expose出去
+    allowHeaders: [&quot;Content-Type&quot;, &quot;Authorization&quot;, &quot;Accept&quot;] // 允许添加到header的字段
+  })
+);</code></pre>
+<h2 id="中间件middleware">中间件middleware</h2>
+<p>koa 的中间件就是 web开发的利器，通过它可以非常方便的实现 强类型语言中的 <strong>aop</strong> 切面编程，而koa2 中间件 的编写也足够简单 <a href="http://koajs.cn/">koajs</a>。</p>
+<p>项目在以下几个地方都用中间件进行了封装，很多重复的样板代码因此得以简化。</p>
+<ul>
+<li>json web token（jwt）</li>
+<li>登录验证（verify）</li>
+<li>错误处理（errorHandler）</li>
+</ul>
+<p>就以最简单的错误处理中间件为例子，如果不使用错误处理中间件，我们需要每个控制器方法进行 <strong>try{…} catch{…}</strong> ，其他中间件编写方式类似，就不再介绍。</p>
+<pre class="javascript"><code>/**
+ * error handler 中间件
+ */
+module.exports = () =&gt; {
+    return async (ctx, next) =&gt; {
+        try {
+            await next();//没有错误则进入下一个中间件
+        } catch (err) {
+            log.error(err);
+            let obj = {
+                code: -1,
+                message: &#39;服务器错误&#39;
+            };
+            if (ctx.app.env === &#39;development&#39;) {
+                obj.err = err;
+            }
+            ctx.body = obj
+        }
+    };
+};
+
+// 控制器代码使用error handler中间件后，每个方法都不需要 try catch处理错误，记录错误日志，处理逻辑都集中在中间件里面了。
+exports.getInfo = async function(ctx) {
+    // try {
+        const token = await ctx.verify();
+        const [users, friends] = await Promise.all([
+            userDao.getUser({ id: token.uid }),
+            getFriends([token.uid])
+        ]);
+
+        const msgs = applys.map(formatTime);
+        ctx.body = {
+            code: 0,
+            message: &quot;好友列表&quot;,
+            data: {
+                user: users[0],
+                friends: mergeReads(friends, reads),
+                groups,
+                msgs
+            }
+        };
+    // } catch (err) {
+    //     log.error(err);
+    //     let obj = {
+    //         code: -1,
+    //         message: &quot;服务器错误&quot;
+    //     };
+    //     if (ctx.app.env === &quot;development&quot;) {
+    //         obj.err = err;
+    //     }
+    //     ctx.body = obj;
+    // }
+};</code></pre>
+<h2 id="路由配置">路由配置</h2>
+<p>路由配置只使用了get，post 方法，当然要使用 put，delete也只是改一下名字就行。</p>
+<pre class="javascript"><code>// router.js
+const { uploadFile } = require(&#39;./controller/file&#39;)
+const { login, register } = require(&#39;./controller/sign&#39;)
+const { addGroup, delGroup, updateGroup } = require(&#39;./controller/group&#39;)
+//...
+
+module.exports = function (router) {
+    router
+        .post(&#39;/login&#39;, login)
+        .post(&#39;/register&#39;, register)
+        .post(&#39;/upload&#39;, uploadFile)
+        .post(&#39;/addgroup&#39;, addGroup)
+        .post(&#39;/delgroup&#39;, delGroup)
+        .post(&#39;/updategroup&#39;, updateGroup)
+            //...
+};</code></pre>
+<h2 id="控制器">控制器</h2>
+<p>以updateInfo方法为例，koa2 已经全面支持 <strong>async await</strong>，编写方式和同步代码没多大区别。</p>
+<pre class="javascript"><code>exports.updateInfo = async function (ctx) {
+    const form = ctx.request.body;
+    const token = await ctx.verify();
+    const ret = await userDao.update([form, token.uid]);
+    if (!ret.affectedRows) {
+        return ctx.body = {
+            code: 2,
+            message: &#39;更新失败&#39;
+        };
+    }
+    ctx.body = {
+        code: 0,
+        message: &#39;更新成功&#39;
+    };
+}</code></pre>
+<h2 id="后续">后续</h2>
+<p>接着下一编就是基于 mysql 构建 数据库访问层。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

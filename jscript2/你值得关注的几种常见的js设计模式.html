@@ -1,0 +1,246 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修你值得关注的几种常见的js设计模式' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>你值得关注的几种常见的js设计模式</center></div><div class='banquan'>原文出处:本文由博客园博主pubdreamcc提供。<br/>
+原文连接:https://www.cnblogs.com/dreamcc/p/11083818.html</div><br>
+    <h1 id="前言">前言</h1>
+<p>潜水了一段时间，今天空闲时间复盘下之前的知识点，聊聊 js 几种常见的设计模式。</p>
+<p>掌握 JavaScript 中常见的一些设计模式，对我们书写规范性代码，可维护性代码有很大的帮助。</p>
+<blockquote>
+<p>ps：最近在一些好友的鼓励下，pubdreamcc 准备着手经营一个公众号了，具体信息会在接下来的两天时间内发布，新手上路，欢迎大伙提供一些宝贵的建议，cc 在这里先谢了~</p>
+</blockquote>
+<h2 id="内容主体">内容主体</h2>
+<h3 id="单例模式">单例模式</h3>
+<p>所谓单例模式即为：保证一个类仅有一个实例，并提供一个访问它的全局访问点。</p>
+<p>这里其实利用的是 <code>js闭包</code> 来实现这样的功能。</p>
+<p>假如现在我们有这样的需求，设置一个管理员，无论创建多次都只是设置一次。</p>
+<pre><code><code>
+function SetManager(name) {
+  this.manager = name;
+}
+
+SetManager.prototype.getName = function() {
+  console.log(this.manager);
+};
+
+var SingletonSetManager = (function() {
+  var manager = null;
+
+  return function(name) {
+    if (!manager) {
+        manager = new SetManager(name);
+    }
+
+    return manager;
+  }
+})();
+
+SingletonSetManager(&#39;a&#39;).getName(); // a
+SingletonSetManager(&#39;b&#39;).getName(); // a
+SingletonSetManager(&#39;c&#39;).getName(); // a</code></pre>
+<p>这种方法有一个缺点就是：如果我们需要再次创建一个 HR，则需要将代码再复制一遍，所以我们可以提取通用的单例。</p>
+<pre><code><code>function getSingleton(fn) {
+  var instance = null;
+
+  return function() {
+    if (!instance) {
+        instance = fn.apply(this, arguments);
+    }
+
+    return instance;
+  }
+}
+
+
+// 设置管理员
+var managerSingleton = getSingleton(function(name){
+  var manager = new SetManager(name);
+  return manager;
+})
+
+managerSingleton(&#39;a&#39;).getName(); // a
+managerSingleton(&#39;b&#39;).getName(); // a
+managerSingleton(&#39;c&#39;).getName(); // a
+
+// 设置 HR
+
+function SetHr(name) {
+  this.hr = name;
+}
+
+SetHr.prototype.getName = function() {
+  console.log(this.hr);
+};
+
+var hrSingleton = getSingleton(function(name) {
+  var hr = new SetHr(name);
+  return hr;
+});
+
+hrSingleton(&#39;aa&#39;).getName(); // aa
+hrSingleton(&#39;bb&#39;).getName(); // aa
+hrSingleton(&#39;cc&#39;).getName(); // aa</code></pre>
+<p>这样我们的代码可通用性就会变得更好，省去了一些重复性的代码。</p>
+<h3 id="代理模式">代理模式</h3>
+<p>所谓代理模式就是：我们不方便直接访问某个对象时，可以为对象创建一个占位符（代理），以便控制对它的访问，我们实际上访问的是代理对象。</p>
+<p>这里我们以一个过滤敏感字符来说明这种模式</p>
+<pre><code><code>// 主体，发送消息
+function sendMsg(msg) {
+  console.log(msg);
+}
+
+// 代理，对消息进行过滤
+function proxySendMsg(msg) {
+  // 无消息则直接返回
+  if (typeof msg === &#39;undefined&#39;) {
+    console.log(null);
+    return;
+  }
+  
+  // 有消息则进行过滤
+  msg = (&#39;&#39; + msg).replace(/泥\s*煤/g, &#39;&#39;);
+
+  sendMsg(msg);
+}
+
+
+sendMsg(&#39;泥煤呀泥 煤呀&#39;); // 泥煤呀泥 煤呀
+proxySendMsg(&#39;泥煤呀泥 煤&#39;); // 呀
+proxySendMsg(); // null</code></pre>
+<p>这样操作的意图很明显，当没有消息的时候，控制对主体对象的访问，代理直接返回一个 <code>null</code> ，有消息，则会过滤掉敏感字符，实现虚拟代理。</p>
+<h3 id="策略模式">策略模式</h3>
+<p>策略模式就是内部封装一些算法，它们之间可以互相替换，但是它们不随客户端变化而变化。</p>
+<p>策略模式我们外部看不到算法的具体实现，我们也只关心算法实现的结果，不关注过程。</p>
+<p>这里以一个商品促销的例子来说明下：在圣诞节，某些商品需要八折出售，有些商品需要九折出售，到了元旦节，普通客户满100减30，vip客户满100减50。可以看到商品出售的价格需要根据不同的条件来规定，分别采取不同的算法实现，所以我们采用策略模式。</p>
+<pre><code><code>// 价格策略对象
+class PriceStrategy {
+  constructor() {
+      // 内部算法对象
+    this.stragtegy = {
+        // 100返30
+      return30(price) {
+          return +price + parseInt( price / 100) * 30;
+      },
+      // 100 返 50
+      return50(price) {
+          return +price + parseInt(price/ 100) * 50;
+      },
+      // 9 折
+      percent90(price) {
+          return price * 100 * 90 / 10000
+      },
+      percent80(price) {
+          return price * 100 * 80 / 10000
+      },
+      percent50(price) {
+          return price * 100 * 50 / 10000
+      }
+    }
+  }
+  // 策略算法调用接口
+  getPrice(algorithm, price) {
+    return this.stragtegy[algorithm] &amp;&amp; this.stragtegy[algorithm](price);
+  }
+}
+let priceStrategy = new PriceStrategy();
+let price = priceStrategy.getPrice(&#39;return50&#39;, 314.67);
+console.log(price);</code></pre>
+<p>这样，我们可以采取不同的策略算法得到商品的不同价格。</p>
+<h3 id="观察者模式">观察者模式</h3>
+<p>观察者模式又称为 “发布-订阅模式”，通过定义一种依赖关系，当一个对象状态发生改变时，订阅者会得到通知。</p>
+<p>其实，我们传统的 DOM 事件绑定就是一种发布-订阅模式。</p>
+<pre><code><code>// 订阅
+document.body.addEventListener(&#39;click&#39;, function() {
+  console.log(&#39;click1&#39;);
+}, false);
+
+document.body.addEventListener(&#39;click&#39;, function() {
+  console.log(&#39;click2&#39;);
+}, false);
+
+// 发布
+document.body.click(); // click1  click2</code></pre>
+<h3 id="装饰者模式">装饰者模式</h3>
+<p>装饰者模式就是在不改变原对象基本功能的基础上，通过增加功能使得原本对象满足用户的更为复杂的需求。</p>
+<p>比如有这么一个需求：</p>
+<p>用户点击输入框时，如果输入框输入的内容有限制，那么在其后面显示用户输入内容的限制格式的提示文案</p>
+<p>----------------&gt;&gt;&gt;&gt;&gt;&gt;&gt; 现在要改为：</p>
+<p>多加一条需求，默认输入框上边显示一行文案，当用户点击输入框的时候，文案消失。</p>
+<p>这里是以前的代码：</p>
+<pre><code><code>// 输入框元素
+let telInput = document.getElementById(&#39;tel_input&#39;);
+// 输入框提示文案
+let telWarnText = document.getElementById(&#39;tel_warn_text&#39;);
+// 点击输入框显示输入框输入格式提示文案
+input.onclick = function () {
+  telWarnText.style.display = &#39;inline-block&#39;;
+};</code></pre>
+<p>修改之后的代码：</p>
+<pre><code><code>// 输入框元素
+let telInput = document.getElementById(&#39;tel_input&#39;);
+// 输入框输入格式提示文案
+let telWarnText = document.getElementById(&#39;tel_warn_text&#39;);
+// 输入框提示输入文案
+let telDemoText = document.getElementById(&#39;tel_demo_text&#39;);
+// 点击输入框显示输入框输入格式提示文案
+input.onclick = function () {
+  telWarnText.style.display = &#39;inline-block&#39;;
+  telDemoText.style.display = &#39;none&#39;;
+};</code></pre>
+<p>但是紧接着悲剧就来了，修改了电话输入框，还有姓名、地址输入框等等；</p>
+<p><strong>装饰已有的功能对象</strong></p>
+<p>原有的功能已经不满足用户的需求了，此时需要做的是对原有的功能添加，设置新的属性和方法来满足新的需求，但是有不影响原来已经有的部分。</p>
+<pre><code><code>let decorator = function (input, fn) {
+  let getInput = document.getElementById(input);
+  if(typeof getInput.onclick === &#39;function&#39;) {
+    let oldClick = getInput.onclick;
+    getInput.onclick = function() {
+        // 原来的事件回调函数
+        oldClick();
+        // 新增的事件回调函数
+        fn();
+    }
+  } else {
+    getInput.onclick = fn;
+  }
+  // 其他事件
+};
+
+// 电话输入框功能装饰
+decorator(&#39;tel_input&#39;, function() {
+  document.getElementById(&#39;tel_demo_text&#39;).sytle.display = &#39;none&#39;
+});
+// 姓名输入框装饰
+decorator(&#39;name_input&#39;, function() {
+  document.getElementById(&#39;name_demo_text&#39;).sytle.display = &#39;none&#39;
+});
+// 地址输入框装饰
+decorator(&#39;address_input&#39;, function() {
+  document.getElementById(&#39;address_demo_text&#39;).sytle.display = &#39;none&#39;
+});</code></pre>
+<h2 id="后语">后语</h2>
+<p>本编文章出自于我的 <code>github</code> 仓库 ，欢迎喜欢的伙伴 <code>star</code> ，谢谢 。</p>
+<blockquote>
+<p>仓库地址 <a href="https://github.com/pubdreamcc/web-study">前端学习</a></p>
+</blockquote>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

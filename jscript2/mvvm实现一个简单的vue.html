@@ -1,0 +1,131 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修mvvm实现一个简单的vue' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>mvvm实现一个简单的vue</center></div><div class='banquan'>原文出处:本文由博客园博主waitklove提供。<br/>
+原文连接:https://www.cnblogs.com/czkolve/p/10927391.html</div><br>
+    <p>vue，基于mvvm模式下的一个前端框架</p>
+<p>　　mvvm模式下简单的实现数据代理，数据劫持</p>
+<p>　　1.是用Object.defineProperty 实现数据代理</p>
+<p>　　2.使用发布订阅者模式，配合&nbsp;Object.defineProperty，实现数据劫持</p>
+<p>　　　　数据劫持包括依赖收集和依赖促发</p>
+<p>　　（只考虑最简单的方式，并且没有包括具体的依赖收集，我模拟的依赖收集，依赖收集得是在模板解析的时候，需要使用正则匹配出vue的一般指令和表达式）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;"> 实现一个简易的vue </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+class myvue {
+    constructor (option) {
+        let _self </span>= <span style="color: #0000ff;">this</span>
+        <span style="color: #0000ff;">this</span>._data =<span style="color: #000000;"> option.data
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.proxydata(_self)
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 使用发布订阅者模式实现数据劫持 </span><span style="color: #008000;">*/</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.Datahijacking(_self)
+
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 实现一下模拟依赖收集 </span><span style="color: #008000;">*/</span>
+        <span style="color: #008000;">/*</span><span style="color: #008000;"> 本身模板解析时，会使用正则去匹配表达式和一般指令
+            匹配成功的表示是和一般指令都会调用以此数据劫持上的get方法
+        </span><span style="color: #008000;">*/</span>
+        <span style="color: #008000;">/*</span><span style="color: #008000;"> 假知我们传入的就是name 和 age </span><span style="color: #008000;">*/</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">._data.name;
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">._data.name;
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">._data.name;       
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">._data.age;
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">._data.age;
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 上面代表模板解析的时候一共调用的三次name 和 两次age </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 实现vue对_data数据的代理 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    proxydata(_self) {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 遍历传入的data的所有属性 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        Object.keys(_self._data).forEach(key</span>=&gt;<span style="color: #000000;">{
+            Object.defineProperty(_self,key,{
+                configurable:</span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+                enumerable: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+                get () {
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _self._data[key]
+                },
+                set (val) {
+                    _self._data[key] </span>=<span style="color: #000000;"> val
+                }
+            })
+        })
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 对_data数据劫持 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    Datahijacking(_self) {
+        Object.keys(_self._data).forEach(key</span>=&gt;<span style="color: #000000;">{
+            let value </span>=<span style="color: #000000;"> _self._data[key]
+            </span><span style="color: #0000ff;">var</span> dep = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Dep();
+            Object.defineProperty(_self._data,key,{
+                configurable:</span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+                enumerable: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+                get () {
+                    dep.addsubs(dep.id,</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> watch(key))
+                    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> value
+                },
+                set (val) {
+                    dep.notify(val)
+                }
+            })
+        })
+    }
+}
+
+</span><span style="color: #0000ff;">var</span> uid = 0<span style="color: #000000;">;
+class Dep {
+    constructor () {
+        </span><span style="color: #0000ff;">this</span>.id = uid++<span style="color: #000000;">;
+        </span><span style="color: #0000ff;">this</span>.handlers =<span style="color: #000000;"> []
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 依赖添加 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    addsubs (id,fn) {
+        </span><span style="color: #0000ff;">if</span>(!<span style="color: #0000ff;">this</span><span style="color: #000000;">.handlers[id]) {
+            </span><span style="color: #0000ff;">this</span>.handlers[id] =<span style="color: #000000;"> []
+        }
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.handlers[id].push(fn)
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 依赖促发 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    notify (val) {
+        </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span><span style="color: #000000;">.handlers) {
+            </span><span style="color: #0000ff;">this</span>.handlers[<span style="color: #0000ff;">this</span>.id].forEach(fn=&gt;<span style="color: #000000;">{                
+                fn.update(val);
+            })
+        }
+    }
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;"> 具体订阅者 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+class watch {
+    constructor (name) {
+        </span><span style="color: #0000ff;">this</span>.name =<span style="color: #000000;"> name
+    }
+    update (val) {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 模拟试图更新 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        console.log(</span>'视图更新了'+<span style="color: #000000;">val)
+    }
+}
+
+let vm </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> myvue({data:{
+    name: </span>'czklove'<span style="color: #000000;">,
+    age: </span>'17'<span style="color: #000000;">
+}})
+console.log(vm)
+
+vm.name </span>= 'czklovel11'</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

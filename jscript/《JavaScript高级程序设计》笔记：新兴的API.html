@@ -1,0 +1,584 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修《JavaScript高级程序设计》笔记：新兴的API' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>《JavaScript高级程序设计》笔记：新兴的API</center></div><div class='banquan'>原文出处:本文由博客园博主风雨后见彩虹提供。<br/>
+原文连接:https://www.cnblogs.com/moqiutao/p/10249181.html</div><br>
+    <h2><span style="background-color: #f9f2f4;">requestAnimationFrame()</span></h2>
+<p>大多数电脑显示器的刷新频率60HZ，大概相当于每秒钟重绘60次。因此，最平滑动画的最佳循环间隔是1000ms/60，约等于17ms。</p>
+<h3>mozRequestAnimationFrame()</h3>
+<p><span style="background-color: #f9f2f4;">mozRequestAnimationFrame()</span>方法接收一个参数，即在重绘屏幕前调用的一个函数。这个函数负责改变下一次重绘时的DOM样式。为了创建动画循环，可以像以前使用setTimeout()方法一样，把多个对mozRequestAnimationFrame()的调用连缀起来，如下代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> updateProgress(){
+    </span><span style="color: #0000ff;">var</span> div = document.getElementById("status"<span style="color: #000000;">);
+    div.style.width </span>= (parseInt(div.style.width,10) + 5) + "%"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span>(div.style.width != "100%"<span style="color: #000000;">){
+        mozRequestAnimationFrame(updateProgress);
+    }
+}
+mozRequestAnimationFrame(updateProgress);</span></pre>
+</div>
+<p>我们传递的mozRequestAnimationFrame()函数也会接收一个参数，它是一个时间码（从1970年1月1日起至今的毫秒数），表示下一次重绘的实际发生时间。</p>
+<blockquote>
+<p>注意：mozRequestAnimationFrame()会根据这个时间码设定将来的某个时刻进行重绘，而根据这个时间码，你也能知道那个时刻是什么时间。然后，在优化动画效果就有了依据。</p>
+</blockquote>
+<p>要知道距离上一次重绘已经过去了多长时间，可以查询<span style="background-color: #f9f2f4;">mozAnimationStartTime</span>，其中包含上次重绘的时间码。用传入回调函数的时间码减去这个时间码，就能计算出在屏幕上重绘下一组变化之前要经过多长时间。使用这个值的典型方式：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> draw(timestamp){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">计算两次重绘的事件间隔</span>
+    <span style="color: #0000ff;">var</span> diff = timestamp -<span style="color: #000000;"> startTime;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">使用diff确定下一步的绘制时间</span>
+    
+    <span style="color: #008000;">//</span><span style="color: #008000;">把startTime重写为这一次的绘制时间</span>
+    startTime =<span style="color: #000000;"> timestamp;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">重绘UI</span>
+<span style="color: #000000;">    mozRequestAnimationFrame(draw);
+}
+
+</span><span style="color: #0000ff;">var</span> startTime =<span style="color: #000000;"> mozAnimationStartTime;
+mozRequestAnimationFrame(draw);</span></pre>
+</div>
+<h3>webkitRequestAnimationFrame与msRequestAnimationFrame</h3>
+<p>Chrome和IE10+也都给出了自己的实现，分别是<span style="color: #c7254e; background-color: #f9f2f4;">webkitRequestAnimationFrame()</span>和<span style="color: #c7254e; background-color: #f9f2f4;">msRequestAnimationFrame()</span>。这两个版本跟mozilla的版本有两个方面的微小差异。</p>
+<ul>
+<li>首先，不会给回调函数传递时间码，因此你无法知道下一次重绘将发生在什么时间；</li>
+<li>其次，Chrome又增加了第二个可选的参数，即将要发生变化的DOM元素。知道了重绘将发生在页面中哪个特定元素的区域内，就可以将重绘限定在该区域中。</li>
+</ul>
+<p>既然没有下一次重绘的时间码，那么就没有提供像mozAnimationStartTime的实现，不过，Chrome提供了另一个方法webkitCancelAnimationFrame()，用于取消之前计划执行的重绘操作。</p>
+<p>假如你不需要知道精确的时间差，可以参考以下模式创建动画循环：</p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> draw(timestamp){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">计算两次重绘的时间间隔</span>
+        <span style="color: #0000ff;">var</span> drawStart = timestamp ||<span style="color: #000000;"> Date.now(),
+            diff </span>= drawStart -<span style="color: #000000;"> startTime;
+            
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">使用diff确定下一步的绘制时间</span>
+    
+        <span style="color: #008000;">//</span><span style="color: #008000;">把startTime重写为这一次的绘制时间</span>
+        startTime =<span style="color: #000000;"> drawStart;
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">重绘UI</span>
+<span style="color: #000000;">        requestAnimationFrame(draw);
+    }
+    </span><span style="color: #0000ff;">var</span> requestAnimationFrame = window.requestAnimationFrame ||<span style="color: #000000;">
+                                window.mozRequestAnimationFrame </span>||<span style="color: #000000;">
+                                window.webkitRequestAnimationFrame </span>||<span style="color: #000000;">
+                                window.msRequestAnimationFrame,
+        startTime </span>= window.mozAnimationStartTime ||<span style="color: #000000;"> Date.now();
+    requestAnimationFrame(draw);
+})();</span></pre>
+</div>
+<p>来看个实际的例子,如下代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="UTF-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #800000;">
+        *</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">margin</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;">0</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">padding</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;">0</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #000000;">}</span><span style="background-color: #f5f5f5; color: #800000;">
+    #status</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">width</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;">20px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">height</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;">20px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">background</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> red</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #000000;">}</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="status"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+(</span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;">(){
+    </span><span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> draw(timestamp){
+                </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">计算两次重绘的时间间隔</span>
+        <span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> drawStart </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> timestamp </span><span style="background-color: #f5f5f5; color: #000000;">||</span><span style="background-color: #f5f5f5; color: #000000;"> Date.now(),
+            diff </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> drawStart </span><span style="background-color: #f5f5f5; color: #000000;">-</span><span style="background-color: #f5f5f5; color: #000000;"> startTime;
+                
+                </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">使用diff确定下一步的绘制时间</span>
+<span style="background-color: #f5f5f5; color: #000000;">                console.log(diff)
+                
+        </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">把startTime重写为这一次的绘制时间</span>
+<span style="background-color: #f5f5f5; color: #000000;">        startTime </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> drawStart;
+                
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> div </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.getElementById(</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">status</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">);
+        </span><span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> computedStyle </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> document.defaultView.getComputedStyle(div,</span><span style="background-color: #f5f5f5; color: #0000ff;">null</span><span style="background-color: #f5f5f5; color: #000000;">);
+        div.style.width </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> (parseInt(computedStyle.width,</span><span style="background-color: #f5f5f5; color: #000000;">10</span><span style="background-color: #f5f5f5; color: #000000;">) </span><span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #000000;">5</span><span style="background-color: #f5f5f5; color: #000000;">) </span><span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">px</span><span style="background-color: #f5f5f5; color: #000000;">"</span><span style="background-color: #f5f5f5; color: #000000;">;
+                
+        </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">重绘UI</span>
+        <span style="background-color: #f5f5f5; color: #0000ff;">if</span><span style="background-color: #f5f5f5; color: #000000;">(parseInt(computedStyle.width,</span><span style="background-color: #f5f5f5; color: #000000;">10</span><span style="background-color: #f5f5f5; color: #000000;">) </span><span style="background-color: #f5f5f5; color: #000000;">&lt;</span> <span style="background-color: #f5f5f5; color: #000000;">500</span><span style="background-color: #f5f5f5; color: #000000;">){
+            requestAnimationFrame(draw);
+        }
+    }
+    </span><span style="background-color: #f5f5f5; color: #0000ff;">var</span><span style="background-color: #f5f5f5; color: #000000;"> requestAnimationFrame </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> window.requestAnimationFrame </span><span style="background-color: #f5f5f5; color: #000000;">||</span><span style="background-color: #f5f5f5; color: #000000;">
+                                window.mozRequestAnimationFrame </span><span style="background-color: #f5f5f5; color: #000000;">||</span><span style="background-color: #f5f5f5; color: #000000;">
+                                window.webkitRequestAnimationFrame </span><span style="background-color: #f5f5f5; color: #000000;">||</span><span style="background-color: #f5f5f5; color: #000000;">
+                                window.msRequestAnimationFrame,
+        startTime </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> window.mozAnimationStartTime </span><span style="background-color: #f5f5f5; color: #000000;">||</span><span style="background-color: #f5f5f5; color: #000000;"> Date.now();
+    requestAnimationFrame(draw);
+})();
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;requestAnimationFrame简单兼容方式：</p>
+<div class="cnblogs_code">
+<pre><code>window.requestAnimFrame = (<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+  </span><span style="color: #0000ff;">return</span>  window.requestAnimationFrame       ||<span style="color: #000000;">
+          window.webkitRequestAnimationFrame </span>||<span style="color: #000000;">
+          window.mozRequestAnimationFrame    </span>||
+          <span style="color: #0000ff;">function</span><span style="color: #000000;">( callback ){
+            window.setTimeout(callback, </span>1000 / 60<span style="color: #000000;">);
+          };
+})();</span></pre>
+</div>
+<p>更全面的兼容方法：</p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    </span><span style="color: #0000ff;">var</span> lastTime = 0<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">var</span> vendors = ['webkit', 'moz'<span style="color: #000000;">];
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> x = 0; x &lt; vendors.length &amp;&amp; !window.requestAnimationFrame; ++<span style="color: #000000;">x) {
+        window.requestAnimationFrame </span>= window[vendors[x] + 'RequestAnimationFrame'<span style="color: #000000;">];
+        window.cancelAnimationFrame </span>= window[vendors[x] + 'CancelAnimationFrame'] ||    <span style="color: #008000;">//</span><span style="color: #008000;"> Webkit中此取消方法的名字变了</span>
+                                      window[vendors[x] + 'CancelRequestAnimationFrame'<span style="color: #000000;">];
+    }
+ 
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">window.requestAnimationFrame) {
+        window.requestAnimationFrame </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(callback, element) {
+            </span><span style="color: #0000ff;">var</span> currTime = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().getTime();
+            </span><span style="color: #0000ff;">var</span> timeToCall = Math.max(0, 16.7 - (currTime -<span style="color: #000000;"> lastTime));
+            </span><span style="color: #0000ff;">var</span> id = window.setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                callback(currTime </span>+<span style="color: #000000;"> timeToCall);
+            }, timeToCall);
+            lastTime </span>= currTime +<span style="color: #000000;"> timeToCall;
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> id;
+        };
+    }
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">window.cancelAnimationFrame) {
+        window.cancelAnimationFrame </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(id) {
+            clearTimeout(id);
+        };
+    }
+}());</span></pre>
+</div>
+<p>详细参考地址：《<a href="https://www.cnblogs.com/Wayou/p/requestAnimationFrame.html" target="_blank">requestAnimationFrame，Web中写动画的另一种选择</a>》。</p>
+<h2>&nbsp;Page visibility API</h2>
+<p>如果页面最小化了或者隐藏在了其他标签页后面，Page visibility API（页面可见性API）就是为了让开发人员知道页面是否对用户可见而推出的。</p>
+<ul>
+<li><span style="color: #c7254e; background-color: #f9f2f4;">document.hidden</span>：表示页面是否隐藏的布尔值。</li>
+<li><span style="color: #c7254e; background-color: #f9f2f4;">visibilitychange</span>事件：当文档从可见变为不可见或者从不可见变为可见时，触发该事件。</li>
+</ul>
+<div class="cnblogs_code">
+<pre><code>document.addEventListener('visibilitychange',<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(document.hidden){
+        console.log(</span>'页面隐藏了'<span style="color: #000000;">)
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        console.log(</span>"页面显示了"<span style="color: #000000;">)
+    }
+},</span><span style="color: #0000ff;">false</span>);</pre>
+</div>
+<p>IE10+以及其它高版本浏览器支持该API。</p>
+<h2>Geolocation API</h2>
+<p><span style="color: #c7254e; background-color: #f9f2f4;">Geolocation API</span>在浏览器中实现是<span style="color: #c7254e; background-color: #f9f2f4;">navigator.geolocation</span>对象，这个对象包含3个方法，<strong><span style="color: #c7254e;">getCurrentPosition()</span></strong>、<strong><span style="color: #c7254e;">watchPosition()、<strong><span style="color: #c7254e;">clearWatch()</span></strong></span></strong>。</p>
+<p><strong><span style="color: #c7254e; background-color: #f9f2f4;">getCurrentPosition()</span></strong>：接受三个参数，成功回调函数、可选的失败回调函数和可选的选项对象。</p>
+<p>其中成功回调函数会接收一个<span style="color: #c7254e; background-color: #f9f2f4;">position对象</span>参数，该对象有两个属性：<span style="color: #c7254e; background-color: #f9f2f4;">coords</span>和<span style="color: #c7254e; background-color: #f9f2f4;">timestamp</span>。coords将包含与位置相关的信息，如下：</p>
+<ul>
+<li>latitude：以十进制度数表示的纬度。</li>
+<li>longitude：以十进制度数表示的经度。</li>
+<li>accuracy：经、纬度坐标的精度，以米为单位。</li>
+</ul>
+<p>失败回调接收一个参数，这个参数是一个对象，包括两个属性：message和code。</p>
+<p><span style="color: #c7254e; background-color: #f9f2f4;">getCurrentPosition()</span>的第三个参数是一个选项对象，用于设定信息的类型。可以设置的选项有三个：</p>
+<ul>
+<li>enableHighAccuracy：布尔值，表示必须尽可能使用最准确的位置信息；</li>
+<li>timeout：是以毫秒数表示的等待位置信息的最长时间；</li>
+<li>maximumAge：表示上一次取得的坐标信息的有效时间，以毫秒数表示，如果时间到重新取得新坐标信息。</li>
+</ul>
+<div class="cnblogs_code">
+<pre><code>navigator.geolocation.getCurrentPosition(<span style="color: #0000ff;">function</span><span style="color: #000000;">(position){
+    console.log(position.coords.latitude,position.coords.longitude);
+},</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(error){
+    console.log(</span>"Error code：" +<span style="color: #000000;"> error.code);
+    console.log(</span>"Error message：" +<span style="color: #000000;"> error.message);
+},{
+    enableHighAccuracy:</span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+    timeout:</span>50000<span style="color: #000000;">,
+    maximumAge:</span>25000<span style="color: #000000;">
+})</span></pre>
+</div>
+<p><strong><span style="color: #c7254e; background-color: #f9f2f4;">watchPosition()</span></strong>：参数跟getCurrentPosition()一样。实际上与定时调用getCurrentPosition()的效果相同。在第一次调用watchPostion()方法后，会取得当前位置，执行成功回调或者错误回调。然后，watchPosition()就地等待系统发出位置已改变的信号（它不会自己轮询位置）。调用watchPosition()会返回一个数值标识符，用于跟踪监控的操作。基于这个返回值可以取消监控操作，只要将其传递给<strong><span style="color: #c7254e; background-color: #f9f2f4;">clearWatch()</span></strong>方法即可。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> watchId = navigator.geolocation.watchPosition(<span style="color: #0000ff;">function</span><span style="color: #000000;">(position){
+    console.log(position.coords.latitude,position.coords.longitude);
+},</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(error){
+    console.log(</span>"Error code：" +<span style="color: #000000;"> error.code);
+    console.log(</span>"Error message：" +<span style="color: #000000;"> error.message);
+},{
+    enableHighAccuracy:</span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+    timeout:</span>50000<span style="color: #000000;">,
+    maximumAge:</span>25000<span style="color: #000000;">
+});
+
+navigator.geolocation.clearWatch(watchId);</span></pre>
+</div>
+<h2>File API</h2>
+<p>FIle API在表单中的文件输入字段的基础上，又添加了一些直接访问文件信息的接口。HTML5在DOM中为文件输入元素添加了一个files集合。在通过文件输入字段选择了一个或者多个文件时，files集合中包含一组File对象，每个file对象对应了一个文件。每个File对象都有下列只读属性。</p>
+<ul>
+<li>name：本地文件系统中的文件名。</li>
+<li>size：文件的字节大小。</li>
+<li>type：字符串，文件的MIME类型。</li>
+<li>lastModifiedDate：字符串，文件上一次被修改的时间（只有Chrome实现了这个属性）。</li>
+</ul>
+<p>如下例子：</p>
+<p>HTML代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="file"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="files-list"</span><span style="color: #ff0000;"> multiple</span><span style="color: #0000ff;">/&gt;</span></pre>
+</div>
+<p>JS代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> filesList = document.getElementById("files-list"<span style="color: #000000;">);
+EventUtil.addHandler(filesList,</span>"change",<span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    </span><span style="color: #0000ff;">var</span> files =<span style="color: #000000;"> EventUtil.getTarget(event).files,
+        i </span>= 0<span style="color: #000000;">,
+        len </span>=<span style="color: #000000;"> files.length;
+    </span><span style="color: #0000ff;">while</span>(i &lt;<span style="color: #000000;"> len){
+        console.log(files[i].name </span>+ "(" + files[i].type + "," + files[i].size + "bytes)"<span style="color: #000000;">);
+        i</span>++<span style="color: #000000;">;
+    }    
+})</span></pre>
+</div>
+<h3>FileReader类型</h3>
+<p><span style="color: #c7254e; background-color: #f9f2f4;">FileReader</span>类型实现的是一种异步文件读取机制。可以把FileReader想象成XMLHttpRequest，区别只是它读取的是文件系统，而不是远程服务器。为了读取文件中的数据，FileReader提供了如下几个方法。</p>
+<ul>
+<li><span style="color: #c7254e; background-color: #f9f2f4;">readAsText(file,encoding)</span>：以纯文本形式读取文件，将读取到的文本保存到result属性中。第二个参数用于指定编码类型，是可选的。</li>
+<li><span style="color: #c7254e; background-color: #f9f2f4;">readAsDataURL(file)</span>：读取文件并将文件以数据URI的形式保存在result属性中。</li>
+<li><span style="color: #c7254e; background-color: #f9f2f4;">readAsBinaryString(file)</span>：读取文件并将一个字符串保存在result属性中，字符串中的每个字符表示一个字节。</li>
+<li><span style="color: #c7254e; background-color: #f9f2f4;">readAsArrayBuffer(file)</span>：读取文件并将一个包含文件内容的ArrayBuffer保存在result属性中。</li>
+</ul>
+<p>例如，可以读取图像文件并将其保存为数据URI，以便将其显示给用户，或者为了解析方便，可以将文件读取为文本形式。</p>
+<p>由于读取是异步的，因此FileReader提供了几个事件。其中最有用的3个事件是<span style="color: #c7254e; background-color: #f9f2f4;">progress</span>、<span style="color: #c7254e; background-color: #f9f2f4;">error</span>和<span style="color: #c7254e; background-color: #f9f2f4;">load</span>，分别表示是否读取了新数据、是否发生了错误以及是否读完了整个文件。</p>
+<p>每过50ms左右，就会触发一次progress事件，通过事件对象可以获得与XHR的progress事件相同的信息（属性）：<span style="color: #c7254e; background-color: #f9f2f4;">lengthComputable</span>、<span style="color: #c7254e; background-color: #f9f2f4;">loaded</span>和<span style="color: #c7254e; background-color: #f9f2f4;">total</span>。另外，尽管可能没有包含全部数据，但每次progress事件中都可以通过FileReader的result属性读取到文件内容。</p>
+<p>由于种种原因无法读取到文件时，就会触发error事件。触发error事件时，相关的信息将保存到FileReader的error属性中。这个属性中将保存一个对象，该对象只有一个属性code，即错误码。这个错误码如下：</p>
+<ul>
+<li>1：未找到文件。</li>
+<li>2：安全性错误。</li>
+<li>3：读取中断。</li>
+<li>4：文件不可读。</li>
+<li>5：编码错误。</li>
+</ul>
+<p>文件成功加载后会触发load事件；如果发生error事件，就不会触发load事件。如下例子：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> filesList = document.getElementById("files-list"<span style="color: #000000;">);
+EventUtil.addHandler(filesList,</span>"change",<span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    </span><span style="color: #0000ff;">var</span> info = ""<span style="color: #000000;">,
+        output </span>= document.getElementById("output"<span style="color: #000000;">),
+        progress </span>= document.getElementById("progress"<span style="color: #000000;">),
+        files </span>=<span style="color: #000000;"> EventUtil.getTarget(event).files,
+        type </span>= "default"<span style="color: #000000;">,
+        reader </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileReader();
+</span><span style="color: #0000ff;">if</span>(/image/.test(files[0<span style="color: #000000;">].type)){
+        reader.readAsDataURL(files[</span>0<span style="color: #000000;">]);
+        type </span>= "image"<span style="color: #000000;">;
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        reader.readAsText(files[</span>0<span style="color: #000000;">]);
+        type </span>= "text"<span style="color: #000000;">;
+    };
+    
+    reader.onerror </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        output.innerHTML </span>= "Could not read file，error code is：" +<span style="color: #000000;"> reader.error.code;  
+    };
+    
+    reader.onprogress </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(event.lengthComputable){
+            output.innerHTML </span>= event.loaded + "/" +<span style="color: #000000;"> event.total;
+        }
+    };
+    
+    reader.onload </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">var</span> html = ""<span style="color: #000000;">;
+        
+        </span><span style="color: #0000ff;">switch</span><span style="color: #000000;">(type){
+            </span><span style="color: #0000ff;">case</span> "image"<span style="color: #000000;">:
+                html </span>= "&lt;img src=\""+reader.result+"\"/&gt;"<span style="color: #000000;">;
+                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">case</span> "text"<span style="color: #000000;">:
+                html </span>=<span style="color: #000000;"> reader.result;
+                </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+        }
+        output.innerHTML </span>=<span style="color: #000000;"> html;
+    };
+});</span></pre>
+</div>
+<h3>读取部分内容</h3>
+<p>有时候我们想读取文件的一部分而不是全部内容。为此，File对象还支持一个<span style="color: #c7254e;">slice()</span>方法，这个方法在Firefox的实现为<span style="color: #c7254e; background-color: #f9f2f4;">mozSlice()</span>，在Chrome中的实现为<span style="color: #c7254e; background-color: #f9f2f4;">webkitSlice()</span>。slice()方法接收两个参数：<span style="color: #c7254e;">起始字节及要读取的字节数</span>。这个方法返回一个<span style="color: #c7254e; background-color: #f9f2f4;">Blob实例</span>，Blob是File类型的父类型。下面一个通用的方法实现兼容的slice()：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> blobSlice(blob,startByte,length){
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(blob.slice){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> blob.slice(startByte,length);
+    }</span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;">(blob.webkitSlice){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> blob.webkitSlice(startByte,length);
+    }</span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;">(blob.mozSlice){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> blob.mozSlice(startByte,length);
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+<p><span style="color: #c7254e; background-color: #f9f2f4;">Blob</span>类型有一个<span style="color: #c7254e; background-color: #f9f2f4;">size</span>属性和一个<span style="color: #c7254e; background-color: #f9f2f4;">type</span>属性，而且它也支持<span style="color: #c7254e; background-color: #f9f2f4;">slice()</span>方法，以便进一步切割数据。通过FileReader也可以从Blob中读取数据。下面这个例子只读取文件的32B内容。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> filesList = document.getElementById("files-list"<span style="color: #000000;">);
+EventUtil.addHandler(filesList,</span>"change",<span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    </span><span style="color: #0000ff;">var</span> info = ""<span style="color: #000000;">,
+        output </span>= document.getElementById("output"<span style="color: #000000;">),
+        progress </span>= document.getElementById("progress"<span style="color: #000000;">),
+        files </span>=<span style="color: #000000;"> EventUtil.getTarget(event).files,
+        reader </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileReader(),
+        blob </span>= blobSlice(files[0],0,32<span style="color: #000000;">);
+    
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(blob){
+        reader.readAsText(blob);
+        reader.onerror </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            output.innerHTML </span>= "Could not read file，error code is：" +<span style="color: #000000;"> reader.error.code;  
+        };
+        reader.onload </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            output.innerHTML </span>=<span style="color: #000000;"> reader.result;
+        };
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        alert(</span>"Your browser doesn't support slice()."<span style="color: #000000;">);
+    }
+});</span></pre>
+</div>
+<h3>对象URL</h3>
+<p>对象URL也被成为<span style="color: #c7254e; background-color: #f9f2f4;">blob URL</span>，指的是引用保存在File或Blob中数据的URL。使用对象URL的好处是不用把文件内容读取到JS中而直接使用文件内容。为此，只要在需要文件内容的地方提供对象URL即可。要创建对象URL，可以使用<span style="color: #c7254e;">window.URL.createObjectURL()</span>方法，并传入File或者Blob对象。这个方法在Chrome中的实现为<span style="color: #c7254e; background-color: #f9f2f4;">window.webkitURL.createObjectURL()</span>，因此下面兼容写法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> createObjectURL(blob){
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(window.URL){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> window.URL.createObjectURL(blob);
+    }</span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;">(window.webkitURL){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> window.webkitURL.createObjectURL(blob);
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+<p>这个函数返回值是一个字符串，指向一块内存的地址。因为这个字符串是URL，所以在DOM中也能使用，例如，在页面中显示一个图形文件：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> filesList = document.getElementById("files-list"<span style="color: #000000;">);
+EventUtil.addHandler(filesList,</span>"change",<span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    </span><span style="color: #0000ff;">var</span> info = ""<span style="color: #000000;">,
+        output </span>= document.getElementById("output"<span style="color: #000000;">),
+        progress </span>= document.getElementById("progress"<span style="color: #000000;">),
+        files </span>=<span style="color: #000000;"> EventUtil.getTarget(event).files,</span><span style="color: #000000;">
+        url </span>= createObjectURL(files[0<span style="color: #000000;">]);
+    
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(url){
+        </span><span style="color: #0000ff;">if</span>(/image/.test(files[0<span style="color: #000000;">].type)){
+            output.innerHTML </span>= "&lt;img src=\"" + url +"\"/&gt;"<span style="color: #000000;">;
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            output.innerHTML </span>= "Not an image."<span style="color: #000000;">
+        }
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        alert(</span>"Your browser doesn't support URLs."<span style="color: #000000;">);
+    }
+});</span></pre>
+</div>
+<p>直接把对象URL放到&lt;img&gt;标签中，就省去了把数据先读到JS中的麻烦。另一方面，&lt;img&gt;标签则会找到响应的内存地址，直接读取数据并将图像显示在页面中。</p>
+<p>如果不再需要相应的数据，最好释放它占用的内存。但只要有代码在引用对象URL，内存就不会释放。要手工释放内存，可以把对象URL传给<span style="color: #c7254e; background-color: #f9f2f4;">window.URL.revokeObjectURL()</span>（在Chrome中是<span style="color: #c7254e; background-color: #f9f2f4;">window.webkitURL.revokeObjectURL()</span>）,兼容写法如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> revokeObjectURL(blob){
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(window.URL){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> window.URL.revokeObjectURL(blob);
+    }</span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;">(window.webkitURL){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> window.webkitURL.revokeObjectURL(blob);
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    }
+}</span></pre>
+</div>
+<p>支持对象URL的浏览器为<span style="color: #c7254e; background-color: #f9f2f4;">IE10+</span>、Firefox和Chrome。</p>
+<h3>读取拖放的文件</h3>
+<p>从桌面上把文件拖放到浏览器中也会触发drop事件。而且可以在event.dataTransfer.files中读取到被放置的文件，当然此时它是一个File对象，与通过文件输入字段取得的File对象一样。</p>
+<p>下面例子会将放置到页面中自定义的放置目标中的文件信息显示出来：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> droptarget = document.getElementById("droptarget"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> handleEvent(event){
+    </span><span style="color: #0000ff;">var</span> info = ""<span style="color: #000000;">,
+        output </span>= document.getElementById("output"<span style="color: #000000;">),
+        files,
+        i,
+        len;
+    EventUtil.preventDefault(event);
+    </span><span style="color: #0000ff;">if</span>(event.type == "drop"<span style="color: #000000;">){
+        files </span>=<span style="color: #000000;"> event.dataTransfer.files;
+        i </span>= 0<span style="color: #000000;">;
+        len </span>=<span style="color: #000000;"> files.length;
+        </span><span style="color: #0000ff;">while</span>(i &lt;<span style="color: #000000;"> len){
+            info </span>+= files[i].name + "(" + files[i].type + "," + files[i].size + "byte)&lt;br/&gt;"<span style="color: #000000;">;
+            i </span>++<span style="color: #000000;">;
+        }
+        output.innerHTML </span>=<span style="color: #000000;"> info;
+    }
+}
+
+EventUtil.addHandler(droptarget,</span>"dragenter"<span style="color: #000000;">,handleEvent);
+EventUtil.addHandler(droptarget,</span>"dragover"<span style="color: #000000;">,handleEvent);
+EventUtil.addHandler(droptarget,</span>"drop",handleEvent);</pre>
+</div>
+<h3>使用XHR上传文件</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> droptarget = document.getElementById("droptarget"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> handleEvent(event){
+    </span><span style="color: #0000ff;">var</span> info = ""<span style="color: #000000;">,
+        output </span>= document.getElementById("output"<span style="color: #000000;">),
+        data,xhr,
+        files,i,len;
+    EventUtil.preventDefault(event);
+    </span><span style="color: #0000ff;">if</span>(event.type == "drop"<span style="color: #000000;">){
+        data </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FormData();
+        files </span>=<span style="color: #000000;"> event.dataTransfer.files;
+        i </span>= 0<span style="color: #000000;">;
+        len </span>=<span style="color: #000000;"> files.length;
+        </span><span style="color: #0000ff;">while</span>(i &lt;<span style="color: #000000;"> len){
+            data.append(</span>"file" +<span style="color: #000000;"> i,files[i]);
+            i</span>++<span style="color: #000000;">;
+        }
+        xhr </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> XMLHttpRequest();
+        xhr.open(</span>"post","FileAPIUpload.php",<span style="color: #0000ff;">true</span><span style="color: #000000;">);
+        xhr.onreadystatechange </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            </span><span style="color: #0000ff;">if</span>(xhr.readyState == 4<span style="color: #000000;">){
+                alert(xhr.responseText);
+            }
+        }
+        xhr.send(data);
+    }
+}
+
+EventUtil.addHandler(droptarget,</span>"dragenter"<span style="color: #000000;">,handleEvent);
+EventUtil.addHandler(droptarget,</span>"dragover"<span style="color: #000000;">,handleEvent);
+EventUtil.addHandler(droptarget,</span>"drop",handleEvent);</pre>
+</div>
+<h2>Web计时</h2>
+<p>Web计时机制的核心是<span style="color: #c7254e; background-color: #f9f2f4;">window.performance</span>对象。window.performance对象有两个属性<span style="color: #c7254e; background-color: #f9f2f4;">performance.navigation</span>和<span style="color: #c7254e; background-color: #f9f2f4;">performance.timing</span>。</p>
+<h2>Web Workers</h2>
+<p>随着Web应用复杂性的与日俱进，越来越复杂的计算在所难免。长时间运行的Javascript进程会导致浏览器冻结用户界面，让人感觉屏幕&ldquo;冻结&rdquo;了。Web Workers规范通过让JS在后台运行解决了这个问题。浏览器实现Web Workers规范的方式有很多种，可以使用线程、后台进程或者运行在其他处理器核心上的进程，等等。</p>
+<p>目前支持Web Workers的浏览器IE10+以及其它高版本浏览器。</p>
+<h3>使用Worker</h3>
+<p>实例化Worker对象并传入要执行的JS文件名就可以创建一个新的Worker，如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> worker = <span style="color: #0000ff;">new</span> Worker("js/index.js");</pre>
+</div>
+<p>这行代码会导致浏览器下载index.js，但只有接收到消息才会实际执行文件中的代码。要给Worker传递消息，可以使用<span style="color: #c7254e; background-color: #f9f2f4;">postMessage()</span>方法（与XDM中的postMessage()方法类似）：</p>
+<div class="cnblogs_code">
+<pre><code>worker.postMessage("start!");</pre>
+</div>
+<p>消息内容可以是任何能被序列化的值，不过与XDM不同的是，在所有支持的浏览器中，postMessage()都能接收对象参数。因此，可以随便传递任何形式的对象数据，如下例子：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">worker.postMessage({
+    type:</span>"Command"<span style="color: #000000;">,
+    message:</span>"start!"<span style="color: #000000;">
+});</span></pre>
+</div>
+<p>Worker是通过<span style="color: #c7254e; background-color: #f9f2f4;">message</span>和<span style="color: #c7254e; background-color: #f9f2f4;">error</span>事件与页面通信的。来自Worker的数据保存在<span style="color: #c7254e; background-color: #f9f2f4;">event.data</span>中。Worker返回的数据也可以是任何能被序列化的值：</p>
+<div class="cnblogs_code">
+<pre><code>worker.onmessage = <span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    </span><span style="color: #0000ff;">var</span> data =<span style="color: #000000;"> event.data;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">对数据执行处理</span>
+}</pre>
+</div>
+<p>Worker不能完成给定的任务时会触发<span style="color: #c7254e; background-color: #f9f2f4;">error事件</span>。具体来说，Worker内部的JS在执行过程中只要遇到错误，就会触发error事件。发生error事件时，事件对象包含三个属性：<span style="color: #c7254e; background-color: #f9f2f4;">filename</span>、<span style="color: #c7254e; background-color: #f9f2f4;">lineno</span>和<span style="color: #c7254e; background-color: #f9f2f4;">message</span>，分别表示发生错误的文件名、代码行号和完整的错误信息。</p>
+<div class="cnblogs_code">
+<pre><code>worker.onerror = <span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    console.log(</span>"ERROR：" + event.filename + "(" + event.lineno + ")：" +<span style="color: #000000;"> event.message);
+}</span></pre>
+</div>
+<p>只要调用<span style="color: #c7254e; background-color: #f9f2f4;">terminate()</span>方法就可以停止Worker的工作。</p>
+<div class="cnblogs_code">
+<pre><code>worker.terminate(); <span style="color: #008000;">//</span><span style="color: #008000;">立即停止Worker的工作</span></pre>
+</div>
+<h3>Worker全局作用域</h3>
+<p>Web Worker中的全局对象是worker对象本身。也就是说，在这个特殊的全局作用域中this和self引用的都是worker对象。为便于处理数据，Web Worker本身也是一个最小化的运行环境。</p>
+<ul>
+<li>最小化的navigator对象，包括onLine、appName、appVersion、userAgent和platform属性。</li>
+<li>只读的location对象。</li>
+<li>setTimeout()、setInterval()、clearTimeout()和clearInterVal()方法。</li>
+<li>XMLHttpRequest构造函数。</li>
+</ul>
+<p>显然，Web Worker的运行环境与页面环境相比，功能是相当有限的。</p>
+<p>当页面在worker对象上调用postMessage()时，数据会以异步方式被传递给worker，进而触发worker中的message事件。为了处理来自页面的数据，同样也需要创建一个onmessage事件处理程序。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">Web Worker内部代码</span>
+self.onmessage = <span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    </span><span style="color: #0000ff;">var</span> data =<span style="color: #000000;"> event.data;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">处理数据</span>
+}</pre>
+</div>
+<p>大家看清楚，这里的self引用的是Worker全局作用域中的worker对象（与页面中的Worker对象不同一个对象）。Worker完成工作后，通过调用postMessage()可以把数据再发回页面。例如下面的例子假如需要Worker对传入的数组进行排序，而Worker在排序之后又将数组发回了页面：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">Web Worker内部代码</span>
+self.onmessage = <span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    </span><span style="color: #0000ff;">var</span> data =<span style="color: #000000;"> event.data;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">别忘了,默认的sort方法只比较字符串</span>
+    data.sort(<span style="color: #0000ff;">function</span><span style="color: #000000;">(a,b){
+        </span><span style="color: #0000ff;">return</span> a -<span style="color: #000000;"> b;
+    })
+    self.postMessage(data);
+}</span></pre>
+</div>
+<p>&nbsp;传递消息就是页面与Worker相互之间通信的方式。在Worker中调用<span style="color: #c7254e; background-color: #f9f2f4;">postMessage()</span>会以异步的方式触发页面中Worker实例的<span style="color: #c7254e; background-color: #f9f2f4;">message</span>事件。如果页面想要使用这个Worker，可以这样：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">在页面中</span>
+<span style="color: #0000ff;">var</span> data = [23,4,7,59,11,24,222,10,3<span style="color: #000000;">],
+    worker </span>= <span style="color: #0000ff;">new</span> Worker("index.js"<span style="color: #000000;">);
+
+worker.onmessage </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    </span><span style="color: #0000ff;">var</span> data =<span style="color: #000000;"> event.data;
+    
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">对排序后的数组进行操作</span>
+    console.log(data);  <span style="color: #008000;">//</span><span style="color: #008000;">[3, 4, 7, 10, 11, 23, 24, 59, 222]</span>
+<span style="color: #000000;">}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">将数组发送给worker排序</span>
+worker.postMessage(data);</pre>
+</div>
+<p>在上面建立的index.js中，也就是在Worker作用域下代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>self.onmessage = <span style="color: #0000ff;">function</span><span style="color: #000000;">(event){
+    </span><span style="color: #0000ff;">var</span> data =<span style="color: #000000;"> event.data;
+    data.sort(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(a,b){
+        </span><span style="color: #0000ff;">return</span> a -<span style="color: #000000;"> b;
+    })
+    self.postMessage(data);
+}</span></pre>
+</div>
+<p>排序的确是比较消耗时间的操作，因此转交给Worker做就不会阻塞用户界面了。另外把彩色图像转换成灰阶图像以及加密解密之类的操作也是相当费时的。</p>
+<p>在Worker内部，调用<span style="color: #c7254e; background-color: #f9f2f4;">close()</span>方法也可以停止工作，Worker停止工作后就不会再有事件发生了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">web worker内部的代码</span>
+    self.close();</pre>
+</div>
+<h3>包含其它脚本</h3>
+<p>虽然无法在Worker中动态创建<span style="color: #c7254e; background-color: #f9f2f4;">&lt;script&gt;</span>元素，Worker的全局作用域提供了一个方法是<span style="color: #c7254e; background-color: #f9f2f4;">importScripts()</span>，这个方法接收一个或者多个指向JS文件的URL。每个加载过程都是异步的，因此所有脚本加载并执行之后，<span style="color: #c7254e; background-color: #f9f2f4;">importScripts()</span>才会执行，如下代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">web worker内部的代码</span>
+importScripts("file1.js","file2.js");</pre>
+</div>
+<p>即使file2.js优先于file1.js下载完，执行的时候仍然会按照先后顺序执行。</p>
+<p>Web Worker详细可参考：《<a href="http://www.ruanyifeng.com/blog/2018/07/web-worker.html" target="_blank">Web Worker 使用教程 - 阮一峰的网络日志_阮一峰的个人网站</a>》</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

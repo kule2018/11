@@ -1,0 +1,128 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修为什么重复的GET请求变慢了？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>为什么重复的GET请求变慢了？</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/chrome-stall-multiple-same-request.html</div><br>
+    <p>最近在研究慢请求监控的问题，写了一个简单的测试代码：在网页端(<code>index.html</code>)通过<code>fetch</code>函数向服务端获取数据，然后打印请求耗时。</p>
+<pre><code><code>function requestData() {
+    let start = new Date();
+    fetch(&quot;http://localhost:3000/company/basic&quot;)
+        .then(res =&gt; {
+            return res.json();
+        })
+        .then(res =&gt; {
+            let span = new Date() - start;
+            console.log(&quot;span:&quot;, span);
+        });
+}
+requestData();</code></pre>
+<p>在服务端通过<code>setTimeout</code>延时<code>1500s</code>才返回数据(服务端使用<a href="https://expressjs.com/">ExpressJS</a>)。</p>
+<pre><code><code>app.get(&quot;/company/basic&quot;, (req, res) =&gt; {
+    setTimeout(function() {
+        res.send({ hello: &quot;Hello Fundebug!&quot; });
+    }, 1500);
+});</code></pre>
+<p>不出所料，<code>span</code>数据都略微大于 1500。</p>
+<p>而后，我突发奇想，假设我同时发送多个请求会怎么样呢？于是有了如下代码：</p>
+<pre><code><code>[1, 2, 3].forEach(function() {
+    requestData();
+});</code></pre>
+<p>结果好像也没问题，在 Chrome 浏览器下面是这个效果：</p>
+<p><img src="./images/为什么重复的GET请求变慢了？0.png" /></p>
+<h3 id="接入-fundebug-慢请求监控测试">接入 Fundebug 慢请求监控测试</h3>
+<p>于是愉快地接入 Fundebug 监控：</p>
+<pre class="html"><code>&lt;script
+    src=&quot;https://js.fundebug.cn/fundebug.1.9.0.min.js&quot;
+    apikey=&quot;API-KEY&quot;
+&gt;&lt;/script&gt;</code></pre>
+<p>并设置如果请求时长超过 2 秒就上报：</p>
+<pre><code><code>if (&quot;fundebug&quot; in window) {
+    fundebug.httpTimeout = 2000;
+}</code></pre>
+<p>本以为刷新页面，应该不会收到报错。</p>
+<p>结果，万万没想到的是，Fundebug 收到 2 个慢请求报错。</p>
+<p><img src="./images/为什么重复的GET请求变慢了？1.png" /></p>
+<p>这不科学啊！</p>
+<p>点开错误详情，可以看到具体的报错信息。一个请求耗时 3018 毫秒，一个请求耗时 4525 毫秒。</p>
+<p><img src="./images/为什么重复的GET请求变慢了？2.png" /></p>
+<p>也就是说，第一个请求没问题，假设是 1500 毫秒。我们把三个请求的时间放一起看看有何规律：1500，3018，4524。他们近似成等差数列，相差 1500 毫秒。于是，我怀疑三个请求是一个一个阻塞式的，而不是并发的。</p>
+<h3 id="测试并发请求不同-api-的情况">测试并发请求不同 API 的情况</h3>
+<p>为了验证这一点，我将测试改为请求三个不同的 API 接口。</p>
+<p>服务端代码：</p>
+<pre><code><code>app.get(&quot;/company/basic&quot;, resp);
+app.get(&quot;/company/basic1&quot;, resp);
+app.get(&quot;/company/basic2&quot;, resp);
+
+function resp(req, res) {
+    setTimeout(function() {
+        res.send({ hello: &quot;Hello Fundebug!&quot; });
+    }, 1500);
+}</code></pre>
+<p>网页端代码(<code>requestData</code>函数传入请求的 URL)：</p>
+<pre><code><code>[
+    &quot;http://localhost:3000/company/basic&quot;,
+    &quot;http://localhost:3000/company/basic1&quot;,
+    &quot;http://localhost:3000/company/basic2&quot;
+].forEach(function(item) {
+    requestData(item);
+});</code></pre>
+<p>为了获取请求数据，将<code>httpTimeout</code>改为 1500。</p>
+<pre><code><code>if (&quot;fundebug&quot; in window) {
+    fundebug.httpTimeout = 1500;
+}</code></pre>
+<p>Fundebug 捕获三个请求的时间，分别为 1526，1525，1529。</p>
+<p><img src="./images/为什么重复的GET请求变慢了？3.png" /></p>
+<p>至此大体验证了刚刚的假设：对同一个 API 接口的并发请求会被阻塞，对不同的 API 接口并发请求正常执行。</p>
+<p>那么为什么会被阻塞呢？意图何在？接下来慢慢给各位介绍。</p>
+<h3 id="背后的原因">背后的原因</h3>
+<p>在<a href="https://stackoverflow.com/questions/27513994/chrome-stalls-when-making-multiple-requests-to-same-resource">StackOverflow</a>上找到了答案:</p>
+<blockquote>
+<p>Yes, this behavior is due to Chrome locking the cache and waiting to see the result of one request before requesting the same resource again. The answer is to find a way to make the requests unique.</p>
+</blockquote>
+<p>也就是说，Chrome 特意做了这样的设计。对于连续的相同请求，Chrome 会阻塞后面的请求，直到前面的完成。通过判断前面的请求返回的 Header 里面的缓存设置来决定下一步的行动。</p>
+<p>我们可以做个实验来验证一下。</p>
+<h3 id="缓存实验">缓存实验</h3>
+<ul>
+<li><p>服务端设置缓存 2 秒</p>
+<p>在服务端的接口返回代码中配置缓存时间</p>
+<pre><code><code>res.setHeader(&quot;Cache-Control&quot;, &quot;public, max-age=2&quot;);</code></pre>
+<p><img src="./images/为什么重复的GET请求变慢了？4.png" /></p></li>
+<li><p>服务端设置不缓存</p>
+<pre><code><code>res.setHeader(
+    &quot;Cache-Control&quot;,
+    &quot;private, no-cache, no-store, must-revalidate&quot;
+);</code></pre>
+<p><img src="./images/为什么重复的GET请求变慢了？5.png" /></p></li>
+<li><p>Chrome 开发者面板设置<code>Disable Cache</code></p>
+<p><img src="./images/为什么重复的GET请求变慢了？6.png" /></p></li>
+</ul>
+<h3 id="最后的疑问">最后的疑问</h3>
+<p>为什么打开和不打开谷歌开发者控制台，行为会不一样了？</p>
+<p>其实是有原因的，而且这个干扰项一度成功阻止了我发现问题的本质。当我们在开发前端项目的时候，代码的改动希望能够实时地反应到网页上，而不是受到浏览器缓存的影响，但是我们发现往往刷新页面的时候没有真的去服务端获取数据，还是老的信息。于是，我们会去配置一个选项，将<code>Disable Cache</code>设置为<code>true</code>。也就是说，在开发环境下，缓存是被禁用了的，也就不存在等待第一个请求返回然后判断其 Header 里面<code>Cache-Control</code>设置的问题。这也是为什么打开谷歌开发者控制台，请求没有等待，立即执行了。</p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+<p><img src="./images/为什么重复的GET请求变慢了？7.png" alt="img" /></p>
+<h3 id="版权声明">版权声明</h3>
+<p>转载时请注明作者 <strong>Fundebug</strong>以及本文地址：<br />
+<a href="https://blog.fundebug.com/2019/07/17/chrome-stall-multiple-same-request/" class="uri">https://blog.fundebug.com/2019/07/17/chrome-stall-multiple-same-request/</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

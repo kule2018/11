@@ -1,0 +1,154 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Express全系列教程之(八)：session的基本使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Express全系列教程之(八)：session的基本使用</center></div><div class='banquan'>原文出处:本文由博客园博主蓝袍小将提供。<br/>
+原文连接:https://www.cnblogs.com/lpxj-blog/p/10783815.html</div><br>
+    <h1>一、关于session</h1>
+<p>session是另一种记录客户状态的机制，与cookie保存在客户端浏览器不同，session保存在服务器当中；<br />当客户端访问服务器时，服务器会生成一个session对象，对象中保存的是key:value值，同时服务器会将key传回给客户端的cookie当中；当用户第二次访问服务器时，就会把cookie当中的key传回到服务器中，最后服务器会吧value值返回给客户端。<br />因此上面的key则是全局唯一的标识，客户端和服务端依靠这个全局唯一的标识来访问会话信息数据。</p>
+<p>&nbsp;</p>
+<h1>二、设置session</h1>
+<p>我们使用express-session模块来设置session</p>
+<p>　　1.安装express-session</p>
+<div class="cnblogs_Highlighter">
+<pre><code>cnpm install express-session --save
+</pre>
+</div>
+<p>　　2.引入express-session模块</p>
+<div class="cnblogs_Highlighter">
+<pre><code>const session=require("express-session");
+</pre>
+</div>
+<p>　　3.设置session</p>
+<div class="cnblogs_Highlighter">
+<pre><code>session(options);
+</pre>
+</div>
+<p>　　如下列代码：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>const express=require("express");
+const session=require("express-session");
+
+var app=express();
+
+//配置中间件
+app.use(session({
+	secret: "keyboard cat",
+	 resave: false,
+	 saveUninitialized: true,
+	 cookie: ('name', 'value',{maxAge:  5*60*1000,secure: false})
+}));
+
+app.use('/login',function(req,res){
+	//设置session
+	req.session.userinfo='张三';
+	res.send("登陆成功！");
+});
+
+app.use('/',function(req,res){
+	//获取session
+	if(req.session.userinfo){
+		res.send("hello "+req.session.userinfo+"，welcome");
+	}else{
+		res.send("未登陆");
+	}
+});
+
+app.listen(8080);
+</pre>
+</div>
+<p>　　在session(option)中对session进行设置，它的主要参数是：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>1. name - cookie的名字（原属性名为 key）。（默认：&rsquo;connect.sid&rsquo;）
+2. store - session存储实例
+3. secret - 用它来对session cookie签名，防止篡改
+4. cookie - session cookie设置 （默认：{ path: &lsquo;/&lsquo;, httpOnly: true,secure: false, maxAge: null }）
+5. genid - 生成新session ID的函数 （默认使用uid2库）
+6. rolling - 在每次请求时强行设置cookie，这将重置cookie过期时间（默认：false）
+7. resave - 强制保存session即使它并没有变化 （默认： true, 建议设为：false）
+8. proxy - 当设置了secure cookies（通过&rdquo;x-forwarded-proto&rdquo; header ）时信任反向代理。当设定为true时，
+&rdquo;x-forwarded-proto&rdquo; header 将被使用。当设定为false时，所有headers将被忽略。当该属性没有被设定时，将使用Express的trust proxy。
+9. saveUninitialized - 强制将未初始化的session存储。当新建了一个session且未设定属性或值时，它就处于未初始化状态。在设定一个cookie前，这对于登陆验证，减轻服务端存储压力，权限控制是有帮助的。（默认：true）
+10. unset - 控制req.session是否取消（例如通过 delete，或者将它的值设置为null）。这可以使session保持存储状态但忽略修改或删除的请求（默认：keep）
+</pre>
+</div>
+<h1>&nbsp;</h1>
+<h1>三、session的常用方法</h1>
+<div class="cnblogs_Highlighter">
+<pre><code>req.session.username="张三"
+
+//获取session
+req.session.username
+
+//重新设置cookie的过期时间
+req.session.cookie.maxAge=1000;
+
+//销毁session
+req.session.destroy(function(err){
+	
+})
+</pre>
+</div>
+<p>　　以下演示通过销毁session的方式来退出登录：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>const express=require("express");
+const session=require("express-session");
+
+var app=express();
+
+//配置中间件
+app.use(session({
+	secret: "keyboard cat",
+	 resave: false,
+	 saveUninitialized: true,
+	 cookie: ('name', 'value',{	maxAge:  5*60*1000,
+								secure: false,
+								name: "seName",
+								resave: false})
+}));
+
+app.use('/login',function(req,res){
+	//设置session
+	req.session.userinfo='张三';
+	res.send("登陆成功！");
+});
+
+app.use('/loginOut',function(req,res){
+	//注销session
+	req.session.destroy(function(err){
+		res.send("退出登录！"+err);
+	});
+});
+
+app.use('/',function(req,res){
+	//获取session
+	if(req.session.userinfo){
+		res.send("hello "+req.session.userinfo+"，welcome to index");
+	}else{
+		res.send("未登陆");
+	}
+});
+
+app.listen(8080);
+</pre>
+</div>
+<p>　　当我们进入到主页时，未显示任何信息，进入login路由后，自动设置session，这是回到主页则显示session信息，之后进入loginOut路由已注销session信息，再回到首页显示为登陆。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

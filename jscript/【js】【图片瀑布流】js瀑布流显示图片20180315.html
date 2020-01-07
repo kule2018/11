@@ -1,0 +1,291 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【js】【图片瀑布流】js瀑布流显示图片20180315' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【js】【图片瀑布流】js瀑布流显示图片20180315</center></div><div class='banquan'>原文出处:本文由博客园博主月天天提供。<br/>
+原文连接:https://www.cnblogs.com/lanofsky/p/10644926.html</div><br>
+    <p>js实现把图片用瀑布流显示，只需要&ldquo;jquery-1.11.2.min.js&rdquo;。</p>
+<p>js：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('1bd7c552-d140-43c9-a472-5ce0058e9144')"><img id="code_img_closed_1bd7c552-d140-43c9-a472-5ce0058e9144" class="code_img_closed" src="./images/【js】【图片瀑布流】js瀑布流显示图片201803150.png" alt="" /><img id="code_img_opened_1bd7c552-d140-43c9-a472-5ce0058e9144" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('1bd7c552-d140-43c9-a472-5ce0058e9144',event)" src="./images/【js】【图片瀑布流】js瀑布流显示图片201803151.png" alt="" />
+<div id="cnblogs_code_open_1bd7c552-d140-43c9-a472-5ce0058e9144" class="cnblogs_code_hide">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">20180315</span><span style="color: #008000;">
+//</span><span style="color: #008000;">瀑布流显示图片  </span>
+<span style="color: #0000ff;">var</span> WaterfallImg =<span style="color: #000000;"> {
+    option: {
+        maxWidth: </span>850,<span style="color: #008000;">//</span><span style="color: #008000;">每一行固定的总的宽度</span>
+        ifBeyond: 1,<span style="color: #008000;">//</span><span style="color: #008000;">加载到最后一张图超出范围时，参数值 0:超出一定范围(beyondMaxWidth)时使用1、没有超过时使用2 。 1:当前行张数减1放大。2:或不变张数缩小</span>
+        beyondMaxWidth: 100,<span style="color: #008000;">//</span><span style="color: #008000;">最后一张图超出最大范围</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">frameWidth: 200,//相框初始宽度(暂未实现固定行高)</span>
+        frameHeight: 200,<span style="color: #008000;">//</span><span style="color: #008000;">相框初始高度</span>
+        rightPadding: 0,<span style="color: #008000;">//</span><span style="color: #008000;">边距 ()</span>
+        imgs: [],  <span style="color: #008000;">//</span><span style="color: #008000;">图片集合[{url:"http://img1.youzy.cn/content/media/thumbs/p00174603.jpeg",FrWidth:554,FrHeight:418}] 。url ：这个属性名，使用urlKey参数的值。 FrWidth 相框宽度。FrHeight 相框高度。相框宽高不传时，使用图片原始尺寸</span>
+        urlKey: "url",<span style="color: #008000;">//</span><span style="color: #008000;">图片在obj中的 路径字段属性名称</span>
+<span style="color: #000000;">
+    },
+    result: {
+        rightPadding: </span>0<span style="color: #000000;">,
+        rows: [{ row: </span>1, RowHeight: 0, imgs: [] }],<span style="color: #008000;">//</span><span style="color: #008000;">[{row:1,RowHeight:60,imgs:[{url:"",FrWidth:50,obj:{}}]}] row:行。RowHeight:当前行高度。 imgs:当前行要放置的图片.obj 传入参数中的完整对象</span>
+        html: ""<span style="color: #000000;">
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">调用方法</span>
+    executionShow: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (inputOption, back) {
+        WaterfallImg.option </span>=<span style="color: #000000;"> $.extend(WaterfallImg.option, inputOption);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">先确定所有图宽高</span>
+
+        <span style="color: #008000;">//</span><span style="color: #008000;">未加载的图片执行加载</span>
+        <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; WaterfallImg.option.imgs.length; i++<span style="color: #000000;">) {
+            WaterfallImg._setImgOldWH(WaterfallImg.option.imgs[i]);
+        }
+
+        window.onload </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; WaterfallImg.option.imgs.length; i++<span style="color: #000000;">) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">使用url获取图片 宽高</span>
+                WaterfallImg.option.imgs[i] =<span style="color: #000000;"> WaterfallImg._setImgOldWH(WaterfallImg.option.imgs[i]);
+
+                </span><span style="color: #008000;">//
+</span>                <span style="color: #0000ff;">if</span> (WaterfallImg.option.rightPadding &gt; 0<span style="color: #000000;">) {
+
+                    WaterfallImg.option.imgs[i].FrWidth </span>= WaterfallImg.option.imgs[i].FrWidth +<span style="color: #000000;"> WaterfallImg.option.rightPadding;
+                }
+
+            }
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">执行瀑布流计算</span>
+<span style="color: #000000;">            WaterfallImg._executionShow(WaterfallImg.option);
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">开始回调</span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;"> (back) {
+                back(WaterfallImg.result);
+            }
+        };
+
+    },
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">执行瀑布流显示</span>
+    _executionShow: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (inputOption) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">执行瀑布流显示</span>
+<span style="color: #000000;">
+        WaterfallImg.result.rightPadding </span>=<span style="color: #000000;"> WaterfallImg.option.rightPadding;
+        </span><span style="color: #0000ff;">var</span> result =<span style="color: #000000;"> WaterfallImg.result;
+        </span><span style="color: #0000ff;">var</span> NowWidth = WaterfallImg.option.maxWidth;<span style="color: #008000;">//</span><span style="color: #008000;">当前行剩余宽度</span>
+        <span style="color: #0000ff;">var</span> row = 1;<span style="color: #008000;">//</span><span style="color: #008000;"> 当前行</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">遍历所有图</span>
+        <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; WaterfallImg.option.imgs.length; i++<span style="color: #000000;">) {
+
+            </span><span style="color: #0000ff;">var</span> NewWidth = WaterfallImg._getWidht(WaterfallImg.option.imgs[i]);<span style="color: #008000;">//</span><span style="color: #008000;">当前相框新宽度</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">按比例计算出的新宽度 超过最大限制,当前图单独一行</span>
+            <span style="color: #0000ff;">if</span> (NewWidth &gt;<span style="color: #000000;"> WaterfallImg.option.maxWidth) {
+                </span><span style="color: #0000ff;">if</span> (i != 0<span style="color: #000000;">) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">上一行空白补足 </span>
+                    <span style="color: #0000ff;">var</span> NewHeight = WaterfallImg._getRowHeight(WaterfallImg.option.maxWidth -<span style="color: #000000;"> NowWidth);
+                    result.rows[row </span>- 1].RowHeight =<span style="color: #000000;"> NewHeight;
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">换行</span>
+                    row++<span style="color: #000000;">;
+                    result.rows.push({ row: row, imgs: [] });
+                    NowWidth </span>=<span style="color: #000000;"> WaterfallImg.option.maxWidth;
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">当前图单独一行 </span>
+                result.rows[row - 1<span style="color: #000000;">].imgs.push({
+                    url: WaterfallImg.option.imgs[i].url,
+                    FrWidth: WaterfallImg.option.maxWidth,
+                    obj: WaterfallImg.option.imgs[i]
+                });
+                result.rows[row </span>- 1].RowHeight =<span style="color: #000000;"> WaterfallImg._getRowHeight(NewWidth);
+
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">换行</span>
+                <span style="color: #0000ff;">if</span> (i &lt; WaterfallImg.option.imgs.length - 1<span style="color: #000000;">) {
+                    row</span>++<span style="color: #000000;">;
+                    result.rows.push({ row: row, imgs: [] });
+                }
+                </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+            }
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">超出剩余宽度</span>
+            <span style="color: #0000ff;">if</span> (NewWidth &gt;<span style="color: #000000;"> NowWidth) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">换行</span>
+
+                <span style="color: #008000;">//</span><span style="color: #008000;">超过时采用换行放大行策略，或者ifBeyond==0时并 超过超出范围</span>
+                <span style="color: #0000ff;">if</span> (WaterfallImg.option.ifBeyond == 1 || (WaterfallImg.option.ifBeyond == 0 &amp;&amp; NewWidth - NowWidth &gt;<span style="color: #000000;"> WaterfallImg.option.beyondMaxWidth)) {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">根据剩余空白宽度，放大当前行，得到高度</span>
+
+                    <span style="color: #0000ff;">var</span> NewHeight = WaterfallImg._getRowHeight(WaterfallImg.option.maxWidth -<span style="color: #000000;"> NowWidth);
+                    result.rows[row </span>- 1].RowHeight =<span style="color: #000000;"> NewHeight;
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">当前图 换到下一行</span>
+                    i--<span style="color: #000000;">;
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">换行</span>
+                    row++<span style="color: #000000;">;
+                    result.rows.push({ row: row, imgs: [] });
+                    NowWidth </span>=<span style="color: #000000;"> WaterfallImg.option.maxWidth;
+                    </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">;
+                } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">当前图作为当前行的最后一张图</span>
+                    result.rows[row - 1<span style="color: #000000;">].imgs.push({
+                        url: WaterfallImg.option.imgs[i].url,
+                        FrWidth: NewWidth,
+                        obj: WaterfallImg.option.imgs[i]
+                    });
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">根据超出宽度，缩小当前行，得到高度</span>
+
+                    <span style="color: #0000ff;">var</span> NewHeight = WaterfallImg._getRowHeight(WaterfallImg.option.maxWidth + NewWidth -<span style="color: #000000;"> NowWidth);
+                    result.rows[row </span>- 1].RowHeight =<span style="color: #000000;"> NewHeight;
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">换行</span>
+                    row++<span style="color: #000000;">;
+                    result.rows.push({ row: row, imgs: [] });
+                    NowWidth </span>=<span style="color: #000000;"> WaterfallImg.option.maxWidth;
+                }
+
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">宽度没有超出 仍在当前行</span>
+<span style="color: #000000;">
+                result.rows[row </span>- 1<span style="color: #000000;">].imgs.push({
+                    url: WaterfallImg.option.imgs[i].url,
+                    FrWidth: NewWidth,
+                    obj: WaterfallImg.option.imgs[i]
+                });
+                NowWidth </span>= NowWidth -<span style="color: #000000;"> NewWidth;
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">最后一个</span>
+                <span style="color: #0000ff;">if</span> (i &gt;= WaterfallImg.option.imgs.length - 1<span style="color: #000000;">) {
+                    result.rows[row </span>- 1].RowHeight =<span style="color: #000000;"> WaterfallImg.option.frameHeight;
+                }
+            }
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">根据高缩放比例 设置每一个单独图的宽度</span>
+        result.rows =<span style="color: #000000;"> WaterfallImg._setImgWidth(result.rows);
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">设置显示的html</span>
+        result.html =<span style="color: #000000;"> WaterfallImg._setHtml(result.rows);
+
+        WaterfallImg.result </span>=<span style="color: #000000;"> result;
+
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> WaterfallImg.result;
+    },
+    _getWidht: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (img) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">当前相框在当前高度上对应的宽度</span>
+        img.FrWidth = (WaterfallImg.option.frameHeight / img.FrHeight) *<span style="color: #000000;"> img.FrWidth;
+        img.FrHeight </span>=<span style="color: #000000;"> WaterfallImg.option.frameHeight;
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> img.FrWidth;
+    },
+    _getHeight: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (img) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">相框宽度超过行的最大宽度，固定相框宽度，计算高度　</span>
+        img.FrHeight = (WaterfallImg.option.maxWidth / img.FrWidth) *<span style="color: #000000;"> img.FrHeight;
+        img.FrWidth </span>=<span style="color: #000000;"> WaterfallImg.option.maxWidth;
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> img.FrHeight;
+    },
+    _getRowHeight: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (RowWidth) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">根据宽度比例 获取行的新高度</span>
+        <span style="color: #0000ff;">return</span> (WaterfallImg.option.maxWidth / RowWidth) *<span style="color: #000000;"> WaterfallImg.option.frameHeight;
+    },
+    _setImgWidth: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (rows) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">根据高缩放比例 设置每一个单独图的宽度</span>
+        <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; rows.length; i++<span style="color: #000000;">) {
+            </span><span style="color: #0000ff;">var</span> proportion = rows[i].RowHeight /<span style="color: #000000;"> WaterfallImg.option.frameHeight;
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> j = 0; j &lt; rows[i].imgs.length; j++<span style="color: #000000;">) {
+                rows[i].imgs[j].FrWidth </span>= rows[i].imgs[j].FrWidth * proportion -<span style="color: #000000;"> WaterfallImg.option.rightPadding;
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> rows;
+    },
+    _setHtml: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (rows) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">设置显示的html</span>
+        <span style="color: #0000ff;">var</span> html = ""<span style="color: #000000;">;
+
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> html;
+    },
+    _isSetImgOldWH: </span><span style="color: #0000ff;">false</span>,<span style="color: #008000;">//</span><span style="color: #008000;">是否要设置图片原始高度</span>
+    _setImgOldWH: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (img) {
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">根据url得到图片原始高度宽度</span>
+        <span style="color: #0000ff;">var</span> imgobj = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Image();
+        imgobj.src </span>=<span style="color: #000000;"> img[WaterfallImg.option.urlKey];
+        </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">imgobj.complete) {
+            WaterfallImg._isSetImgOldWH </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            imgobj.style.display </span>= 'none'<span style="color: #000000;">;
+            document.body.appendChild(imgobj);
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">/只有在加载之后才能得到 window.onload</span>
+<span style="color: #000000;">        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">文档已加载,可以直接获取</span>
+        <span style="color: #0000ff;">if</span> (imgobj.naturalWidth &gt; 0 || imgobj.naturalHeigh &gt; 0<span style="color: #000000;">) {
+            img.FrWidth </span>=<span style="color: #000000;"> imgobj.naturalWidth;
+            img.FrHeight </span>=<span style="color: #000000;"> imgobj.naturalHeight;
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">（未实现边距）</span>
+        <span style="color: #0000ff;">return</span><span style="color: #000000;"> img;
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>html：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('8b6a6edc-9bdf-4506-8314-c59a1ff11067')"><img id="code_img_closed_8b6a6edc-9bdf-4506-8314-c59a1ff11067" class="code_img_closed" src="./images/【js】【图片瀑布流】js瀑布流显示图片201803150.png" alt="" /><img id="code_img_opened_8b6a6edc-9bdf-4506-8314-c59a1ff11067" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('8b6a6edc-9bdf-4506-8314-c59a1ff11067',event)" src="./images/【js】【图片瀑布流】js瀑布流显示图片201803151.png" alt="" />
+<div id="cnblogs_code_open_8b6a6edc-9bdf-4506-8314-c59a1ff11067" class="cnblogs_code_hide">
+<pre><code>&lt;!DOCTYPE html&gt;
+
+&lt;html xmlns="http://www.w3.org/1999/xhtml"&gt;
+&lt;head &gt;
+&lt;meta http-equiv="Content-Type" content="text/html; charset=utf-8"/&gt;
+    &lt;title&gt;&lt;/title&gt;
+    &lt;script src="jquery-1.11.2.min.js" type="text/javascript"&gt;&lt;/script&gt;
+    &lt;script src="js瀑布流显示图片20180315.js" type="text/javascript"&gt;&lt;/script&gt;
+&lt;script&gt;<span style="color: #000000;">
+$(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #0000ff;">var</span> images=<span style="color: #000000;">[
+ {url:</span>"https://test2015data.oss-cn-hangzhou.aliyuncs.com/image-hroot/year20173/image-201730/news/file_170328203053104559.png"<span style="color: #000000;">}
+,{url:</span>"https://test2015data.oss-cn-hangzhou.aliyuncs.com/image-hroot/year20173/image-201730/news/file_170328203053104559.png"<span style="color: #000000;">}
+,{url:</span>"https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1490965812249&amp;di=7ec87be2d7b63733a7bba492e952202e&amp;imgtype=0&amp;src=http%3A%2F%2Fwww.shuhua365.com%2Fhualang%2Fuploadfile%2F2010312112959216.jpg"<span style="color: #000000;">}
+,{url:</span>"https://timgsa.baidu.com/timg?image&amp;quality=80&amp;size=b9999_10000&amp;sec=1490965812249&amp;di=7ec87be2d7b63733a7bba492e952202e&amp;imgtype=0&amp;src=http%3A%2F%2Fwww.shuhua365.com%2Fhualang%2Fuploadfile%2F2010312112959216.jpg"<span style="color: #000000;">}
+,{url:</span>"http://photocdn.sohu.com/20170328/Img485277054.jpg"<span style="color: #000000;">}
+,{url:</span>"http://photocdn.sohu.com/20170328/Img485277054.jpg"<span style="color: #000000;">}
+,{url:</span>"https://ss2.baidu.com/6ONYsjip0QIZ8tyhnq/it/u=512897042,748871735&amp;fm=80&amp;w=179&amp;h=119&amp;img.JPEG"<span style="color: #000000;">}]
+WaterfallImg.executionShow({
+maxWidth: </span>850,<span style="color: #008000;">//</span><span style="color: #008000;">每一行固定的总的宽度</span>
+frameHeight: 200,<span style="color: #008000;">//</span><span style="color: #008000;">相框初始高度</span>
+rightPadding: 0,<span style="color: #008000;">//</span><span style="color: #008000;">边距</span>
+<span style="color: #000000;">imgs: images,
+urlKey: </span>"url"<span style="color: #000000;">
+}, </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (result) {
+console.log(result);
+    </span><span style="color: #0000ff;">var</span> $imgs=$("div[name='imgs']"<span style="color: #000000;">);
+    $.each(result.rows,</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(i,n){
+        </span><span style="color: #0000ff;">if</span>(i%2==0<span style="color: #000000;">)
+        $imgs.append(</span>'&lt;div name="row_'+(i+1)+'"  style="background-color:black"&gt;'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;">
+        $imgs.append(</span>'&lt;div name="row_'+(i+1)+'"&gt;'<span style="color: #000000;">);
+        $imgs.append(</span>'&lt;/div&gt;'<span style="color: #000000;">);
+        
+        $.each(n.imgs,</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(j,img){
+            $(</span>'div[name="row_'+(i+1)+'"]').append('&lt;img style="width:'+img.FrWidth+'px; height:'+n.RowHeight+'px;" src="'+img.obj.url+'"&gt;'<span style="color: #000000;">);
+        });
+        
+    });
+});
+});
+    </span>&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div name="imgs" style="width:850px"&gt;&lt;/div&gt;
+&lt;/body&gt;
+&lt;/html&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">View Code</span></div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

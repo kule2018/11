@@ -1,0 +1,352 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修antd快速开发（Form篇）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>antd快速开发（Form篇）</center></div><div class='banquan'>原文出处:本文由博客园博主大转转FE提供。<br/>
+原文连接:https://www.cnblogs.com/zhuanzhuanfe/p/11696994.html</div><br>
+    <h3 id="antd快速开发form篇">antd快速开发（Form篇）</h3>
+<h4 id="前言">前言</h4>
+<p>由于一直在做中台业务，后台项目特别多，但是后台项目的特点是：大量的列表和大量表单，重复开发会降低效率，所以我这边总结了一下使用<code>antd</code>组件搭建<code>form</code>的快捷方法。希望能对大家有用。</p>
+<h4 id="传统form搭建">传统Form搭建</h4>
+<p>首先传统搭建一个form表单，那么代码可能会是下面这样子</p>
+<pre><code><code>import React from &#39;react&#39;;
+import { Form, Input } from &#39;antd&#39;;
+
+@Form.create()
+class MyTestForm extends React.Component {
+  render() {
+    const { form: { getFieldDecorator } } = this.props;
+    return(
+      &lt;Form&gt;
+        &lt;Form.Item label=&#39;姓名&#39;&gt;
+          {
+            getFieldDecorator(&#39;username&#39;, {
+              rules: [
+                {
+                  required: true,
+                  message: &#39;这是必填项&#39;
+                }
+              ]
+            })(&lt;Input placeholder=&quot;placeholder&quot; /&gt;)
+          }
+        &lt;/Form.Item&gt;
+        &lt;Form.Item label=&#39;密码&#39;&gt;
+          {
+            getFieldDecorator(&#39;password&#39;, {
+              rules: [
+                {
+                  required: true,
+                  message: &#39;这是必填项&#39;
+                }
+              ]
+            })(&lt;Input placeholder=&quot;placeholder&quot; /&gt;)
+          }
+        &lt;/Form.Item&gt;
+      &lt;/Form&gt;
+    )
+  }
+}
+
+export default MyTestForm;</code></pre>
+<p>目前只有两个表单项，看起来代码还挺清晰的，假如这个表单是很复杂的表单，有多个表单项，这块的代码会很长，维护和开发起来都是不方便，最重要的再来一个大的表单，你还是会需要写这么多的代码。这样就影响了开效率。</p>
+<h4 id="优化后的form">优化后的Form</h4>
+<p>我们想要的是，尽量少写（不写）重复性的代码，让代码的复用性更高。我这块做了一些优化，主要的流程如图：</p>
+<p><img src="./images/antd快速开发（Form篇）0.png" /></p>
+<p>主要的几个点：</p>
+<ul>
+<li>将最底层，最重要的部分抽离出来，也就是<code>BaseItem</code>组件，<code>BaseItem</code>具备的能力是form的能力，双向绑定的能力等，纯净的组件，不包含任何UI层面的东西。</li>
+<li>UI层的东西也单独抽离出来，以方便以后UI层面的拓展。（例如想自己设计一套UI样式，就只用直接新开发一套UI层面的东西，而不用但心原子层组件的代码）。</li>
+<li>每个表单的信息抽离成配置文件，使页面维护起来更方便。</li>
+</ul>
+<p>具体的代码如下</p>
+<pre class="javascript"><code>//BaseItem.js（原子层）
+const BaseItem = (props) =&gt; {
+  const { form: { getFieldDecorator }, config } = props;
+  const { name, children, ...argv } = config;
+  return name ? getFieldDecorator(name, { ...argv })(children) : (children);
+}
+
+export default BaseItem;</code></pre>
+<pre><code><code>//ItemLayout.js（UI组件）
+import React from &#39;react&#39;;
+import { Form } from &#39;antd&#39;;
+
+//Layout也可以用自己的UI组件
+const Layout = ({ config: { itemOptions }, children }) =&gt;
+  &lt;Form.Item { ...itemOptions } &gt;{ children }&lt;/Form.Item&gt;
+
+const hidden = (isHidden) =&gt; {
+  const type = typeof(isHidden);
+  return (type === &#39;function&#39; &amp;&amp; isHidden()) || type === undefined || isHidden; 
+    //默认是显示
+}
+
+class ItemLayout extends React.Component {
+  render() {
+    const { children } = this.props;
+    return(
+      &lt;&gt;
+        {
+          React.Children.map(
+            children, (child, i) =&gt; {
+              const { config: { isHidden, ...argv}} = child.props;
+              return hidden(isHidden) ? null : //具有隐藏表单项能力
+                  React.cloneElement(
+                    &lt;Layout { ...argv }&gt;{ child }&lt;/Layout&gt;,
+                    {
+                      ...children.props
+                    }
+                  )
+            }
+          )
+        }
+      &lt;/&gt;
+    )
+  }
+}
+
+export default ItemLayout;</code></pre>
+<pre class="javascript"><code>//config.js（配置文件）
+import React from &#39;react&#39;;
+import { Input } from &#39;antd&#39;;
+
+export const formConfig = () =&gt; {
+  return [
+    {
+      itemOptions : { //Form.Item的api配置
+        label: &#39;姓名&#39;
+        //...argv
+      },
+      name: &#39;username&#39;,
+      initialValue: &#39;&#39;,
+      rules: [],
+      children: &lt;Input /&gt;
+      //...argv
+    },
+    {
+      itemOptions : {
+        label: &#39;密码&#39;
+      },
+      name: &#39;password&#39;,
+      initialValue: &#39;&#39;,
+      rules: [],
+      children: &lt;Input /&gt;,
+      isHidden: true //隐藏此项 默认是显示
+    },
+    {
+      itemOptions : {
+        label: &#39;密码&#39;
+      },
+      name: &#39;password&#39;,
+      initialValue: &#39;&#39;,
+      rules: [],
+      children: &lt;Input /&gt;,
+      isHidden: () =&gt;  false //通过方法来动态显示隐藏
+    },
+  ]
+}</code></pre>
+<blockquote>
+<p>支持<code>antd Form</code> 所有的<code>api</code>。</p>
+<p>配置文件为什么是使用函数的形式？因为可以通过函数的参数，实现配置文件和页面之间进行数据的传递。</p>
+</blockquote>
+<p>在页面就这样使用，代码如下</p>
+<pre><code><code>import React from &#39;react&#39;;
+import { Form, Input } from &#39;antd&#39;;
+import { formConfig } from &#39;./config.js&#39;;
+import BaseItem from &#39;./BaseItem&#39;;
+import ItemLayout from &#39;./ItemLayout&#39;;
+
+@Form.create()
+class MyTestForm extends React.Component {
+  render() {
+    const { form } = this.props;
+    return(
+      &lt;Form&gt;
+        {
+          formConfig().map((item, i) =&gt; 
+             &lt;ItemLayout&gt;&lt;BaseItem key={i} config={item} form={form}/&gt;&lt;/ItemLayout&gt;)
+        }
+      &lt;/Form&gt;
+    )
+  }
+}
+
+export default MyTestForm;</code></pre>
+<p>相比传统搭建Form是不是快捷了很多，而且页面代码层面更显得更清晰。</p>
+<blockquote>
+<p>注意：</p>
+</blockquote>
+<p>假如是想使用自定义的组件，（一个个性化的业务组件），简单点，我对Input的封装</p>
+<pre><code><code>//自动trim的Input
+import { Component } from &#39;react&#39;;
+import { Input } from &#39;antd&#39;;
+
+class TrimInput extends Component {
+  handleChange = (e) =&gt; {
+    e.target.value = e.target.value.trim();
+    this.props.onChange(e.target.value); //Input Chang 后将值传递给props
+  }
+
+  render() {
+    const { value, ...argv } = this.props;
+    return(
+      &lt;Input
+        value={ value } //将props的填在Input中
+        { ...argv }
+        onChange={this.handleChange}/&gt;
+    )
+  }
+}
+
+export default TrimInput;</code></pre>
+<blockquote>
+<p>自定义的业务组件需要具备双向数据流的能力，最重要的一点是在更新的时候需要 调用<code>this.props.onChange(data)</code>。</p>
+</blockquote>
+<h4 id="搜索form包装searchform">搜索Form包装（<code>SearchForm</code>）</h4>
+<p>假如觉得这还不够过瘾，那么一起来基于<code>BaseItem</code>来再包装业务组件吧。相信每个后台都有搜索能力吧，那么我们就包装一个搜索的<code>SearchForm</code>。</p>
+<p>主要就是增加一个<code>search</code>功能并把form的值传递出去。</p>
+<p>主要代码如下：</p>
+<pre><code><code>//searchForm.js
+import React from &#39;react&#39;;
+import { Form, Button } from &#39;antd&#39;;
+
+import BaseItem from &#39;./BaseItem&#39;;
+import ItemLayout from &#39;./ItemLayout&#39;;
+
+@Form.create()
+class SearchForm extends React.Component {
+
+  handleSearch = () =&gt; {
+    const { form: { validateFields }, search } = this.props;
+    validateFields((err, fieldsValue) =&gt; {
+      console.log(fieldsValue);
+      if(!err) {
+        search &amp;&amp; search(fieldsValue);
+      }
+    })
+  }
+
+  render() {
+    const { form, searchConfig, search, form: { resetFields } } = this.props;
+    return(
+      &lt;&gt;
+        &lt;Form onSubmit={this.handleSearch}&gt;
+          {
+            searchConfig().map((item, i) =&gt; 
+               &lt;ItemLayout&gt;&lt;BaseItem key={i} config={item} form={form}/&gt;&lt;/ItemLayout&gt;)
+          }
+          {
+            search &amp;&amp; &lt;div&gt;
+              &lt;Button htmlType=&quot;submit&quot; type=&quot;primary&quot; style={{marginRight: &#39;20px&#39;}}&gt;
+                  搜索
+              &lt;/Button&gt;
+              &lt;Button onClick={() =&gt; resetFields()}&gt;重置&lt;/Button&gt;
+            &lt;/div&gt;
+          }
+        &lt;/Form&gt;
+      &lt;/&gt;
+    )
+  }
+}
+
+export default SearchForm;</code></pre>
+<p>页面里面使用，表单项还是抽成配置文件使用：</p>
+<pre><code><code>//config.js 查询条件
+export const searchConfig = () =&gt; {
+  return [
+    {
+      itemOptions : {
+        label: &#39;条件一&#39;
+      },
+      name: &#39;name1&#39;,
+      initialValue: &#39;&#39;,
+      rules: [],
+      children: &lt;Input /&gt;
+    },
+    {
+      itemOptions : {
+        label: &#39;条件二&#39;
+      },
+      name: &#39;name2&#39;,
+      initialValue: &#39;&#39;,
+      rules: [],
+      children: &lt;Input /&gt;
+    }
+  ]
+}</code></pre>
+<pre><code><code>import React from &#39;react&#39;;
+import { searchConfig } from &#39;./config&#39;;
+import SearchForm from &#39;./SearchForm&#39;;
+
+class MyTestForm extends React.Component {
+  handleSearch = value =&gt; {
+    console.log(value);//获取到的查询条件
+  }
+  render() {
+    return(
+      &lt;SearchForm searchConfig={searchConfig} search={this.handleSearch} /&gt;
+    )
+  }
+}
+
+export default MyTestForm;</code></pre>
+<p>这样子写查询表单是不是很快呀，以后遇到查询就引用这个组件，然后抽一个配置文件，这样就OK了。</p>
+<h4 id="modal-form"><code>Modal + Form</code></h4>
+<p>还有也会经常遇到这种情况，弹窗里面的<code>Form</code>，这样子就需要给弹窗增加收集数据的能力。相当于我们把<code>searchForm</code>的组件放在 Modal 里面。 具体实现代码就不贴了。</p>
+<h4 id="antd-form-需要注意的几个问题"><code>antd Form</code> 需要注意的几个问题。</h4>
+<ol>
+<li><p><code>initialValue</code> 这个属性只是设置表单的初始值，当需要动态更改表单的值的时候，使用 <code>setFieldsValue</code></p></li>
+<li><p><code>resetFields</code>这个属性是重置一组输入控件的值与状态，（将值重置为<code>initialValue</code> ， 而不是清空数据，需要清空数据还是使用<code>setFieldsValue</code>）</p></li>
+</ol>
+<h4 id="antd-form-新的改动"><code>antd Form</code> 新的改动</h4>
+<p><code>antd Form</code> 将在第4个版本使用 <code>rc-field-form</code>, 但是还没有发布，我是在4.0-prepare分支上看到。</p>
+<p>那么两个底层组件 有什么区别呢？</p>
+<p>首先<code>rc-field-form</code> 会尽量在<code>api</code>层面上保持一致，但是仍有地方做了改动。 主要是以下几点：</p>
+<ul>
+<li><p>当没有手动更新过表单的时候，将不会收集<code>initialValues</code> 的值</p>
+<p>在<code>rc-form</code>里面，如果用户没有操作过表单，将会从form的<code>initialValues</code> 收集值。他们认为这是一个bug，但是好多用户是用了这个，所以他们不做修复。在<code>rc-field-form</code>中，将不会有这个bug。如果想改变组件的值，使用 <code>setFieldsValue</code> 代替。</p></li>
+<li><p>嵌套的name使用数组代替字符串</p>
+<p><code>rc-form</code>里面支持<code>user.name</code>，最终会被解释成为<code>{user:{ name: '' } }</code></p>
+<p><code>rc-field-form</code>将是<code>['user', 'name']</code> 解释成为 <code>{user: { name: '' }}</code> 并且会把 <code>user.name</code>解释成为<code>{ ['user.name']: ''}</code></p></li>
+<li><p>删除<code>validateFieldsAndScroll</code>这个属性</p>
+<p>是因为使用了<code>findDomNode</code>，但是<code>findDomNode</code>在<code>StrictMode</code>中被标记为警告。认为这是对表单组件的过度控制。</p></li>
+<li><p><code>getFieldsError</code> 将总是返回来数组</p>
+<p><code>rc-form</code> 当没有错的时候，返回的是null，<code>rc-field-form</code>现在返回的是一个空数组</p></li>
+<li><p>删除了<code>validateFields</code>的callback函数</p>
+<p>是因为<code>ES8</code>支持<code>async/await</code>,没有理由不使用它。我们使用的时候应该是</p>
+<pre class="javascript"><code>async function() {
+  try {
+    const values = await form.validateFields();
+    console.log(values);
+  } catch (errorList) {
+    errorList.forEach(({ name, errors }) =&gt; {
+      // Do something...
+    });
+  }
+}</code></pre></li>
+<li><p><code>setFields</code>将不触发<code>onFieldsChange</code>和<code>setFieldsValue</code>不触发<code>onValuesChange</code></p>
+<h4 id="总结">总结</h4></li>
+</ul>
+<p>写这篇文章主要是自己做后台最Form的总结，还有是为大家提供一种思路，后台快速开发的方式。</p>
+<p>后面还会更新其它antd 组件，主要是如何开发更适合业务场景的组件。</p>
+<p><img src="./images/antd快速开发（Form篇）1.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

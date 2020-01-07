@@ -1,0 +1,285 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue+element-ui中的图片获取与上传' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue+element-ui中的图片获取与上传</center></div><div class='banquan'>原文出处:本文由博客园博主Vine.Y提供。<br/>
+原文连接:https://www.cnblogs.com/yejingping/p/10662204.html</div><br>
+    <h1 id="vueelement-ui中的图片获取与上传">vue+element-ui中的图片获取与上传</h1>
+<blockquote>
+<p>工作上接触了一下图片的处理，图片的格式是文件流, 记录如下。</p>
+</blockquote>
+<h2 id="请求图片">请求图片</h2>
+<p>请求图片的时候，带上<code>{ responseType: 'blob' }</code>, 否则图片显示的可能是乱码。</p>
+<pre><code><code>axios
+  .post(url, parmas, { responseType: &#39;blob&#39; })
+  .then(res =&gt; {
+    return Promise.resolve(res);
+  })
+  .catch(e =&gt; {
+    return Promise.reject(e);
+  });</code></pre>
+<h2 id="显示图片">显示图片</h2>
+<p>图片返回的是文件流的形式, 控制台中显示的是乱码。<br />
+直接显示二进制图片会出错，所以我们要进行处理。</p>
+<pre class="html"><code>&lt;!-- template中 --&gt;
+&lt;img alt=&quot;logo&quot; :src=&quot;imageUrl&quot; @error=&quot;handleLoadError&quot; /&gt;</code></pre>
+<pre><code><code>/*------ script中------*/
+let urlCreator = window.URL || window.webkitURL;
+let imageUrl = urlCreator.createObjectURL(res);
+this.imageUrl = imageUrl;</code></pre>
+<p>显示图片中，要对万一图片显示不出来的情况进行处理。使用<code>onerror</code>事件可以对加载图片失败的情况进行处理。</p>
+<pre><code><code>handleLoadError(e) {
+  const img = e.srcElement;
+  this.imageUrl = this.errorLoadImg;  //  用加载失败的图片替代之
+  img.onerror = null; //  清除错误:如果错误时加载时显示的图片出错，将会一直循环，所以我们必须清除掉错误，限制运行一次
+}</code></pre>
+<h2 id="上传图片使用-element-ui-的-el-upload">上传图片:使用 element-ui 的 el-upload</h2>
+<h3 id="自动上传一次传一张图片">自动上传，一次传一张图片</h3>
+<pre class="html"><code>&lt;el-upload
+  action=&quot;uploadUrl&quot;
+  :show-file-list=&quot;false&quot;
+  :accept=&quot;&#39;image/*&#39;&quot;
+  :headers=&quot;{token:$cookieStorage.token}&quot;
+  :on-success=&quot;handleSuccess&quot;
+  :on-error=&quot;handleError&quot;
+  :before-upload=&quot;handleBeforeUpload&quot;
+  :on-progress=&quot;handleProgress&quot;
+&gt;
+  &lt;el-button type=&quot;primary&quot; size=&quot;medium&quot;&gt;上传图片&lt;/el-button&gt;
+&lt;/el-upload&gt;
+&lt;!--
+  action: 图片上传的地址
+  show-file-list: 是否显示文件上传列表
+  accept: 可接受的上传类型，image/*为图片
+  headers: 头部信息
+  on-success: 上传成功事件
+  on-error: 上传失败事件
+  before-upload: 上传前处理事件，返回一个值，值为false将阻止上传
+  on-progress: 上传中事件
+  --&gt;</code></pre>
+<pre><code><code>/*----- 以下为常用处理代码 ------*/
+handleSuccess(response, file, fileList) {
+  this.$success(&quot;上传成功&quot;);
+},
+handleError() {
+  this.$error(&quot;上传失败,请重新上传图片!&quot;);
+},
+handleBeforeUpload(file) {
+  const isImage = file.type.includes(&quot;image&quot;);
+  if (!isImage) {
+    this.$message.error(&quot;上传文件类型必须是图片!&quot;);
+  }
+  const isLt2M = file.size / 1024 / 1024 &lt; 2;
+  if (!isLt2M) {
+    this.$message.error(&quot;上传图片大小不能超过 2MB!&quot;);
+  }
+  return isImage &amp;&amp; isLt2M;
+},
+handleProgress(event, file, fileList) {
+  this.loading = true;  //  上传时执行loading事件
+}</code></pre>
+<h3 id="手动上传一次提交多个-el-upload-的图片">手动上传，一次提交多个 el-upload 的图片</h3>
+<blockquote>
+<p>要求：每个 picture area 限制选择一张图片，点击确定后一起提交。</p>
+</blockquote>
+<pre class="html"><code>&lt;el-upload
+  action=&quot;myUrl&quot;
+  :on-change=&quot;(file,fileList)=&gt;{handleChange(file,fileList,1)}&quot;
+  :on-remove=&quot;(file,fileList)=&gt;{handleRemove(file,fileList,1)}&quot;
+  :auto-upload=&quot;false&quot;
+  :file-list=&quot;fileList[0]&quot;
+  ref=&quot;file1&quot;
+&gt;
+  &lt;el-button size=&quot;small&quot;&gt;选择图片&lt;/el-button&gt;
+&lt;/el-upload&gt;
+&lt;el-upload
+  action=&quot;myUrl&quot;
+  :on-change=&quot;(file,fileList)=&gt;{handleChange(file,fileList,2)}&quot;
+  :on-remove=&quot;(file,fileList)=&gt;{handleRemove(file,fileList,2)}&quot;
+  :auto-upload=&quot;false&quot;
+  :file-list=&quot;fileList[1]&quot;
+  ref=&quot;file2&quot;
+&gt;
+  &lt;el-button size=&quot;small&quot;&gt;选择图片&lt;/el-button&gt;
+&lt;/el-upload&gt;
+&lt;el-upload
+  action=&quot;myUrl&quot;
+  :on-change=&quot;(file,fileList)=&gt;{handleChange(file,fileList,3)}&quot;
+  :on-remove=&quot;(file,fileList)=&gt;{handleRemove(file,fileList,3)}&quot;
+  :auto-upload=&quot;false&quot;
+  :file-list=&quot;fileList[2]&quot;
+  ref=&quot;file3&quot;
+&gt;
+  &lt;el-button size=&quot;small&quot;&gt;选择图片&lt;/el-button&gt;
+&lt;/el-upload&gt;
+&lt;el-button @click=&quot;submitData&quot;&gt;确认&lt;/el-button&gt;
+&lt;!--
+  action:提交的地址，此处随便写一个，不写会报错
+  on-change: 图片上传到缓存中将被触发
+  on-remove: 从缓存中删除文件将被触发
+  --&gt;</code></pre>
+<pre><code><code>data(){
+  fileList: [0,0,0], //缓存区文件
+  uploadFile:[[],[],[]] //  上传用文件
+},
+handleChange(file, fileList, type) {
+  //  限制单张上传，超过限制即覆盖
+  if (fileList.length &gt; 1) {
+    fileList.splice(0, 1);
+  }
+
+  //  校验
+  const isLt2M = file.size / 1024 / 1024 &lt; 5;
+  if (!isLt2M) {
+    this.$message.error(&quot;上传图片大小不能超过 5MB!&quot;);
+    this.removeUploadedFile(type);  //  不符合要求删除文件
+    return false;
+  }
+
+  const isImage = file.raw.type.includes(&quot;image&quot;);
+  if (!isImage) {
+    this.$message.error(&quot;上传的格式必须是图片!&quot;);
+    this.removeUploadedFile(type);
+    return false;
+  }
+  //  验证通过之后，将缓存区文件存入上传区文件中
+  this.formData.files[type] = file.raw;
+},
+//  从缓存区移除文件
+removeUploadedFile(type) {
+  if (type === 0) {
+    this.$refs.file1.clearFiles();
+  }
+  if (type === 1) {
+    this.$refs.file2.clearFiles();
+  }
+  if (type === 2) {
+    this.$refs.file3.clearFiles();
+  }
+}
+//  删除文件
+handleRemove(file, fileList, type) {
+  //  删除文件时要移除缓存区文件和上传区文件
+  this.fileList[type] = 0;
+  this.uploadFile[type] = [];
+},
+//  上传文件
+submitData() {
+  //  校验是否选择文件
+  let fileNum = this.flatten(this.uploadFile).length;
+  if (fileNum === 0) {
+    this.$error(&quot;未选择任何文件!&quot;);
+    return false;
+  }
+
+  //  使用formdata格式
+  let formData = new FormData();
+  if (this.formData.files[0]) {
+    formData.append(&quot;file1&quot;, this.formData.files[0]);
+  }
+  if (this.formData.files[1]) {
+    formData.append(&quot;file2&quot;, this.formData.files[1]);
+  }
+  if (this.formData.files[2]) {
+    formData.append(&quot;file2&quot;, this.formData.files[2]);
+  }
+
+  //  请求:在headers上务必加上content-Type,指定表单形式发送
+  axios
+  .post(&quot;uploadUrl&quot;, formData, {headers: { &quot;Content-Type&quot;: &quot;multipart/form-data&quot; }})
+  .then(res =&gt; {
+    this.$success(&quot;上传图片成功!&quot;);
+    this.fileList = [0,0,0];
+    this.uploadFile =[[],[],[]];
+  })
+  .catch(e =&gt; {
+    console.log(e);
+  });
+}
+//  扁平化数组
+flatten(arr) {
+  let res = [];
+  for (let i = 0; i &lt; arr.length; i++) {
+    if (Array.isArray(arr[i])) {
+      res = res.concat(this.flatten(arr[i]));
+    } else {
+      res.push(arr[i]);
+    }
+  }
+  return res;
+}</code></pre>
+<p><a href="https://developer.mozilla.org/zh-CN/docs/Web/HTTP/Basics_of_HTTP/MIME_types#multipartform-data">multipartform-data相关知识</a></p>
+<h2 id="图片加载技术预加载和懒加载">图片加载技术：预加载和懒加载</h2>
+<ul>
+<li>预加载：重点在&quot;预&quot;，在用户需要看到该图片之前，就已经加载和请求到该图片。</li>
+<li>懒加载: 重点在&quot;懒&quot;，尽可能少的加载图片，只加载必需的图片（用户屏幕可视范围内）,目的是尽可能的减少请求数，减缓服务器的压力。<br />
+在vue中懒加载的组件有很多，比如<code>vue-lazy-laod</code>和<code>vue-clazy-load</code></li>
+</ul>
+<h2 id="浏览器阻塞">浏览器阻塞</h2>
+<blockquote>
+<p>同一时间对服务器的请求过多，将会造成浏览器阻塞。<br />
+浏览器默认对同一域下的资源，只保持一定的连接数，阻塞过多的连接,以提高访问速度和解决阻塞问题。</p>
+</blockquote>
+<p>对于请求图片来说，有以下解决方法</p>
+<ol>
+<li>使用雪碧图：把所有图片合成一张大图。</li>
+<li>延迟加载：只去请求可视区的图片。<br />
+最后使用了延迟加载,对非可视区领域的图片延迟加载，优先加载可视区图片，减少图片的请求数。</li>
+</ol>
+<pre class="html"><code>&lt;img :src=&quot;imageUrl&quot; ref=&quot;img&quot;&gt;</code></pre>
+<pre><code><code>//  方式一:延迟加载非可视区域
+delayTime() {
+  let windowHeight = window.innerHeight;
+  let imgTop = this.$refs.img.getBoundingClientRect().top;
+  const isDelay = imgTop &gt; windowHeight;
+  if (isDelay) {
+    return Math.random() * 2000 + 3000;
+  } else {
+    return Math.random() * 2000 + 500;
+  }
+}
+//  方法二:按顺序依次延迟加载
+delayTime() {
+  if (this.params.index) {
+    return Math.random() * 2000 + this.params.index * this.params.type * 500;
+  } else {
+    return 0;
+  }
+}
+setTimeout(() =&gt; {
+  //  图片请求代码
+}, this.delayTime);</code></pre>
+<p><strong>使用延时加载前的请求</strong><br />
+<img src="./images/vue+element-ui中的图片获取与上传0.png" alt="使用延时加载前的请求" /></p>
+<p><strong>使用延时加载后的请求</strong><br />
+<img src="./images/vue+element-ui中的图片获取与上传1.png" alt="使用延时记载后的请求" /></p>
+<h2 id="参考">参考</h2>
+<p>[1] <a href="https://xhr.spec.whatwg.org/#the-responsetype-attribute">XMLHttpRequest Standard.The responseType attribute</a><br />
+[2] <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/XMLHttpRequest/responseType">XMLHttpRequest.responseType | MDN</a><br />
+[3] <a href="https://www.zhangxinxu.com/wordpress/2013/10/understand-domstring-document-formdata-blob-file-arraybuffer/">理解DOMString、Document、FormData、Blob、File、ArrayBuffer数据类型 « 张鑫旭-鑫空间-鑫生活</a><br />
+[4] <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/FormData/Using_FormData_Objects">FormData 对象的使用 | MDN</a><br />
+[5] <a href="https://blog.csdn.net/u012496505/article/details/73824327">前端|加载的图片太多或者太大怎么办(上) - u012496505的博客 - CSDN博客</a><br />
+[6] <a href="https://developers.google.com/web/fundamentals/performance/lazy-loading-guidance/images-and-video/">Lazy Loading Images and Video  |  Web Fundamentals  |  Google Developers</a><br />
+[7] <a href="https://cloudinary.com/blog/an_introduction_to_progressive_image_rendering">An Introduction to Progressive Image Rendering</a><br />
+[8] <a href="http://web.jobbole.com/92265/?utm_source=blog.jobbole.com&amp;utm_medium=relatedPosts">原生 JS 实现最简单的图片懒加载 - WEB前端 - 伯乐在线</a></p>
+<p>2019/1/14 9:15:33</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

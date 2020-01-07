@@ -1,0 +1,102 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信小程序使用pako.js的踩坑笔记' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信小程序使用pako.js的踩坑笔记</center></div><div class='banquan'>原文出处:本文由博客园博主WahFung提供。<br/>
+原文连接:https://www.cnblogs.com/chanwahfung/p/11391234.html</div><br>
+    <h2>问题</h2>
+<p><span style="font-size: 16px;">　　今天组长跟我们讨论了个问题，说是文章存储占用有点大，消耗宽带流量费，让我看看能不能找个方法解决一下（文章存储的是html字符串）。第一反应是没什么头绪，能想到的就是将相同的字符串替换成一个标识之类的，小程序再通过标识替换回原本的字符（感觉就不是很靠谱...）。</span></p>
+<p><span style="font-size: 16px;">　　后来发现真的不靠谱，首先每篇文章样式可能都不一样，需要很多对应的字典，即使是这样大概预估了下，也减少不过10多k左右。唉，还是面向百度编程吧，看看有没有什么别人写好的模块可以用一下。</span></p>
+<p><span style="font-size: 16px;">　　然后就找到了pako.js，具体实现是本地gzip压缩成base64。我在pc端稍微测试了下，原本150k左右的文章，能够压缩到14k，压缩率90%。嗯，不错，开始搞一下。可后面的路并没有我想的那么顺畅...</span></p>
+<h2>准备工作</h2>
+<p>　　<span style="font-size: 16px;">要是用第三方模块，肯定需要npm包管理工具是吧。npm init，然后npm i pako，一顿操作，引入文件测试。哦豁，报错找不到这个包。因为在公司一直都是用的原生小程序语法开发，没使用过三方模块，所以这方面一直没去了解，还以为和web端的差不多。没事嘛，面向百度编程。百度了一堆乱七八糟的，都没什么作用，还是乖乖的看官方文档吧，没想到几分钟的事就解决了（有时候还是文档靠谱）。</span></p>
+<ol>
+<li><strong><span style="font-size: 16px;">npm init&nbsp; 创建package.json</span></strong></li>
+<li><strong><span style="font-size: 16px;">npm i pako</span></strong></li>
+<li><strong><span style="font-size: 16px;">开发者工具左上角 -&gt; 工具 -&gt; 构建npm</span></strong></li>
+<li><strong><span style="font-size: 16px;">开发者工具右上角 -&gt; 勾选使用npm模块</span></strong></li>
+<li><strong><span style="font-size: 16px;">文件中引入模块使用</span></strong></li>
+</ol>
+<p><span style="font-size: 16px;">　　附上文档链接：<a href="https://developers.weixin.qq.com/miniprogram/dev/devtools/npm.html">https://developers.weixin.qq.com/miniprogram/dev/devtools/npm.html</a></span></p>
+<h2>开始踩坑</h2>
+<p><span style="font-size: 16px;">&nbsp;　　数据库存储的文章已经压缩过，现在要做的就是在小程序解压缩还原成html字符串并渲染出来。</span></p>
+<p><span style="font-size: 16px;">　　压缩文章代码：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;"><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> zip(str){
+</span><span style="color: #008080;">2</span>       let binaryString = pako.gzip(encodeURIComponent(str), { to: 'string'<span style="color: #000000;"> }),
+</span><span style="color: #008080;">3</span>           res =<span style="color: #000000;"> btoa(binaryString);
+</span><span style="color: #008080;">4</span>       <span style="color: #0000ff;">return</span><span style="color: #000000;"> res
+</span><span style="color: #008080;">5</span> }</span></pre>
+</div>
+<p><span style="font-size: 16px;">　　封装一个解压缩的函数（里面用到的方法都是pako写好的，直接调用），代码：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> pako = require('pako'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span>
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">page({
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">   ...
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">   unzip(b64Data){
+</span><span style="color: #008080;"> 6</span>     let strData =<span style="color: #000000;"> atob(b64Data),
+</span><span style="color: #008080;"> 7</span>         charData = strData.split('').map(<span style="color: #0000ff;">function</span>(x){<span style="color: #0000ff;">return</span> x.charCodeAt(0<span style="color: #000000;">);}),
+</span><span style="color: #008080;"> 8</span>         binData = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Uint8Array(charData),
+</span><span style="color: #008080;"> 9</span>         data =<span style="color: #000000;"> pako.inflate(binData);
+</span><span style="color: #008080;">10</span>     strData = String.fromCharCode.apply(<span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">new</span><span style="color: #000000;"> Uint16Array(data));
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> decodeURIComponent(strData)
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">   }
+</span><span style="color: #008080;">13</span> })       </span> </pre>
+</div>
+<p>　　<span style="font-size: 16px;">然后将接口拿到的文章传入到 unzip 中就可以解压出来了。当然这只是我预期的结果(因为web端这样的操作确实可行)</span></p>
+<p><span style="font-size: 16px;">　　真机调试后小程序报错，找不到atob</span></p>
+<p>　　<img src="./images/微信小程序使用pako.js的踩坑笔记0.png" alt="" /></p>
+<p>　　<span style="font-size: 16px;">原因是pako方法中使用到window.atob，而小程序不支持这个方法，所以导致报错。</span></p>
+<p><span style="font-size: 16px;">　　解决方法：引入atob的polyfill，就是在小程序实现一个atob方法</span></p>
+<p><span style="font-size: 16px;">　　atob polyfill 下载地址：<a href="https://github.com/davidchambers/Base64.js">https://github.com/davidchambers/Base64.js</a>&nbsp;( 该polyfill实现了atob和btoa)</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;"><span style="color: #008080;">1</span> const polyfill = require('../../utils/base64'<span style="color: #000000;">)
+</span><span style="color: #008080;">2</span> const {atob， btoa} = polyfill;</span></pre>
+</div>
+<p><span style="font-size: 16px;">　　引入atob后，再跑一遍真机测试，诶，舒服了，完美的展示出来，而且响应速度和原本的没有什么差别</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">　　然后</span><span style="font-size: 16px;">我以为完成任务了，在测试一篇稍微大点的文章时（260k左右），小程序再次报错</span></p>
+<p><span style="font-size: 16px;">　　<img src="./images/微信小程序使用pako.js的踩坑笔记1.png" alt="" /></span></p>
+<p><span style="font-size: 16px;">　　而且居然是调用栈内存溢出。wtf？！初步我还以为自己逻辑写错，导致出现递归死循环之类的。检查几遍后，并没有发现错误。只能再次求助百度...</span></p>
+<p><span style="font-size: 16px;">　　得到的原因是因为数据量过大，导致在进行&nbsp;</span>String.fromCharCode.apply(null, new Uint16Array(data)) <span style="font-size: 16px;">时，出现栈内存溢出的问题，用以下的函数代替这步即可：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;"><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> handleCodePoints(array) {
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">var</span> CHUNK_SIZE = 0x8000; <span style="color: #008000;">//</span><span style="color: #008000;"> arbitrary number here, not too small, not too big</span>
+<span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> index = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">var</span> length =<span style="color: #000000;"> array.length;
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">var</span> result = ''<span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">var</span><span style="color: #000000;"> slice;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">var</span> arr =<span style="color: #000000;"> [];
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0, _i = array.length; i &lt; _i; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 9</span>         arr[i] =<span style="color: #000000;"> array[i];
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">while</span> (index &lt;<span style="color: #000000;"> length) {
+</span><span style="color: #008080;">12</span>         slice = arr.slice(index, Math.min(index + CHUNK_SIZE, length)); <span style="color: #008000;">//</span><span style="color: #008000;"> `Math.min` is not really necessary here I think</span>
+<span style="color: #008080;">13</span>         result += String.fromCharCode.apply(<span style="color: #0000ff;">null</span><span style="color: #000000;">, slice);
+</span><span style="color: #008080;">14</span>         index +=<span style="color: #000000;"> CHUNK_SIZE;
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">16</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+</span><span style="color: #008080;">17</span> }</span></pre>
+</div>
+<h2>写在最后</h2>
+<p>　　<span style="font-size: 16px;">后面测试过程中并未出现其他问题，测试了更大的数据量后也没什么问题。至此，我在小程序使用pako.js之路告一段落。之后如果还有存在问题，我会继续更新这篇文章。若你在使用过程中发现其他问题，请告诉我。</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

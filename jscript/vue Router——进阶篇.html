@@ -1,0 +1,266 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue Router——进阶篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue Router——进阶篇</center></div><div class='banquan'>原文出处:本文由博客园博主妖色调提供。<br/>
+原文连接:https://www.cnblogs.com/loveyt/p/10905662.html</div><br>
+    <p><a href="https://www.cnblogs.com/loveyt/p/10898625.html">vue Router——基础篇</a></p>
+<h2 id="导航守卫">1.导航守卫</h2>
+<p>正如其名，<code>vue-router</code> 提供的导航守卫主要用来通过跳转或取消的方式守卫导航。有多种机会植入路由导航过程中：全局的, 单个路由独享的, 或者组件级的。</p>
+<p>记住参数或查询的改变并不会触发进入/离开的导航守卫。你可以通过观察 <code>$route</code> 对象来应对这些变化，或使用 <code>beforeRouteUpdate</code> 的组件内守卫</p>
+<h3 id="全局前置守卫">全局前置守卫</h3>
+<pre><code><code>const router = new VueRouter({ ... })
+
+router.beforeEach((to, from, next) =&gt; {
+  // ...
+})</code></pre>
+<p>当一个导航触发时，全局前置守卫按照创建顺序调用。守卫是异步解析执行，此时导航在所有守卫 resolve 完之前一直处于 等待中</p>
+<p>每个守卫方法接收三个参数：</p>
+<ul>
+<li><code>to: Route</code>: 即将要进入的目标 路由对象</li>
+<li><code>from: Route</code>: 当前导航正要离开的路由</li>
+<li><code>next: Function</code>: 一定要调用该方法来 resolve 这个钩子。执行效果依赖 next 方法的调用参数。
+<ul>
+<li><code>next()</code>: 进行管道中的下一个钩子。如果全部钩子执行完了，则导航的状态就是 confirmed (确认的)</li>
+<li><code>next(false)</code>: 中断当前的导航。如果浏览器的 URL 改变了 (可能是用户手动或者浏览器后退按钮)，那么 URL 地址会重置到 from 路由对应的地址。</li>
+<li><code>next('/')</code> 或者 <code>next({ path: '/' })</code>: 跳转到一个不同的地址。当前的导航被中断，然后进行一个新的导航。你可以向 next 传递任意位置对象，且允许设置诸如 <code>replace: true</code>、<code>name:</code> <code>'home'</code> 之类的选项以及任何用在 <code>router-link</code> 的 <code>to</code> prop 或 <code>router.push</code> 中的选项。</li>
+<li><code>next(error)</code>: (2.4.0+) 如果传入 next 的参数是一个 <code>Error</code> 实例，则导航会被终止且该错误会被传递给 <code>router.onError()</code> 注册过的回调。</li>
+</ul></li>
+</ul>
+<h4 id="确保要调用-next-方法否则钩子就不会被-resolved">确保要调用 next 方法，否则钩子就不会被 resolved</h4>
+<p>举个例子</p>
+<pre><code><code>router.beforeEach((to, from, next) =&gt; {
+  if(to.name === &#39;One&#39;){
+    next(&#39;Two&#39;)
+  }
+  next()
+})</code></pre>
+<p>当我们访问</p>
+<pre><code><code>http://localhost:8080/#/One</code></pre>
+<p>时，就会跳到</p>
+<pre><code><code>http://localhost:8080/#/Two</code></pre>
+<h3 id="全局解析守卫">全局解析守卫</h3>
+<p>在 2.5.0+ 你可以用 router.beforeResolve 注册一个全局守卫。这和 router.beforeEach 类似，区别是在导航被确认之前，同时在所有组件内守卫和异步路由组件被解析之后，解析守卫就被调用。</p>
+<pre><code><code>router.beforeEach((to, from, next) =&gt; {
+  if(to.name === &#39;One&#39;){
+    next(&#39;Two&#39;)
+  }
+  next()
+})
+
+router.beforeResolve((to, from, next) =&gt; {
+  if(to.name === &#39;Two&#39;){
+    next(&#39;Three&#39;)
+  }
+  next()
+})</code></pre>
+<p>当我们访问</p>
+<pre><code><code>http://localhost:8080/#/One</code></pre>
+<p>时，就会跳到</p>
+<pre><code><code>http://localhost:8080/#/Two</code></pre>
+<p>然后再跳到</p>
+<pre><code><code>http://localhost:8080/#/Three</code></pre>
+<h4 id="全局后置钩子">全局后置钩子</h4>
+<p>你也可以注册全局后置钩子，然而和守卫不同的是，这些钩子不会接受 next 函数也不会改变导航本身</p>
+<pre><code><code>router.afterEach((to, from) =&gt; {
+  // ...
+})</code></pre>
+<h4 id="路由独享的守卫">路由独享的守卫</h4>
+<p>路由</p>
+<pre><code><code>{
+  path: &#39;/One&#39;,
+  name: &#39;One&#39;,
+  component: One,
+  beforeEnter: (to, from, next) =&gt; {
+    if(to.name === &#39;One&#39;){
+      next(&#39;Two&#39;)
+    }
+    next()
+  }
+}</code></pre>
+<p>当我们访问</p>
+<pre><code><code>http://localhost:8080/#/One</code></pre>
+<p>时，就会跳到</p>
+<pre><code><code>http://localhost:8080/#/Two</code></pre>
+<h4 id="组件内的守卫">组件内的守卫</h4>
+<ul>
+<li>beforeRouteEnter</li>
+<li>beforeRouteUpdate (2.2 新增)</li>
+<li>beforeRouteLeave</li>
+</ul>
+<pre><code><code>beforeRouteEnter (to, from, next) {
+  // 在渲染该组件的对应路由被 confirm 前调用
+  // 不！能！获取组件实例 `this`
+  // 因为当守卫执行前，组件实例还没被创建
+},
+beforeRouteUpdate (to, from, next) {
+  // 在当前路由改变，但是该组件被复用时调用
+  // 举例来说，对于一个带有动态参数的路径 /foo/:id，在 /foo/1 和 /foo/2 之间跳转的时候，
+  // 由于会渲染同样的 Foo 组件，因此组件实例会被复用。而这个钩子就会在这个情况下被调用。
+  // 可以访问组件实例 `this`
+},
+beforeRouteLeave (to, from, next) {
+  // 导航离开该组件的对应路由时调用
+  // 可以访问组件实例 `this`
+}</code></pre>
+<p><code>beforeRouteEnter</code> 守卫 不能 访问 <code>this</code>，因为守卫在导航确认前被调用,因此即将登场的新组件还没被创建。</p>
+<p>不过，你可以通过传一个回调给 <code>next</code> 来访问组件实例。在导航被确认的时候执行回调，并且把组件实例作为回调方法的参数。</p>
+<pre><code><code>beforeRouteEnter (to, from, next) {
+  next(vm =&gt; {
+    // 通过 `vm` 访问组件实例
+  })
+}</code></pre>
+<p>注意 <code>beforeRouteEnter</code> 是支持给 <code>next</code> 传递回调的唯一守卫。对于 <code>beforeRouteUpdate</code> 和 <code>beforeRouteLeave</code> 来说，<code>this</code> 已经可用了，所以不支持传递回调，因为没有必要了</p>
+<pre><code><code>beforeRouteUpdate (to, from, next) {
+  // just use `this`
+  this.name = to.params.name
+  next()
+}</code></pre>
+<h5 id="beforerouteleave">beforeRouteLeave</h5>
+<pre><code><code>beforeRouteLeave (to, from , next) {
+  const answer = window.confirm(&#39;Do you really want to leave? you have unsaved changes!&#39;)
+  if (answer) {
+    next()
+  } else {
+    next(false)
+  }
+}</code></pre>
+<blockquote>
+<p>这个离开守卫通常用来禁止用户在还未保存修改前突然离开。该导航可以通过 next(false) 来取消</p>
+</blockquote>
+<h3 id="完整的导航解析流程">完整的导航解析流程！！！</h3>
+<ul>
+<li>导航被触发。</li>
+<li>在失活的组件里调用离开守卫。</li>
+<li>调用全局的 <code>beforeEach</code> 守卫。</li>
+<li>在重用的组件里调用 <code>beforeRouteUpdate</code> 守卫 (2.2+)。</li>
+<li>在路由配置里调用 <code>beforeEnter</code>。</li>
+<li>解析异步路由组件。</li>
+<li>在被激活的组件里调用 <code>beforeRouteEnter</code>。</li>
+<li>调用全局的 <code>beforeResolve</code> 守卫 (2.5+)。</li>
+<li>导航被确认。</li>
+<li>调用全局的 <code>afterEach</code> 钩子。</li>
+<li>触发 DOM 更新。</li>
+<li>用创建好的实例调用 <code>beforeRouteEnter</code> 守卫中传给 <code>next</code> 的回调函数。</li>
+</ul>
+<h2 id="路由元信息">2.路由元信息</h2>
+<pre><code><code>const router = new VueRouter({
+  routes: [
+    {
+      path: &#39;/foo&#39;,
+      component: Foo,
+      children: [
+        {
+          path: &#39;bar&#39;,
+          component: Bar,
+          meta: { requiresAuth: true }
+        }
+      ]
+    }
+  ]
+})</code></pre>
+<p>我们称 <code>routes</code> 配置中的每个路由对象为一个路由记录。路由记录可以是嵌套的，因此，当一个路由匹配成功后，他可能匹配多个路由记录</p>
+<p>一个路由匹配到的所有路由记录会暴露为 <code>$route</code> 对象 (还有在导航守卫中的路由对象) 的 <code>$route.matched</code> 数组。因此，我们需要遍历 <code>$route.matched</code> 来检查路由记录中的 <code>meta</code> 字段。</p>
+<p>在举个栗子</p>
+<pre><code><code>router.beforeEach((to, from, next) =&gt; {
+  //判断路由记录是否需要验证登录
+  if (to.matched.some(record =&gt; record.meta.requiresAuth)) {
+    //  自己定义的判断登录的方法
+    let isLogin = getLoginStatus()
+    if (!isLogin()) {
+      next({
+        // 跳转到登录页
+        path: &#39;/login&#39;,
+        // 登录页需要知道从哪跳过来的，方便登录成功后回到原页面
+        query: { redirect: to.fullPath }
+      })
+    } else {
+      next()
+    }
+  } else {
+    next() // 确保一定要调用 next()
+  }
+})</code></pre>
+<h4 id="注意">注意！！！</h4>
+<blockquote>
+<p>next一定要执行不然钩子函数不会resolved。</p>
+</blockquote>
+<h2 id="滚动行为">3.滚动行为</h2>
+<p>使用前端路由，当切换到新路由时，想要页面滚到顶部，或者是保持原先的滚动位置，就像重新加载页面那样。 vue-router 能做到，而且更好，它让你可以自定义路由切换时页面如何滚动。</p>
+<p>注意: 这个功能只在支持 history.pushState 的浏览器中可用。</p>
+<p>当创建一个 Router 实例，你可以提供一个 scrollBehavior 方法</p>
+<pre><code><code>const router = new VueRouter({
+  routes: [...],
+  scrollBehavior (to, from, savedPosition) {
+    if(to.name === &#39;BookDetails&#39;){
+      return { x: 0, y: 0 }
+    }
+  }
+})</code></pre>
+<p><code>scrollBehavior</code> 方法接收 <code>to</code> 和 <code>from</code> 路由对象。第三个参数 <code>savedPosition</code> 当且仅当 <code>popstate</code> 导航 (通过浏览器的 前进/后退 按钮触发) 时才可用</p>
+<p>当我们访问BookDetails路由的时候，就会回到顶部</p>
+<p>当然还有好多，就不一一介绍了，<a href="https://router.vuejs.org/zh/guide/advanced/scroll-behavior.html">可以看这里</a></p>
+<h2 id="路由懒加载">4.路由懒加载</h2>
+<p>懒加载也叫延迟加载，即在需要的时候进行加载，随用随载。在单页应用中，如果没有应用懒加载，运用webpack打包后的文件将会异常的大，造成进入首页时，需要加载的内容过多，延时过长，不利于用户体验，而运用懒加载则可以将页面进行划分，需要的时候加载页面，可以有效的分担首页所承担的加载压力，减少首页加载用时。</p>
+<h4 id="按需加载">按需加载</h4>
+<pre><code><code>{
+  path: &#39;/Fruits&#39;,
+  name: &#39;Fruits&#39;,
+  component: require(&#39;@/components/Fruits&#39;)  // 非按需加载
+}
+
+{
+  path: &#39;/Fruits&#39;,
+  name: &#39;Fruits&#39;,
+  component: require([&#39;@/components/Fruits&#39;], resolve)  // 按需加载
+}</code></pre>
+<blockquote>
+<p>按需加载会在页面第一次请求的时候，把相关路由组件块的js添加上；非按需加载则会把所有的路由组件块的js包打在一起</p>
+</blockquote>
+<h4 id="import">import()</h4>
+<ul>
+<li>推荐使用这种方式(需要webpack &gt; 2.4)</li>
+<li>webpack官方文档：webpack中使用import() vue官方文档：路由懒加载使用import()</li>
+</ul>
+<pre><code><code>const Fruits = () =&gt; import(&#39;@/components/Fruits&#39;)
+{
+  path: &#39;/Fruits&#39;,
+  name: &#39;Fruits&#39;,
+  component: Fruits
+}
+
+或者
+
+{
+  path: &#39;/Fruits&#39;,
+  name: &#39;Fruits&#39;,
+  component: () =&gt; import(&#39;@/components/Fruits&#39;)
+}</code></pre>
+<h4 id="把组件按组分块">把组件按组分块</h4>
+<p>有时候我们想把某个路由下的所有组件都打包在同个异步块 (chunk) 中。只需要使用 <a href="https://webpack.js.org/guides/code-splitting/">命名 chunk</a>，一个特殊的注释语法来提供 chunk name (需要 Webpack &gt; 2.4)</p>
+<pre><code><code>const Foo = () =&gt; import(/* webpackChunkName: &quot;group-foo&quot; */ &#39;./Foo.vue&#39;)
+const Bar = () =&gt; import(/* webpackChunkName: &quot;group-foo&quot; */ &#39;./Bar.vue&#39;)
+const Baz = () =&gt; import(/* webpackChunkName: &quot;group-foo&quot; */ &#39;./Baz.vue&#39;)</code></pre>
+<p>Webpack 会将任何一个异步模块与相同的块名称组合到相同的异步块中</p>
+<p><a href="https://router.vuejs.org/zh/guide/">Vue Router</a></p>
+<p><a href="https://router.vuejs.org/zh/api/#router-link">Vue Router Api</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

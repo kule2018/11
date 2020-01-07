@@ -1,0 +1,117 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue中使用proxy配置不同端口和ip接口' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue中使用proxy配置不同端口和ip接口</center></div><div class='banquan'>原文出处:本文由博客园博主momo-x提供。<br/>
+原文连接:https://www.cnblogs.com/xueZ/p/11347765.html</div><br>
+    <p><strong><span style="font-size: 18px;">问题描述：</span></strong></p>
+<p>　　使用vue-cli创建的项目，开发地址是localhost:8080，由于后台开发不同的模块，导致每个模块请求的ip和端口号不一致</p>
+<p>　　例如：http://192.168.10.22:8081&nbsp; 或者 http://192.168.10.30:9999等</p>
+<p><span style="font-size: 18px;"><strong>解决问题：</strong></span></p>
+<p><span style="font-size: 15px;">　　在vue.config.js中配置不同的端口号<br /></span></p>
+<p><span style="font-size: 15px;">　　</span>module.exports =<span> {</span></p>
+<div class="cnblogs_code">
+<pre><code><em id="__mceDel"><span style="color: #000000;">    publicPath: process.env.NODE_ENV </span>=== 'production' ? './' : '/'<span style="color: #000000;">,
+    devServer: {
+        open: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+        proxy: {
+            </span>'/monitor'<span style="color: #000000;">: {　　　　　　　　　　　　　　　　　　　　　　　　　　// 配置的变量
+                target: </span>'http://192.168.10.30:9999'<span style="color: #000000;">,　　　　　　　　　　// 需要请求的第三方接口
+                changeOrigin: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,　　　　　　　　　　　　　　　　　　　　// 开启代理：<br />　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　在本地会创建一个虚拟服务器，然后发送请求，并同时接收请求，<br />　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　　这样服务端和服务端进行交互就不会有跨域问题<br />
+                pathRewrite: {　　　　　　　　　　　　　　　　　　　　　　　// 这里重写路径，如果monitor本身不存在接口路径中，一定要写成空！！！
+                    </span>'^/monitor': ''<span style="color: #000000;">
+                },
+                ws: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+            }
+        }
+    }
+}</span></em></pre>
+</div>
+<p>&nbsp;</p>
+<p>在调用该接口的时候，需要写上'/monitor/'</p>
+<div class="cnblogs_code">
+<pre><code>export const getDictionary = ((params) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> _axios({
+        url:  </span>'/monitor/keypersonnel/getDictionaryForType'<span style="color: #000000;">,
+        method: </span>'post'<span style="color: #000000;">,
+        data: params
+    })
+})</span></pre>
+</div>
+<p><span style="color: #ff0000;">备注：proxy代理只在本地测试的开发环境有效，在部署到线上的时候应该怎么区分呢</span></p>
+<p><strong><span style="font-size: 18px;">问题：</span></strong></p>
+<p><span style="font-size: 18px;">　　<span style="font-size: 14px;">若项目中不同模块请求不同ip和端口的接口，应该怎么设为可配置的呢，后端可以修改的，避免由于接口问题导致的不断的打包上线</span></span></p>
+<p><span style="font-size: 18px;"><span style="font-size: 14px;">　　　<span style="color: #993366;"><strong>思路一：在public目录下放置json文件，配置的时候，去读取json文件</strong></span></span></span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div class="er"&gt;
+    &lt;el-scrollbar style="height:100%"&gt;
+      &lt;div class="ds"&gt;
+        &lt;<span style="color: #000000;">img
+          class</span>="sdde"<span style="color: #000000;">
+          :src</span>='`${publicPath}imges/but_play.png`'
+        &gt;
+      &lt;/div&gt;
+    &lt;/el-scrollbar&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  data() {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      publicPath: process.env.BASE_URL
+    }
+  },
+  components: {
+  }
+
+}
+</span>&lt;/script</pre>
+</div>
+<p><span style="font-size: 18px;"><span style="font-size: 14px;">　　结果： 失败！给图片的src赋值成功，但是在create中按照同样的方法去require这个json文件，还是报路径错误</span></span></p>
+<p><span style="font-size: 18px;"><span style="font-size: 14px;">　　<span style="color: #993366;"><strong>思路二： 在public中新建js文件，在js文件中，将地址挂载到window上，并在index的html文件中引入</strong></span></span></span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:csharp;gutter:true;">// 配置线上的请求地址
+window.serverUrl = {
+    publicSentiment: 'http://192.168.10.22:8081',                       // 舆情分析
+    monitor: 'http://192.168.70.6:9999'                                 // 重点人员监控
+}
+</pre>
+</div>
+<p>&nbsp;</p>
+<p>　　<span style="color: #0000ff;"><strong>结果：成功！</strong></span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;"><span style="font-size: 14px;">　　　　</span></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 15px;">&nbsp;</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

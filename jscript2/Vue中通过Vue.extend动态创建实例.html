@@ -1,0 +1,96 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue中通过Vue.extend动态创建实例' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue中通过Vue.extend动态创建实例</center></div><div class='banquan'>原文出处:本文由博客园博主海因斯坦提供。<br/>
+原文连接:https://www.cnblogs.com/yinhaiying/p/11344765.html</div><br>
+    <h2 id="vue中通过vue.extend动态创建实例">Vue中通过Vue.extend动态创建实例</h2>
+<p>在Vue中，如果我们想要动态地来控制一个组件的显示和隐藏，比如通过点击按钮显示一个对话框或者弹出一条信息。我们通常会提前写好这个组件，然后通过<code>v-if = “show”</code>来控制它的显示隐藏。如下所示：</p>
+<pre><code><code>    &lt;div&gt;
+        &lt;button @click = &quot;show = !show&quot;&gt;弹出&lt;/button&gt;
+        &lt;span v-if = &quot;show&quot;&gt;这是一条通过按钮控制显示隐藏的信息&lt;/span&gt;   
+    &lt;/div&gt;</code></pre>
+<p>另外还有一种实现方法就是通过<code>Vue.extend</code>来动态地创建实例，在想要进行显示的时候创建实例。<br />
+在需要隐藏的时候删除这个实例。</p>
+<ol>
+<li>通过<code>Vue.extend</code>创建构造器,这个构造器用于需要显示是创建实例。</li>
+</ol>
+<pre><code><code>const Constructor = Vue.extend({
+    template:` &lt;span&gt;{{message}}&lt;/span&gt; `,
+    data(){
+        return {
+            message:&#39;这是一条通过按钮控制显示隐藏的信息&#39;
+        }
+    }
+})</code></pre>
+<ol>
+<li>需要显示时创建实例</li>
+</ol>
+<pre><code><code>showHandle(){
+    const MessageCom = this.MessageCom = new Constructor({
+        propsData:{
+            show:true
+        }
+    }).$mount();
+
+    this.$refs.message.appendChild(MessageCom.$el);
+}</code></pre>
+<ol>
+<li>需要隐藏时删除实例</li>
+</ol>
+<pre><code><code>hiddenHandle(){
+    this.MessageCom.$el.remove()
+    this.MessageCom.$destroy()
+    this.MessageCom = null
+}</code></pre>
+<p>这样的话就同样实现了一个显示，隐藏效果。</p>
+<h3 id="使用场景">使用场景</h3>
+<p>通过上面的分析，我们发现这种操作完全没有必要，相比于通过属性来控制显示和隐藏；创建实例显得更加麻烦。<br />
+但是它同样具有一定的使用场景。比如：单元测试时：</p>
+<h4 id="单元测试">单元测试</h4>
+<p>在进行单元测试时，为了实现在Vue中的测试，我们必须创建一个基于某个组件的实例，然后才能进行测试。<br />
+如下所示：</p>
+<pre><code><code>    it(&#39;可以设置icon.&#39;, () =&gt; {
+        const Constructor = Vue.extend(Button)
+        const vm = new Constructor({
+        propsData: {
+            icon: &#39;settings&#39;
+        }
+        }).$mount()
+        const useElement = vm.$el.querySelector(&#39;use&#39;)
+        expect(useElement.getAttribute(&#39;xlink:href&#39;)).to.equal(&#39;#i-settings&#39;)
+        vm.$destroy()
+    })</code></pre>
+<h4 id="替代dom操作">替代DOM操作</h4>
+<p>在一些场合下，我们可能需要创建一个<code>div</code>这种，通常的实现方式如下：</p>
+<pre><code><code>let oDiv = document.createElement();
+oDiv.innerHTML = &#39;hello,world&#39;;
+document.body.appendChild(oDiv);</code></pre>
+<p>但是，在Vue中操作DOM是非常不推荐的写法，这时候我们建议使用<code>Vue.extend</code>来实现DOM的操作。</p>
+<pre><code><code>      const Constructor = Vue.extend(Toast);
+      let oDiv = new Constructor();
+      oDiv.$slots.default = [message];
+      oDiv.$mount(); //必须使用$mount()进行挂载，否则所有的生命周期的函数都不会执行
+      document.body.appendChild(oDiv.$el)</code></pre>
+<h3 id="总结">总结：</h3>
+<p><code>Vue.extend</code>可以用于动态地创建实例，在一些场景下可以使用。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

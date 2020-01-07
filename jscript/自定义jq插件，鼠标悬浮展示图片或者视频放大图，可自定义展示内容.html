@@ -1,0 +1,259 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修自定义jq插件，鼠标悬浮展示图片或者视频放大图，可自定义展示内容' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>自定义jq插件，鼠标悬浮展示图片或者视频放大图，可自定义展示内容</center></div><div class='banquan'>原文出处:本文由博客园博主前端MRzhu提供。<br/>
+原文连接:https://www.cnblogs.com/mrzll/p/10671023.html</div><br>
+    <p>网站项目经常会遇到一些视频或者图片素材的展示功能，那么就需要自己写一个功能，就是在一些列表页面你想要是这个数据的详细内容，弹框在页面某个位置</p>
+<p>例如这是视频悬浮展示效果，可自定义自动播放等属性标签<br />
+<img src="./images/自定义jq插件，鼠标悬浮展示图片或者视频放大图，可自定义展示内容0.png" /></p>
+<p>又例如这是图片悬浮展示，可控制悬浮展示与不展示<br />
+<img src="./images/自定义jq插件，鼠标悬浮展示图片或者视频放大图，可自定义展示内容1.png" /></p>
+<p>像上面这样或者一些其他列表做的一些悬浮弹框展示等，都可以自定义完成。</p>
+<p>那这样的插件需要怎么调用呢？</p>
+<pre><code><code>// 插件的调用
+        // dom 是父元素调用
+        $(dom).scaleTools({
+        item: &#39;li&#39;, //  这是子元素，可以为多个  ，元素需定义data-src属性与值，为弹框展示提供数据
+        fade: true, // 显示方式
+        conCallback(src) { // 这边是生成的展示内容标签，默认是img
+            return &#39;&lt;video autoplay muted loop&gt;&lt;source src=&quot;&#39;+ src +&#39;&quot;&gt;&lt;/video&gt;&#39; // 这边是已视频为例子
+        }
+    })       
+        
+    // 一些其他参数
+    {
+        checkbtn: &#39; &#39;,  // 这是提供控制是否弹框的按钮元素
+        followScroll: true, // 弹框根据元素位置固定或根据窗口位置固定，默认根据鼠标悬浮元素
+        fadeTime: 500, // 生成弹框间隔时间，默认鼠标悬浮后500毫秒后展示
+        oftX: 0, // 水平方向距离悬浮元素间距
+        oftYPosition: &#39;center&#39;, // 生成弹框与元素垂直方向中心点对齐， 其他参数&#39;top&#39;, &#39;bottom&#39; 
+    }
+
+</code></pre>
+<p>上面的一些调用参数就是插件全部接受的自定义数据，如果有其他特有的需求可以自己读懂源码再去修改，或者给我留言，我去添加，下面就是方法的定义：</p>
+<pre><code><code>
+;(function($, win) {
+    const PLUGINNAME = &#39;scaleTools&#39;; // 定义插件名
+
+    let defaultOpts = {  // 默认参数
+        item: &#39;.item&#39;,
+        checkbtn: &#39;&#39;,
+        fade: false,
+        followScroll: true,
+        fadeTime: 500,
+        oftX: 0,
+        oftYPosition: &#39;center&#39;, // &#39;top&#39;, &#39;bottom&#39;
+        conCallback: false
+    };
+
+    class Plugin {
+        constructor(wrap, opts) {
+            this.wrap = $(wrap); 
+            this.opts = $.extend(true, {}, defaultOpts, opts); // 合并用户参数
+            this.items = this.wrap.children(this.opts.item);
+            this.isShown = false;
+            this.timer;
+            this.checkShow = false;
+            this.init();
+        }
+
+        init() {
+            this.getSize() // 获取窗口大小
+            this.initEvent() // 初始事件
+        }
+
+        initEvent() {
+            this.wrap
+                .on(&#39;mouseenter&#39;, this.opts.item, this.timeInterval.bind(this)) // 父元素委托鼠标进入事件
+                .on(&#39;mouseleave&#39;, this.opts.item, this.unbindScale.bind(this)); // 鼠标离开事件
+            $(win).on(&#39;resize&#39;, this.getSize.bind(this)); // 窗口改变重新获取
+            $(win).on(&#39;scroll&#39;, this.changeScrollTop.bind(this)); // 窗口滚动事件
+            if(!!this.opts.checkbtn) {   // 是否存在插件开关
+                $(this.opts.checkbtn).on(&#39;click&#39;, (e)=&gt; {
+                    this.checkShowFn();  // 切换弹框是否悬浮展示
+                })
+            }
+
+        }
+
+        getSize() {
+            this.winH = $(window).height();
+            this.winW = $(window).width();
+        }
+
+        initTool(e) {
+            let html = &#39;&lt;div class=&quot;scaleTool&quot;&gt;&lt;div class=&quot;tool-content&quot;&gt;{ inner }&lt;/div&gt;&lt;/div&gt;&#39;,  // 初始弹框容器， 样式自己在样式文件写
+                str = &#39;&#39;,
+                src = $(e.target).closest(this.opts.item).data(&#39;src&#39;) || $(e.target).closest(this.opts.item).find(&#39;img&#39;).attr(&#39;src&#39;); // 获取悬浮元素 需要展示的数据src ，图片或者视频， 如果其他可不填
+
+            if(!this.opts.conCallback) {
+                str = &#39;&lt;img src=&quot;&#39;+ src +&#39;&quot; /&gt;&#39;
+            }else {
+                str = this.opts.conCallback(src)
+            };
+
+            if($(&#39;.scaleTool&#39;).length) {  // 存在弹框
+                this.toolDom = $(&#39;.scaleTool&#39;);   // 重新赋值
+                this.toolDom.find(&#39;.tool-content&#39;).html(str); // 修改内容 
+            } else {
+                html = html.replace(&#39;{ inner }&#39;, str);  // 填入内容
+                $(&#39;body&#39;).append(html); // 加入页面
+                this.toolDom = $(&#39;.scaleTool&#39;);  // 初始声明
+            }
+                    
+        }
+
+        checkShowFn() {  // 是否弹框开关
+            this.checkShow = !this.checkShow;
+            if(this.checkShow) {
+                $(this.opts.checkbtn).addClass(&#39;active&#39;) // 为开关添加类名自定义样式
+            } else {
+                $(this.opts.checkbtn).removeClass(&#39;active&#39;);
+                this.toolDom.remove();
+            }
+        }
+
+        unbindScale() {  // 鼠标离开
+            clearTimeout(this.timer);
+            if(this.toolDom &amp;&amp; (this.checkShow || !this.opts.checkbtn)) {
+                this.opts.conCallback &amp;&amp; this.toolDom.find(&#39;video&#39;)[0].pause();
+                this.toolDom.hide();
+                this.isShown = false
+            }
+        }
+        
+        // 鼠标进入
+        timeInterval(event) {
+            if(this.checkShow || !this.opts.checkbtn) {
+                this.timer = setTimeout(()=&gt;{
+                    this.showScale(event);
+                }, this.opts.fadeTime)
+            }
+        }
+
+        showScale(e) {
+            clearTimeout(this.timer);
+            if(this.isShown || this.winW &lt; 1200) return;  // 页面窗口小于1200 或者正在显示弹框  return
+
+            this.initTool(e); 
+            let itemW = this.toolDom.width(),
+                itemH = this.toolDom.height(),
+                curX, curY, 
+                $curBox = $(e.target).closest(this.opts.item);
+            // 获取当前悬浮元素的一些位置信息，对弹框位置的定义
+            let box = $curBox.get(0).getBoundingClientRect();
+
+            if(box.right &gt; this.winW / 2) {
+                curX = box.left - itemW - this.opts.oftX
+            } else {
+                curX = box.right + this.opts.oftX
+            }
+
+            if(this.opts.oftYPosition === &#39;top&#39;) {
+                if(box.top &lt; itemH) {
+                    if(box.top &lt; 0) {
+                        curY = 0
+                    } else {
+                        curY = box.top
+                    }
+                } else {
+                    curY = box.top - itemH
+                }
+            } else if(this.opts.oftYPosition === &#39;bottom&#39;) {
+                if(this.winH - box.bottom &gt; itemH) {
+                    curY = box.bottom
+                } else {
+                    curY = this.winH - itemH
+                }
+            } else {
+                if((box.top + $curBox.outerHeight() / 2)  &lt; itemH / 2) {
+                    if(box.top &lt; 0) {
+                        curY = 0
+                    } else {
+                        curY = box.top
+                    }
+                    
+                } else {
+                    if((box.bottom - $curBox.outerHeight() / 2) &gt; (this.winH - itemH / 2)) {
+                        curY = this.winH - itemH
+                    } else {
+                        curY = box.top + $curBox.outerHeight() / 2 - itemH / 2
+                    }
+                    
+                }
+            }
+
+            this.scrollH = $(win).scrollTop();
+
+            this.toolDom.css({
+                left: curX,
+                top: curY
+            });
+
+            this.toolT = curY;
+            
+            // 展示方式
+            if(this.opts.fade) {
+                this.toolDom.fadeIn()
+            } else {
+                this.toolDom.show()
+            }
+            this.playVideo()
+
+            this.isShown = true
+        }
+
+        changeScrollTop(e) {  // 根据滚动高度修改弹框位置
+            let scrollT = $(e.target).scrollTop(),
+                reScrollT = this.scrollH,
+                itemT = this.toolT,
+                newScrollT;
+            if(this.opts.followScroll &amp;&amp; this.isShown) {
+                newScrollT = reScrollT - scrollT;
+                this.toolDom.css({
+                    top: itemT + newScrollT,
+                });
+            }
+        }
+
+        playVideo() {  // 视频播放
+            setTimeout(()=&gt; {
+                this.opts.conCallback &amp;&amp; this.toolDom.find(&#39;video&#39;).get(0).play()
+            }, 0)
+        }
+    }
+
+    $.fn[PLUGINNAME] = function(options) {
+        this.each(function() {
+            if (!$.data(this, &quot;plugin_&quot; + PLUGINNAME)) {
+                $.data(this, &quot;plugin_&quot; + PLUGINNAME, new Plugin(this, options));
+            }
+        });
+        return this;
+    };
+
+})(jQuery, window);
+</code></pre>
+<p>上面则是全部插件方法定义了，公司项目网站<a href="https://www.macdown.com?id=MSZfJjIxOC44Mi4xMzguNTQ%3D">www.macdown.com</a>, 这个插件主要用在视频与素材板块，即v.macdown.com的整站与sc.macdown.com的图库分类， 如果有兴趣可以来网站看一下效果<br />
+有很多不足希望能够指出，学习进步，互相关注，谢谢~</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

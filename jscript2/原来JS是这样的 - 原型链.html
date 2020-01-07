@@ -1,0 +1,93 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修原来JS是这样的 - 原型链' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>原来JS是这样的 - 原型链</center></div><div class='banquan'>原文出处:本文由博客园博主BLumia提供。<br/>
+原文连接:https://www.cnblogs.com/blumia/p/Thats-JavaScript-prototype-chain.html</div><br>
+    <p><a href="https://www.cnblogs.com/blumia/p/Thats-JavaScript-object-property.html">上一篇</a>提到属性描述符 <code>[[Get]]</code> 和 <code>[[Put]]</code> 以及提到了访问描述符 <code>[[Prototype]]</code>，看它们的特性就会很容易的让人想到经典的面向对象风格体系中对类操作要做的事情，但带一些 introspector 的味道。回想到之前所写来自用的辣鸡<a href="https://github.com/BLumia/Private-Cloud-Music">私有云音乐</a>应用中所附带了一个简易的类似 <code>jQuery</code> 的简易常用功能实现，就用到了简单的 <code>[[Prototype]]</code> 特性。但我们前几篇都没有详细的提及 js 的原型链相关的内容，本篇就将讨论 js 的 <code>[[Prototype]]</code> 属性和相关的内容。</p>
+<p><em>注：ES6 的 Proxy 和 class 的概念不在本篇讨论范围内。</em></p>
+<h2 id="prototype"><code>[[Prototype]]</code></h2>
+<p>JavaScript 中的特殊对象属性除了 <code>[[Get]]</code> 和 <code>[[Put]]</code> 外，还有一个很重要的特殊内置属性就是 <code>[[Prototype]]</code> 了。</p>
+<p><code>[[Prototype]]</code> 是一个<strong>几乎</strong>所有对象在创建时都会被赋予一个非空值的属性，还记得在之前提到 <code>new</code> 操作符的行为吗？其中的行为之一就是把其 <code>[[Prototype]]</code> 关联指向到对应的内置对象上。<strong>通常</strong> <code>[[Prototype]]</code> 所指向的即为创建此对象时所使用的对象了。</p>
+<p>来看下面一个例子</p>
+<pre><code><code class="language-JavaScript">var macat = { a: 1 };
+
+var codingcat = macat; // 和 macat 指向的内容相同
+codingcat.b = 2;
+console.log(macat.b); // 2
+
+var pineapple = Object.create( macat ); // 新对象，但其 [[Prototype]] 链向 macat
+pineapple.c = 3; // 新对象的属性
+console.log(macat.c); // undefined
+codingcat.d = 4;
+console.log(pineapple.d) // 4;
+</code></pre>
+<p>上例中， 变量 <code>codingcat</code> 显然是指向和 <code>macat</code> 相同的内容，实质完全一致，而 <code>pineapple</code> 则是通过 <a href="https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Object/create"><code>Object.create()</code></a> 创建的变量。显然 <code>pineapple</code> 和 <code>macat</code> 是不同的两个对象。不过我们会发现我们依然可以通过 <code>pineapple.d</code> 访问 <code>macat.d</code> 的值，这就是因为在 <code>Object.create()</code> 中，会把 <code>pineapple</code> 的 <code>[[Prototype]]</code> 指向我们的原型对象 <code>macat</code> 了。</p>
+<p>那 <code>[[Prototype]]</code> 引用的作用是什么呢？看上去这是一个确定这种像 fallback 一样的取值操作应该 fallback 到谁的属性标记，而准确的说，这种 <code>pineapple.d</code> 形式的属性引用会触发 <code>[[Get]]</code> 操作（上篇的内容），而默认的 <code>[[Get]]</code> 则会在对象本身没有此属性时会去查找 <code>[[Prototype]]</code> 引用的变量了。这样的引用成为了链状，故被称作原型链。</p>
+<p>当然，这个行为其实我们已经“用过”很多次了，比如 <code>.toString()</code>、 <code>.valueOf()</code>、<code>hasOwnProperty()</code>，我们 <code>Object.create()</code> 等形式构建的新对象显然并没有附带一份这些函数的副本，而是因为普通的 <code>[[Prototype]]</code> 链最终都会指向内置的 <code>Object.prototype</code>，而它提供了这些功能。</p>
+<h2 id="section">属性设置和屏蔽</h2>
+<p>不过上例中有个有趣的坑，我们考虑在上例的基础上做如下操作：</p>
+<pre><code><code class="language-JavaScript">...
+pineapple.a++; // 交互式终端会输出 1
+console.log(pineapple.a); // 2
+console.log(macat.a); // 1
+</code></pre>
+<p><code>pineapple.a++</code> 看上去是进行了变量自增的操作，但这一行后，我们发现 <code>pineapple.a</code> 不再等于 <code>macat.a</code> 了，这是因为实际上 <code>pineapple.a</code> 本来并不存在，但可以通过原型链找到 <code>macat.a</code>，而 <code>pineapple.a++</code> （相当于 <code>pineapple.a = pineapple.a + 1</code>）最终进行的赋值操作创建了 <code>pineapple.a</code> ，故最终这两个变量的值自然不再相等。</p>
+<p>这个例子来看，如果本身即通过对 <code>pineapple</code> 的属性（<code>a</code>）进行访问操作，那么不同情况下访问得到的结果可能是不同的甚至是出人意料的。无意中创建的属性“阻止”了原型链上查找这个属性的行为，我们称之为<strong>属性屏蔽</strong>。</p>
+<p>属性屏蔽根据变量本身情况的不同会有很多不同的状态表现，例如原型链上层变量的数据访问属性标记为只读的情况，（如果不是严格模式下）尝试进行的赋值操作会被忽略等。</p>
+<h2 id="section-1">类 （迫真）</h2>
+<p>我们早已知道 JavaScript 中不存在“类”的概念，而为了能够“写着爽”，很多开发者都在想尽办法在 JavaScript 中模仿其它 OO 语言中“类”的行为。其中很常见的做法类似下面这样：</p>
+<pre><code><code class="language-JavaScript">function Person(name) {
+    console.log(&quot;I'm &quot; + name + &quot;!&quot;);
+    this.name = name;
+}
+
+Person.prototype.getName = function() {
+    return this.name;
+}
+
+var chris = new Person(&quot;Chris&quot;); // I'm Chris
+var sophie = new Person(&quot;Sophie&quot;); // I'm Sophie
+chris.getName(); // &quot;Chris&quot;
+</code></pre>
+<p>看上去我们的 <code>Person</code> 像极了一个包含 <code>name</code> 成员变量和 <code>getName()</code> 方法的类，并且在其“构造函数”中会输出 &quot;I'm xxx&quot;。不过在之前的文章中我们已经讲过了，并不存在所谓的构造函数，<code>new</code> 只是把 <code>Person()</code> 函数作为构造对象所需调用的函数进行了一次调用而已。不过你可能还会比较奇怪为什么 <code>.getName()</code> 是可以使用的，既然我们在原型链这一章提起这件事，显然是因为原型链，于是回顾之前第二章我们含糊提到的一句话是（<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/new#Description"><code>new</code> 操作符所执行的操作步骤</a>之一是）“对这个新对象执行 <code>[[Prototype]]</code> 链接”，实际上，这里我们被 <code>new</code> 出来的对象的 <code>[[Prototype]]</code> 被关联到了 <code>Person.prototype</code> 上，于是当我们尝试进行属性访问的时候，自然就可以访问到 <code>Person.prototype.getName()</code> 上了。</p>
+<p>不过这个过程还是可能会引起一些蛋疼的误会，比如假设我们在上面例子的基础上：</p>
+<pre><code><code class="language-JavaScript">...
+sophie.constructor === Person; // true
+sophie.constructor === Person.prototype.constructor; // true
+Person.prototype = {};
+var koishi = new Person(&quot;Koishi&quot;);  // I'm Koishi
+koishi.constructor === Person; // false
+koishi.constructor === Object; // true
+sophie.constructor === Person; // true
+sophie.constructor === Person.prototype.constructor; // false
+</code></pre>
+<p>由于“构造函数”这种表现形式的理解，我们有时候会认为 <code>变量名.constructor</code> 实际就总是构造调用时指向的函数，甚至 <code>sophie.constructor === Person</code> 返回也是 <code>true</code> ，但实际并不是这样，这里返回为真，仅仅是因为 <code>Person.prototype.constructor</code> 默认指向的就是 <code>Person</code> 罢了。于是我们尝试替换 <code>Person.prototype</code> 之后创建了变量 <code>koishi</code>，再检查 <code>koishi.constructor === Person</code> 就不再为真了，在原型链的查找过程最终找到了 <code>Object.prototype</code>，然后 <code>Object.prototype.constructor</code> 其实指向了 <code>Object</code>。</p>
+<p>不过，后面我们接着尝试检查了 <code>sophie.constructor</code> 却发现似乎它并未受到影响，这个就不要往原型链方面想了，这里的原因仅仅是 <code>sophie</code> 的原型链指向的是曾经 <code>Person.prototype</code> 所指向的东西上，而我们 <code>Person.prototype = {}</code> 的操作只是让 <code>Person.prototype</code> 指向了新的东西，旧的东西并没有改变，所以 <code>sophie</code> 自然看上去“没有受到影响”了。当然，<code>koishi</code> 这个变量被构造时所被调用的函数仍然是 <code>Person()</code>，这和 <code>koishi.constructor</code> 或者 <code>Person.prototype.constructor</code> 的指向没有什么关系。</p>
+<h2 id="section-2">对象实例关系</h2>
+<p>当然我们还有一点需要重新强调的是，<code>[[Prototype]]</code> 和 <code>.prototype</code> 不是一回事，<code>[[Prototype]]</code> 是描述对象实例关系的属性描述符，而 <code>.prototype</code> 只是 <code>Function</code> 对象的一个属性而已。<code>new</code> 操作符会把新建的对象的 <code>[[Prototype]]</code> 指向原对象的 <code>.prototype</code> 属性上，仅此而已。</p>
+<p>既然 <code>[[Prototype]]</code> 实际描述了对象之间的实例关系，那么我们自然就可以想到 <code>instanceof</code> 的实际作用了，其所做的事情就是告诉你在 <code>a instanceof Foo</code> 中， <code>a</code> 的整个原型链中是否有指向 <code>Foo.prototype</code> 的对象。</p>
+<p>绝大多数浏览器支持一个 <code>.__proto__</code> 属性（实际位于 <code>Object.__proto__</code>）指向了 <code>[[Prototype]]</code> ，这对于我们调试时希望直接访问内部的 <code>[[Prototype]]</code> 提供了便利，不过它并不是标准，所以除了调试便利之外还是不要使用它比较好。</p>
+<h2 id="section-3">最后</h2>
+<p>于是关于原型链相关的简单讨论就到此结束了。和上篇一样，如果你对这些内容仍然感兴趣，不妨去读一读《You don’t know JS - this &amp; object prototypes》一书。这是一本开源书，你可以在这里在线阅读这本书，或者购买这本书的电子版或实体版。这本书的中文译本涵盖在《你所不知道的 JavaScript 上卷》中，你也可以考虑看中文版。</p>
+<p>由于近期工作过于繁忙的精力占用缘故，“原来JS是这样的”系列可能就暂时告一段落了。最后，尽管我会尽可能仔细的检查文章内容是否有问题，但也不保证这篇文章中一定不会有错误，如果您发现文章哪里有问题，请在下面留言指正，或通过任何你找得到的方式联系我指正。感激不尽～</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

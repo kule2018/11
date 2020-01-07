@@ -1,0 +1,508 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修pyecharts和echarts的混合使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>pyecharts和echarts的混合使用</center></div><div class='banquan'>原文出处:本文由博客园博主破竹提供。<br/>
+原文连接:https://www.cnblogs.com/pozhu15/p/11799982.html</div><br>
+    <p>　　ECharts是一个由百度开发的纯 Javascript 的图表库，pyecharts是某三位大佬将ECharts移植到Python项目中的产物，在Python网站中可以更轻松的接入图表，但是个人感觉pyecharts比ECharts还是局限很大的，pyecharts0.5.x版本就更为缩水了，由于项目之前用的是pyecharts0.5.11版本，图表比较少，不足以解决问题，甚至自己用js实现了两个图表来使用，美观度比ECharts还是逊色不少，如果将项目迁移到新版pyecharts&nbsp;v1.0.0则更为麻烦，就直接在原来的项目中引入echarts库来混合使用，pyecharts&nbsp;v1.0.0虽然完善了不少问题，但是加入了新的配置规则，学习起来增加了不少负担，灵活度也没有echarts好，个人建议如果项目中使用的图表不是很复杂，数据静态的可以使用pyecharts，复杂点的还是尽量使用echarts比较方便，下面开始进入主题：</p>
+<p>1. 安装pyecharts：</p>
+<p>pip install pyecharts==0.5.11　　#0.5.x的旧版，我目前使用的这个，要用pyecharts的话建议安装下面的最新版</p>
+<p>pip install pyecharts&nbsp; &nbsp; &nbsp;#安装最新版</p>
+<p>&nbsp;pyecharts使用图表可以直接在视图代码里面构建图表，Django会将其渲染到前端模板页面中：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">#</span><span style="color: #008000;"> 主体图-1</span>
+<span style="color: #0000ff;">def</span><span style="color: #000000;"> visualPage(request):
+    template </span>= loader.get_template(<span style="color: #800000;">'</span><span style="color: #800000;">visualModule/visualPage.html</span><span style="color: #800000;">'</span>)  <span style="color: #008000;">#</span><span style="color: #008000;">载入模板文件</span>
+<span style="color: #000000;">    
+    parseArgData()
+    
+    data3D1,weights3D1,bar </span>=<span style="color: #000000;"> drawBar() #得到图表数据
+    context </span>= dict(     <span style="color: #008000;">#</span><span style="color: #008000;">context添加在模板中要渲染的数据</span>
+        myechart =<span style="color: #000000;"> bar.render_embed(),　　#图表数据
+        host </span>=<span style="color: #000000;"> DEFAULT_HOST,
+        script_list </span>=<span style="color: #000000;"> bar.get_js_dependencies(),　　#由pyecharts引入需要用到的js代码文件
+        guestSetArgs</span>=<span style="color: #000000;">startArgsSet,
+        warningdata</span>=<span style="color: #000000;">argList,
+        data3D</span>=<span style="color: #000000;">data3D1,
+        weights3D</span>=<span style="color: #000000;">weights3D1,
+    )
+    </span><span style="color: #0000ff;">return</span> HttpResponse(template.render(context, request))<span style="color: #008000;">#<br /></span></pre>
+</div>
+<p>构建图表函数，这里只粘贴了图表的接口代码，数据处理和逻辑代码略去：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">def</span> drawBar(): <span style="color: #008000;">#</span><span style="color: #008000;">绘制</span>
+        x_axis = [<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>,<span style="color: #800000;">''</span>] <span style="color: #008000;">#</span><span style="color: #008000;">X轴</span>
+        y_axis = [0,1,2,3,4,5,6,7,8,9,10,11<span style="color: #000000;">]
+
+　　　　
+        data </span>=<span style="color: #000000;"> [
+        </span><span style="color: #008000;">#</span><span style="color: #008000;">闭源5个</span>
+<span style="color: #000000;">        dict(
+        name </span>= <span style="color: #800000;">""</span><span style="color: #000000;">,
+        value</span>=[so[0], sor[0], projects[0][0][<span style="color: #800000;">""</span><span style="color: #000000;">]],
+        itemStyle</span>=dict(color=<span style="color: #000000;">getColorstr2(0,weights[0]))
+        ),
+
+        dict(
+        name</span>=<span style="color: #800000;">""</span><span style="color: #000000;">,
+        value</span>=[so[4], sor4[2], projects[4][2][<span style="color: #800000;">""</span><span style="color: #000000;">]],
+        itemStyle</span>=dict(color=getColorstr2(4,weights[18<span style="color: #000000;">]))
+        ),
+
+        ...
+        ]
+        bar3d </span>= Bar3D(<span style="color: #800000;">""</span>, width=1000, height=500<span style="color: #000000;">)
+        bar3d.add(</span><span style="color: #800000;">""</span><span style="color: #000000;">,x_axis,y_axis, data,
+        is_visualmap</span>=<span style="color: #000000;">False,
+        is_xaxis_show</span>=<span style="color: #000000;">True,
+        is_yaxis_show</span>=<span style="color: #000000;">False,
+        is_splitline_show</span>=<span style="color: #000000;">False,
+        xaxis3d_name </span>=<span style="color: #800000;">'</span> <span style="color: #800000;">'</span><span style="color: #000000;">,
+        yaxis3d_name </span>=<span style="color: #800000;">'</span> <span style="color: #800000;">'</span><span style="color: #000000;">,
+
+        </span><span style="color: #008000;">#</span><span style="color: #008000;">is_label_show =True,</span>
+        mark_point_symbol=<span style="color: #800000;">'</span><span style="color: #800000;">circle</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+        is_more_utils</span>=<span style="color: #000000;">True,
+        mark_point</span>=[<span style="color: #800000;">'</span><span style="color: #800000;">max</span><span style="color: #800000;">'</span>,<span style="color: #800000;">'</span><span style="color: #800000;">min</span><span style="color: #800000;">'</span><span style="color: #000000;">],
+        mark_line</span>=[<span style="color: #800000;">'</span><span style="color: #800000;">average</span><span style="color: #800000;">'</span><span style="color: #000000;">],
+
+        zaxis3d_name </span>=<span style="color: #800000;">'</span><span style="color: #800000;">评分</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+        xaxis3d_interval </span>=<span style="color: #000000;">0,
+        grid3d_width</span>=150, grid3d_depth=100<span style="color: #000000;">,
+        grid3d_shading</span>=<span style="color: #800000;">'</span><span style="color: #800000;">realistic</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+        is_grid3d_ratate </span>=<span style="color: #000000;"> True,
+        grid3d_rotate_speed</span>=180<span style="color: #000000;">,
+        tooltip_formatter</span>=<span style="color: #000000;">formatter)
+
+        bar3d.on(MOUSE_CLICK, on_click)
+        </span><span style="color: #0000ff;">return</span> data,weights,bar3d</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>&lt;!--  模板代码--&gt;
+ &lt;div&gt;<span style="color: #000000;">
+ 
+  {{ myechart</span>|<span style="color: #000000;">safe }}
+  </span>&lt;br&gt;<span style="color: #000000;">
+  {{radarChart</span>|<span style="color: #000000;">safe}}
+  
+ </span>&lt;/div&gt; </pre>
+</div>
+<p>这样就可以在前端显示柱状图图表了</p>
+<p><img src="./images/pyecharts和echarts的混合使用0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>另外项目中还使用了一个折线图也是同样做法：</p>
+<p><img src="./images/pyecharts和echarts的混合使用1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>其他图表也是类似添加，可以参考pyecharts官网教程：</p>
+<p>https://pyecharts.org/#/</p>
+<p>2. 接下来在项目中再引入echarts来使用，和pyecharts混合使用互不影响</p>
+<p>安装可参考echarts官网：</p>
+<p>https://www.echartsjs.com/zh/</p>
+<p>去https://github.com/apache/incubator-echarts下载echarts源码包，解压出来的文件夹里的&nbsp;<code>dist</code>&nbsp;目录里可以找到最新版本的 echarts 库，直接在前端页面中引入即可使用echarts图表，</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> {% <span style="color: #0000ff;">for</span> jsfile_name <span style="color: #0000ff;">in</span> script_list %<span style="color: #000000;">}
+</span><span style="color: #008080;">2</span>         &lt;script src="{{ host }}/{{ jsfile_name }}.js"&gt;&lt;/script&gt;
+<span style="color: #008080;">3</span>     {% endfor %<span style="color: #000000;">}
+</span><span style="color: #008080;">4</span>     
+<span style="color: #008080;">5</span>          &lt;script src="{% static 'js/dist/echarts.min.js' %}"&gt;&lt;/script&gt;
+<span style="color: #008080;">6</span>      &lt;script src="{% static 'js/dist/echarts-gl.js' %}"&gt;&lt;/script&gt;</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code> &lt;div id="container3" style="height: 800px"&gt;&lt;/div&gt;
+    
+       &lt;script type="text/javascript"&gt;
+       <span style="color: #008000;">//</span><span style="color: #008000;">echarts柱状图</span>
+<span style="color: #0000ff;">var</span> dom3 = document.getElementById("container3"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> myChart3 =<span style="color: #000000;"> echarts.init(dom3);
+</span><span style="color: #0000ff;">var</span> app =<span style="color: #000000;"> {};
+option </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+
+</span><span style="color: #0000ff;">var</span> hours =<span style="color: #000000;"> [];
+</span><span style="color: #0000ff;">var</span> days =<span style="color: #000000;"> [];
+
+$.get(</span>"{% static 'json/eachBar3dData.json' %}",<span style="color: #0000ff;">function</span><span style="color: #000000;"> (json_data) {
+    </span><span style="color: #0000ff;">var</span> jdata=<span style="color: #000000;">[];
+    $(json_data.items).each(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(i,ite){ 　
+        jdata.push(ite)
+    })
+    rectSize</span>=<span style="color: #000000;">Math.sqrt(json_data.length);
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;rectSize;i++<span style="color: #000000;">)
+    {
+        hours.push(</span>''<span style="color: #000000;">);
+        days.push(</span>''<span style="color: #000000;">);
+    }    
+    option </span>=<span style="color: #000000;"> {
+        title: {
+            text: </span>'所有代码子模块代码数量3D柱状图'<span style="color: #000000;">,
+            subtext: </span>'可显示代码数量，缺陷情况'<span style="color: #000000;">,
+            left: </span>'leafDepth'<span style="color: #000000;">
+        },
+        tooltip: {
+            formatter:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(params)
+                {
+                   </span><span style="color: #0000ff;">var</span> errors=0<span style="color: #000000;">;
+                   </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i =0;i&lt; json_data.length;i++<span style="color: #000000;">)
+                   {
+                        </span><span style="color: #0000ff;">if</span> (json_data[i][3]==<span style="color: #000000;">params.name)
+                        {
+                            errors</span>=json_data[i][4<span style="color: #000000;">];
+                            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                        }
+                   }
+                   </span><span style="color: #0000ff;">return</span> "&lt;div &gt;"+"文件路径："+params.name+'&lt;br&gt;'+
+                  "代码行数："+params.value[2]+'&lt;br&gt;'+
+                  "缺陷数量："+errors+
+                   "&lt;/div&gt;"<span style="color: #000000;">;
+                }, 
+        },
+        visualMap: {
+            max: </span>4000<span style="color: #000000;">,
+            inRange: {
+                color: [</span>'#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026'<span style="color: #000000;">]
+            }
+        },
+        xAxis3D: {
+            type: </span>'category'<span style="color: #000000;">,
+            data: hours,
+            name: </span>''<span style="color: #000000;">
+        },
+        yAxis3D: {
+            type: </span>'category'<span style="color: #000000;">,
+            data: days,
+            name:</span>''<span style="color: #000000;">
+        },
+        zAxis3D: {
+            type: </span>'value'<span style="color: #000000;">,
+            name:</span>'代码数量'<span style="color: #000000;">
+        },
+        grid3D: {
+            boxWidth: </span>200<span style="color: #000000;">,
+            boxDepth: </span>180<span style="color: #000000;">,
+            viewControl: {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> projection: 'orthographic'</span>
+<span style="color: #000000;">            },
+            light: {
+                main: {
+                    intensity: </span>1.2<span style="color: #000000;">,
+                    shadow: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+                },
+                ambient: {
+                    intensity: </span>0.3<span style="color: #000000;">
+                }
+            }
+        },
+       </span><span style="color: #008000;">/*</span><span style="color: #008000;"> dataset: {
+            dimensions: [
+                'Income',
+                'Life Expectancy',
+                'Population',
+                'Country',
+                {name: 'Year', type: 'ordinal'}
+            ],
+            source: json_data
+        },
+        </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        series: [{
+            type: </span>'bar3D'<span style="color: #000000;">,
+            data: json_data.map(</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (item) {
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+                    name:item[</span>3<span style="color: #000000;">],
+                    value: [item[</span>1], item[0], item[2<span style="color: #000000;">]],
+                }
+            }),
+            shading: </span>'lambert'<span style="color: #000000;">,
+
+            label: {
+                textStyle: {
+                    fontSize: </span>16<span style="color: #000000;">,
+                    borderWidth: </span>0<span style="color: #000000;">
+                }
+            },
+
+            emphasis: {
+                label: {
+                    textStyle: {
+                        fontSize: </span>20<span style="color: #000000;">,
+                        color: </span>'#900'<span style="color: #000000;">
+                    }
+                },
+                itemStyle: {
+                    color: </span>'#900'<span style="color: #000000;">
+                }
+            }
+        }]
+    };
+    myChart3.setOption(option, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+}); 
+</span><span style="color: #0000ff;">if</span> (option &amp;&amp; <span style="color: #0000ff;">typeof</span> option === "object"<span style="color: #000000;">) {
+    myChart3.setOption(option, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+}
+       </span>&lt;/script&gt;  
+       
+       
+           
+    &lt;/div&gt;         </pre>
+</div>
+<p>显示效果：</p>
+<p><img src="./images/pyecharts和echarts的混合使用2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>另外项目中还用到树形图表用来表示文件目录结构：</p>
+<p><img src="./images/pyecharts和echarts的混合使用3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;可钻入的矩形树图：</p>
+<p><img src="./images/pyecharts和echarts的混合使用4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><img src="./images/pyecharts和echarts的混合使用5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;由于pyecharts0.5.x中不存在这个图表，pyecharts v1.0.0和echarts中没有添加还是我没有认真看也没有发现这个，就自己实现了和这个类似的钻入树形图表：</p>
+<p><img src="./images/pyecharts和echarts的混合使用6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><img src="./images/pyecharts和echarts的混合使用7.png" alt="" /></p>
+<p>同时为了练手也自己实现了一个条形图表：</p>
+<p><img src="./images/pyecharts和echarts的混合使用8.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;图形条数和形状是根据数据变化来做适应的，但是美观度比echarts还是逊色不少</p>
+<p>3 . echarts事件交互的使用</p>
+<p>项目中使用到一个雷达图，需要鼠标点击便签进入便签的子图，也是一个类似的钻入图形，逻辑代码部分较多，省略了getOption( argName)函数中的部分逻辑代码：</p>
+<div class="cnblogs_code">
+<pre><code> &lt;div id="container" style="height: 800px"&gt;&lt;/div&gt;
+    
+       &lt;script type="text/javascript"&gt;
+<span style="color: #0000ff;">var</span> dom = document.getElementById("container"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> myChart =<span style="color: #000000;"> echarts.init(dom);
+</span><span style="color: #0000ff;">var</span> app =<span style="color: #000000;"> {};
+</span><span style="color: #0000ff;">var</span> weight=1000; <span style="color: #008000;">//</span><span style="color: #008000;">权重的倍数</span>
+<span style="color: #0000ff;">var</span> weight1=800<span style="color: #000000;">;
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> getOption( argName){
+    </span><span style="color: #0000ff;">var</span> ardData=<span style="color: #000000;">[];
+
+    </span><span style="color: #0000ff;">if</span>(argName=="闭源特性"){ <span style="color: #008000;">//</span><span style="color: #008000;">判断点击文字</span>
+       <span style="color: #0000ff;">var</span> weightBuf= [{{weights3D.0}},{{weights3D.1}},{{weights3D.2}},{{weights3D.3}},{{weights3D.4<span style="color: #000000;">}},
+                        ];
+                        
+        </span><span style="color: #0000ff;">var</span> weightBuf1=<span style="color: #000000;">[];
+        weightBuf.forEach(myFunction);    
+        </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> myFunction(value, index, array) {
+          weightBuf1.push(value</span>*<span style="color: #000000;">weight1); 
+        }
+           ardData</span>=<span style="color: #000000;">[
+                    {
+                        value : [{{data3D.</span>0.value.2}},{{data3D.1.value.2}},{{data3D.2.value.2}},{{data3D.3.value.2}},{{data3D.4.value.2<span style="color: #000000;">}}, 
+                       ],
+                        name : </span>'评分'<span style="color: #000000;">
+                    },
+                     {
+                        value : weightBuf1,
+                        name : </span>'权重'<span style="color: #000000;">
+                    }
+                ];
+        option </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        option </span>=<span style="color: #000000;"> {
+            title: {
+                text: </span>'雷达图'<span style="color: #000000;">,
+                subtext: </span>'点击文字要素返回顶层属性雷达图'<span style="color: #000000;">,
+            },
+            tooltip: {
+                formatter:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(params)
+                {
+                    namelist</span>=['正确性', '可靠性', '安全性', '可理解性','代码熵'<span style="color: #000000;">]
+                    </span><span style="color: #0000ff;">var</span> eachli=<span style="color: #000000;">params.value;
+                    </span><span style="color: #0000ff;">if</span> (params.name=='权重'<span style="color: #000000;">)
+                    eachli</span>=<span style="color: #000000;">weightBuf;
+                     </span><span style="color: #0000ff;">return</span> "&lt;div &gt;"+params.name+'&lt;br&gt;'+<span style="color: #000000;">
+                    namelist[</span>0]+'：'+eachli[0]+'&lt;br&gt;'+<span style="color: #000000;">
+                   namelist[</span>1]+'：'+eachli[1]+'&lt;br&gt;'+<span style="color: #000000;">
+                   namelist[</span>2]+'：'+eachli[2]+'&lt;br&gt;'+<span style="color: #000000;">
+                   namelist[</span>3]+'：'+eachli[3]+'&lt;br&gt;'+<span style="color: #000000;">
+                   namelist[</span>4]+'：'+eachli[4]+
+                   "&lt;/div&gt;"<span style="color: #000000;">;
+                }, 
+            },
+            legend: {
+                data: [</span>'评分（scole）', '权重（weight）'<span style="color: #000000;">]
+            },
+            radar: {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> shape: 'circle',</span>
+<span style="color: #000000;">                name: {
+                    textStyle: {
+                        color: </span>'#000'<span style="color: #000000;">,
+                        backgroundColor: </span>'#dee'<span style="color: #000000;">,
+                        borderRadius: </span>3<span style="color: #000000;">,
+                        padding: [</span>3, 5<span style="color: #000000;">]
+                   }
+                }, 
+                indicator: [
+                   { name: </span>'正确性', max: 100<span style="color: #000000;">},
+                   { name: </span>'可靠性', max: 100<span style="color: #000000;">},
+                   { name: </span>'安全性', max: 100<span style="color: #000000;">},
+                   { name: </span>'可理解性', max: 100<span style="color: #000000;">},
+                   { name: </span>'代码熵', max: 100<span style="color: #000000;">},
+                ],
+                triggerEvent:</span><span style="color: #0000ff;">true</span><span style="color: #000000;">
+            },
+            
+            series: [{
+                name: </span>'评分 vs 权重'<span style="color: #000000;">,
+                type: </span>'radar'<span style="color: #000000;">,
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> areaStyle: {normal: {}},</span>
+<span style="color: #000000;">                data : ardData
+            }]
+        };;
+    }
+ </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> option;
+}
+option</span>=getOption("root"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">if</span> (option &amp;&amp; <span style="color: #0000ff;">typeof</span> option === "object"<span style="color: #000000;">) {
+    myChart.setOption(option, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">);
+    
+    
+      myChart.on(</span>'click', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (params) {
+        console.log(params);
+       </span><span style="color: #008000;">//</span><span style="color: #008000;"> alert(params.name);</span>
+        myChart.setOption(getOption(params.name), <span style="color: #0000ff;">true</span><span style="color: #000000;">);
+     });
+
+}
+       </span>&lt;/script&gt;     
+       </pre>
+</div>
+<p>主要是用</p>
+<pre><code><span> myChart.on('click', function<span> (params) {
+        console.log(params);
+       // alert(params.name);
+        myChart.setOption(getOption(params.name), true<span>);
+     });</span></span></span><br />来监听鼠标点击标签事件，然后通过getOption来动态构建option显示，就达到了钻入效果</pre>
+<p><img src="./images/pyecharts和echarts的混合使用9.png" alt="" /></p>
+<p>点击之后的钻入效果</p>
+<p><img src="./images/pyecharts和echarts的混合使用10.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;4. 自定义tooltip标签</p>
+<p>在tooltip中定义formatter，params参数为当前活动的元素数据</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">tooltip: {
+            formatter:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(params)
+                {
+                   </span><span style="color: #0000ff;">var</span> errors=0<span style="color: #000000;">;
+                   </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i =0;i&lt; json_data.length;i++<span style="color: #000000;">)
+                   {
+                        </span><span style="color: #0000ff;">if</span> (json_data[i][3]==<span style="color: #000000;">params.name)
+                        {
+                            errors</span>=json_data[i][4<span style="color: #000000;">];
+                            </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+                        }
+                   }
+                   </span><span style="color: #0000ff;">return</span> "&lt;div &gt;"+"文件路径："+params.name+'&lt;br&gt;'+
+                  "代码行数："+params.value[2]+'&lt;br&gt;'+
+                  "缺陷数量："+errors+
+                   "&lt;/div&gt;"<span style="color: #000000;">;
+                }, 
+        },</span></pre>
+</div>
+<p>效果：</p>
+<p><img src="./images/pyecharts和echarts的混合使用11.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>提示框浮层内容格式器，支持字符串模板和回调函数两种形式。</p>
+<p>1, 字符串模板</p>
+<p>模板变量有&nbsp;<code>{a}</code>,&nbsp;<code>{b}</code>，<code>{c}</code>，<code>{d}</code>，<code>{e}</code>，分别表示系列名，数据名，数据值等。 在&nbsp;<a href="https://www.echartsjs.com/zh/option.html#tooltip.trigger">trigger</a>&nbsp;为&nbsp;<code>'axis'</code>&nbsp;的时候，会有多个系列的数据，此时可以通过&nbsp;<code>{a0}</code>,&nbsp;<code>{a1}</code>,&nbsp;<code>{a2}</code>&nbsp;这种后面加索引的方式表示系列的索引。 不同图表类型下的&nbsp;<code>{a}</code>，<code>{b}</code>，<code>{c}</code>，<code>{d}</code>&nbsp;含义不一样。 其中变量<code>{a}</code>,&nbsp;<code>{b}</code>,&nbsp;<code>{c}</code>,&nbsp;<code>{d}</code>在不同图表类型下代表数据含义为：</p>
+<ul>
+<li>
+<p>折线（区域）图、柱状（条形）图、K线图 :&nbsp;<code>{a}</code>（系列名称），<code>{b}</code>（类目值），<code>{c}</code>（数值）,&nbsp;<code>{d}</code>（无）</p>
+</li>
+<li>
+<p>散点图（气泡）图 :&nbsp;<code>{a}</code>（系列名称），<code>{b}</code>（数据名称），<code>{c}</code>（数值数组）,&nbsp;<code>{d}</code>（无）</p>
+</li>
+<li>
+<p>地图 :&nbsp;<code>{a}</code>（系列名称），<code>{b}</code>（区域名称），<code>{c}</code>（合并数值）,&nbsp;<code>{d}</code>（无）</p>
+</li>
+<li>
+<p>饼图、仪表盘、漏斗图:&nbsp;<code>{a}</code>（系列名称），<code>{b}</code>（数据项名称），<code>{c}</code>（数值）,&nbsp;<code>{d}</code>（百分比）</p>
+</li>
+</ul>
+<p>更多其它图表模板变量的含义可以见相应的图表的 label.formatter 配置项。</p>
+<p>示例：</p>
+<pre><code><code class="lang-js prettyprint prettyprinted"><span class="pln">formatter<span class="pun">:<span class="pln"> <span class="str">'{b0}: {c0}&lt;br /&gt;{b1}: {c1}'</span></span></span></span></code></pre>
+<p>2, 回调函数</p>
+<p>回调函数格式：</p>
+<pre><code><code class="lang-js prettyprint prettyprinted"><span class="pun">(<span class="pln">params<span class="pun">:<span class="pln"> <span class="typ">Object<span class="pun">|<span class="typ">Array<span class="pun">,<span class="pln"> ticket<span class="pun">:<span class="pln"> string<span class="pun">,<span class="pln"> callback<span class="pun">:<span class="pln"> <span class="pun">(<span class="pln">ticket<span class="pun">:<span class="pln"> string<span class="pun">,<span class="pln"> html<span class="pun">:<span class="pln"> string<span class="pun">))<span class="pln"> <span class="pun">=&gt;<span class="pln"> string</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code></pre>
+<p>第一个参数&nbsp;<code>params</code>&nbsp;是 formatter 需要的数据集。格式如下：</p>
+<pre><code><code class="lang-js prettyprint prettyprinted"><span class="pun">{<span class="pln">
+    componentType<span class="pun">:<span class="pln"> <span class="str">'series'<span class="pun">,<span class="pln">
+    <span class="com">// 系列类型<span class="pln">
+    seriesType<span class="pun">:<span class="pln"> string<span class="pun">,<span class="pln">
+    <span class="com">// 系列在传入的 option.series 中的 index<span class="pln">
+    seriesIndex<span class="pun">:<span class="pln"> number<span class="pun">,<span class="pln">
+    <span class="com">// 系列名称<span class="pln">
+    seriesName<span class="pun">:<span class="pln"> string<span class="pun">,<span class="pln">
+    <span class="com">// 数据名，类目名<span class="pln">
+    name<span class="pun">:<span class="pln"> string<span class="pun">,<span class="pln">
+    <span class="com">// 数据在传入的 data 数组中的 index<span class="pln">
+    dataIndex<span class="pun">:<span class="pln"> number<span class="pun">,<span class="pln">
+    <span class="com">// 传入的原始数据项<span class="pln">
+    data<span class="pun">:<span class="pln"> <span class="typ">Object<span class="pun">,<span class="pln">
+    <span class="com">// 传入的数据值。在多数系列下它和 data 相同。在一些系列下是 data 中的分量（如 map、radar 中）<span class="pln">
+    value<span class="pun">:<span class="pln"> number<span class="pun">|<span class="typ">Array<span class="pun">|<span class="typ">Object<span class="pun">,<span class="pln">
+    <span class="com">// 坐标轴 encode 映射信息，<span class="pln">
+    <span class="com">// key 为坐标轴（如 'x' 'y' 'radius' 'angle' 等）<span class="pln">
+    <span class="com">// value 必然为数组，不会为 null/undefied，表示 dimension index 。<span class="pln">
+    <span class="com">// 其内容如：<span class="pln">
+    <span class="com">// {<span class="pln">
+    <span class="com">//     x: [2] // dimension index 为 2 的数据映射到 x 轴<span class="pln">
+    <span class="com">//     y: [0] // dimension index 为 0 的数据映射到 y 轴<span class="pln">
+    <span class="com">// }<span class="pln">
+    encode<span class="pun">:<span class="pln"> <span class="typ">Object<span class="pun">,<span class="pln">
+    <span class="com">// 维度名列表<span class="pln">
+    dimensionNames<span class="pun">:<span class="pln"> <span class="typ">Array<span class="pun">&lt;<span class="typ">String<span class="pun">&gt;,<span class="pln">
+    <span class="com">// 数据的维度 index，如 0 或 1 或 2 ...<span class="pln">
+    <span class="com">// 仅在雷达图中使用。<span class="pln">
+    dimensionIndex<span class="pun">:<span class="pln"> number<span class="pun">,<span class="pln">
+    <span class="com">// 数据图形的颜色<span class="pln">
+    color<span class="pun">:<span class="pln"> string<span class="pun">,<span class="pln">
+
+    <span class="com">// 饼图的百分比<span class="pln">
+    percent<span class="pun">:<span class="pln"> number<span class="pun">,<span class="pln">
+
+<span class="pun">}</span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></code><br /><br />我这里使用的回调函数，定义雷达图更方便一点<br />其他可参考官方文档教程：<br />https://www.echartsjs.com/zh/option.html#title<br /><br /></pre>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,140 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修React全家桶+Material-ui构建的后台管理系统' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>React全家桶+Material-ui构建的后台管理系统</center></div><div class='banquan'>原文出处:本文由博客园博主逗伴不是瓣提供。<br/>
+原文连接:https://www.cnblogs.com/-walker/p/11760494.html</div><br>
+    <p><strong>一、简介</strong></p>
+<p>一个使用React全家桶(react-router-dom,redux,redux-actions,redux-saga,reselect)+Material-ui构建的后来管理中心。</p>
+<p><strong>二、 附录</strong><br />+ 1. [在线体验](https://simpleroom.github.io)：账号:&lt;code&gt;admin&lt;/code&gt;密码:&lt;code&gt;123456&lt;/code&gt;<br />+ 2. [源码地址：https://github.com/SimpleRoom/walker-admin](https://github.com/SimpleRoom/walker-admin)，觉得有用请戳：star~ 会不断更新......<br />+ 3. 默认使用: [create-react-app](https://github.com/facebook/create-react-app)<br />+ 4. 目前分5个页面：图表数据，个人资料，员工管理，会员管理，线路设计，酒店预订</p>
+<p><strong>三、 工具概括</strong></p>
+<p>+ 1、[redux](https://redux.js.org/)：管理组件state的容器<br />+ 2、[react-redux](https://react-redux.js.org/)：React官方控制React组件与Redux的连接容器<br />+ 3、[redux-actions](https://redux-actions.js.org/)：简化Redux写法的工具<br />+ 4、[redux-saga](https://redux-saga.js.org/)：Redux处理异步数据的中间件<br />+ 5、[reselect](https://github.com/reduxjs/reselect)：Redux的选择器工具，精确获取指定state，减少不必要的渲染<br />+ 6、[plop](https://plopjs.com/)：快速开发工具，自动生成指定模板文件的工具</p>
+<p><strong>四、功能概况</strong></p>
+<p>+ 1、路由权限匹配，可在登录时接口返回该账号权限级别，把routerList注入store<br />+ 2、异步获取github开放的个人信息接口，redux和redux-saga和redux-actions以及reselect是如何串联一起的。对应目录(src/store/modules/common)</p>
+<div class="cnblogs_Highlighter">
+<pre><code>// 1.redux-actions
+import { createActions } from 'redux-actions'
+export const {
+  // 获取github个人信息
+  fetchGitInfo,
+  setGithubInfo,
+} = createActions(
+  {
+    // 获取github个人信息
+    FETCH_GIT_INFO: (username) =&gt; ({ username }),
+    SET_GITHUB_INFO: (githubData) =&gt; ({ githubData}),
+  },
+)
+export default {}
+
+//2.redux-saga
+import axios from 'axios'
+import { fork, put, takeEvery } from 'redux-saga/effects'
+import {
+  // github 个人信息
+  fetchGitInfo,
+  setGithubInfo,
+} from './action'
+// 请求github
+function* getGithubInfo(action) {
+  const { username } = action.payload
+  // username为你的github 用户名
+  const result = yield axios.get(`https://api.github.com/users/${username}`)
+  // console.log(action, result, 'saga.....')
+  yield put(setGithubInfo(result.data))
+}
+// 
+function* watchCommon() {
+  // 请求接口
+  yield takeEvery(fetchGitInfo, getGithubInfo)
+}
+export default [fork(watchCommon)]
+
+//3.reducer
+import { handleActions } from 'redux-actions'
+import {
+  // 暂存github信息
+  setGithubInfo,
+} from './action'
+// 该store的命名空间，可创建多个把store分开管理 
+export const namespace = 'common'
+export const defaultState = {
+  // github个人信息
+  githubInfo: {},
+}
+export const commonReducer = handleActions(
+  {
+    [setGithubInfo]: (state, action) =&gt; {
+      const { githubData } = action.payload
+      return { ...state, githubData }
+    }
+  },
+  defaultState
+)
+
+// 4.reselect
+// 从store单独获取githubInfo,实际中可能有N多个接口的不同数据
+export const getGithubData = state =&gt; state[namespace].githubData || {}
+
+// 5、组件内部使用
+import React, { useEffect } from 'react'
+import { connect } from 'react-redux'
+import { fetchGitInfo } from '../../store/modules/common/action'
+import { getGithubData } from '../../store/modules/common/selector'
+
+const mapStateToProps = state =&gt; ({
+  myGithubInfo: getGithubData(state),
+})
+const mapDispatchToProps = {
+  fetchGitInfo,
+}
+
+const MyInfo = (props) =&gt; {
+  const { myGithubInfo, fetchGitInfo } = props
+  // react-hooks新增：可代替componentDidMount和componentDidUpdate
+  useEffect(() =&gt; {
+    if (myGithubInfo &amp;&amp; !Object.keys(myGithubInfo).length) {
+    // 触发action,开始请求接口
+      fetchGitInfo('wjf444128852')
+    }
+  }, [myGithubInfo, fetchGitInfo])
+  return (
+    &lt;div&gt;
+      &lt;p&gt;{myGithubInfo.name}&lt;/p&gt;
+      &lt;p&gt;{myGithubInfo.flowers}&lt;/p&gt;
+    &lt;/div&gt;
+  )
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(MyInfo)
+</pre>
+</div>
+<p>　　</p>
+<p>&nbsp;</p>
+<p>+ 3、员工管理和会员管理页面中选择了[Material-table](https://material-table.com/)，内置搜索功能，可编辑，增加，删除。需要配置中文显示，配置参考(componenst/MaterialTable)</p>
+<p><strong>5、 目录结构</strong></p>
+<p>```shell</p>
+<p>plop── 快速创建components和store的模板</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ┌── assets 资源文件</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ├── components 页面组件<br />     &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ├── router      路由配置<br />     &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ├── store       state模块管理中心<br />src──├── styles      页面样式<br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ├<br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ├── utils       插件和工具<br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ├<br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ├── views       与路由对应的页面<br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; └── index.js    页面配置入口<br />     <br /> <br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ┌── Card             面板组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── CustomButtons    按钮组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── CustomInput      输入框组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── CustomTabs       公用Tab切换组件<br />components ──├── Dialog           弹框组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── Footer           底部footer<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── Grid             栅格组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── HeadNavBar       头部导航组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── HotelCard        酒店页面UI面板<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── HotelList        酒店页面列表UI组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── Login            登录组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── MaterialTable    定制可编辑Table组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── MuiDatepicker    日期选择器组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── MuiTimepicker    时间选择器组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── Notifications    自定义提示消息组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── Snackbar         Material-ui官方消息提示组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── Table            定制不可编辑的Table组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── Loading          loading组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── NotFound         404组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── ScrollToTopMount 路由切换缓动到顶部组件<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;├── SideBar          侧边栏路由导航<br />             &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;└── SideTool         右边工具栏组件<br />             <br />             <br />       &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;┌── modules         不同的state模块<br />       &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;├     ├── account   登录验证state<br />       &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;├     ├── common    全局公用的state<br />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;├     └── theme     主题控制state<br />store──├<br />       &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;└── indexStore.js   state入口<br />     <br />```</p>
+<p><strong>六、 结语</strong></p>
+<p><strong>+ 1、上述中redux的工具使用相对复杂繁琐，且不适合react初学者！！！！</strong><br /><strong>+ 1、以上只是实际开发中遇到的笔记总结，若有误请指出。</strong><br /><strong>+ 2、如果打包部署到服务器二级目录如：www.xxx.com/admin，需要对路由添加配置</strong><br /><strong>+ 3、React质量交流QQ群: &lt;code&gt;530415177&lt;/code&gt;</strong><br /><strong>+ 5、[前端联盟小组: https://github.com/jsfront](https://github.com/jsfront)</strong></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

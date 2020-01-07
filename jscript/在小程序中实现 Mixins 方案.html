@@ -1,0 +1,171 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在小程序中实现 Mixins 方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在小程序中实现 Mixins 方案</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/implement-mixins-for-miniprogram.html</div><br>
+    <p><strong>摘要：</strong> 小程序开发技巧</p>
+<ul>
+<li>作者：<a href="https://segmentfault.com/u/jrainlau">jrainlau</a></li>
+<li>原文：<a href="https://segmentfault.com/a/1190000019527762">在小程序中实现 Mixins 方案</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<p>在原生开发小程序的过程中，发现有多个页面都使用了几乎完全一样的逻辑。由于小程序官方并没有提供 Mixins 这种代码复用机制，所以只能采用非常不优雅的复制粘贴的方式去“复用”代码。随着功能越来越复杂，靠复制粘贴来维护代码显然不科学，于是便寻思着如何在小程序里面实现 Mixins。</p>
+<h3 id="什么是-mixins">什么是 Mixins</h3>
+<p>Mixins 直译过来是“混入”的意思，顾名思义就是把可复用的代码混入当前的代码里面。熟悉 VueJS 的同学应该清楚，它提供了更强大了代码复用能力，解耦了重复的模块，让系统维护更加方便优雅。</p>
+<p>先看看在 VueJS 中是怎么使用 Mixins 的。</p>
+<pre><code><code>// define a mixin object
+var myMixin = {
+  created: function () {
+    this.hello()
+  },
+  methods: {
+    hello: function () {
+      console.log(&#39;hello from mixin!&#39;)
+    }
+  }
+}
+
+// define a component that uses this mixin
+var Component = Vue.extend({
+  mixins: [myMixin]
+})
+
+var component = new Component() // =&gt; &quot;hello from mixin!&quot;</code></pre>
+<p>在上述的代码中，首先定义了一个名为 <code>myMixin</code> 的对象，里面定义了一些生命周期函数和方法。接着在一个新建的组件里面直接通过 <code>mixins: [myMixin]</code> 的方式注入，此时新建的组件便获得了来自 <code>myMixin</code> 的方法了。</p>
+<p>明白了什么是 Mixins 以后，便可开始着手在小程序里面实现了。</p>
+<h3 id="mixins-的机制">Mixins 的机制</h3>
+<p>Mixins 也有一些小小的细节需要注意的，就是关于生命周期事件的执行顺序。在上一节的例子中，我们在 <code>myMixin</code> 里定义了一个 <code>created()</code> 方法，这是 VueJS 里面的一个生命周期事件。如果我们在新建组件 <code>Component</code> 里面也定义一个 <code>created()</code> 方法，那么执行结果会是如何呢？</p>
+<pre><code><code>var Component = Vue.extend({
+  mixins: [myMixin],
+  created: function () {
+    console.log(&#39;hello from Component!&#39;)
+  }
+})
+
+var component = new Component()
+
+// =&gt;
+// Hello from mixin!
+// Hello from Component!</code></pre>
+<p>可以看运行结果是先输出了来自 Mixin 的 log，再输出来自组件的 log。</p>
+<p>除了生命周期函数以外，再看看对象属性的混入结果：</p>
+<pre><code><code>// define a mixin object
+const myMixin = {
+  data () {
+    return {
+      mixinData: &#39;data from mixin&#39;
+    }
+  }
+}
+
+// define a component that uses this mixin
+var Component = Vue.extend({
+  mixins: [myMixin],
+  data () {
+    return {
+      componentData: &#39;data from component&#39;
+    }
+  },
+  mounted () {
+    console.log(this.$data)
+  }
+})
+
+var component = new Component()</code></pre>
+<p><img src="./images/在小程序中实现 Mixins 方案0.png" /></p>
+<p>在 VueJS 中，会把来自 Mixins 和组件的对象属性当中的内容（如 <code>data</code>, <code>methods</code>等）混合，以确保两边的数据都同时存在。</p>
+<p>经过上述的验证，我们可以得到 VueJS 中关于 Mixins 运行机制的结论：</p>
+<ol>
+<li>生命周期属性，会优先执行来自 Mixins 当中的，后执行来自组件当中的。</li>
+<li>对象类型属性，来自 Mixins 和来自组件中的会共存。</li>
+</ol>
+<p>但是在小程序中，这套机制会和 VueJS 的有一点区别。在小程序中，自定义的方法是直接定义在 Page 的属性当中的，既不属于生命周期类型属性，也不属于对象类型属性。为了不引入奇怪的问题，我们为小程序的 Mixins 运行机制多加一条：</p>
+<ol>
+<li>小程序中的自定义方法，优先级为 Page &gt; Mixins，即 Page 中的自定义方法会覆盖 Mixins 当中的。</li>
+</ol>
+<h3 id="代码实现">代码实现</h3>
+<p>在小程序中，每个页面都由 <code>Page(options)</code> 函数定义，而 Mixins 则作用于这个函数当中的 <code>options</code> 对象。因此我们实现 Mixins 的思路就有了——劫持并改写 <code>Page</code> 函数，最后再重新把它释放出来。</p>
+<p>新建一个 <code>mixins.js</code> 文件：</p>
+<pre><code><code>// 保存原生的 Page 函数
+const originPage = Page
+
+Page = (options) =&gt; {
+  const mixins = options.mixins
+  // mixins 必须为数组
+  if (Array.isArray(mixins)) {
+    delete options.mixins
+    // mixins 注入并执行相应逻辑
+    options = merge(mixins, options)
+  }
+  // 释放原生 Page 函数
+  originPage(options)
+}</code></pre>
+<p>原理很简单，关键的地方在于 <code>merge()</code> 函数。<code>merge</code> 函数即为小程序 Mixins 运行机制的具体实现，完全按照上一节总结的三条结论来进行。</p>
+<pre><code><code>// 定义小程序内置的属性/方法
+const originProperties = [&#39;data&#39;, &#39;properties&#39;, &#39;options&#39;]
+const originMethods = [&#39;onLoad&#39;, &#39;onReady&#39;, &#39;onShow&#39;, &#39;onHide&#39;, &#39;onUnload&#39;, &#39;onPullDownRefresh&#39;, &#39;onReachBottom&#39;, &#39;onShareAppMessage&#39;, &#39;onPageScroll&#39;, &#39;onTabItemTap&#39;]
+
+function merge (mixins, options) {
+  mixins.forEach((mixin) =&gt; {
+    if (Object.prototype.toString.call(mixin) !== &#39;[object Object]&#39;) {
+      throw new Error(&#39;mixin 类型必须为对象！&#39;)
+    }
+    // 遍历 mixin 里面的所有属性
+    for (let [key, value] of Object.entries(mixin)) {
+      if (originProperties.includes(key)) {
+        // 内置对象属性混入
+        options[key] = { ...value, ...options[key] }
+      } else if (originMethods.includes(key)) {
+        // 内置方法属性混入，优先执行混入的部分
+        const originFunc = options[key]
+        options[key] = function (...args) {
+          value.call(this, ...args)
+          return originFunc &amp;&amp; originFunc.call(this, ...args)
+        }
+      } else {
+        // 自定义方法混入
+        options = { ...mixin, ...options }
+      }
+    }
+  })
+  return options
+}</code></pre>
+<h3 id="mixins-使用">Mixins 使用</h3>
+<ol>
+<li><p>在小程序的 <code>app.js</code> 里引入 <code>mixins.js</code></p>
+<pre><code><code>require(&#39;./mixins.js&#39;)</code></pre></li>
+<li><p>撰写一个 <code>myMixin.js</code></p>
+<pre><code><code>module.exports = {
+  data: { someData: &#39;myMixin&#39; },
+  onShow () { console.log(&#39;Log from mixin!&#39;) }
+}</code></pre></li>
+<li><p>在 <code>page/index/index.js</code> 中使用</p>
+<pre><code><code>Page({
+  mixins: [require(&#39;../../myMixin.js&#39;)]
+})</code></pre></li>
+</ol>
+<p><img src="./images/在小程序中实现 Mixins 方案1.png" /></p>
+<p>大功告成！此时小程序已经具备 Mixins 的能力，对于代码解耦与复用来说将会更加方便。</p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家免费试用！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

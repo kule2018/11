@@ -1,0 +1,160 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue+echarts实现可拖动节点的折现图（支持拖动方向和上下限的设置）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue+echarts实现可拖动节点的折现图（支持拖动方向和上下限的设置）</center></div><div class='banquan'>原文出处:本文由博客园博主进击的小王子提供。<br/>
+原文连接:https://www.cnblogs.com/p-l-u-m/p/10691684.html</div><br>
+    <p>本篇文档主要是利用echarts实现可拖动节点的折现图，在echarts中找到了一个demo，传送门：<a href="https://echarts.baidu.com/examples/editor.html?c=line-draggable">https://echarts.baidu.com/examples/editor.html?c=line-draggable</a>,但是不是用vue写的，并且在改写为vue组件的过程中遇到了很多问题，在百度过程中发现并没有相关的文档，所以决定自己开发，并在demo的基础上开发了一些实用的功能，所以把这个过程记录下来。文档中还有很多不够完善的地方，欢迎讨论哈！</p>
+<p>需求：制作一个折线图用于显示当前24小时的数据，并且可以通过拖动折现图设置数据</p>
+<p>效果图如下：初步看和一般的折线图没什么区别，但是实际如图示，节点是可以上下拖动的</p>
+<p><img src="./images/vue+echarts实现可拖动节点的折现图（支持拖动方向和上下限的设置）0.png" alt="" /></p>
+<p>代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+  &lt;div ref="dom" class="charts chart-bar"&gt;&lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;<span style="color: #000000;">
+import echarts from </span>'echarts'<span style="color: #000000;">
+import tdTheme from </span>'_c/charts/theme.json'  <span style="color: #008000;">//</span><span style="color: #008000;"> 这是我自己写的主题文件，可以不用管</span>
+import { on, off } from '@/libs/tools' <span style="color: #008000;">//</span><span style="color: #008000;"> 这是其他一些方法函数，可以不管</span>
+echarts.registerTheme('tdTheme'<span style="color: #000000;">, tdTheme)
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  name: </span>'ChartLine'<span style="color: #000000;">,
+  props: {
+    text: String,
+    subtext: String,
+    yName: String
+  },
+  data () {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+      dom: </span><span style="color: #0000ff;">null</span><span style="color: #000000;">,
+      symbolSize: </span>5<span style="color: #000000;">,<br />　　　　// 通过拖动是可以实时改变这里的值的
+      data: [[</span>0, 10], [1, 10], [2, 20], [3, 30], [4, 36], [5, 20], [6, 25], [7, 20], [8, 21], [9, 22<span style="color: #000000;">],
+      [</span>10, 23], [11, 25], [12, 10], [13, 11], [14, 19], [15, 20], [16, 12], [17, 13], [18, 12], [19, 9<span style="color: #000000;">],
+      [</span>20, 21], [21, 18], [22, 10], [23, 12<span style="color: #000000;">]]
+    }
+  },
+  methods: {
+    resize () {
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.dom.resize()
+    }
+  },
+  mounted () {
+    </span><span style="color: #0000ff;">this</span>.dom = echarts.init(<span style="color: #0000ff;">this</span>.$refs.dom, 'tdTheme'<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.dom.setOption({
+      title: {
+        text: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.text,
+        subtext: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.subtext,
+        x: </span>'center'<span style="color: #000000;">
+      },
+      grid: {
+        left: </span>50<span style="color: #000000;">,
+        top: </span>40<span style="color: #000000;">
+      },
+      tooltip: {
+        trigger: </span>'axis'<span style="color: #000000;">
+      },
+      xAxis: {
+        min: </span>0<span style="color: #000000;">,
+        max: </span>23<span style="color: #000000;">,
+        type: </span>'value'<span style="color: #000000;">,
+        axisLabel: {
+          formatter (value) {
+            </span><span style="color: #0000ff;">return</span> value + ':00' <span style="color: #008000;">//</span><span style="color: #008000;"> 格式时间显示方式</span>
+<span style="color: #000000;">          }
+        },
+        axisLine: { onZero: </span><span style="color: #0000ff;">false</span><span style="color: #000000;"> }
+      },
+      yAxis: {
+        min: </span>4<span style="color: #000000;">,
+        max: </span>36<span style="color: #000000;">,
+        type: </span>'value'<span style="color: #000000;">,
+        name: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.yName,
+        axisLine: { onZero: </span><span style="color: #0000ff;">false</span><span style="color: #000000;"> }
+      },
+      series: [
+        {
+          id: </span>'a'<span style="color: #000000;">,
+          type: </span>'line'<span style="color: #000000;">,
+          smooth: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+          symbolSize: </span><span style="color: #0000ff;">this</span>.symbolSize, <span style="color: #008000;">//</span><span style="color: #008000;"> 为了方便拖拽，把 symbolSize 尺寸设大了。</span>
+          data: <span style="color: #0000ff;">this</span><span style="color: #000000;">.data
+        }
+      ]
+    })
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.dom.setOption({
+      graphic: echarts.util.map(</span><span style="color: #0000ff;">this</span>.data, (dataItem, dataIndex) =&gt;<span style="color: #000000;"> {
+        const that </span>= <span style="color: #0000ff;">this</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 因为ondrag函数必须在回调内使用this.position获取实时坐标，此处必须用that替换this</span>
+        <span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 'circle' 表示这个 graphic element 的类型是圆点。</span>
+          type: 'circle'<span style="color: #000000;">,
+          shape: {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 圆点的半径。</span>
+            r: <span style="color: #0000ff;">this</span>.symbolSize / 2<span style="color: #000000;">
+          },
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用 transform 的方式对圆点进行定位。position: [x, y] 表示将圆点平移到 [x, y] 位置。</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> 这里使用了 convertToPixel 这个 API 来得到每个圆点的位置</span>
+          position: <span style="color: #0000ff;">this</span>.dom.convertToPixel('grid'<span style="color: #000000;">, dataItem),
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这个属性让圆点不可见（但是不影响他响应鼠标事件）。</span>
+          invisible: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这个属性让圆点可以被拖拽。</span>
+          draggable: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> 把 z 值设得比较大，表示这个圆点在最上方，能覆盖住已有的折线图的圆点。</span>
+          z: 100<span style="color: #000000;">,
+          ondrag: echarts.util.curry(</span><span style="color: #0000ff;">function</span> (dataIndex) { <span style="color: #008000;">//</span><span style="color: #008000;"> 此处必须用匿名函数，不能用箭头函数，否则拿不到拖动的坐标</span>
+            let origin = that.dom.convertToPixel('grid', that.data[dataIndex]) <span style="color: #008000;">//</span><span style="color: #008000;"> 得到每个圆点原始位置</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> let maxY = that.dom.convertToPixel('grid', [40, 36]) // 最高温度为36摄氏度，暂未做封装</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> 超过最高温度36将不能拖动,写死的最低点高度为240，最高点为40</span>
+            <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.position[1] &gt; 240<span style="color: #000000;">) {
+              </span><span style="color: #0000ff;">this</span>.position[1] = 240<span style="color: #000000;">
+            } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.position[1] &lt; 40<span style="color: #000000;">) {
+              </span><span style="color: #0000ff;">this</span>.position[1] = 40<span style="color: #000000;">
+            }
+            </span><span style="color: #0000ff;">this</span>.position[0] = origin[0] <span style="color: #008000;">//</span><span style="color: #008000;"> 控制每个点位只能在y轴方向移动</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> this.position[1] = origin[1] // 控制每个点位只能在x轴方向移动</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;"> 实时获取拖动的点位信息并根据此信息重新画图</span>
+            that.data[dataIndex] = that.dom.convertFromPixel('grid', <span style="color: #0000ff;">this</span><span style="color: #000000;">.position)
+            that.dom.setOption({
+              series: [{
+                id: </span>'a'<span style="color: #000000;">,
+                data: that.data
+              }]
+            })
+          }, dataIndex)
+        }
+      })
+    })
+    on(window, </span>'resize', <span style="color: #0000ff;">this</span><span style="color: #000000;">.dom.setOption({
+      graphic: echarts.util.map(</span><span style="color: #0000ff;">this</span>.data, (item, dataIndex) =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+          position: </span><span style="color: #0000ff;">this</span>.dom.convertToPixel('grid'<span style="color: #000000;">, item)
+        }
+      })
+    }))
+  },
+  beforeDestroy () {
+    off(window, </span>'resize', <span style="color: #0000ff;">this</span><span style="color: #000000;">.resize)
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

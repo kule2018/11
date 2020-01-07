@@ -1,0 +1,265 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修D3.js(v3)+react 制作 一个带坐标与比例尺的散点图 (V3版本)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>D3.js(v3)+react 制作 一个带坐标与比例尺的散点图 (V3版本)</center></div><div class='banquan'>原文出处:本文由博客园博主溢杨年华提供。<br/>
+原文连接:https://www.cnblogs.com/littleSpill/p/10836530.html</div><br>
+    <div><span style="font-size: 18px;"><strong><br /></strong>上一章做了柱形图，<a style="cursor: pointer;" onclick="window.open('https://www.cnblogs.com/littleSpill/p/10835041.html','','');return false;" href="https://www.cnblogs.com/littleSpill/p/10835041.html" target="_blank">https://www.cnblogs.com/littleSpill/p/10835041.html</a>&nbsp; &nbsp;这一章做散点图。</span></div>
+<div>&nbsp;</div>
+<div><span style="font-size: 18px;"><strong>散点图(Scatter Chart),</strong>通常是一横一竖两个坐标轴，数据是一组二维坐标，分别对应两个坐标轴，与坐标轴对应的地方打上点。由此可以猜到，需要的元素包括<strong>circle(圆)</strong>和<strong>axis(坐标轴)</strong>。需要进行可视化的数据有:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;">1</span>  　　<span style="color: #008000;">//</span><span style="color: #008000;">圆心数据</span>
+<span style="color: #008080;">2</span>          <span style="color: #0000ff;">var</span> center =<span style="color: #000000;"> [
+</span><span style="color: #008080;">3</span>              [0.5,0.5],[0.7,0.8],[0.4,0.9<span style="color: #000000;">],
+</span><span style="color: #008080;">4</span>              [0.11,0.32],[0.88,0.25],[0.75,0.12<span style="color: #000000;">],
+</span><span style="color: #008080;">5</span>              [0.5,0.1],[0.2,0.3],[0.4,0.1],[0.6,0.7<span style="color: #000000;">]
+</span><span style="color: #008080;">6</span>          ]</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div><span style="font-size: 18px;">然后定义一个SVG的绘制区域:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;">1</span> 　　<span style="color: #008000;">//</span><span style="color: #008000;">定义一个svg的绘制区域。</span>
+<span style="color: #008080;">2</span>         <span style="color: #0000ff;">var</span> width = 600;        <span style="color: #008000;">//</span><span style="color: #008000;">svg绘制区域的宽度</span>
+<span style="color: #008080;">3</span>         <span style="color: #0000ff;">var</span> height = 500;       <span style="color: #008000;">//</span><span style="color: #008000;">svg绘制区域的高度</span>
+<span style="color: #008080;">4</span> 
+<span style="color: #008080;">5</span>         <span style="color: #0000ff;">var</span> svg = d3.select("#body")                    <span style="color: #008000;">//</span><span style="color: #008000;">选择id为body的div</span>
+<span style="color: #008080;">6</span>                     .append("svg")                      <span style="color: #008000;">//</span><span style="color: #008000;">在&lt;body&gt;中添加&lt;avg&gt;</span>
+<span style="color: #008080;">7</span>                     .attr("width",width)                <span style="color: #008000;">//</span><span style="color: #008000;">设定&lt;svg&gt;的宽度属性</span>
+<span style="color: #008080;">8</span>                     .attr("height",height)              <span style="color: #008000;">//</span><span style="color: #008000;">设定&lt;svg&gt;的高度属性</span></span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>
+<div><span style="font-size: 18px;">数组中的每一项都是一个数组，子数组的第一项表示x值，第二项表示y值。实际应用中x轴和y轴可能对应着不同的意义，单位也可能不同。比如人口-GDP、烟龄-肺癌率等。这些数据都不可能直接用像素作单位来绘制，因为类似(0.5,0.5)、(0.7,0.8)这样的位置，即便绘制了也会看到圆都挤到一块，分不清彼此。因此要先使用比例尺将它们放大。</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span> 　　<span style="color: #008000;">//</span><span style="color: #008000;">定义比例尺</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #008000;">//</span><span style="color: #008000;">x轴宽度</span>
+<span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">var</span> xAxisWidth = 300<span style="color: #000000;">;
+</span><span style="color: #008080;"> 4</span>         <span style="color: #008000;">//</span><span style="color: #008000;">y轴宽度</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">var</span> yAxisWidth = 300<span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span>         <span style="color: #008000;">//</span><span style="color: #008000;">x轴比例尺</span>
+<span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">var</span> xScale = d3.scale.linear()                          <span style="color: #008000;">//</span><span style="color: #008000;">创建一个线性比例尺</span>
+<span style="color: #008080;"> 8</span>                     .domain([0,1.2*d3.max(center,<span style="color: #0000ff;">function</span>(d){   <span style="color: #008000;">//</span><span style="color: #008000;">设定定义域</span>
+<span style="color: #008080;"> 9</span>                         <span style="color: #0000ff;">return</span> d[0<span style="color: #000000;">]
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">                    })])
+</span><span style="color: #008080;">11</span>                     .range([0,xAxisWidth])                      <span style="color: #008000;">//</span><span style="color: #008000;">设定值域</span>
+<span style="color: #008080;">12</span>         <span style="color: #008000;">//</span><span style="color: #008000;">y轴比例尺</span>
+<span style="color: #008080;">13</span>         <span style="color: #0000ff;">var</span> yScale = d3.scale.linear()                          <span style="color: #008000;">//</span><span style="color: #008000;">创建一个线性比例尺</span>
+<span style="color: #008080;">14</span>                     .domain([0,1.2*d3.max(center,<span style="color: #0000ff;">function</span>(d){   <span style="color: #008000;">//</span><span style="color: #008000;">设定定义域</span>
+<span style="color: #008080;">15</span>                         <span style="color: #0000ff;">return</span> d[1<span style="color: #000000;">]
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                    })])
+</span><span style="color: #008080;">17</span>                     .range([0,yAxisWidth])                      <span style="color: #008000;">//</span><span style="color: #008000;">设定值域</span></span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+<div>
+<div><span style="font-size: 18px;">xAxisWidth和yAxisWidth可以根据需求设定。要注意，两个比例尺都是线性比例尺，在设定定义域domain时，使用了d3.max()，这是一个求数组最大值的函数。详情见<a style="cursor: pointer;" onclick="window.open('https://www.cnblogs.com/littleSpill/p/10793275.html','','');return false;" href="https://www.cnblogs.com/littleSpill/p/10793275.html" target="_blank">https://www.cnblogs.com/littleSpill/p/10793275.html</a>对于x轴的比例尺来说，这里的意思是，相对于center数组的每一项，返回其子数组的第一项(d[0])组成一个新的数组，然后再求最大值。最大值前面乘了一个1.2,这是为了使得散点图不会有某一点存在于坐标轴的边缘上。</span></div>
+<div>&nbsp;</div>
+<div><span style="font-size: 18px;">下面在SVG中绘制图形，先绘制圆:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span> 　　<span style="color: #008000;">//</span><span style="color: #008000;">在svg中绘制图形，先绘制圆</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #008000;">//</span><span style="color: #008000;">外边框</span>
+<span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">var</span> padding = {top:30,right:30,bottom:100,left:100<span style="color: #000000;">};
+</span><span style="color: #008080;"> 4</span>         <span style="color: #008000;">//</span><span style="color: #008000;">绘制圆</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">var</span> circle = svg.selectAll("circle"<span style="color: #000000;">)
+</span><span style="color: #008080;"> 6</span>                         .data(center)                   <span style="color: #008000;">//</span><span style="color: #008000;">绑定数据</span>
+<span style="color: #008080;"> 7</span>                         .enter()                        <span style="color: #008000;">//</span><span style="color: #008000;">获取enter部分</span>
+<span style="color: #008080;"> 8</span>                         .append("circle")               <span style="color: #008000;">//
+</span><span style="color: #008080;"> 9</span>                         
+<span style="color: #008080;">10</span>                         .attr("fill","goldEnrod")       <span style="color: #008000;">//</span><span style="color: #008000;">设置颜色</span>
+<span style="color: #008080;">11</span>                         .attr("cx",<span style="color: #0000ff;">function</span>(d){         <span style="color: #008000;">//</span><span style="color: #008000;">设置圆心的x坐标</span>
+<span style="color: #008080;">12</span>                             <span style="color: #0000ff;">return</span> padding.left + <strong><span style="font-size: 14pt;">xScale(d[0</span></strong><span style="color: #000000;"><strong><span style="font-size: 14pt;">]</span></strong>)
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">                        })
+</span><span style="color: #008080;">14</span>                         .attr("cy",<span style="color: #0000ff;">function</span>(d){         <span style="color: #008000;">//</span><span style="color: #008000;">设置圆心的y坐标</span>
+<span style="color: #008080;">15</span>                             <span style="color: #0000ff;">return</span> height-padding.bottom-<strong><span style="font-size: 14pt;">yScale(d[1</span></strong><span style="color: #000000;"><strong><span style="font-size: 14pt;">]</span></strong>)
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">                        })
+</span><span style="color: #008080;">17</span>                         .attr("r",5)                    <span style="color: #008000;">//</span><span style="color: #008000;">设置圆的半径</span></span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div>
+<div><span style="font-size: 18px;">注意上面代码的粗体字部分，分别使用x轴和y轴的比例尺放大数据。</span></div>
+<div>&nbsp;</div>
+<div><span style="font-size: 18px;">最后定义坐标轴:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;"> 1</span>  　　<span style="color: #008000;">//</span><span style="color: #008000;">定义坐标轴</span>
+<span style="color: #008080;"> 2</span>         <span style="color: #008000;">//</span><span style="color: #008000;">x轴</span>
+<span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">var</span> xAxis = d3.svg.axis()                       <span style="color: #008000;">//</span><span style="color: #008000;">创建一个默认的新坐标轴</span>
+<span style="color: #008080;"> 4</span>                         .scale(xScale)                  <span style="color: #008000;">//</span><span style="color: #008000;">设定坐标轴的比例尺</span>
+<span style="color: #008080;"> 5</span>                         .orient("bottom")               <span style="color: #008000;">//</span><span style="color: #008000;">设定坐标轴的方向</span>
+<span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>         
+<span style="color: #008080;"> 8</span>         yScale.range([yAxisWidth,0])                    <span style="color: #008000;">//</span><span style="color: #008000;">重新设置y轴比例尺的值域，与原来的相反</span>
+<span style="color: #008080;"> 9</span> 
+<span style="color: #008080;">10</span>         <span style="color: #008000;">//</span><span style="color: #008000;">y轴</span>
+<span style="color: #008080;">11</span>         <span style="color: #0000ff;">var</span> yAxis = d3.svg.axis()                       <span style="color: #008000;">//</span><span style="color: #008000;">创建一个默认的新坐标轴</span>
+<span style="color: #008080;">12</span>                         .scale(yScale)                  <span style="color: #008000;">//</span><span style="color: #008000;">设定坐标轴的比例尺</span>
+<span style="color: #008080;">13</span>                         .orient("left")                 <span style="color: #008000;">//</span><span style="color: #008000;">设定坐标轴的方向</span>
+<span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加x轴和平移</span>
+<span style="color: #008080;">16</span>         svg.append("g")                                 <span style="color: #008000;">//</span><span style="color: #008000;">在svg中添加一个包含坐标轴各元素的g元素</span>
+<span style="color: #008080;">17</span>             .attr("class","axis")                       <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;">18</span>             .attr("transform","translate("+padding.left+","+(height-padding.bottom)+")")    <span style="color: #008000;">//</span><span style="color: #008000;">将x轴进行平移</span>
+<span style="color: #008080;">19</span>             .call(xAxis)                                <span style="color: #008000;">//</span><span style="color: #008000;">将自身作为参数传递给xAxis函数</span>
+<span style="color: #008080;">20</span>             
+<span style="color: #008080;">21</span>         <span style="color: #008000;">//</span><span style="color: #008000;">设置y轴和平移</span>
+<span style="color: #008080;">22</span>         svg.append("g")                                 <span style="color: #008000;">//</span><span style="color: #008000;">在svg中添加一个包含坐标轴各元素的g元素</span>
+<span style="color: #008080;">23</span>             .attr("class","axis")                       <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;">24</span>             .attr("transform","translate("+padding.left+","+(height-padding.bottom-yAxisWidth+")"))    <span style="color: #008000;">//</span><span style="color: #008000;">将y轴进行平移</span>
+<span style="color: #008080;">25</span>             .call(yAxis) </span> </pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div>&nbsp;</div>
+<div><span style="font-size: 18px;">看一下效果图:</span></div>
+<div>&nbsp;</div>
+<div><span style="font-size: 18px;"><img src="./images/D3.js(v3)+react 制作 一个带坐标与比例尺的散点图 (V3版本)0.png" alt="" /></span></div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div><span style="font-size: 14pt;">完整代码:</span></div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 18px;"><span style="color: #008080;">  1</span> import React, { Component } from 'react'<span style="color: #000000;">;
+</span><span style="color: #008080;">  2</span> import * as d3 from 'd3'
+<span style="color: #008080;">  3</span> <span style="color: #000000;">class ScatterChart extends Component {
+</span><span style="color: #008080;">  4</span> <span style="color: #000000;">    constructor(props) {
+</span><span style="color: #008080;">  5</span> <span style="color: #000000;">        super(props);
+</span><span style="color: #008080;">  6</span>         <span style="color: #0000ff;">this</span>.state =<span style="color: #000000;"> {}
+</span><span style="color: #008080;">  7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">  8</span> 
+<span style="color: #008080;">  9</span> <span style="color: #000000;">    componentDidMount(){
+</span><span style="color: #008080;"> 10</span>         <span style="color: #0000ff;">this</span><span style="color: #000000;">.oneMethod()
+</span><span style="color: #008080;"> 11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 12</span> 
+<span style="color: #008080;"> 13</span> <span style="color: #000000;">    oneMethod(){
+</span><span style="color: #008080;"> 14</span> 
+<span style="color: #008080;"> 15</span>         <span style="color: #008000;">//</span><span style="color: #008000;">圆心数据</span>
+<span style="color: #008080;"> 16</span>         <span style="color: #0000ff;">var</span> center =<span style="color: #000000;"> [
+</span><span style="color: #008080;"> 17</span>             [0.5,0.5],[0.7,0.8],[0.4,0.9<span style="color: #000000;">],
+</span><span style="color: #008080;"> 18</span>             [0.11,0.32],[0.88,0.25],[0.75,0.12<span style="color: #000000;">],
+</span><span style="color: #008080;"> 19</span>             [0.5,0.1],[0.2,0.3],[0.4,0.1],[0.6,0.7<span style="color: #000000;">]
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">        ]
+</span><span style="color: #008080;"> 21</span> 
+<span style="color: #008080;"> 22</span>         <span style="color: #008000;">//</span><span style="color: #008000;">定义一个svg的绘制区域。</span>
+<span style="color: #008080;"> 23</span>         <span style="color: #0000ff;">var</span> width = 600;        <span style="color: #008000;">//</span><span style="color: #008000;">svg绘制区域的宽度</span>
+<span style="color: #008080;"> 24</span>         <span style="color: #0000ff;">var</span> height = 500;       <span style="color: #008000;">//</span><span style="color: #008000;">svg绘制区域的高度</span>
+<span style="color: #008080;"> 25</span> 
+<span style="color: #008080;"> 26</span>         <span style="color: #0000ff;">var</span> svg = d3.select("#body")                    <span style="color: #008000;">//</span><span style="color: #008000;">选择id为body的div</span>
+<span style="color: #008080;"> 27</span>                     .append("svg")                      <span style="color: #008000;">//</span><span style="color: #008000;">在&lt;body&gt;中添加&lt;avg&gt;</span>
+<span style="color: #008080;"> 28</span>                     .attr("width",width)                <span style="color: #008000;">//</span><span style="color: #008000;">设定&lt;svg&gt;的宽度属性</span>
+<span style="color: #008080;"> 29</span>                     .attr("height",height)              <span style="color: #008000;">//</span><span style="color: #008000;">设定&lt;svg&gt;的高度属性</span>
+<span style="color: #008080;"> 30</span> 
+<span style="color: #008080;"> 31</span>         <span style="color: #008000;">//</span><span style="color: #008000;">定义比例尺</span>
+<span style="color: #008080;"> 32</span>         <span style="color: #008000;">//</span><span style="color: #008000;">x轴宽度</span>
+<span style="color: #008080;"> 33</span>         <span style="color: #0000ff;">var</span> xAxisWidth = 300<span style="color: #000000;">;
+</span><span style="color: #008080;"> 34</span>         <span style="color: #008000;">//</span><span style="color: #008000;">y轴宽度</span>
+<span style="color: #008080;"> 35</span>         <span style="color: #0000ff;">var</span> yAxisWidth = 300<span style="color: #000000;">;
+</span><span style="color: #008080;"> 36</span>         <span style="color: #008000;">//</span><span style="color: #008000;">x轴比例尺</span>
+<span style="color: #008080;"> 37</span>         <span style="color: #0000ff;">var</span> xScale = d3.scale.linear()                          <span style="color: #008000;">//</span><span style="color: #008000;">创建一个线性比例尺</span>
+<span style="color: #008080;"> 38</span>                     .domain([0,1.2*d3.max(center,<span style="color: #0000ff;">function</span>(d){   <span style="color: #008000;">//</span><span style="color: #008000;">设定定义域</span>
+<span style="color: #008080;"> 39</span>                         <span style="color: #0000ff;">return</span> d[0<span style="color: #000000;">]
+</span><span style="color: #008080;"> 40</span> <span style="color: #000000;">                    })])
+</span><span style="color: #008080;"> 41</span>                     .range([0,xAxisWidth])                      <span style="color: #008000;">//</span><span style="color: #008000;">设定值域</span>
+<span style="color: #008080;"> 42</span>         <span style="color: #008000;">//</span><span style="color: #008000;">y轴比例尺</span>
+<span style="color: #008080;"> 43</span>         <span style="color: #0000ff;">var</span> yScale = d3.scale.linear()                          <span style="color: #008000;">//</span><span style="color: #008000;">创建一个线性比例尺</span>
+<span style="color: #008080;"> 44</span>                     .domain([0,1.2*d3.max(center,<span style="color: #0000ff;">function</span>(d){   <span style="color: #008000;">//</span><span style="color: #008000;">设定定义域</span>
+<span style="color: #008080;"> 45</span>                         <span style="color: #0000ff;">return</span> d[1<span style="color: #000000;">]
+</span><span style="color: #008080;"> 46</span> <span style="color: #000000;">                    })])
+</span><span style="color: #008080;"> 47</span>                     .range([0,yAxisWidth])                      <span style="color: #008000;">//</span><span style="color: #008000;">设定值域</span>
+<span style="color: #008080;"> 48</span> 
+<span style="color: #008080;"> 49</span>         <span style="color: #008000;">//</span><span style="color: #008000;">在svg中绘制图形，先绘制圆</span>
+<span style="color: #008080;"> 50</span>         <span style="color: #008000;">//</span><span style="color: #008000;">外边框</span>
+<span style="color: #008080;"> 51</span>         <span style="color: #0000ff;">var</span> padding = {top:30,right:30,bottom:100,left:100<span style="color: #000000;">};
+</span><span style="color: #008080;"> 52</span>         <span style="color: #008000;">//</span><span style="color: #008000;">绘制圆</span>
+<span style="color: #008080;"> 53</span>         <span style="color: #0000ff;">var</span> circle = svg.selectAll("circle"<span style="color: #000000;">)
+</span><span style="color: #008080;"> 54</span>                         .data(center)                   <span style="color: #008000;">//</span><span style="color: #008000;">绑定数据</span>
+<span style="color: #008080;"> 55</span>                         .enter()                        <span style="color: #008000;">//</span><span style="color: #008000;">获取enter部分</span>
+<span style="color: #008080;"> 56</span>                         .append("circle")               <span style="color: #008000;">//
+</span><span style="color: #008080;"> 57</span>                         
+<span style="color: #008080;"> 58</span>                         .attr("fill","goldEnrod")       <span style="color: #008000;">//</span><span style="color: #008000;">设置颜色</span>
+<span style="color: #008080;"> 59</span>                         .attr("cx",<span style="color: #0000ff;">function</span>(d){         <span style="color: #008000;">//</span><span style="color: #008000;">设置圆心的x坐标</span>
+<span style="color: #008080;"> 60</span>                             <span style="color: #0000ff;">return</span> padding.left + xScale(d[0<span style="color: #000000;">])
+</span><span style="color: #008080;"> 61</span> <span style="color: #000000;">                        })
+</span><span style="color: #008080;"> 62</span>                         .attr("cy",<span style="color: #0000ff;">function</span>(d){         <span style="color: #008000;">//</span><span style="color: #008000;">设置圆心的y坐标</span>
+<span style="color: #008080;"> 63</span>                             <span style="color: #0000ff;">return</span> height-padding.bottom-yScale(d[1<span style="color: #000000;">])
+</span><span style="color: #008080;"> 64</span> <span style="color: #000000;">                        })
+</span><span style="color: #008080;"> 65</span>                         .attr("r",5)                    <span style="color: #008000;">//</span><span style="color: #008000;">设置圆的半径</span>
+<span style="color: #008080;"> 66</span> 
+<span style="color: #008080;"> 67</span>         <span style="color: #008000;">//</span><span style="color: #008000;">定义坐标轴</span>
+<span style="color: #008080;"> 68</span>         <span style="color: #008000;">//</span><span style="color: #008000;">x轴</span>
+<span style="color: #008080;"> 69</span>         <span style="color: #0000ff;">var</span> xAxis = d3.svg.axis()                       <span style="color: #008000;">//</span><span style="color: #008000;">创建一个默认的新坐标轴</span>
+<span style="color: #008080;"> 70</span>                         .scale(xScale)                  <span style="color: #008000;">//</span><span style="color: #008000;">设定坐标轴的比例尺</span>
+<span style="color: #008080;"> 71</span>                         .orient("bottom")               <span style="color: #008000;">//</span><span style="color: #008000;">设定坐标轴的方向</span>
+<span style="color: #008080;"> 72</span> 
+<span style="color: #008080;"> 73</span>         
+<span style="color: #008080;"> 74</span>         yScale.range([yAxisWidth,0])                    <span style="color: #008000;">//</span><span style="color: #008000;">重新设置y轴比例尺的值域，与原来的相反</span>
+<span style="color: #008080;"> 75</span> 
+<span style="color: #008080;"> 76</span>         <span style="color: #008000;">//</span><span style="color: #008000;">y轴</span>
+<span style="color: #008080;"> 77</span>         <span style="color: #0000ff;">var</span> yAxis = d3.svg.axis()                       <span style="color: #008000;">//</span><span style="color: #008000;">创建一个默认的新坐标轴</span>
+<span style="color: #008080;"> 78</span>                         .scale(yScale)                  <span style="color: #008000;">//</span><span style="color: #008000;">设定坐标轴的比例尺</span>
+<span style="color: #008080;"> 79</span>                         .orient("left")                 <span style="color: #008000;">//</span><span style="color: #008000;">设定坐标轴的方向</span>
+<span style="color: #008080;"> 80</span> 
+<span style="color: #008080;"> 81</span>         <span style="color: #008000;">//</span><span style="color: #008000;">添加x轴和平移</span>
+<span style="color: #008080;"> 82</span>         svg.append("g")                                 <span style="color: #008000;">//</span><span style="color: #008000;">在svg中添加一个包含坐标轴各元素的g元素</span>
+<span style="color: #008080;"> 83</span>             .attr("class","axis")                       <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;"> 84</span>             .attr("transform","translate("+padding.left+","+(height-padding.bottom)+")")    <span style="color: #008000;">//</span><span style="color: #008000;">将x轴进行平移</span>
+<span style="color: #008080;"> 85</span>             .call(xAxis)                                <span style="color: #008000;">//</span><span style="color: #008000;">将自身作为参数传递给xAxis函数</span>
+<span style="color: #008080;"> 86</span> 
+<span style="color: #008080;"> 87</span>         <span style="color: #008000;">//</span><span style="color: #008000;">设置y轴和平移</span>
+<span style="color: #008080;"> 88</span>         svg.append("g")                                 <span style="color: #008000;">//</span><span style="color: #008000;">在svg中添加一个包含坐标轴各元素的g元素</span>
+<span style="color: #008080;"> 89</span>             .attr("class","axis")                       <span style="color: #008000;">//</span><span style="color: #008000;">定义class名</span>
+<span style="color: #008080;"> 90</span>             .attr("transform","translate("+padding.left+","+(height-padding.bottom-yAxisWidth+")"))    <span style="color: #008000;">//</span><span style="color: #008000;">将y轴进行平移</span>
+<span style="color: #008080;"> 91</span>             .call(yAxis)                                <span style="color: #008000;">//</span><span style="color: #008000;">将自身作为参数传递给yAxis函数</span>
+<span style="color: #008080;"> 92</span> 
+<span style="color: #008080;"> 93</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 94</span>     
+<span style="color: #008080;"> 95</span> <span style="color: #000000;">    render() {
+</span><span style="color: #008080;"> 96</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> (
+</span><span style="color: #008080;"> 97</span>             &lt;div id="body" &gt;
+<span style="color: #008080;"> 98</span>                 
+<span style="color: #008080;"> 99</span>             &lt;/div&gt;
+<span style="color: #008080;">100</span> <span style="color: #000000;">        );
+</span><span style="color: #008080;">101</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">102</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">103</span> 
+<span style="color: #008080;">104</span> export <span style="color: #0000ff;">default</span> ScatterChart;</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div><span style="font-size: 18px;">散点图就做完了。 接下来会给大家介绍绘制颜色和一些生成器。</span></div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

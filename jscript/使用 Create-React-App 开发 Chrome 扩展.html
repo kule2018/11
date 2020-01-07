@@ -1,0 +1,158 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用 Create-React-App 开发 Chrome 扩展' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用 Create-React-App 开发 Chrome 扩展</center></div><div class='banquan'>原文出处:本文由博客园博主Steve_Xu提供。<br/>
+原文连接:https://www.cnblogs.com/stevexu/p/11148709.html</div><br>
+    <blockquote>
+<p>整理 Kindle 标注、书签和笔记从未如此简单！</p>
+</blockquote>
+<p>Kindle 标注管理应用 <a href="https://kmate.me/cn/">Kindle Mate</a> 只支持 Windows，不支持 Mac。标注只是解析<strong>我的剪贴</strong>文本文件，配合 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/FileReader">FileReader</a> API，写个 Chrome 扩展解析文本文件就好了。</p>
+<!--more-->
+<ul>
+<li><p><a href="https://chrome.google.com/webstore/detail/my-clippings/pcfdnhenjhhcbfbanepfegljllniecpe">Chrome 下载地址</a></p></li>
+<li><p><a href="https://github.com/nusr/my-clippings">Github 地址</a></p></li>
+</ul>
+<h2 id="初始化项目">初始化项目</h2>
+<p>安装 React 脚手架 create-react-app</p>
+<pre><code><code>npm i -g create-react-app</code></pre>
+<p>初始化项目</p>
+<pre><code><code>create-react-app my-clippings --typescript</code></pre>
+<p><strong>--typescript</strong> 表示使用 typescript。强烈推荐使用 ts，Vue 3.x 使用 ts 重写，Angular 2.x+ 只能使用 ts，ts 是大势所趋。</p>
+<p>删除 <strong>src/serviceWorker.ts</strong> 文件，用不着。</p>
+<h2 id="支持-sass">支持 Sass</h2>
+<p>安装 node-sass 即可。<br />
+若要支持 css modules，文件名从 <strong>index.scss</strong> 改为 <strong>index.module.scss</strong> 即可。</p>
+<pre><code><code>npm i -D node-sass</code></pre>
+<h2 id="读取文件">读取文件</h2>
+<p>读取的文件是 Kindle 中的 <strong>/documents/My Clippings.txt</strong> 文件，Kindle 设置任何语言都是这个文件。只不过在不同语言下的显示不一样。<br />
+使用 <a href="https://developer.mozilla.org/zh-CN/docs/Web/API/FileReader">FileReader</a> API 可以轻松读取文本文件。</p>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+  &lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot; /&gt;
+    &lt;title&gt;Document&lt;/title&gt;
+  &lt;/head&gt;
+
+  &lt;body&gt;
+    &lt;input type=&quot;file&quot; accept=&quot;.txt&quot; id=&quot;file-upload&quot; /&gt;
+    &lt;script&gt;
+      const dom = document.querySelector(&quot;#file-upload&quot;);
+      dom.onchange = function(event) {
+        const file = event.currentTarget.files[0];
+        const reader = new FileReader();
+        reader.readAsText(file);
+
+        reader.onload = () =&gt; {
+          const temp = reader.result;
+          console.log(temp);
+        };
+      };
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<h2 id="解析文本">解析文本</h2>
+<p>要解析的文本为下面的格式，使用简单的正则表达式即可解析。<br />
+<strong>根据 Kindle 设置的语言，中文与英文的格式会稍有不同，需要做不同的解析。</strong></p>
+<pre class="txt"><code>==========
+娱乐至死 (尼尔·波兹曼)
+- 您在位置 #1882-1884的标注 | 添加于 2019年6月2日星期日 上午10:07:30
+
+古希腊哲学家在2500年以前就说过，人常常以自己的形象塑造上帝。现在，电视政治又添了新招：那些想当上帝的人把自己塑造成观众期望的形象。
+==========
+娱乐至死 (尼尔·波兹曼)
+- 您在位置 #1925-1927的标注 | 添加于 2019年6月2日星期日 上午10:11:09
+
+历史的消失根本不需要如此残酷的手段，表面温和的现代技术通过为民众提供一种政治形象、瞬间快乐和安慰疗法，能够同样有效地让历史销声匿迹，也许还更恒久，并且不会遭到任何反对。
+==========
+娱乐至死 (尼尔·波兹曼)
+- 您在位置 #1961-1963的标注 | 添加于 2019年6月2日星期日 上午10:14:42
+
+自由不是靠关掉电视实现的。电视对于大多数人来说，是生活中最有吸引力的东西。我们生活在一个绝大多数人不会关掉电视的世界里。如果我们不直接从电视得到某种信息，我们也会通过其他人得到它。
+==========</code></pre>
+<h2 id="配置-manifest.json">配置 manifest.json</h2>
+<p>发布 Chrome 应用需要配置 manifest.json 。<br />
+更多设置可以查看<a href="https://developer.chrome.com/extensions/manifest">开发文档</a></p>
+<pre class="json"><code>{
+  &quot;name&quot;: &quot;My Clippings&quot;, // 扩展名
+  &quot;short_name&quot;: &quot;Clippings&quot;,
+  &quot;description&quot;: &quot;Organizing your Kindle Highlight、Bookmark and Notes so easy.&quot;, // 描述
+  &quot;version&quot;: &quot;0.0.6&quot;, // 版本号，每次提交到 chrome 应用中心
+  &quot;version_name&quot;: &quot;0.0.6&quot;,
+  &quot;manifest_version&quot;: 2,
+  &quot;author&quot;: &quot;Steve Xu&quot;,
+  &quot;browser_action&quot;: {
+    // 点击应用图标的操作
+    &quot;default_icon&quot;: &quot;icon-48.png&quot;,
+    &quot;default_title&quot;: &quot;My Clippings&quot;
+  },
+  &quot;homepage_url&quot;: &quot;https://github.com/nusr/my-clippings&quot;,
+  &quot;offline_enabled&quot;: true, // 允许离线运行
+  &quot;permissions&quot;: [&quot;activeTab&quot;, &quot;tabs&quot;, &quot;storage&quot;], // 使用的 chrome 权限
+  &quot;icons&quot;: {
+    // 图标
+    &quot;16&quot;: &quot;icon-16.png&quot;,
+    &quot;32&quot;: &quot;icon-32.png&quot;,
+    &quot;48&quot;: &quot;icon-48.png&quot;,
+    &quot;64&quot;: &quot;icon-64.png&quot;,
+    &quot;128&quot;: &quot;icon-128.png&quot;,
+    &quot;200&quot;: &quot;icon-200.png&quot;
+  },
+  &quot;content_security_policy&quot;: &quot;script-src &#39;self&#39;; object-src &#39;self&#39;;&quot;, // 允许加载的文件
+  &quot;background&quot;: {
+    &quot;scripts&quot;: [&quot;background.js&quot;], // 外部运行的 js
+    &quot;persistent&quot;: false
+  }
+}</code></pre>
+<pre class="js"><code>// background.js
+// 点击扩展图标，打开新的 Tag 页面
+function activeNewTab() {
+  var chrome = window.chrome;
+  if (!chrome) {
+    return;
+  }
+  chrome.browserAction.onClicked.addListener(function() {
+    var url = chrome.extension.getURL(&quot;index.html&quot;);
+    if (window.tabId) {
+      chrome.tabs.update(window.tabId, { selected: true });
+    } else {
+      chrome.tabs.create({ url: url }, function(tab) {
+        window.tabId = tab.id;
+      });
+    }
+  });
+  chrome.tabs.onRemoved.addListener(function(tabId) {
+    if (tabId === window.tabId) {
+      window.tabId = null;
+    }
+  });
+}
+
+activeNewTab();</code></pre>
+<h2 id="上传到-chrome-网上应用商店">上传到 Chrome 网上应用商店</h2>
+<p>Chrome 网上应用商店上传地址是 <a href="https://chrome.google.com/webstore/developer/dashboard" class="uri">https://chrome.google.com/webstore/developer/dashboard</a>。</p>
+<p>上传应用需要支付 <strong>5 美元</strong>的开发者费用。对于没有信用卡的人来说，淘宝可以找到相关代付途径，或者寻求朋友帮助。</p>
+<p>支付完成就可以上传应用了，一个账号最多上传 <strong>20</strong> 个应用。</p>
+<blockquote>
+<p>首发 <a href="https://nusr.github.io/" class="uri">https://nusr.github.io/</a></p>
+</blockquote>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

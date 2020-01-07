@@ -1,0 +1,213 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JS异步解决方案' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JS异步解决方案</center></div><div class='banquan'>原文出处:本文由博客园博主cleaverlove提供。<br/>
+原文连接:https://www.cnblogs.com/cleaverlove/p/10962527.html</div><br>
+    <h2>&nbsp; 前言</h2>
+<p>&nbsp; &nbsp; 异步最早的解决方案是回调函数，如ajax，事件的回调，setInterval/setTimeout中的回调。但是回调函数有回调地狱的问题;</p>
+<p>&nbsp; &nbsp; 为了解决回调地狱的问题，社区提出了Promise解决方案，ES6将其写进了语言标准。Promise一定程度上解决了回调地狱的问题，但是Promise也存在一些问题，如错误不能被try catch，而且使用Promise的链式调用，其实并没有从根本上解决回调地狱的问题，只是换了一种写法。</p>
+<p>&nbsp; &nbsp; ES6中引入 Generator 函数，Generator是一种异步编程解决方案，Generator 函数是协程在 ES6 的实现，最大特点就是可以交出函数的执行权，Generator 函数可以看出是异步任务的容器，需要暂停的地方，都用yield语句注明。但是 Generator 使用起来较为复杂。</p>
+<p>&nbsp; &nbsp; ES7又提出了新的异步解决方案:async/await，async是 Generator 函数的语法糖，async/await 使得异步代码看起来像同步代码，异步编程发展的目标就是让异步逻辑的代码看起来像同步一样。</p>
+<h3>&nbsp; 同步和异步</h3>
+<p>　　关于同步和异步的概念，这里给出阮一峰老师的文章参考。其中也不乏一些异步的解决办法例子，如<a href="http://www.ruanyifeng.com/blog/2012/12/asynchronous%EF%BC%BFjavascript.html" target="_blank">《js异步编程的4种方法》</a>，<a href="http://javascript.ruanyifeng.com/advanced/single-thread.html#toc1" target="_blank">《异步操作概述》</a>。</p>
+<h3>&nbsp; &nbsp;异步解决方案</h3>
+<h4>　　回调函数</h4>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> node读取文件</span>
+<span style="color: #008080;">2</span> fs.readFile('url', 'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+</span><span style="color: #008080;">3</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> code</span>
+<span style="color: #008080;">4</span> });</pre>
+</div>
+<p>&nbsp;　　使用的场景有：ajax请求，事件回调函数，Node API，定时器等。</p>
+<p>　　 优点： 简单。 缺点：&nbsp;异步回调嵌套会导致代码难以维护，并且不方便统一处理错误，不能&nbsp;<code><span>try，<span>catch</span></span></code>&nbsp;和存在回调地狱问题。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 回调地狱问题，以读取A文本内容，再根据A文本内容读取B再根据B的内容读取C..为例</span>
+fs.readFile('A', 'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+    fs.readFile(</span>'B', 'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+        fs.readFile(</span>'C', 'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+            fs.readFile(</span>'D', 'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> code</span>
+<span style="color: #000000;">            });
+        });
+    });
+});</span></pre>
+</div>
+<h4>&nbsp; &nbsp; Promise</h4>
+<p>　　Promise 一定程度上解决了回调地狱的问题，Promise 最早由社区提出和实现，ES6 将其写进了语言标准，统一了用法，原生提供了Promise对象。<a href="http://es6.ruanyifeng.com/#docs/promise" target="_blank">《ECMAScript 6 入门》</a></p>
+<p>　　我们来观察一下Promise是如何解决回调地狱问题的。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> read(url) {
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+       fs.readFile(url, </span>'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+           </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (err)  reject(err);
+           resolve(data);
+       });
+  });
+}
+read(</span>'A').then(data =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> read('B'<span style="color: #000000;">);
+}).then(data </span>=&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> read('C'<span style="color: #000000;">);
+}).then(data </span>=&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span> read('D'<span style="color: #000000;">);
+}).catch(err =&gt; {<br />    console.log(err);<br />});</span></pre>
+</div>
+<p>　　&nbsp; promise的优点： 1.一旦状态改变，就不会再变，任何时候都可以得到这个结果。2.可以将异步操作以同步操作的流程表达出来，避免了层层嵌套的回调函数</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;promise的缺点：1.无法取消 Promise。 2.当处于pending状态时，无法得知目前进展到哪一个阶段。 3.错误不能被&nbsp;<code><span>try<span>catch</span></span></code></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;这里举一个在promise之前，读取A,B,C三个文件内容，都读取成功后，再输出最终的结果例子。依赖于发布订阅模式</p>
+<div class="cnblogs_code">
+<pre><code>let pubsup =<span style="color: #000000;"> {
+  arry: [],
+  emit: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    </span><span style="color: #0000ff;">this</span>.arry.forEach(fn =&gt;<span style="color: #000000;"> fn());
+  },
+  on: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(fn) {
+     </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.arry.push(fn);
+  }
+};
+let data </span>=<span style="color: #000000;"> [];
+pubsub.on(() </span>=&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">if</span> (data.length == 3<span style="color: #000000;">) {
+    console.log(data);
+  }
+});
+fs.readFile(</span>'A', 'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+  data.push(data);
+  pubsup.emit();
+});
+fs.readFile(</span>'B', 'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+  data.push(data);
+  pubsup.emit();
+});
+fs.readFile(</span>'C', 'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+  data.push(data);
+  pubsup.emit();
+});</span></pre>
+</div>
+<p>顺便提一下朴灵的深入浅出nodejs里面介绍不同场景下异步获取数据进行操作的实践，非常值得看。</p>
+<p>Promise给我们提供了&nbsp;<code><span>Promise<span>.<span>all</span></span></span></code>&nbsp;的方法，对于这个需求，我们可以使用&nbsp;<code><span>Promise<span>.<span>all</span></span></span></code>&nbsp;来实现。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 将 fs.readFile 包装成promise接口
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> read(url) {
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+    fs.readFile(url, </span>'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+       </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (err) reject(err);
+       resolve(data);
+    });
+  });
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">* 
+ *  Promise.all 可以实现多个异步并行执行，同一时刻获取最终结果的问题
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+Promise.all([
+  read(A),
+  read(B),
+  read(C)
+]).then(data </span>=&gt;<span style="color: #000000;"> {
+  console.log(data);
+}).</span><span style="color: #0000ff;">catch</span>(err =&gt; console.log(err));</pre>
+</div>
+<h4>&nbsp; &nbsp; Generator</h4>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;&nbsp;Generator 函数是 ES6 提供的一种异步编程解决方案，整个 Generator 函数就是一个封装的异步任务，或者说是异步任务的容器。异步操作需要暂停的地方，都用 yield 语句注明。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; Generator 函数一般配合 yield 或 Promise 使用。Generator函数返回的是迭代器。对生成器和迭代器不了解的同学参考下阮一峰的ES6入门</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span>*<span style="color: #000000;"> generator() {
+  let a </span>= yield 111<span style="color: #000000;">;
+  console.log(a);
+  let b </span>= yield 222<span style="color: #000000;">;
+  console.log(b);
+  let c </span>= yield 333<span style="color: #000000;">;
+  console.log(c);
+  let d </span>= yield 444<span style="color: #000000;">;
+  console.log(d);
+}
+let t </span>=<span style="color: #000000;"> generator();
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> next方法可以带一个参数，该参数就会被当作上一个yield表达式的返回值</span>
+t.next(1); <span style="color: #008000;">//</span><span style="color: #008000;"> 第一次调用next函数时，传递的参数无效</span>
+t.next(2); <span style="color: #008000;">//</span><span style="color: #008000;"> 输出2</span>
+t.next(3); <span style="color: #008000;">//</span><span style="color: #008000;"> 3</span>
+t.next(4); <span style="color: #008000;">//</span><span style="color: #008000;"> 4</span>
+t.next(5); <span style="color: #008000;">//</span><span style="color: #008000;"> 5</span></pre>
+</div>
+<p>仍然以上文的 readFile (先读取A文本内容，再根据A文本内容读取B再根据B的内容读取C)为例，使用 Generator + co库来实现:</p>
+<div class="cnblogs_code">
+<pre><code>const fs = require('fs'<span style="color: #000000;">);
+const co </span>= require('co'<span style="color: #000000;">);
+const bluebird </span>= require('bluebird'<span style="color: #000000;">);
+const readFile </span>=<span style="color: #000000;"> bluebird.promiseify(fs.readFile);
+</span><span style="color: #0000ff;">function</span>*<span style="color: #000000;"> read() {
+  yield readFile(</span>'A', 'utf-8'<span style="color: #000000;">);
+  yield readFile(</span>'B', 'utf-8'<span style="color: #000000;">);
+  yield readFile(</span>'C', 'utf-8'<span style="color: #000000;">);
+}
+co(read()).then(data </span>=&gt;<span style="color: #000000;"> {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> code</span>
+}).<span style="color: #0000ff;">catch</span>(err =&gt;<span style="color: #000000;"> {
+ </span><span style="color: #008000;">//</span><span style="color: #008000;"> code</span>
+});</pre>
+</div>
+<h4>&nbsp; &nbsp; await/async</h4>
+<p>&nbsp; &nbsp; &nbsp; ES7中引入了 async/await 概念。async 其实是一个语法糖，它的实现就是将 Generator函数和自动执行器（co），包装在一个函数中。</p>
+<p>&nbsp; &nbsp; &nbsp; async/await 的优点是代码清晰，不用像 Promise 写很多 then 链，就可以处理回调地狱的问题。并且错误可以被try catch。</p>
+<p>&nbsp; &nbsp; &nbsp;&nbsp;仍然以上文的readFile (先读取A文本内容，再根据A文本内容读取B再根据B的内容读取C) 为例，使用 async/await 来实现:</p>
+<div class="cnblogs_code">
+<pre><code>const fs = require('fs'<span style="color: #000000;">);
+const co </span>= require('co'<span style="color: #000000;">);
+const bluebird </span>= require('bluebird'<span style="color: #000000;">);
+const readFile </span>=<span style="color: #000000;"> bluebird.promiseify(fs.readFile);
+async </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> read() {
+  await readFile(</span>'A', 'utf-8'<span style="color: #000000;">);
+  await readFile(</span>'B', 'utf-8'<span style="color: #000000;">);
+  await readFile(</span>'C', 'utf-8'<span style="color: #000000;">);
+}
+co(read()).then(data </span>=&gt;<span style="color: #000000;"> {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> code</span>
+}).<span style="color: #0000ff;">catch</span>(err =&gt;<span style="color: #000000;"> {
+ </span><span style="color: #008000;">//</span><span style="color: #008000;"> code</span>
+});</pre>
+</div>
+<p>　　我们用async/await来实现同样的效果。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> read(url) {
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+      fs.readFile(url, </span>'utf-8', <span style="color: #0000ff;">function</span><span style="color: #000000;">(err, data) {
+          </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (err) reject(err);
+          resolve(data);
+      })
+  });
+}
+async </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> readAsync() {
+  const data </span>=<span style="color: #000000;"> await Promise.all([
+      read(A),  
+      read(B),
+      read(C)
+  ]);
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> data;
+}
+readSync().then(data </span>=&gt;<span style="color: #000000;"> {
+  console.log(data);
+})</span></pre>
+</div>
+<p>所以JS的异步发展史，可以认为是从 callback -&gt; promise -&gt; generator -&gt; async/await。async/await 使得异步代码看起来像同步代码，异步编程发展的目标就是让异步逻辑的代码看起来像同步一样</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

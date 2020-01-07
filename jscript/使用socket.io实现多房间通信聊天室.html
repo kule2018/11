@@ -1,0 +1,237 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用socket.io实现多房间通信聊天室' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用socket.io实现多房间通信聊天室</center></div><div class='banquan'>原文出处:本文由博客园博主田想兵提供。<br/>
+原文连接:https://www.cnblogs.com/tianxiangbing/p/socketrooms.html</div><br>
+    <div>
+<div>
+<div>
+<p>websocket的实现有很多种，像ws和socket.io，这里使用的是socket.io来实现多房间的效果。</p>
+<p>这里的使用没有使用<code>socket.io</code>官方提供的<code>namespace</code>和<code>room</code>，而是完全通过一个<code>namespace</code>实现的。数据传输使用<code>JSON</code>格式，封装了消息规范</p>
+<h3 data-id="heading-0">消息体规范</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">const</span> actionType =<span style="color: #000000;"> {
+    join:</span><span style="color: #800000;">'</span><span style="color: #800000;">JOIN</span><span style="color: #800000;">'</span>,<span style="color: #008000;">//</span><span style="color: #008000;">加入</span>
+    leave:<span style="color: #800000;">'</span><span style="color: #800000;">LEAVE</span><span style="color: #800000;">'</span>,<span style="color: #008000;">//</span><span style="color: #008000;">离开</span>
+    talk:<span style="color: #800000;">'</span><span style="color: #800000;">TALK</span><span style="color: #800000;">'</span>,<span style="color: #008000;">//</span><span style="color: #008000;">消息</span>
+    action:<span style="color: #800000;">'</span><span style="color: #800000;">ACTION</span><span style="color: #800000;">'</span>,<span style="color: #008000;">//</span><span style="color: #008000;">用户操作</span>
+    push:<span style="color: #800000;">'</span><span style="color: #800000;">PUSH</span><span style="color: #800000;">'</span><span style="color: #008000;">//</span><span style="color: #008000;">系统推送</span>
+}<span style="color: #008000;">//</span><span style="color: #008000;">消息体</span>
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> MSG {
+    constructor(type,body){
+        </span><span style="color: #0000ff;">this</span>.type =<span style="color: #000000;"> type;
+        </span><span style="color: #0000ff;">this</span>.body=<span style="color: #000000;"> body;
+    }<br />}复制代码</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3 data-id="heading-1">安装使用</h3>
+<div>
+<div class="cnblogs_code">
+<pre><code>npm install socket.io-rooms --save</pre>
+</div>
+</div>
+<h3 data-id="heading-2">demo演示</h3>
+<div>把项目从<a href="https://github.com/tianxiangbing/rooms" target="_blank">github</a>上clone下来后，执行<code>npm start</code>,然后打开<code>example/index.html</code>即可品尝到演示效果</div>
+<h3 data-id="heading-3">使用方式</h3>
+<h3 data-id="heading-4">服务端Server</h3>
+<pre class="hljs javascript"><code class="hljs javascript copyable" lang="javascript"></code></pre>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">const</span> {User,Rooms}  = require(<span style="color: #800000;">'</span><span style="color: #800000;">./index</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+</span><span style="color: #0000ff;">const</span> server = require(<span style="color: #800000;">'</span><span style="color: #800000;">http</span><span style="color: #800000;">'</span><span style="color: #000000;">).createServer();
+</span><span style="color: #0000ff;">const</span> io = require(<span style="color: #800000;">'</span><span style="color: #800000;">socket.io</span><span style="color: #800000;">'</span><span style="color: #000000;">)(server);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">大厅</span>
+io.on(<span style="color: #800000;">'</span><span style="color: #800000;">connection</span><span style="color: #800000;">'</span>, client =&gt;<span style="color: #000000;"> {
+    let user </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> User();
+    client.emit(</span><span style="color: #800000;">'</span><span style="color: #800000;">user</span><span style="color: #800000;">'</span><span style="color: #000000;">,user);
+    client.on(</span><span style="color: #800000;">'</span><span style="color: #800000;">join</span><span style="color: #800000;">'</span>, data =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 加入某个房间 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        Rooms.join(data,user,io,client)
+    });
+    client.on(</span><span style="color: #800000;">'</span><span style="color: #800000;">message</span><span style="color: #800000;">'</span>,msg=&gt;<span style="color: #000000;">{
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(user.roomId){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> io.to(user.roomId).emit('message',msg)</span>
+            <span style="color: #0000ff;">if</span>(msg.type == <span style="color: #800000;">'</span><span style="color: #800000;">update</span><span style="color: #800000;">'</span><span style="color: #000000;">){
+                user.update(msg.body);
+            }
+            msg.user </span>=<span style="color: #000000;"> user.uid;
+            Rooms.send(user.roomId,msg)
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            io.emit(</span><span style="color: #800000;">'</span><span style="color: #800000;">message</span><span style="color: #800000;">'</span><span style="color: #000000;">,msg)
+        }
+        console.log(msg)
+    })
+    client.on(</span><span style="color: #800000;">'</span><span style="color: #800000;">disconnect</span><span style="color: #800000;">'</span>, () =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> &hellip; </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        console.log(</span><span style="color: #800000;">"</span><span style="color: #800000;">连接断开</span><span style="color: #800000;">"</span><span style="color: #000000;">)
+        Rooms.leave(user)
+    });
+});
+server.listen(</span><span style="color: #800080;">80</span>);</pre>
+</div>
+<p>&nbsp;</p>
+<div>这里传输统一使用`JSON`格式，消息`title`也以`message`为主,这里端口写的80，你可以使用其他端口，如果你是Express，也可以共用80端口。</div>
+<h3 data-id="heading-5">客户端调用Client</h3>
+<div class="cnblogs_code">
+<pre><code>       <span style="color: #0000ff;">const</span> socket = io(<span style="color: #800000;">'</span><span style="color: #800000;">http://localhost</span><span style="color: #800000;">'</span><span style="color: #000000;">);
+        log </span>=(...args)=&gt;<span style="color: #000000;">{
+            document.getElementById(</span><span style="color: #800000;">'</span><span style="color: #800000;">log</span><span style="color: #800000;">'</span>).innerHTML +=<span style="color: #800000;">'</span><span style="color: #800000;">&lt;br/&gt;</span><span style="color: #800000;">'</span>+args.map(item=&gt;JSON.stringify(item)).join(<span style="color: #800000;">'</span> <span style="color: #800000;">'</span>)+<span style="color: #800000;">'</span><span style="color: #800000;">=&gt;</span><span style="color: #800000;">'</span>+(+<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date());
+        } 
+
+        log(socket.id)
+        let user </span>=<span style="color: #000000;">{},room,client;
+        socket.on(</span><span style="color: #800000;">'</span><span style="color: #800000;">connect</span><span style="color: #800000;">'</span>, (c) =&gt;<span style="color: #000000;"> {
+            log(</span><span style="color: #800000;">'</span><span style="color: #800000;">connect ...</span><span style="color: #800000;">'</span><span style="color: #000000;">, socket.id);
+            socket.on(</span><span style="color: #800000;">'</span><span style="color: #800000;">user</span><span style="color: #800000;">'</span>,u=&gt;<span style="color: #000000;">{
+                user </span>=<span style="color: #000000;"> u;
+                log(</span><span style="color: #800000;">'</span><span style="color: #800000;">用户ID</span><span style="color: #800000;">'</span><span style="color: #000000;">,u.uid)
+            });
+        });
+        socket.on(</span><span style="color: #800000;">'</span><span style="color: #800000;">message</span><span style="color: #800000;">'</span>,msg=&gt;<span style="color: #000000;">{
+            log(</span><span style="color: #800000;">'</span><span style="color: #800000;">message:</span><span style="color: #800000;">'</span><span style="color: #000000;">,msg)
+        });
+        function joinroom(num){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">加入房间号为1的房间</span>
+            socket.emit(<span style="color: #800000;">'</span><span style="color: #800000;">join</span><span style="color: #800000;">'</span><span style="color: #000000;">,num);
+        }
+        function send(){
+            let msg </span>= document.getElementById(<span style="color: #800000;">'</span><span style="color: #800000;">msg</span><span style="color: #800000;">'</span><span style="color: #000000;">).value;
+            socket.emit(</span><span style="color: #800000;">'</span><span style="color: #800000;">message</span><span style="color: #800000;">'</span>,{type:<span style="color: #800000;">'</span><span style="color: #800000;">TALK</span><span style="color: #800000;">'</span><span style="color: #000000;">,body:msg})
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> setInterval(function(){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">     socket.emit('message',{type:'TALK',body:+new Date()})
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> },2000)</span>
+        }</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<p>在用户信息上，为了增加扩展性，添加了<code>update</code>的操作类型进行同步用户信息，这在实际中很有用。</p>
+<p>代码很简单，就是两个类的实现， <code>Rooms</code>和<code>User</code>类，这里没有限定房间的数量，可以在初始化的时候先固定房间名和数量。源码托管于github，地址为：<a href="https://github.com/tianxiangbing/rooms" target="_blank">github.com/tianxiangbi&hellip;</a>&nbsp;,如果觉得有用，加颗小星星吧</p>
+</div>
+</div>
+<div style="box-sizing: border-box; color: #333333; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif; font-size: 16px;">
+<p style="box-sizing: border-box; margin-top: 0px;">websocket的实现有很多种，像ws和socket.io，这里使用的是socket.io来实现多房间的效果。</p>
+<p style="box-sizing: border-box;">这里的使用没有使用<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">socket.io</code>官方提供的<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">namespace</code>和<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">room</code>，而是完全通过一个<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">namespace</code>实现的。数据传输使用<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">JSON</code>格式，封装了消息规范</p>
+<h3 style="box-sizing: border-box;">消息体规范</h3>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<pre class="juejin-editor-highlight">const actionType = {
+    join:'JOIN',//加入
+    leave:'LEAVE',//离开
+    talk:'TALK',//消息
+    action:'ACTION',//用户操作
+    push:'PUSH'//系统推送
+}//消息体
+class MSG {
+    constructor(type,body){
+        this.type = type;
+        this.body= body;
+    }}</pre>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<h3 style="box-sizing: border-box;">安装使用</h3>
+<div style="box-sizing: border-box;">
+<p style="box-sizing: border-box; margin-top: 0px;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<pre class="juejin-editor-highlight">npm install socket.io-rooms --save</pre>
+</div>
+<h3 style="box-sizing: border-box;">demo演示</h3>
+<div style="box-sizing: border-box;">把项目从<a style="box-sizing: border-box; background-color: transparent; color: #275b8c; text-decoration-line: none;" href="https://github.com/tianxiangbing/rooms">github</a>上clone下来后，执行<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">npm start</code>,然后打开<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">example/index.html</code>即可品尝到演示效果</div>
+<h3 style="box-sizing: border-box;">使用方式</h3>
+<h3 style="box-sizing: border-box;">服务端Server</h3>
+<div style="box-sizing: border-box;">
+<p style="box-sizing: border-box; margin-top: 0px;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<pre class="juejin-editor-highlight">const {User,Rooms}  = require('socket.io-rooms')
+const server = require('http').createServer();
+const io = require('socket.io')(server);
+//大厅
+io.on('connection', client =&gt; {
+    let user = new User();
+    client.emit('user',user);
+    client.on('join', data =&gt; {
+        /* 加入某个房间 */ 
+       Rooms.join(data,user,io,client)
+    });
+    client.on('message',msg=&gt;{
+        if(user.roomId){
+            // io.to(user.roomId).emit('message',msg)
+            if(msg.type == 'update'){
+                user.update(msg.body);
+            }
+            msg.user = user.uid;
+            Rooms.send(user.roomId,msg)
+        }else{
+            io.emit('message',msg)
+        }
+        console.log(msg)
+    })
+    client.on('disconnect', () =&gt; {
+        /* &hellip; */
+        console.log("连接断开")
+        Rooms.leave(user)
+    });
+});
+server.listen(80);</pre>
+</div>
+<div style="box-sizing: border-box;">这里传输统一使用`JSON`格式，消息`title`也以`message`为主,这里端口写的80，你可以使用其他端口，如果你是Express，也可以共用80端口。</div>
+<h3 style="box-sizing: border-box;">客户端调用Client</h3>
+<div style="box-sizing: border-box;">
+<p style="box-sizing: border-box; margin-top: 0px;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<p style="box-sizing: border-box;">&nbsp;</p>
+<pre class="juejin-editor-highlight">const socket = io('http://localhost');
+log =(...args)=&gt;{
+document.getElementById('log').innerHTML +='&lt;br/&gt;'+args.map(item=&gt;JSON.stringify(item)).join(' ')+'=&gt;'+(+new Date());
+}
+log(socket.id)
+let user ={},room,client;
+socket.on('connect', (c) =&gt; {
+log('connect ...', socket.id);
+socket.on('user',u=&gt;{
+user = u;log('用户ID',u.uid)
+});
+});
+socket.on('message',msg=&gt;{
+log('message:',msg)
+});
+function joinroom(num){
+//加入房间号为1的房间
+socket.emit('join',num);
+}
+function send(){
+let msg = document.getElementById('msg').value;
+socket.emit('message',{type:'TALK',body:msg})
+
+setInterval(function(){
+ socket.emit('message',{type:'TALK',body:+new Date()})
+},2000)
+}</pre>
+<p style="box-sizing: border-box;">&nbsp;</p>
+</div>
+</div>
+<p style="box-sizing: border-box; color: #333333; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif; font-size: 16px;">在用户信息上，为了增加扩展性，添加了<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">update</code>的操作类型进行同步用户信息，这在实际中很有用。</p>
+<p style="box-sizing: border-box; color: #333333; font-family: -apple-system, system-ui, BlinkMacSystemFont, 'Helvetica Neue', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif; font-size: 16px;">代码很简单，就是两个类的实现，&nbsp;<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">Rooms</code>和<code class="juejin-editor-code" style="box-sizing: border-box; font-family: Menlo, Monaco, Consolas, 'Courier New', monospace; font-size: 0.8em; border-radius: 2px; padding: 0.2em 0.4em; color: #4e5980; background-color: #f8f8f8;">User</code>类，这里没有限定房间的数量，可以在初始化的时候先固定房间名和数量。源码托管于github，地址为：<a style="box-sizing: border-box; background-color: transparent; color: #275b8c; text-decoration-line: none;" href="https://github.com/tianxiangbing/rooms">https://github.com/tianxiangbing/rooms</a>&nbsp;,如果觉得有用，加颗小星星吧</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

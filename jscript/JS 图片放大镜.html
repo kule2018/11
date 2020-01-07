@@ -1,0 +1,263 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JS 图片放大镜' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JS 图片放大镜</center></div><div class='banquan'>原文出处:本文由博客园博主初心，你好吗提供。<br/>
+原文连接:https://www.cnblogs.com/LHLVS/p/10752979.html</div><br>
+    <p>今天练习一个小demo, 从本地读取图片，</p>
+<p>然后实现类似淘宝放大镜的效果，</p>
+<p>再加两个需求</p>
+<p>1 .可以调节缩放比例，默认放大两倍</p>
+<p>2 . 图片宽高自适应， 不固定宽高</p>
+<p>话不多说先看效果：</p>
+<p><img src="./images/JS 图片放大镜0.png" alt="" width="319" height="262" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>原理：1， 右侧放大区域的大小等于左侧半透明滑块大小乘以缩放倍数</p>
+<p>　　　2， 右侧放大区域图片的原始尺寸要和</p>
+<p>　　　　　　左侧图片一样，不能随右侧的宽高变化</p>
+<p>　　　3， 计算滑块位置</p>
+<p>上代码： 基本每行都有注释</p>
+<p>HTML：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;!--放大镜--&gt;
+&lt;div class="preview"&gt;
+    &lt;div class="preview-header"&gt;
+        &lt;!--选择本地图片--&gt;
+        &lt;div class="choose-image"&gt;
+            &lt;lable <span style="color: #0000ff;">for</span>="fileInput"&gt;选择图片&lt;/lable&gt;
+            &lt;input type="file" id="fileInput"&gt;
+        &lt;/div&gt;
+        &lt;!--调整缩放倍数--&gt;
+        &lt;div class="scale"&gt;
+            &lt;lable <span style="color: #0000ff;">for</span>="scaleNum"&gt;设置放大倍数&lt;/lable&gt;
+            &lt;input type="number" id="scaleNum" value="2"&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;!--预览区域--&gt;
+    &lt;div class="preview-content"&gt;
+        &lt;!--原图--&gt;
+        &lt;div class="origin"&gt;
+            &lt;img src="" alt="" id="origin-image"&gt;
+            &lt;!--滑块--&gt;
+            &lt;div class="scale-section"&gt;&lt;/div&gt;
+        &lt;/div&gt;
+        &lt;!--放大后的图片--&gt;
+        &lt;div class="target"&gt;
+            &lt;img src="" alt="" id="target-image"&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+&lt;/div&gt;</pre>
+</div>
+<p>CSS:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">图片放大镜</span><span style="color: #008000;">*/</span>
+<span style="color: #008000;">/*</span><span style="color: #008000;">头部</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+.preview</span>-<span style="color: #000000;">header{
+    display: flex;
+    padding: 10px;
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">预览区域</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+.preview</span>-<span style="color: #000000;">content{
+    display: none;
+    align</span>-items: flex-<span style="color: #000000;">start;
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">原始图片</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+.preview</span>-<span style="color: #000000;">content .origin{
+    max</span>-<span style="color: #000000;">width: 350px;
+    margin: 30px 0px 0px 10px;
+    position: relative;
+    box</span>-shadow:3px 3px 10px 0 #111111; <span style="color: #008000;">/*</span><span style="color: #008000;">给图片施加阴影效果 </span><span style="color: #008000;">*/</span>
+    -webkit-box-shadow: 3px 3px 10px 0 #111111;  <span style="color: #008000;">/*</span><span style="color: #008000;">兼容性处理</span><span style="color: #008000;">*/</span>
+    -moz-box-shadow: 3px 3px 10px 0 #111111<span style="color: #000000;">;
+    overflow: hidden;
+}
+.preview</span>-<span style="color: #000000;">content .origin img{
+    width: </span>100%<span style="color: #000000;">;
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">滑块</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+.origin .scale</span>-<span style="color: #000000;">section{
+    display: none; </span><span style="color: #008000;">/*</span><span style="color: #008000;">初始隐藏</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    position:absolute;
+    top:</span>0<span style="color: #000000;">;
+    left:</span>0<span style="color: #000000;">;
+    width:175px;
+    height:175px;
+    background:#</span>000<span style="color: #000000;">;
+    opacity: </span>0.3<span style="color: #000000;">;
+    cursor:move;  </span><span style="color: #008000;">/*</span><span style="color: #008000;">改变鼠标的形状</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+}
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">右侧放大区域的宽高是和滑块成比例的</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+.preview</span>-<span style="color: #000000;">content .target{
+    display: none;</span><span style="color: #008000;">/*</span><span style="color: #008000;">初始隐藏</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    width: 350px;
+    height: 350px;
+    margin: 30px 0px 0px 30px;
+    position: relative;
+    box</span>-shadow:3px 3px 10px 0 #111111; <span style="color: #008000;">/*</span><span style="color: #008000;">给图片施加阴影效果 </span><span style="color: #008000;">*/</span>
+    -webkit-box-shadow: 3px 3px 10px 0 #111111;  <span style="color: #008000;">/*</span><span style="color: #008000;">兼容性处理</span><span style="color: #008000;">*/</span>
+    -moz-box-shadow: 3px 3px 10px 0 #111111<span style="color: #000000;">;
+    overflow: hidden;
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">放大后的图片</span><span style="color: #008000;">*/</span><span style="color: #000000;">
+.target img{
+    position: absolute;
+    top: </span>0<span style="color: #000000;">;
+    left: </span>0<span style="color: #000000;">;
+    transform</span>-<span style="color: #000000;">origin: top left;
+}</span></pre>
+</div>
+<p>JS:</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 获取dom</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 原始图片</span>
+const originImage = document.getElementById('origin-image'<span style="color: #000000;">),
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 左侧图片区域</span>
+        origin = document.getElementsByClassName('origin')[0<span style="color: #000000;">],
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 放大后的图片</span>
+        targetImage = document.getElementById('target-image'<span style="color: #000000;">),
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 放大图片区域</span>
+        target = document.getElementsByClassName('target')[0<span style="color: #000000;">],
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 整个图片区域</span>
+        previewContent = document.getElementsByClassName('preview-content')[0<span style="color: #000000;">],
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 滑块</span>
+        scaleSection = document.getElementsByClassName('scale-section')[0<span style="color: #000000;">],
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 文件选择框</span>
+        fileInput = document.getElementById('fileInput'<span style="color: #000000;">),
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 放大倍数框</span>
+        scaleNum = document.getElementById('scaleNum'<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 放大的倍数</span>
+let scale =<span style="color: #000000;"> scaleNum.value;
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 左侧图片的宽高</span>
+<span style="color: #000000;">let originWidth,originHeight;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 注册事件</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> 选择文件</span>
+fileInput.addEventListener('change',chooseImage,<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 改变倍数</span>
+scaleNum.addEventListener('change',scaleChange,<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 鼠标在左侧区域移动移动</span>
+origin.addEventListener('mousemove',(e) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 事件兼容</span>
+    const event = e ||<span style="color: #000000;"> window.event;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 计算滑块以及右边放大图片的位置</span>
+<span style="color: #000000;">    calculatePosition(event.clientX, event.clientY);
+    scaleSection.style.display </span>= 'block'<span style="color: #000000;">;
+    target.style.display </span>= 'block'<span style="color: #000000;">;
+}, </span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 鼠标离开左侧图片区域</span>
+origin.addEventListener('mouseleave',() =&gt;<span style="color: #000000;"> {
+    scaleSection.style.display </span>= 'none'<span style="color: #000000;">;
+    target.style.display </span>= 'none'<span style="color: #000000;">;
+}, </span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 选择要缩放的图片</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> chooseImage(e) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 使用file Reader获取URL</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 不懂fileReader的可以参考我之前写的本地图片预览</span>
+    <span style="color: #0000ff;">if</span> (e.target.files[0].type.indexOf('image') === -1<span style="color: #000000;">) {
+        alert(</span>'请选择图片'<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+    }
+    const reader </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FileReader();
+    reader.onload </span>= () =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> promise是为了等图片加载完毕取宽高</span>
+        const P1 = () =&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+                originImage.onload </span>= () =&gt;<span style="color: #000000;"> {
+                    resolve(originImage);
+                };
+                originImage.src </span>=<span style="color: #000000;"> reader.result;
+            })
+        };
+        const P2 </span>= () =&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+                targetImage.onload </span>= () =&gt;<span style="color: #000000;"> {
+                    resolve(targetImage);
+                };
+                targetImage.src </span>=<span style="color: #000000;"> reader.result;
+            })
+        };
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取左侧原图的大小，</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> 初始化放大区域的图片大小</span>
+        Promise.all([P1(), P2()]).then((data) =&gt;<span style="color: #000000;"> {
+            originWidth </span>= data[0<span style="color: #000000;">].width;
+            originHeight </span>= data[0<span style="color: #000000;">].height;
+           data[</span>1].style.width = originWidth * scale + 'px'<span style="color: #000000;">;
+           data[</span>1].style.height = originHeight * scale + 'px'<span style="color: #000000;">;
+        });
+        previewContent.style.display </span>= 'flex'<span style="color: #000000;">;
+    };
+    reader.readAsDataURL(e.target.files[</span>0<span style="color: #000000;">]);
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> calculatePosition(x,y) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置边界</span>
+    const minTop = 0<span style="color: #000000;">,
+        minLeft </span>= 0<span style="color: #000000;">,
+        maxTop </span>= origin.offsetHeight -<span style="color: #000000;"> scaleSection.offsetHeight,
+        maxLeft </span>= origin.offsetWidth -<span style="color: #000000;"> scaleSection.offsetWidth;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 计算滑块的位置</span>
+    const sectionX = x - origin.offsetLeft - scaleSection.offsetWidth/2;
+    const sectionY = y - origin.offsetTop - scaleSection.offsetHeight/2;
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 滑块的真实位置</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 用于计算右侧放大图片的位置</span>
+    let realTop = sectionY, realLeft =<span style="color: #000000;"> sectionX;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 左右边界</span>
+    <span style="color: #0000ff;">if</span> (sectionX &lt;<span style="color: #000000;"> minLeft) {
+        scaleSection.style.left </span>= minLeft + 'px'<span style="color: #000000;">;
+        realLeft </span>=<span style="color: #000000;"> minLeft;
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (sectionX &gt;=<span style="color: #000000;"> maxLeft) {
+        scaleSection.style.left </span>= maxLeft + 'px'<span style="color: #000000;">;
+        realLeft </span>=<span style="color: #000000;"> maxLeft;
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        scaleSection.style.left </span>= sectionX + 'px'<span style="color: #000000;">;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 上下边界</span>
+    <span style="color: #0000ff;">if</span> (sectionY &lt;=<span style="color: #000000;"> minTop) {
+        scaleSection.style.top </span>= minTop + 'px'<span style="color: #000000;">;
+        realTop </span>=<span style="color: #000000;"> minTop;
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (sectionY &gt;=<span style="color: #000000;"> maxTop) {
+        scaleSection.style.top </span>= maxTop + 'px'<span style="color: #000000;">;
+        realTop </span>=<span style="color: #000000;"> maxTop;
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        scaleSection.style.top </span>= sectionY + 'px'<span style="color: #000000;">;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 计算右侧放大图片的位置</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 滑块移动多少， 右侧图片就向反方向移动scale的倍数</span>
+    targetImage.style.top = -realTop*scale + 'px'<span style="color: #000000;">;
+    targetImage.style.left </span>= -realLeft*scale + 'px'<span style="color: #000000;">;
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 缩放比例改变</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> scaleChange(e) {
+    scale </span>=<span style="color: #000000;"> e.target.value;
+    targetImage.style.width </span>= originWidth * scale + 'px'<span style="color: #000000;">;
+    targetImage.style.height </span>= originHeight * scale + 'px'<span style="color: #000000;">;
+    target.style.width </span>= 175 * scale + 'px'<span style="color: #000000;">;
+    target.style.height </span>= 175 * scale + 'px'<span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>还是那句话，新手自己多动手写写，</p>
+<p>不然容易一看就会，一写就懵逼，</p>
+<p>感谢观看！！！</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

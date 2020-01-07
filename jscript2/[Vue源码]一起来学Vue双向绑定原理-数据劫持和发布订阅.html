@@ -1,0 +1,536 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[Vue源码]一起来学Vue双向绑定原理-数据劫持和发布订阅' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[Vue源码]一起来学Vue双向绑定原理-数据劫持和发布订阅</center></div><div class='banquan'>原文出处:本文由博客园博主小磊哥er提供。<br/>
+原文连接:https://www.cnblogs.com/yzsunlei/p/12118351.html</div><br>
+    <p>有一段时间没有更新技术博文了，因为这段时间埋下头来看Vue源码了。本文我们一起通过学习双向绑定原理来分析Vue源码。预计接下来会围绕Vue源码来整理一些文章，如下。</p>
+<ul>
+<li><a href="">一起来学Vue双向绑定原理-数据劫持和发布订阅</a></li>
+<li><a href="">一起来学Vue模板编译原理(一)-Template生成AST</a></li>
+<li><a href="">一起来学Vue模板编译原理(二)-AST生成Render字符串</a></li>
+<li><a href="">一起来学Vue虚拟DOM解析-Virtual Dom实现和Dom-diff算法</a></li>
+</ul>
+<p>这些文章统一放在我的git仓库：<a href="https://github.com/yzsunlei/javascript-series-code-analyzing" class="uri">https://github.com/yzsunlei/javascript-series-code-analyzing</a>。觉得有用记得star收藏。</p>
+<h2 id="简单应用">简单应用</h2>
+<p>我们先来看一个简单的应用示例：</p>
+<pre><code><code>&lt;div id=&quot;app&quot;&gt;
+  &lt;input id=&quot;input&quot; type=&quot;text&quot; v-model=&quot;text&quot;&gt;
+  &lt;div id=&quot;text&quot;&gt;输入的值为：{{text}}&lt;/div&gt;
+&lt;/div&gt;
+&lt;script&gt;
+  var vm = new Vue({
+      el: &#39;#app&#39;,
+      data: {
+        text: &#39;hello world&#39;
+      }
+  })
+&lt;/script&gt;</code></pre>
+<p>上面的示例具有的功能就是初始时，'hello world'字符串会显示在input输入框中和div文本中，当手动输入值后，div文本的值也相应的改变。</p>
+<p>我们来简单理一下实现思路：</p>
+<ul>
+<li>1、input输入框以及div文本和data中的数据进行绑定</li>
+<li>2、input输入框内容变化时，data中的对应数据同步变化，即 view =&gt; model</li>
+<li>3、data中数据变化时，对应的div文本内容同步变化，即 model =&gt; view</li>
+</ul>
+<h2 id="原理介绍">原理介绍</h2>
+<p>Vue.js是通过数据劫持以及结合发布者-订阅者来实现双向绑定的，数据劫持是利用ES5的Object.defineProperty(obj, key, val)来劫持各个属性的的setter以及getter，在数据变动时发布消息给订阅者，从而触发相应的回调来更新视图。</p>
+<p>双向数据绑定，简单点来说分为三个部分：</p>
+<ul>
+<li>1、Observer：观察者，这里的主要工作是递归地监听对象上的所有属性，在属性值改变的时候，触发相应的watcher。</li>
+<li>2、Watcher：订阅者，当监听的数据值修改时，执行响应的回调函数（Vue里面的更新模板内容）。</li>
+<li>3、Dep：订阅管理器，连接Observer和Watcher的桥梁，每一个Observer对应一个Dep，它内部维护一个数组，保存与该Observer相关的Watcher。</li>
+</ul>
+<h2 id="demo实现双向绑定">DEMO实现双向绑定</h2>
+<p>下面我们来一步步的实现双向数据绑定。</p>
+<h3 id="第一部分是observer">第一部分是Observer：</h3>
+<pre class="javascript"><code>function Observer(obj, key, value) {
+  var dep = new Dep();
+  if (Object.prototype.toString.call(value) == &#39;[object Object]&#39;) {
+    Object.keys(value).forEach(function(key) {
+      new Observer(value, key, value[key])
+    })
+  };
+
+  Object.defineProperty(obj, key, {
+    enumerable: true,
+    configurable: true,
+    get: function() {
+      if (Dep.target) {
+        dep.addSub(Dep.target);
+      };
+      return value;
+    },
+    set: function(newVal) {
+      value = newVal;
+      dep.notify();
+    }
+  })
+}</code></pre>
+<p>递归的为对象obj的每个属性添加getter和setter。在getter中，我们把watcher添加到dep中。在setter中，触发watcher执行回调。</p>
+<h3 id="第二部分是watcher">第二部分是Watcher：</h3>
+<pre class="javascript"><code>function Watcher(fn) {
+  this.update = function() {
+    Dep.target = this;
+    fn();
+    Dep.target = null;
+  }
+  this.update();
+}</code></pre>
+<p>fn是数据变化后要执行的回调函数，一般是获取数据渲染模板。默认执行一遍update方法是为了在渲染模板过程中，调用数据对象的getter时建立两者之间的关系。因为同一时刻只有一个watcher处于激活状态，把当前watcher绑定在Dep.target（方便在Observer内获取）。回调结束后，销毁Dep.target。</p>
+<h3 id="第三部分是dep">第三部分是Dep：</h3>
+<pre class="javascript"><code>function Dep() {
+  this.subs = [];
+
+  this.addSub = function (watcher) {
+    this.subs.push(watcher);
+  }
+
+  this.notify = function() {
+    this.subs.forEach(function(watcher) {
+      watcher.update();
+    });
+  }
+}</code></pre>
+<p>内部一个存放watcher的数组subs。addSub用于向数组中添加watcher(getter时)。notify用于触发watcher的更新(setter时)。</p>
+<p>以上我们就完成了简易的双向绑定的功能，我们用一下看是不是能达到上面简单应用同样的效果。</p>
+<pre class="html"><code>&lt;div id=&quot;app&quot;&gt;
+  &lt;input id=&quot;input&quot; type=&quot;text&quot; v-model=&quot;text&quot;&gt;
+  &lt;div id=&quot;text&quot;&gt;输入的值为：{{text}}&lt;/div&gt;
+&lt;/div&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+  var obj = {
+    text: &#39;hello world&#39;
+  }
+  Object.keys(obj).forEach(function(key){
+    new Observer(obj, key, obj[key])
+  });
+  new Watcher(function(){
+    document.querySelector(&quot;#text&quot;).innerHTML = &quot;输入的值为：&quot; + obj.text;
+  })
+  document.querySelector(&quot;#input&quot;).addEventListener(&#39;input&#39;, function(e) {
+    obj.text = e.target.value;
+  })
+&lt;/script&gt;</code></pre>
+<p>当然上面这是最简单的双向绑定功能，Vue中还实现了对数组、对象的双向绑定，下面我们来看看Vue中的实现。</p>
+<h2 id="vue中的双向绑定">Vue中的双向绑定</h2>
+<p>看Vue的实现源码前，我们先来看下下面这张图，经典的Vue双向绑定原理示意图（图片来自于网络）：</p>
+<p><img src="./images/1.jpg" alt="Vue双向绑定示意图" /></p>
+<p>简单解析如下：</p>
+<ul>
+<li>1、实现一个数据监听器Obverser，对data中的数据进行监听，若有变化，通知相应的订阅者。</li>
+<li>2、实现一个指令解析器Compile，对于每个元素上的指令进行解析，根据指令替换数据，更新视图。</li>
+<li>3、实现一个Watcher，用来连接Obverser和Compile, 并为每个属性绑定相应的订阅者，当数据发生变化时，执行相应的回调函数，从而更新视图。</li>
+</ul>
+<h3 id="vue中的observer">Vue中的Observer：</h3>
+<p>首先是Observer对象，源码位置<code>src/core/observer/index.js</code></p>
+<pre><code><code>export class Observer {
+  value: any;
+  dep: Dep;
+  vmCount: number;
+
+  constructor (value: any) {
+    this.value = value
+    this.dep = new Dep()
+    this.vmCount = 0
+    // 添加__ob__来标示value有对应的Observer
+    def(value, &#39;__ob__&#39;, this)
+    if (Array.isArray(value)) { // 处理数组
+      if (hasProto) { // 实现是&#39;__proto__&#39; in {}
+        protoAugment(value, arrayMethods)
+      } else {
+        copyAugment(value, arrayMethods, arrayKeys)
+      }
+      this.observeArray(value)
+    } else { // 处理对象
+      this.walk(value)
+    }
+  }
+
+  // 给对象每个属性添加getter/setters
+  walk (obj: Object) {
+    const keys = Object.keys(obj)
+    for (let i = 0; i &lt; keys.length; i++) {
+      defineReactive(obj, keys[i]) // 重点
+    }
+  }
+
+  // 循环观察数组的每一项
+  observeArray (items: Array&lt;any&gt;) {
+    for (let i = 0, l = items.length; i &lt; l; i++) {
+      observe(items[i]) // 重点
+    }
+  }
+}</code></pre>
+<p>整体上，value分为对象或数组两种情况来处理。这里我们先来看看defineReactive和observe这两个比较重要的函数。</p>
+<pre><code><code>export function defineReactive (
+  obj: Object,
+  key: string,
+  val: any,
+  customSetter?: ?Function,
+  shallow?: boolean
+) {
+  const dep = new Dep()
+
+  const property = Object.getOwnPropertyDescriptor(obj, key)
+  // 带有不可配置的属性直接跳过
+  if (property &amp;&amp; property.configurable === false) {
+    return
+  }
+
+  // cater for pre-defined getter/setters
+  // 保存对象属性上自有的getter和setter
+  const getter = property &amp;&amp; property.get
+  const setter = property &amp;&amp; property.set
+  // 如果属性上之前没有定义getter，并且没有传入初始val值，就把属性原有的值赋值给val
+  if ((!getter || setter) &amp;&amp; arguments.length === 2) {
+    val = obj[key]
+  }
+
+  let childOb = !shallow &amp;&amp; observe(val)
+  Object.defineProperty(obj, key, {
+    enumerable: true,
+    configurable: true,
+    get: function reactiveGetter () {
+      // 给属性设置getter
+      const value = getter ? getter.call(obj) : val
+      if (Dep.target) {
+        // 给每个属性创建一个dep
+        dep.depend()
+        if (childOb) {
+          childOb.dep.depend()
+          // 如果是数组，就递归创建
+          if (Array.isArray(value)) {
+            dependArray(value)
+          }
+        }
+      }
+      return value
+    },
+    set: function reactiveSetter (newVal) {
+      // 给属性设置setter
+      const value = getter ? getter.call(obj) : val
+      // 值未变化，就跳过
+      if (newVal === value || (newVal !== newVal &amp;&amp; value !== value)) {
+        return
+      }
+      if (process.env.NODE_ENV !== &#39;production&#39; &amp;&amp; customSetter) {
+        customSetter() // 非生产环境自定义调试用，这里忽略
+      }
+      if (getter &amp;&amp; !setter) return
+      if (setter) {
+        setter.call(obj, newVal)
+      } else {
+        val = newVal
+      }
+      childOb = !shallow &amp;&amp; observe(newVal)
+      // 值发生变化进行通知
+      dep.notify()
+    }
+  })
+}</code></pre>
+<p>defineReactive这个方法里面，是具体的为对象的属性添加getter、setter的地方。它会为每个值创建一个dep，如果用户为这个值传入getter和setter，则暂时保存。之后通过Object.defineProperty，重新添加装饰器。在getter中，dep.depend其实做了两件事，一是向Dep.target内部的deps添加dep，二是将Dep.target添加到dep内部的subs，也就是建立它们之间的联系。在setter中，如果新旧值相同，直接返回，不同则调用dep.notify来更新与之相关的watcher。</p>
+<pre><code><code>export function observe (value: any, asRootData: ?boolean): Observer | void {
+  // 如果不是对象就跳过
+  if (!isObject(value) || value instanceof VNode) {
+    return
+  }
+  let ob: Observer | void
+  if (hasOwn(value, &#39;__ob__&#39;) &amp;&amp; value.__ob__ instanceof Observer) {
+    // 如果已有observer，就直接返回，上面讲到过会用`__ob__`属性来记录
+    ob = value.__ob__
+  } else if (
+    shouldObserve &amp;&amp;
+    !isServerRendering() &amp;&amp;
+    (Array.isArray(value) || isPlainObject(value)) &amp;&amp;
+    Object.isExtensible(value) &amp;&amp;
+    !value._isVue
+  ) {
+    // 如果没有，就创建一个
+    ob = new Observer(value)
+  }
+  if (asRootData &amp;&amp; ob) {
+    ob.vmCount++
+  }
+  return ob
+}</code></pre>
+<p><code>observe</code>这个方法用于观察一个对象，返回与对象相关的Observer对象，如果没有则为value创建一个对应的Observer。</p>
+<p>好的，我们再回到Observer，如果传入的是对象，我们就调用walk，该方法就是遍历对象，对每个值执行defineReactive。</p>
+<p>对于传入的对象是数组的情况，其实会有一些特殊的处理，因为数组本身只引用了一个地址，所以对数组进行push、splice、sort等操作，我们是无法监听的。所以，Vue中改写value的__proto__（如果有），或在value上重新定义这些方法。augment在环境支持__proto__时是protoAugment，不支持时是copyAugment。</p>
+<pre><code><code>// augment在环境支持__proto__时
+function protoAugment (target, src: Object) {
+  target.__proto__ = src
+}
+// augment在环境不支持__proto__时
+function copyAugment (target: Object, src: Object, keys: Array&lt;string&gt;) {
+  for (let i = 0, l = keys.length; i &lt; l; i++) {
+    const key = keys[i]
+    def(target, key, src[key])
+  }
+}</code></pre>
+<p><code>augment</code>在环境支持<code>__proto__</code>时，就很简单，调用<code>protoAugment</code>其实就是执行了<code>value.__proto__ = arrayMethods</code>。<code>augment</code>在环境支持<code>__proto__</code>时，调用<code>copyAugment</code>中循环把<code>arrayMethods</code>上的<code>arrayKeys</code>方法添加到<code>value</code>上。</p>
+<p>那这里我们就要看看<code>arrayMethods</code>方法了。<code>arrayMethods</code>其实是改写了数组方法的新对象。<code>arrayKeys</code>是<code>arrayMethods</code>中的方法列表。</p>
+<pre><code><code>const arrayProto = Array.prototype
+export const arrayMethods = Object.create(arrayProto)
+
+const methodsToPatch = [
+  &#39;push&#39;,
+  &#39;pop&#39;,
+  &#39;shift&#39;,
+  &#39;unshift&#39;,
+  &#39;splice&#39;,
+  &#39;sort&#39;,
+  &#39;reverse&#39;
+]
+
+methodsToPatch.forEach(function (method) {
+  const original = arrayProto[method]
+  def(arrayMethods, method, function mutator (...args) {
+    const result = original.apply(this, args)
+    const ob = this.__ob__
+    let inserted
+    switch (method) {
+      case &#39;push&#39;:
+      case &#39;unshift&#39;:
+        inserted = args
+        break
+      case &#39;splice&#39;:
+        inserted = args.slice(2)
+        break
+    }
+    // 是push、unshift、splice时，重新观察数组，因为这三个方法都是像数组中添加新的元素
+    if (inserted) ob.observeArray(inserted)
+    // 通知变化
+    ob.dep.notify()
+    return result
+  })
+})</code></pre>
+<p>实际上还是调用数组相应的方法来操作value，只不过操作之后，添加了相关watcher的更新。调用<code>push</code>、<code>unshift</code>、<code>splice</code>三个方法参数大于2时，要重新调用ob.observeArray，因为这三种情况都是像数组中添加新的元素，所以需要重新观察每个子元素。最后在通知变化。</p>
+<p>Vue中的Observer就讲到这里了。实际上还有两个函数<code>set</code>、<code>del</code>没有讲解，其实就是在添加或删除数组元素、对象属性时进行getter、setter的绑定以及通知变化，具体可以去看源码。</p>
+<h3 id="vue中的dep">Vue中的Dep：</h3>
+<p>看完Vue中的Observer，然后我们来看看Vue中Dep，源码位置：<code>src/core/observer/dep.js</code>。</p>
+<pre><code><code>let uid = 0
+export default class Dep {
+  static target: ?Watcher;
+  id: number;
+  subs: Array&lt;Watcher&gt;;
+
+  constructor () {
+    this.id = uid++
+    this.subs = []
+  }
+
+  // 添加订阅者
+  addSub (sub: Watcher) {
+    this.subs.push(sub)
+  }
+
+  // 移除订阅者
+  removeSub (sub: Watcher) {
+    remove(this.subs, sub)
+  }
+
+  // 添加到订阅管理器
+  depend () {
+    if (Dep.target) {
+      Dep.target.addDep(this)
+    }
+  }
+
+  // 通知变化
+  notify () {
+    const subs = this.subs.slice()
+    if (process.env.NODE_ENV !== &#39;production&#39; &amp;&amp; !config.async) {
+      subs.sort((a, b) =&gt; a.id - b.id)
+    }
+    // 遍历所有的订阅者，通知更新
+    for (let i = 0, l = subs.length; i &lt; l; i++) {
+      subs[i].update()
+    }
+  }
+}</code></pre>
+<p>Dep类就比较简单，内部有一个id和一个subs，id用于作为dep对象的唯一标识，subs就是保存watcher的数组。相比于上面我们自己实现的demo应用，这里多了removeSub和depend。removeSub是从数组中移除某个watcher，depend是调用了watcher的addDep。</p>
+<p>好，Vue中的Dep只能说这么多了。</p>
+<h3 id="vue中的watcher">Vue中的Watcher：</h3>
+<p>最后我们再来看看Vue中的Watcher，源码位置：<code>src/core/observer/watcher.js</code>。</p>
+<pre><code><code>// 注，我删除了源码中一些不太重要或与双向绑定关系不太大的逻辑，删除的代码用// ... 表示
+let uid = 0
+export default class Watcher {
+  vm: Component;
+  expression: string;
+  cb: Function;
+  id: number;
+  deep: boolean;
+  user: boolean;
+  lazy: boolean;
+  sync: boolean;
+  dirty: boolean;
+  active: boolean;
+  deps: Array&lt;Dep&gt;;
+  newDeps: Array&lt;Dep&gt;;
+  depIds: SimpleSet;
+  newDepIds: SimpleSet;
+  before: ?Function;
+  getter: Function;
+  value: any;
+
+  constructor (
+    vm: Component,
+    expOrFn: string | Function,
+    cb: Function,
+    options?: ?Object,
+    isRenderWatcher?: boolean
+  ) {
+    this.vm = vm
+    if (isRenderWatcher) {
+      vm._watcher = this
+    }
+    vm._watchers.push(this)
+    // ...
+    this.cb = cb
+    this.id = ++uid
+    // ...
+    this.expression = process.env.NODE_ENV !== &#39;production&#39;
+      ? expOrFn.toString()
+      : &#39;&#39;
+    if (typeof expOrFn === &#39;function&#39;) {
+      this.getter = expOrFn
+    } else {
+      this.getter = parsePath(expOrFn)
+      if (!this.getter) {
+        this.getter = noop
+        process.env.NODE_ENV !== &#39;production&#39; &amp;&amp; warn(
+          `Failed watching path: &quot;${expOrFn}&quot; ` +
+          &#39;Watcher only accepts simple dot-delimited paths. &#39; +
+          &#39;For full control, use a function instead.&#39;,
+          vm
+        )
+      }
+    }
+    this.value = this.lazy
+      ? undefined
+      : this.get()
+  }
+
+  get () {
+    pushTarget(this)
+    let value
+    const vm = this.vm
+    // ...
+    if (this.deep) {
+      traverse(value)
+    }
+    popTarget()
+    this.cleanupDeps()
+    return value
+  }
+
+  addDep (dep: Dep) {
+    const id = dep.id
+    if (!this.newDepIds.has(id)) {
+      this.newDepIds.add(id)
+      this.newDeps.push(dep)
+      if (!this.depIds.has(id)) {
+        dep.addSub(this)
+      }
+    }
+  }
+
+  cleanupDeps () {
+    // ...
+  }
+
+  update () {
+    // 更新三种模式吧，lazy延迟更新，sync同步更新直接执行，默认异步更新添加到处理队列
+    if (this.lazy) {
+      this.dirty = true
+    } else if (this.sync) {
+      this.run()
+    } else {
+      queueWatcher(this)
+    }
+  }
+
+  run () {
+    // 触发更新，在这里调用cb函数
+    if (this.active) {
+      const value = this.get()
+      if (
+        value !== this.value ||
+        isObject(value) ||
+        this.deep
+      ) {
+        const oldValue = this.value
+        this.value = value
+        if (this.user) {
+          try {
+            this.cb.call(this.vm, value, oldValue)
+          } catch (e) {
+            handleError(e, this.vm, `callback for watcher &quot;${this.expression}&quot;`)
+          }
+        } else {
+          this.cb.call(this.vm, value, oldValue)
+        }
+      }
+    }
+  }
+
+  evaluate () {
+    // ...
+  }
+
+  depend () {
+    let i = this.deps.length
+    while (i--) {
+      this.deps[i].depend()
+    }
+  }
+
+  teardown () {
+    // ...
+  }
+}</code></pre>
+<p>创建Watcher对象时，有两个比较重要的参数，一个是expOrFn，一个是cb。</p>
+<p>在Watcher创建时，会调用this.get，里面会执行根据expOrFn解析出来的getter。在这个getter中，我们或渲染页面，或获取某个数据的值。总之，会调用相关data的getter，来建立数据的双向绑定。</p>
+<p>当相关的数据改变时，会调用watcher的update方法，进而调用run方法。我们看到，run中还会调用this.get来获取修改之后的value值。</p>
+<p>其实Watcher有两种主要用途：一种是更新模板，另一种就是监听某个值的变化。</p>
+<p>模板更新的情况：在Vue声明周期挂载元素时，我们是通过创建Watcher对象，然后调用updateComponent来更新渲染模板的。</p>
+<pre><code><code> vm._watcher = new Watcher(vm, updateComponent, noop)</code></pre>
+<p>在创建Watcher会调用this.get，也就是这里的updateComponent。在render的过程中，会调用data的getter方法，以此来建立数据的双向绑定，当数据改变时，会重新触发updateComponent。</p>
+<p>数据监听的情况：另一个用途就是我们的computed、watch等，即监听数据的变化来执行响应的操作。此时this.get返回的是要监听数据的值。初始化过程中，调用this.get会拿到初始值保存为this.value，监听的数据改变后，会再次调用this.get并拿到修改之后的值，将旧值和新值传给cb并执行响应的回调。</p>
+<p>好，Vue中的Watcher就说这么多了。其实上面注释的代码中还有<code>cleanupDeps</code>清除依赖逻辑、<code>teardown</code>销毁Watcher逻辑等，留给大家自己去看源码吧。</p>
+<h2 id="总结一下">总结一下</h2>
+<p>Vue中双向绑定，简单来说就是Observer、Watcher、Dep三部分。下面我们再梳理一下整个过程：</p>
+<blockquote>
+<p>首先我们为每个vue属性用Object.defineProperty()实现数据劫持，为每个属性分配一个订阅者集合的管理数组dep；<br />
+然后在编译的时候在该属性的数组dep中添加订阅者，Vue中的v-model会添加一个订阅者，{{}}也会，v-bind也会；<br />
+最后修改值就会为该属性赋值，触发该属性的set方法，在set方法内通知订阅者数组dep，订阅者数组循环调用各订阅者的update方法更新视图。</p>
+</blockquote>
+<h2 id="相关">相关</h2>
+<ul>
+<li><a href="https://github.com/liutao/vue2.0-source/blob/master/%E5%8F%8C%E5%90%91%E6%95%B0%E6%8D%AE%E7%BB%91%E5%AE%9A.md">https://github.com/liutao/vue2.0-source/blob/master/%E5%8F%8C%E5%90%91%E6%95%B0%E6%8D%AE%E7%BB%91%E5%AE%9A.md</a></li>
+<li><a href="https://juejin.im/post/5acd0c8a6fb9a028da7cdfaf" class="uri">https://juejin.im/post/5acd0c8a6fb9a028da7cdfaf</a></li>
+<li><a href="https://www.cnblogs.com/zhenfei-jiang/p/7542900.html" class="uri">https://www.cnblogs.com/zhenfei-jiang/p/7542900.html</a></li>
+<li><a href="https://segmentfault.com/a/1190000014274840?utm_source=tag-newest">https://segmentfault.com/a/1190000014274840</a></li>
+<li><a href="https://segmentfault.com/a/1190000014616977" class="uri">https://segmentfault.com/a/1190000014616977</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

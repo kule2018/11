@@ -1,0 +1,124 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Flask基于websocket的简单聊天室' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Flask基于websocket的简单聊天室</center></div><div class='banquan'>原文出处:本文由博客园博主id_iot提供。<br/>
+原文连接:https://www.cnblogs.com/caesar-id/p/10975452.html</div><br>
+    <p>1、安装gevent-websocket</p>
+<div class="cnblogs_code">
+<pre><code>pip install -i https:<span style="color: #008000;">//</span><span style="color: #008000;">pypi.tuna.tsinghua.edu.cn/simple/ gevent-websocket</span></pre>
+</div>
+<p>2、chat.py文件内容如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">from</span> flask <span style="color: #0000ff;">import</span><span style="color: #000000;"> Flask,request,render_template
+</span><span style="color: #0000ff;">import</span><span style="color: #000000;"> json
+</span><span style="color: #0000ff;">from</span> geventwebsocket.handler <span style="color: #0000ff;">import</span><span style="color: #000000;"> WebSocketHandler
+</span><span style="color: #0000ff;">from</span> gevent.pywsgi <span style="color: #0000ff;">import</span><span style="color: #000000;"> WSGIServer
+</span><span style="color: #0000ff;">from</span> geventwebsocket.websocket <span style="color: #0000ff;">import</span><span style="color: #000000;"> WebSocket
+
+user_dict </span>=<span style="color: #000000;"> {}
+
+chat_app </span>= Flask(<span style="color: #800080;">__name__</span><span style="color: #000000;">)
+@chat_app.route(</span><span style="color: #800000;">'</span><span style="color: #800000;">/ws/&lt;username&gt;</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+</span><span style="color: #0000ff;">def</span><span style="color: #000000;"> ws_chat(username):
+    user_socket </span>= request.environ.get(<span style="color: #800000;">'</span><span style="color: #800000;">wsgi.websocket</span><span style="color: #800000;">'</span>) <span style="color: #008000;">#</span><span style="color: #008000;"> type:WebSocket</span>
+    user_dict[username]=<span style="color: #000000;">user_socket
+    </span><span style="color: #0000ff;">while</span> 1<span style="color: #000000;">:
+        msg </span>= user_socket.receive()  <span style="color: #008000;">#</span><span style="color: #008000;"> 等待接收客户端发来的数据</span>
+        msg_dict =<span style="color: #000000;"> json.loads(msg)
+        msg_dict[</span><span style="color: #800000;">'</span><span style="color: #800000;">from_user</span><span style="color: #800000;">'</span>] =<span style="color: #000000;"> username
+        to_user </span>= msg_dict.get(<span style="color: #800000;">'</span><span style="color: #800000;">to_user</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+        </span><span style="color: #0000ff;">if</span> to_user == <span style="color: #800000;">""</span>:  <span style="color: #008000;">#</span><span style="color: #008000;"> 如果用户名是空表示群发</span>
+            <span style="color: #0000ff;">for</span> uname, uwebsocket <span style="color: #0000ff;">in</span><span style="color: #000000;"> user_dict.items():
+                </span><span style="color: #0000ff;">if</span> uname == username:  <span style="color: #008000;">#</span><span style="color: #008000;"> 群发时不用给自己发</span>
+                    <span style="color: #0000ff;">continue</span><span style="color: #000000;">
+                uwebsocket.send(json.dumps(msg_dict))
+            </span><span style="color: #0000ff;">continue</span><span style="color: #000000;">
+        to_user_socket </span>=<span style="color: #000000;"> user_dict.get(to_user)
+        </span><span style="color: #0000ff;">if</span> <span style="color: #0000ff;">not</span> to_user_socket:  <span style="color: #008000;">#</span><span style="color: #008000;"> 判断用户字典中是否存在用户的websocket连接</span>
+            <span style="color: #0000ff;">continue</span>
+        <span style="color: #0000ff;">try</span><span style="color: #000000;">:
+            msg_dict[</span><span style="color: #800000;">'</span><span style="color: #800000;">from_user</span><span style="color: #800000;">'</span>] = msg_dict[<span style="color: #800000;">'</span><span style="color: #800000;">from_user</span><span style="color: #800000;">'</span>] + <span style="color: #800000;">'</span><span style="color: #800000;">@私聊我</span><span style="color: #800000;">'</span><span style="color: #000000;">
+            to_user_socket.send(json.dumps(msg_dict))
+        </span><span style="color: #0000ff;">except</span><span style="color: #000000;">:
+            user_dict.pop(to_user)
+
+@chat_app.route(</span><span style="color: #800000;">'</span><span style="color: #800000;">/webchat</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+</span><span style="color: #0000ff;">def</span><span style="color: #000000;"> webchat():
+    </span><span style="color: #0000ff;">return</span> render_template(<span style="color: #800000;">'</span><span style="color: #800000;">public_chat.html</span><span style="color: #800000;">'</span><span style="color: #000000;">)
+
+</span><span style="color: #0000ff;">if</span> <span style="color: #800080;">__name__</span> == <span style="color: #800000;">'</span><span style="color: #800000;">__main__</span><span style="color: #800000;">'</span><span style="color: #000000;">:
+    server </span>= WSGIServer((<span style="color: #800000;">'</span><span style="color: #800000;">0.0.0.0</span><span style="color: #800000;">'</span>,9527),chat_app,handler_class=<span style="color: #000000;">WebSocketHandler)
+    server.serve_forever()</span></pre>
+</div>
+<p>3、web_chat.html文件部分内容如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>你的名字：<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="username"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">onclick</span><span style="color: #0000ff;">="open_ws()"</span><span style="color: #0000ff;">&gt;</span>登陆聊天室<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">form </span><span style="color: #ff0000;">onsubmit</span><span style="color: #0000ff;">="return false;"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h3</span><span style="color: #0000ff;">&gt;</span>WebSocket 聊天室：<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h3</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">textarea </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="responseText"</span><span style="color: #ff0000;"> style</span><span style="color: #0000ff;">="width: 500px; height: 300px;"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">textarea</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">br</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+    给：</span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="to_user"</span><span style="color: #0000ff;">&gt;</span>消息内容：<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="message"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> value</span><span style="color: #0000ff;">="发送消息"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">="send_msg()"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="button"</span><span style="color: #ff0000;"> onclick</span><span style="color: #0000ff;">="javascript:document.getElementById('responseText').value=''"</span><span style="color: #ff0000;">
+           value</span><span style="color: #0000ff;">="清空聊天记录"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>4、js代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script type="application/javascript"&gt;
+    <span style="color: #0000ff;">var</span> ws = <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> open_ws() {
+        </span><span style="color: #0000ff;">var</span> username = document.getElementById('username'<span style="color: #000000;">).value;
+        ws </span>= <span style="color: #0000ff;">new</span> WebSocket("ws://192.168.16.239:9527/ws/" +<span style="color: #000000;"> username);
+        ws.onopen </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+            alert(</span>"登陆成功"<span style="color: #000000;">);
+        };
+
+        ws.onmessage </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (eventMessage) {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 显示消息记录</span>
+            <span style="color: #0000ff;">var</span> chat =<span style="color: #000000;"> JSON.parse(eventMessage.data);
+            console.log(chat);
+            </span><span style="color: #0000ff;">var</span> chat_content = document.getElementById('responseText'<span style="color: #000000;">);
+            chat_content.value </span>= chat_content.value + "\n" + chat.from_user + " : " +<span style="color: #000000;"> chat.chat;
+        };</span><span style="color: #000000;">
+    }
+
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> send_msg() {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 发送消息</span>
+        <span style="color: #0000ff;">var</span> to_user = document.getElementById("to_user"<span style="color: #000000;">).value;
+        </span><span style="color: #0000ff;">var</span> msg = document.getElementById("message"<span style="color: #000000;">).value;
+        </span><span style="color: #0000ff;">var</span> send_str =<span style="color: #000000;"> {
+            to_user: to_user,
+            chat: msg
+        };
+        ws.send(JSON.stringify(send_str));
+        </span><span style="color: #0000ff;">var</span> chat_content = document.getElementById("responseText"<span style="color: #000000;">);
+        chat_content.value </span>= chat_content.value + "\n" + "我： " +<span style="color: #000000;"> msg;
+    }
+</span>&lt;/script&gt;</pre>
+</div>
+<p>最终的效果图如下：</p>
+<p><img src="./images/Flask基于websocket的简单聊天室0.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

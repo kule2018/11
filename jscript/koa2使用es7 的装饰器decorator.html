@@ -1,0 +1,352 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修koa2使用es7 的装饰器decorator' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>koa2使用es7 的装饰器decorator</center></div><div class='banquan'>原文出处:本文由博客园博主天高任鸟飞吧提供。<br/>
+原文连接:https://www.cnblogs.com/beyonds/p/11190359.html</div><br>
+    <p>&nbsp;</p>
+<p><span style="font-size: 14pt;">本文主要讲述我在做项目中使用装饰器（decorator）<span style="font-family: 宋体;">来动态加载</span>koa-router<span style="font-family: 宋体;">的路由的一个基础架构。</span></span></p>
+<p align="justify"><span style="font-size: 14pt;">目前JavaScript 对<span style="font-family: Calibri;">decorator </span>是不支持，但是可以用<span style="font-family: Calibri;">babel </span>来编译</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 14pt;">既然是koa2结合<span style="font-family: Calibri;">decorator </span>使用，首先是要起一个<span style="font-family: Calibri;">koa2 </span>项目。</span></p>
+<p><span style="font-size: 14pt;">环境要求： node &gt;7.6</span></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;"><span style="font-size: 14pt;">1.</span><span style="font-size: 18px;">建立文件夹名为koa-decorator ,在该目录下运行 npm init 初始化一个项目(直接默认回车)</span></span></strong></p>
+<div class="cnblogs_Highlighter">
+<pre><code>npm init</pre>
+</div>
+<p><span style="font-size: 18px; font-family: 'Microsoft YaHei';">2.安装koa的基本依赖包，koa,koa-router</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code> npm install koa,koa-router;  </pre>
+</div>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">&nbsp;3.构建基本项目目录</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code><br /><span style="font-size: 14px;">├── dist----------------------------------- 编译后的
+├── src ----------------------------------- 项目的所有代码
+│ ├──config ----------------------------- 配置文件
+│ ├──controller ------------------------- 控制器
+│ ├──lib -------------------------------- 一些项目的核心文件（如路由的装饰器文件就在这里）
+│ ├──logic ------------------------------ 一些数据校验
+│ ├──middleware ------------------------- 中间件
+│ ├──models------------------------------ 操作数据表相关逻辑代码(根据项目复杂度可以再分Service层)
+│ ├──util-------------------------------- 相关的工具文件
+│ ├──index.js---------------------------- 项目的入口文件
+├── theme --------------------------------- 一些静态文件(上传的图片)
+├── .babelrc ------------------------------ babelrc 的相关配置
+├── .gitignore ---------------------------- git 的忽略配置文件
+├── dev.js -------------------------------- 开发环境的启动文件
+├── production.js ------------------------- 生产环境的启动文件</span><br />
+</pre>
+</div>
+<p>　　</p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">&nbsp;4.安装babel ,与装饰器的编译依赖(只需要要开发环境安装)&nbsp;&nbsp;</span>babel-cli，babel-core，babel-register，babel-plugin-transform-decorators-legacy</p>
+<div class="cnblogs_Highlighter">
+<pre><code> npm install babel-cli，babel-core,babel-register,babel-plugin-transform-decorators-legacy --save-dev;
+</pre>
+</div>
+<p>　　</p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">5.配置 .babelrc 文件让 其能使用装饰器</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>{
+    "presets": [],
+    "plugins": [
+        "transform-decorators-legacy"
+    ]
+}
+</pre>
+</div>
+<p>　　</p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">6. 编写开发环境dev.js和 生产环境的production.js 的启动文件</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>1. dev.js
+require("babel-register");
+process.env.NODE_ENV = "development";
+require("./src");
+
+
+2. production.js
+<span style="color: #000000;">process.env.NODE_ENV = "production";
+require("./dist");
+</span></pre>
+</div>
+<p>　你会发现这两个文件很简单，主要是区别用来开发运行和生产打包编译的，生产环境运行的打包后的dist 目录的代码</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px; font-family: 'Microsoft YaHei';">7.配置package.json 使项目能修改后自动重启热加载，这里开发环境我使用&nbsp;supervisor，有人使用nodenom ,生产环境用pm2</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code> "scripts": {
+    "test": "echo \"Error: no test specified\" &amp;&amp; exit 1",
+    "build": "babel src  --out-dir dist",
+    "dev": "set NODE_ENV=development &amp;&amp;  supervisor  --watch src dev.js",
+    "start": "npm run build &amp;&amp; set NODE_ENV=production  &amp;&amp; supervisor --watch dist production.js",
+    "pm2": "pm2 start production.js --name 'wx-node' --env  NODE_ENV='production' --output ./logs/logs-out.log  --error ./logs/logs-error.log  --watch dist"
+  },
+</pre>
+</div>
+<p>&nbsp; &nbsp;<span style="font-size: 15px;"> &nbsp;7.1&nbsp; 运行 npm run build : 是用babel 直接将src 目录编译在dist 目录</span></p>
+<p><span style="font-size: 15px;">　 7.2 运行 npm run dev ： 是设置环境变量为development 并且监听src目录，启动dev.js 运行，为开发环境</span></p>
+<p><span style="font-size: 15px;">&nbsp; &nbsp; &nbsp;7.3 运行 npm run start : 是 运行第一个命令npm run build 并且设置环境变量为production&nbsp;监听dist 目录,启动production.js运行，为生产或者测试环境</span></p>
+<p><span style="font-size: 15px;">&nbsp; &nbsp; &nbsp;7.4 运行npm run pm2： 这是使用pm2来守护项目进程,并且设置环境变量和日志记录</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 'Microsoft YaHei'; font-size: 18px;">8.编写入口文件index.js 让服务跑起来</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>src/index.js
+
+const koa = require("koa");
+const http = require("http");
+const App = new koa();
+
+// 定义端口常量
+const port = 3000;
+
+App.use(async (ctx,next)=&gt;{
+    ctx.body = await "this is koa"
+    await next();
+})
+
+// 启动服务
+var httpApp = http.createServer(App.callback()).listen(port,'0.0.0.0');//获取ip 为ip4 格式(192.168.5.109)，默认是ip6 格式(::ffff:192.168.5.109);
+httpApp.on("listening",()=&gt;{
+    console.log(`http server start runing in port ${port}...`)
+})
+App.on("error",(err,ctx)=&gt;{
+    console.log("server error: "+err.stack);
+    ctx.throw(500, 'server error') 
+})
+</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">9.重点：编写装饰器的路由文件，本文核心内容就是在这里</span></p>
+<p><span style="font-size: 18px;">&nbsp; &nbsp; &nbsp; &nbsp;9.1&nbsp; 引入相关依赖包 和定义所有的请求方法</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>src/lib/decoratorRouter/index.js
+
+const koaRouter = require("koa-router");
+const router = new koaRouter(); 
+const routerPrefix ="/api"   //定义接口前缀
+
+//声明所有接口的方式的映射，下面会用到
+const RequestMethod = {
+    GET: 'get',
+    POST: 'post',
+    PUT: 'put',
+    DELETE: 'delete',
+    ALL: "all"
+}
+</pre>
+</div>
+<p>　　</p>
+<p><span style="font-size: 18px;">　　9.2&nbsp; 编写装饰类class 的函数，主要作用是对类的拦截，然后实例化该类，并获取和调用该类下所有实例方法，由于es6 的class的方法是不迭代的，所以使用了</span><span style="font-size: 18px;">Object.getOwnPropertyDescriptors（object.prototype）</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>src/lib/decoratorRouter/index.js
+//定义controller 的函数，这是装饰类class 的函数，接受一个参数（和路由前缀并接一起）
+function Controller(prefix) {
+    router.prefixed =routerPrefix+(prefix ? prefix.replace(/\/+$/g, "") : '');
+    //对 类 class 进行拦截操作，返回一个函数，该函数实际接受三个参数（拦截目标targer,目标的key，key 的描述） 
+    return (target) =&gt; {<br />
+        //把路由router 挂载在拦截目标，作为静态属性
+        target.router = router;<br />
+       //实例化该类 class
+        let obj = new target;<br />
+       // 获取该实例下的所有实例方法，进行 迭代调用，除了构造函数 和一个前置函数（后面会说得如何实现和作用）
+        let actionList = Object.getOwnPropertyDescriptors(target.prototype);
+        for (let key in actionList) {
+            if (key !== "constructor") {
+                var fn = actionList[key].value;
+                if (typeof fn == "function" &amp;&amp; fn.name != "__before") {
+                    fn.call(obj, router, obj);//保证在类中能正确访问this,调用该方法是用call,还有两个参数是 router 和 obj 实例
+                }
+
+            }
+        }
+    }
+}    
+</pre>
+</div>
+<p>　　</p>
+<p><span style="font-size: 18px;">　9.3 编写装饰 实例方法的函数，当我们对类class 进行装饰的时候，其实例方法会全部自动被调用，这时候继续对实例方法进行拦截，拦截的目的就是给该实例方法与路由结合一起</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>/src/lib/decoratorRouter/index.js
+
+//该装饰函数接受两个参数，请求url 和请求方式
+function Request(option = {url, method}) {<br />
+   //拦截该实例方法，参数三个 
+    return function (target, value, dec) {<br />
+       //声明fn 缓存原来的 函数体 dev.value
+        let fn = dec.value;<br />
+       //然后重写该函数，参数两个，在 controller 装饰类的时候自动调用转入的两个参数
+        dec.value = (routers, targets) =&gt; {
+    
+            //这里，才是真正调用koa-router 路由的时候
+            routers[option.method](routers.prefixed + option.url, async (ctx, next) =&gt; {
+             　　　 //这里写了一个前置函数，判断前置函数存在
+                if (target.__before &amp;&amp; typeof target.__before == "function") {
+                   　 // 如果class 有__before 前置函数，//再默认装饰一次
+                    var beforeRes = await target.__before.call(target,ctx, next, target);
+                  　　//前置函数如果没有返回内容，继续执行实例方法，否则直接响应 body,不执行实例方法
+                    if (!beforeRes) {
+                       return await fn.call(target, ctx, next, target)
+                    }else{
+                        return  ctx.body = await beforeRes
+                    }
+                } else {
+                  // 没有前置函数，直接调回原来的实例函数执行，使用call ，传入的参数就有ctx,next,实例targe
+                    await fn.call(target, ctx, next, target)
+                }
+            })
+        }
+
+    }
+}    
+</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">　　9.4&nbsp; 整合所有的请求方法并导出接口</span><span style="font-size: 18px;">　</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>/src/lib/decoratorRouter/index.js
+// post 请求
+ function POST(url) {
+    return Request({url, method: RequestMethod.POST})
+}
+ //get 请求
+ function GET(url) {
+    return Request({url, method: RequestMethod.GET})
+}
+//PUT 请求
+ function PUT(url) {
+    return Request({url, method: RequestMethod.PUT})
+}
+//DEL请求
+ function DEL(url) {
+    return Request({url, method: RequestMethod.DELETE})
+}
+ //ALL 请求
+ function ALL(url) {
+    return Request({url, method: RequestMethod.ALL})
+}
+
+module.exports = {
+    Controller,POST,GET,PUT,DEL,ALL
+}
+</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">10 .装饰koa-router 的核心内容写完了，那么如何做到自动加载呢，按照项目目录架构，controller 目录是处理接口目录，使用内置的文件系统模块fs 处理文件自动载入</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>/src/lib/loadRouter/index.js
+
+const fs = require("fs");
+const {resolve} = require("path")
+//这里很重要，区别环境变量，确定调用是 dist/controller （编译后），还是调用 src/controller （开发）
+let entryPath = process.env.NODE_ENV==="development"?"src":"dist"; 
+console.log(process.env.NODE_ENV+"环境:执行目录"+entryPath)//这是controller 的入口根目录
+let controllerPath = resolve(entryPath,'controller');
+//对外导出一个函数，并接收app 实例作为参数，
+module.exports = (App)=&gt;{
+    let  loadCtroller = (rootPaths)=&gt;{
+        try {
+            var allfile = fs.readdirSync(rootPaths);  //加载目录下的所有文件进行遍历
+            allfile.forEach((file)=&gt;{
+                var filePath = resolve(rootPaths,file)// 获取遍历文件的路径
+　　　　　　　　　　
+                if(fs.lstatSync(filePath).isDirectory()){ //判断该文件是否是文件夹，如果是递归继续遍历读取文件
+                    loadCtroller(filePath)
+                }else{
+                 //如果是文件就使用require 导入，（controller下文件都是对外导出的class),在使用 @controller 装饰函数的时候,将koa-router 的实例作为装饰对象class 的静态属性 　
+　　　　　　        let r = require(filePath);
+                  if(r&amp;&amp;r.router&amp;&amp;r.router.routes){ //如果有koa-routr 的实例说明装饰成功，直接调用app.use() 
+                      try {
+                        App
+                        .use(r.router.routes())
+                      } catch (error) {
+                          console.log(filePath)
+                      }
+                  }else{
+                      // console.log("miss routes:--filename:"+filePath)
+                  }
+                }
+            }) 
+        } catch (error) {
+            console.log(error)
+            console.log("no such file or dir :---- "+rootPaths)
+        } 
+    }
+    //调用自动加载路由
+    loadCtroller(controllerPath);
+
+}
+</pre>
+</div>
+<p>&nbsp;</p>
+<p>　　</p>
+<p><span style="font-size: 18px;">11. 在index.js 入口文件载入</span>&nbsp;/src/lib/loadRouter/index.js 文件</p>
+<div class="cnblogs_Highlighter">
+<pre><code>const koa = require("koa");
+const http = require("http");
+const App = new koa();
+
+// 定义端口常量
+const port = 3000;
+
+
+require("./lib/loadRouter/index")(App) // 载入自动加载路由文件
+
+// 启动服务
+var httpApp = http.createServer(App.callback()).listen(port,'0.0.0.0');//获取ip 为ip4 格式(192.168.5.109)，默认是ip6 格式(::ffff:192.168.5.109);
+httpApp.on("listening",()=&gt;{
+    console.log(`http server start runing in port ${port}...`)
+})
+App.on("error",(err,ctx)=&gt;{
+    console.log("server error: "+err.stack);
+    ctx.throw(500, 'server error') 
+})
+</pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">12.然后编写controller 下的文件，新建index.js</span></p>
+<div class="cnblogs_Highlighter">
+<pre><code>/src/controller/index.js
+
+const {Controller,GET,POST} = require("../lib/decoratorRouter")
+
+ //访问路径 ：路由前缀 + controller 参数 + 请求方式的参数 =&gt; 域名:端口/api/index/add
+@Controller("/index")
+class index{<br />
+    @GET("/")
+    async index(ctx,next){
+         ctx.body = await "this is index"
+    }
+    @POST("/add")  
+    async add(ctx,next){
+         ctx.body = await "this is add"
+    }
+}
+module.exports = index;
+</pre>
+</div>
+<p>　<span style="font-size: 18px;">运行： http://127.0.01:3000/api/index/ 成功访问显示 this is index&nbsp; ，到此基本完毕 了</span></p>
+<p><span style="font-size: 18px;">&nbsp; 源码git 地址：&nbsp;<a title="https://github.com/1119879311/npm_module/tree/master/node-decorator" href="https://github.com/1119879311/npm_module/tree/master/node-decorator">https://github.com/1119879311/npm_module/tree/master/node-decorator</a></span></p>
+<p><span style="font-size: 18px;">&nbsp; 对于要多层继续装饰，做拦截，class继承,还有前置函数的使用</span></p>
+<p><span style="font-size: 18px;">可以参考该项目的用法：<a title="https://github.com/1119879311/koa2-decorator" href="https://github.com/1119879311/koa2-decorator">https://github.com/1119879311/koa2-decorator</a>　</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 18px;">在此，完毕，篇幅内容有点多，看不懂可以留言，谢谢大家</span></p>
+<p><span style="font-size: 18px;">　</span>　</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

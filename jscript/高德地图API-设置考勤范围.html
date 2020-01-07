@@ -1,0 +1,747 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修高德地图API-设置考勤范围' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>高德地图API-设置考勤范围</center></div><div class='banquan'>原文出处:本文由博客园博主[蒙面大侠缺颗牙]提供。<br/>
+原文连接:https://www.cnblogs.com/web-xpy/p/11686937.html</div><br>
+    <div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> &lt;template&gt;
+<span style="color: #008080;">  2</span>     &lt;div class="page-setting-setgps"&gt;
+<span style="color: #008080;">  3</span>         &lt;!--head--&gt;
+<span style="color: #008080;">  4</span>         &lt;div class="header" &gt;
+<span style="color: #008080;">  5</span> 
+<span style="color: #008080;">  6</span>         &lt;/div&gt;
+<span style="color: #008080;">  7</span>         &lt;!--tab--&gt;
+<span style="color: #008080;">  8</span>         &lt;div class="tab"&gt;
+<span style="color: #008080;">  9</span>             &lt;group gutter="0" ref="search1"&gt;
+<span style="color: #008080;"> 10</span>                 &lt;search :auto-fixed="false" position="fixed" v-model="searchValue" placeholder="搜索地点" @on-focus="onFocus" @on-submit="onSubmit"  ref="search"&gt;&lt;/search&gt;
+<span style="color: #008080;"> 11</span>             &lt;/group&gt;
+<span style="color: #008080;"> 12</span>             &lt;group gutter="0" ref="map"&gt;
+<span style="color: #008080;"> 13</span>                 &lt;div class="amap-wrapper"  id="imap"&gt;
+<span style="color: #008080;"> 14</span>                     &lt;!--&lt;el-amap ref="map"  id="imap" vid="amapDemo" :zoom="12" resizeEnable="true" :plugin="plugin" :center="mapCenter" class="amap-box" :events="events"&gt;--&gt;
+<span style="color: #008080;"> 15</span>                         &lt;!--&lt;el-amap-marker v-<span style="color: #0000ff;">for</span>="(marker,index) in markers" :key="index" :position="marker" icon="resource/img/gps_mark.png" animation="AMAP_ANIMATION_DROP"&gt;&lt;/el-amap-marker&gt;--&gt;
+<span style="color: #008080;"> 16</span>                     &lt;!--&lt;/el-amap&gt;--&gt;
+<span style="color: #008080;"> 17</span>                     &lt;div class="panel" style="text-align: center;" v-show="!map"&gt; 
+<span style="color: #008080;"> 18</span>                         &lt;div class="panel-box panel-box_attend" style="height: 50vh"  @click="createMap"&gt;
+<span style="color: #008080;"> 19</span>                             &lt;div class="panel-box_bd"&gt;
+<span style="color: #008080;"> 20</span>                                 &lt;p class="panel-box_desc"&gt;&lt;img src="resource/img/attend/gps2.png" class="panel-box_img" style="width: 1rem"/&gt;&lt;br/&gt;{{mapdesc}}&lt;/p&gt;
+<span style="color: #008080;"> 21</span>                             &lt;/div&gt;
+<span style="color: #008080;"> 22</span>                         &lt;/div&gt;
+<span style="color: #008080;"> 23</span>                     &lt;/div&gt;
+<span style="color: #008080;"> 24</span>                 &lt;/div&gt;
+<span style="color: #008080;"> 25</span>             &lt;/group&gt;
+<span style="color: #008080;"> 26</span> 
+<span style="color: #008080;"> 27</span>             &lt;Loading v-show="isLoading" text="数据加载中"&gt;&lt;/Loading&gt;
+<span style="color: #008080;"> 28</span> 
+<span style="color: #008080;"> 29</span>             &lt;group ref="mapList" gutter="0" v-show="pois.length&gt;0" class="mont-list group-cell-label-cls"&gt;
+<span style="color: #008080;"> 30</span>                 &lt;cell v-<span style="color: #0000ff;">for</span>="(i,index) in pois" :key="index" :title="i.name" class="" @click.native="beforeConfirm(i,index)" &gt;
+<span style="color: #008080;"> 31</span>                     &lt;img v-show="showIndex == index" class="icon-del" src="resource/img/attend/icon_common_select@2x.png"/&gt;
+<span style="color: #008080;"> 32</span>                 &lt;/cell&gt;
+<span style="color: #008080;"> 33</span>             &lt;/group&gt;
+<span style="color: #008080;"> 34</span> 
+<span style="color: #008080;"> 35</span>             &lt;!--&lt;group gutter="0.1rem"&gt;--&gt;
+<span style="color: #008080;"> 36</span>                 &lt;!--&lt;x-button mini type="primary" @click.native="initMap"&gt;初始化地图&lt;/x-button&gt;--&gt;
+<span style="color: #008080;"> 37</span>                 &lt;!--&lt;x-button mini type="primary" @click.native="initAmap"&gt;加载地图&lt;/x-button&gt;--&gt;
+<span style="color: #008080;"> 38</span>             &lt;!--&lt;/group&gt;--&gt;
+<span style="color: #008080;"> 39</span> 
+<span style="color: #008080;"> 40</span>             &lt;!--&lt;div id="imap" style="width: 100vw;height: 300px"&gt;&lt;/div&gt;--&gt;
+<span style="color: #008080;"> 41</span> 
+<span style="color: #008080;"> 42</span>                 &lt;slot&gt;
+<span style="color: #008080;"> 43</span>                     &lt;div class="topTips" v-<span style="color: #0000ff;">if</span>="pois.length==0" &gt;
+<span style="color: #008080;"> 44</span>                         &lt;div class="panel" style="text-align: center"&gt;
+<span style="color: #008080;"> 45</span>                             &lt;div class="panel-box panel-box_attend"&gt;
+<span style="color: #008080;"> 46</span>                                 &lt;div class="panel-box_bd"&gt;
+<span style="color: #008080;"> 47</span>                                     &lt;p class="panel-box_desc"&gt;暂无地址记录&lt;/p&gt;
+<span style="color: #008080;"> 48</span>                                 &lt;/div&gt;
+<span style="color: #008080;"> 49</span>                             &lt;/div&gt;
+<span style="color: #008080;"> 50</span>                         &lt;/div&gt;
+<span style="color: #008080;"> 51</span>                     &lt;/div&gt;
+<span style="color: #008080;"> 52</span>                 &lt;/slot&gt;
+<span style="color: #008080;"> 53</span>             &lt;!--&lt;cell @click.native="showConfirmPlugin2" value="showConfirmPlugin"&gt;&lt;/cell&gt;--&gt;
+<span style="color: #008080;"> 54</span>             &lt;div v-transfer-dom&gt;
+<span style="color: #008080;"> 55</span>                 &lt;confirm v-model="showConfirm"
+<span style="color: #008080;"> 56</span>                          class="gpsConfirm"
+<span style="color: #008080;"> 57</span>                          title="考勤范围名称"
+<span style="color: #008080;"> 58</span>                          ref="confirm"
+<span style="color: #008080;"> 59</span>                          @on-cancel="onCancel"
+<span style="color: #008080;"> 60</span>                          @on-confirm="onConfirm"
+<span style="color: #008080;"> 61</span>                          @on-show="onShow"
+<span style="color: #008080;"> 62</span>                          @on-hide="onHide"&gt;
+<span style="color: #008080;"> 63</span>                     &lt;input class="mont-input" type="text" maxlength="150" placeholder="请输入考勤范围名称" v-model="montName" /&gt;
+<span style="color: #008080;"> 64</span>                 &lt;/confirm&gt;
+<span style="color: #008080;"> 65</span>             &lt;/div&gt;
+<span style="color: #008080;"> 66</span>         &lt;/div&gt;
+<span style="color: #008080;"> 67</span>     &lt;/div&gt;
+<span style="color: #008080;"> 68</span> &lt;/template&gt;
+<span style="color: #008080;"> 69</span> 
+<span style="color: #008080;"> 70</span> &lt;script&gt;
+<span style="color: #008080;"> 71</span>     import { registerHandler, notifyAppBackEvent, LocationObserverFunction} from '../../../lib/common/SnJsBridge.js'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 72</span>     import { throttle, initTitleMenu, showToast,isPC } from '../../../lib/extend.js'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 73</span>     import { Group, Cell, Search, Confirm, XButton,TransferDom,Loading   } from 'vux'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 74</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> import SnLoading from '../../../components/baseComponents/SnLoading.vue';</span>
+<span style="color: #008080;"> 75</span>     import Vue from 'vue'
+<span style="color: #008080;"> 76</span>     import VueAMap from 'vue-amap'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 77</span> <span style="color: #000000;">    Vue.use(VueAMap);
+</span><span style="color: #008080;"> 78</span>     window.initAmap = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;"> 79</span>         Vue.data.map = <span style="color: #0000ff;">new</span> AMap.Map('imap'<span style="color: #000000;">, {
+</span><span style="color: #008080;"> 80</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> center: [114.424170,  30.463359],</span>
+<span style="color: #008080;"> 81</span>             zoom: 12
+<span style="color: #008080;"> 82</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;"> 83</span>         Vue.data.map.plugin(['AMap.Autocomplete', 'AMap.PlaceSearch', 'AMap.Scale', 'AMap.OverView', 'AMap.ToolBar', 'AMap.MapType', 'AMap.PolyEditor', 'AMap.CircleEditor','AMap.CitySearch','AMap.Geolocation','AMap.Geocoder'<span style="color: #000000;">]);
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;"> 85</span> 
+<span style="color: #008080;"> 86</span>     export <span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 87</span> <span style="color: #000000;">        components: {
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">            Group,
+</span><span style="color: #008080;"> 89</span> <span style="color: #000000;">            Cell,
+</span><span style="color: #008080;"> 90</span> <span style="color: #000000;">            Search,
+</span><span style="color: #008080;"> 91</span> <span style="color: #000000;">            Confirm,
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">            XButton,
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">            Loading
+</span><span style="color: #008080;"> 94</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">        directives: {
+</span><span style="color: #008080;"> 96</span> <span style="color: #000000;">            TransferDom
+</span><span style="color: #008080;"> 97</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;"> 98</span> <span style="color: #000000;">        data() {
+</span><span style="color: #008080;"> 99</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">                markers: [],
+</span><span style="color: #008080;">101</span>                 city:''<span style="color: #000000;">,
+</span><span style="color: #008080;">102</span>                 mapCenter:''<span style="color: #000000;">,
+</span><span style="color: #008080;">103</span> <span style="color: #000000;">                results: [],
+</span><span style="color: #008080;">104</span>                 value: ''<span style="color: #000000;">,
+</span><span style="color: #008080;">105</span> <span style="color: #000000;">                pois:[],
+</span><span style="color: #008080;">106</span>                 searchValue:''<span style="color: #000000;">,
+</span><span style="color: #008080;">107</span>                 attenGroupInfo:''<span style="color: #000000;">,
+</span><span style="color: #008080;">108</span>                <span style="color: #008000;">//</span><span style="color: #008000;"> gpsChecked:[]</span>
+<span style="color: #008080;">109</span>                 showConfirm:<span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;">110</span>                 selectPoi:''<span style="color: #000000;">,
+</span><span style="color: #008080;">111</span>                 montName:''<span style="color: #000000;">,
+</span><span style="color: #008080;">112</span>                 map:<span style="color: #0000ff;">null</span><span style="color: #000000;">,
+</span><span style="color: #008080;">113</span>                 mapdesc:''<span style="color: #000000;">,
+</span><span style="color: #008080;">114</span>                 nowCity:'',         <span style="color: #008000;">//</span><span style="color: #008000;">当前城市名</span>
+<span style="color: #008080;">115</span>                 isLoading:<span style="color: #0000ff;">true</span><span style="color: #000000;">, 
+</span><span style="color: #008080;">116</span>                 PcGpsData:'',       <span style="color: #008000;">//</span><span style="color: #008000;">PC当前定位信息</span>
+<span style="color: #008080;">117</span>                 nowGps:[],          <span style="color: #008000;">//</span><span style="color: #008000;">当前定位经纬度</span>
+<span style="color: #008080;">118</span>                 geocoder:''<span style="color: #000000;">,    
+</span><span style="color: #008080;">119</span>                 showIndex:0,        <span style="color: #008000;">//</span><span style="color: #008000;">初始对号显示</span>
+<span style="color: #008080;">120</span>                 marker:'',          <span style="color: #008000;">//</span><span style="color: #008000;">初始化marker</span>
+<span style="color: #008080;">121</span>                 markerSearch:'',    <span style="color: #008000;">//</span><span style="color: #008000;">搜索时marker</span>
+<span style="color: #008080;">122</span>                 circle:'',          <span style="color: #008000;">//</span><span style="color: #008000;">初始化图层（圆）</span>
+<span style="color: #008080;">123</span>                 circleSearch:'',    <span style="color: #008000;">//</span><span style="color: #008000;">搜索时图层（圆）</span>
+<span style="color: #008080;">124</span>                 circleRadius:100    <span style="color: #008000;">//</span><span style="color: #008000;">半径 默认100</span>
+<span style="color: #008080;">125</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">126</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">127</span> <span style="color: #000000;">        created() {
+</span><span style="color: #008080;">128</span>             let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">129</span> <span style="color: #000000;">            _this.init();
+</span><span style="color: #008080;">130</span>             initTitleMenu(['位置',{name:'刷新',menuId:'but_2_0',type: 2,func:<span style="color: #0000ff;">function</span><span style="color: #000000;">(){_this.refresh();}}]);
+</span><span style="color: #008080;">131</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">132</span> <span style="color: #000000;">        computed: {
+</span><span style="color: #008080;">133</span> <span style="color: #000000;">            gpsChecked: {
+</span><span style="color: #008080;">134</span> <span style="color: #000000;">                get() {
+</span><span style="color: #008080;">135</span>                     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.$store.state.monetList;
+</span><span style="color: #008080;">136</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">137</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">138</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">139</span> <span style="color: #000000;">        mounted() {
+</span><span style="color: #008080;">140</span>             let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">141</span> <span style="color: #000000;">            _this.createMap();
+</span><span style="color: #008080;">142</span> <span style="color: #000000;">            _this.setMapListHeight()
+</span><span style="color: #008080;">143</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">144</span> <span style="color: #000000;">        methods: {
+</span><span style="color: #008080;">145</span> <span style="color: #000000;">            init(){
+</span><span style="color: #008080;">146</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">147</span> <span style="color: #000000;">                _this.dataInit();
+</span><span style="color: #008080;">148</span>                 notifyAppBackEvent(); <span style="color: #008000;">//</span><span style="color: #008000;">调用app，通知返回事件</span>
+<span style="color: #008080;">149</span>                 registerHandler('notifyAppBack', <span style="color: #0000ff;">function</span>(data){<span style="color: #008000;">//</span><span style="color: #008000;">点击app返回事件</span>
+<span style="color: #008080;">150</span>                     throttle(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">151</span>                         <span style="color: #008000;">//</span><span style="color: #008000;">_this.$router.goBack();//回退上一页</span>
+<span style="color: #008080;">152</span>                         _this.$router.isBack = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">153</span>                         _this.$router.push({ name: 'setting'<span style="color: #000000;">})
+</span><span style="color: #008080;">154</span>                     }.bind(<span style="color: #0000ff;">this</span><span style="color: #000000;">));
+</span><span style="color: #008080;">155</span> <span style="color: #000000;">                })
+</span><span style="color: #008080;">156</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">157</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 数据初始化  , 从APP获取数据</span>
+<span style="color: #008080;">158</span>             dataInit: <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #008080;">159</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">160</span>                 _this.gpsChecked =<span style="color: #000000;"> _this.$store.state.monetList;
+</span><span style="color: #008080;">161</span>                 <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">isPC()){
+</span><span style="color: #008080;">162</span> <span style="color: #000000;">                    _this.getLocationInfo();
+</span><span style="color: #008080;">163</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">164</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">165</span>             <span style="color: #008000;">//</span><span style="color: #008000;">获取当前定位信息</span>
+<span style="color: #008080;">166</span> <span style="color: #000000;">            getLocationInfo(){
+</span><span style="color: #008080;">167</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">168</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 实时监听gps信息</span>
+<span style="color: #008080;">169</span>                 LocationObserverFunction({observerType: 0<span style="color: #000000;">});
+</span><span style="color: #008080;">170</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;">(isPC()){
+</span><span style="color: #008080;">171</span>                     let PcGps =<span style="color: #000000;"> _this.PcGpsData
+</span><span style="color: #008080;">172</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('PcGps :', PcGps);</span>
+<span style="color: #008080;">173</span>                     let locationInfo=<span style="color: #000000;">{
+</span><span style="color: #008080;">174</span> <span style="color: #000000;">                            longitude:PcGps.position.lng,
+</span><span style="color: #008080;">175</span> <span style="color: #000000;">                            latitude:PcGps.position.lat,
+</span><span style="color: #008080;">176</span> <span style="color: #000000;">                            regionName:PcGps.formattedAddress
+</span><span style="color: #008080;">177</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">178</span>                     let cityName =<span style="color: #000000;"> locationInfo.regionName
+</span><span style="color: #008080;">179</span> <span style="color: #000000;">                    _this.searchMap(cityName)
+</span><span style="color: #008080;">180</span> <span style="color: #000000;">                    _this.setMapCenter([locationInfo.longitude,locationInfo.latitude])
+</span><span style="color: #008080;">181</span>                 }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">182</span>                     registerHandler('LocationNotify', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (result) {
+</span><span style="color: #008080;">183</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('result :', result);</span>
+<span style="color: #008080;">184</span>                         <span style="color: #0000ff;">if</span> (JSON.parse(result).retCode == 0<span style="color: #000000;">) {
+</span><span style="color: #008080;">185</span>                             let locationInfo =<span style="color: #000000;"> JSON.parse(result).data;
+</span><span style="color: #008080;">186</span>                             let cityName =<span style="color: #000000;"> locationInfo.regionName
+</span><span style="color: #008080;">187</span> <span style="color: #000000;">                            _this.searchMap(cityName)
+</span><span style="color: #008080;">188</span>                             _this.nowCity =<span style="color: #000000;"> locationInfo.cityName
+</span><span style="color: #008080;">189</span> <span style="color: #000000;">                            _this.setMapCenter([locationInfo.longitude,locationInfo.latitude]);
+</span><span style="color: #008080;">190</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">191</span>                     }.bind(<span style="color: #0000ff;">this</span><span style="color: #000000;">));
+</span><span style="color: #008080;">192</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">193</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">194</span> <span style="color: #000000;">            openRouter(name){
+</span><span style="color: #008080;">195</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">196</span> <span style="color: #000000;">                _this.$router.push({ name: name });
+</span><span style="color: #008080;">197</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">this.$router.push({ name: name, })</span>
+<span style="color: #008080;">198</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">199</span> <span style="color: #000000;">            onSearchResult(pois) {
+</span><span style="color: #008080;">200</span> <span style="color: #000000;">                console.log(pois);
+</span><span style="color: #008080;">201</span>                 let _this = <span style="color: #0000ff;">this</span>
+<span style="color: #008080;">202</span>                 let latSum = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">203</span>                 let lngSum = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">204</span>                 <span style="color: #0000ff;">if</span> (pois.length &gt; 0<span style="color: #000000;">) {
+</span><span style="color: #008080;">205</span>                     <span style="color: #0000ff;">this</span>.markers = [];<span style="color: #008000;">//</span><span style="color: #008000;">清空</span>
+<span style="color: #008080;">206</span>                     <span style="color: #0000ff;">this</span>.map.clearMap();<span style="color: #008000;">//</span><span style="color: #008000;">清空</span>
+<span style="color: #008080;">207</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> pois.forEach(poi,key =&gt; {</span>
+<span style="color: #008080;">208</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">     let {lng, lat} = poi.location;</span>
+<span style="color: #008080;">209</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">     lngSum += lng;</span>
+<span style="color: #008080;">210</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">     latSum += lat;</span>
+<span style="color: #008080;">211</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">     this.markers.push([poi.location.lng, poi.location.lat]);</span>
+<span style="color: #008080;">212</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">     var marker = new AMap.Marker({</span>
+<span style="color: #008080;">213</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">         // content:poi.name,</span>
+<span style="color: #008080;">214</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">         position: new AMap.LngLat(poi.location.lng, poi.location.lat),</span>
+<span style="color: #008080;">215</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">         title: 'marker'</span>
+<span style="color: #008080;">216</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">     });</span>
+<span style="color: #008080;">217</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">     this.map.add(marker);</span>
+<span style="color: #008080;">218</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> });</span>
+<span style="color: #008080;">219</span>                     <span style="color: #0000ff;">this</span>.markers.push([pois[0].location.lng, pois[0<span style="color: #000000;">].location.lat]);
+</span><span style="color: #008080;">220</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">--------搜索时，绘制marker-----------</span>
+<span style="color: #008080;">221</span>                          _this.markerSearch = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AMap.Marker({
+</span><span style="color: #008080;">222</span>                             <span style="color: #008000;">//</span><span style="color: #008000;"> content:poi.name,</span>
+<span style="color: #008080;">223</span>                             position: <span style="color: #0000ff;">new</span> AMap.LngLat(pois[0].location.lng, pois[0<span style="color: #000000;">].location.lat),
+</span><span style="color: #008080;">224</span>                             title: 'marker'
+<span style="color: #008080;">225</span> <span style="color: #000000;">                        });
+</span><span style="color: #008080;">226</span>                         <span style="color: #0000ff;">this</span><span style="color: #000000;">.map.add(_this.markerSearch);
+</span><span style="color: #008080;">227</span>                     let center =<span style="color: #000000;"> {
+</span><span style="color: #008080;">228</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> lng: lngSum / pois.length,</span>
+<span style="color: #008080;">229</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> lat: latSum / pois.length,</span>
+<span style="color: #008080;">230</span>                         lng: pois[0<span style="color: #000000;">].location.lng,
+</span><span style="color: #008080;">231</span>                         lat: pois[0<span style="color: #000000;">].location.lat
+</span><span style="color: #008080;">232</span> <span style="color: #000000;">                    };
+</span><span style="color: #008080;">233</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('this.mapCenter :', this.mapCenter);</span>
+<span style="color: #008080;">234</span>                     <span style="color: #0000ff;">this</span>.mapCenter = [center.lng, center.lat];<span style="color: #008000;">//</span><span style="color: #008000;">移动map中心</span>
+<span style="color: #008080;">235</span>                     <span style="color: #0000ff;">this</span>.map.setCenter(<span style="color: #0000ff;">this</span><span style="color: #000000;">.mapCenter);
+</span><span style="color: #008080;">236</span>                     <span style="color: #0000ff;">this</span>.pois =<span style="color: #000000;"> pois;
+</span><span style="color: #008080;">237</span>                     _this.isLoading = <span style="color: #0000ff;">false</span>
+<span style="color: #008080;">238</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">--------搜索时，绘制图层（圆)-----------</span>
+<span style="color: #008080;">239</span>                     let nowGps = _this.mapCenter.length==0? [114.424529, 30.463046<span style="color: #000000;">]:_this.mapCenter
+</span><span style="color: #008080;">240</span>                     _this.circleSearch = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AMap.Circle({
+</span><span style="color: #008080;">241</span> <span style="color: #000000;">                        center: nowGps,
+</span><span style="color: #008080;">242</span>                         radius: _this.circleRadius, <span style="color: #008000;">//</span><span style="color: #008000;">半径</span>
+<span style="color: #008080;">243</span>                         borderWeight: 3<span style="color: #000000;">,
+</span><span style="color: #008080;">244</span>                         strokeColor: "rgba(0,0,0,0)"<span style="color: #000000;">, 
+</span><span style="color: #008080;">245</span>                         strokeOpacity: 1<span style="color: #000000;">,
+</span><span style="color: #008080;">246</span>                         strokeWeight: 6<span style="color: #000000;">,
+</span><span style="color: #008080;">247</span>                         strokeOpacity: 0.2<span style="color: #000000;">,
+</span><span style="color: #008080;">248</span>                         fillOpacity: 0.4<span style="color: #000000;">,
+</span><span style="color: #008080;">249</span>                         strokeStyle: 'solid'<span style="color: #000000;">,
+</span><span style="color: #008080;">250</span>                         strokeDasharray: [10, 10<span style="color: #000000;">], 
+</span><span style="color: #008080;">251</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> 线样式还支持 'dashed'</span>
+<span style="color: #008080;">252</span>                         fillColor: '#1791fc'<span style="color: #000000;">,
+</span><span style="color: #008080;">253</span>                         zIndex: 50<span style="color: #000000;">,
+</span><span style="color: #008080;">254</span> <span style="color: #000000;">                    })
+</span><span style="color: #008080;">255</span> <span style="color: #000000;">                    _this.circleSearch.setMap(_this.map)
+</span><span style="color: #008080;">256</span>                     
+<span style="color: #008080;">257</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">258</span> 
+<span style="color: #008080;">259</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">260</span>             <span style="color: #008000;">//</span><span style="color: #008000;">GPS事件</span>
+<span style="color: #008080;">261</span>             <span style="color: #008000;">//</span><span style="color: #008000;">search end</span>
+<span style="color: #008080;">262</span> <span style="color: #000000;">            searchMap(val){
+</span><span style="color: #008080;">263</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">264</span>                 let placeSearch= <span style="color: #0000ff;">new</span><span style="color: #000000;"> AMap.PlaceSearch({
+</span><span style="color: #008080;">265</span> <span style="color: #000000;">                    city:_this.nowCity
+</span><span style="color: #008080;">266</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">267</span>                 let search = <span style="color: #0000ff;">this</span>.searchValue == ''?val:<span style="color: #0000ff;">this</span><span style="color: #000000;">.searchValue
+</span><span style="color: #008080;">268</span>                 <span style="color: #0000ff;">if</span>(search <span style="color: #0000ff;">instanceof</span><span style="color: #000000;"> Array){
+</span><span style="color: #008080;">269</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('上 :');</span>
+<span style="color: #008080;">270</span>                     placeSearch.searchNearBy('',search,500,<span style="color: #0000ff;">function</span><span style="color: #000000;">(status, result) {
+</span><span style="color: #008080;">271</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(status,result);</span>
+<span style="color: #008080;">272</span>                         <span style="color: #0000ff;">if</span>('OK'==result.info&amp;&amp;result.poiList.pois.length&gt;0<span style="color: #000000;">){
+</span><span style="color: #008080;">273</span> <span style="color: #000000;">                            _this.onSearchResult(result.poiList.pois)
+</span><span style="color: #008080;">274</span>                         }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">275</span>                             _this.pois =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">276</span>                             _this.markers =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">277</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">278</span> <span style="color: #000000;">                    })
+</span><span style="color: #008080;">279</span>                 }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">280</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('下 :');</span>
+<span style="color: #008080;">281</span>                     placeSearch.search(search,<span style="color: #0000ff;">function</span><span style="color: #000000;">(status, result){
+</span><span style="color: #008080;">282</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> console.log(status,result);</span>
+<span style="color: #008080;">283</span>                         <span style="color: #0000ff;">if</span>('OK'==result.info&amp;&amp;result.poiList.pois.length&gt;0<span style="color: #000000;">){
+</span><span style="color: #008080;">284</span> <span style="color: #000000;">                            _this.onSearchResult(result.poiList.pois)
+</span><span style="color: #008080;">285</span>                         }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">286</span>                             _this.pois =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">287</span>                             _this.markers =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">288</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">289</span> <span style="color: #000000;">                    })  
+</span><span style="color: #008080;">290</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">291</span>                 
+<span style="color: #008080;">292</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">293</span> <span style="color: #000000;">            setCircle(){
+</span><span style="color: #008080;">294</span>                 let _this = <span style="color: #0000ff;">this</span>
+<span style="color: #008080;">295</span>                 let nowGps = _this.mapCenter.length==0? [114.424529, 30.463046<span style="color: #000000;">]:_this.mapCenter
+</span><span style="color: #008080;">296</span>                 _this.circle = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AMap.Circle({
+</span><span style="color: #008080;">297</span> <span style="color: #000000;">                    center: nowGps,
+</span><span style="color: #008080;">298</span>                     radius: _this.circleRadius, <span style="color: #008000;">//</span><span style="color: #008000;">半径</span>
+<span style="color: #008080;">299</span>                     borderWeight: 3<span style="color: #000000;">,
+</span><span style="color: #008080;">300</span>                     strokeColor: "rgba(0,0,0,0)"<span style="color: #000000;">, 
+</span><span style="color: #008080;">301</span>                     strokeOpacity: 1<span style="color: #000000;">,
+</span><span style="color: #008080;">302</span>                     strokeWeight: 6<span style="color: #000000;">,
+</span><span style="color: #008080;">303</span>                     strokeOpacity: 0.2<span style="color: #000000;">,
+</span><span style="color: #008080;">304</span>                     fillOpacity: 0.4<span style="color: #000000;">,
+</span><span style="color: #008080;">305</span>                     strokeStyle: 'solid'<span style="color: #000000;">,
+</span><span style="color: #008080;">306</span>                     strokeDasharray: [10, 10<span style="color: #000000;">], 
+</span><span style="color: #008080;">307</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> 线样式还支持 'dashed'</span>
+<span style="color: #008080;">308</span>                     fillColor: '#1791fc'<span style="color: #000000;">,
+</span><span style="color: #008080;">309</span>                     zIndex: 50<span style="color: #000000;">,
+</span><span style="color: #008080;">310</span> <span style="color: #000000;">                })
+</span><span style="color: #008080;">311</span> <span style="color: #000000;">                _this.circle.setMap(_this.map)
+</span><span style="color: #008080;">312</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> _this.map.setFitView([ circle ])</span>
+<span style="color: #008080;">313</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">314</span> <span style="color: #000000;">            searchCity(){
+</span><span style="color: #008080;">315</span>                 let _this = <span style="color: #0000ff;">this</span>
+<span style="color: #008080;">316</span>                 <span style="color: #0000ff;">var</span> citySearch = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AMap.CitySearch()
+</span><span style="color: #008080;">317</span>                 citySearch.getLocalCity(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (status, result) {
+</span><span style="color: #008080;">318</span>                     <span style="color: #0000ff;">if</span> (status === 'complete' &amp;&amp; result.info === 'OK'<span style="color: #000000;">) {
+</span><span style="color: #008080;">319</span>                         _this.nowCity =<span style="color: #000000;"> result.city
+</span><span style="color: #008080;">320</span>                         console.group('1 :', 1<span style="color: #000000;">);
+</span><span style="color: #008080;">321</span> <span style="color: #000000;">                        console.log(status,result);
+</span><span style="color: #008080;">322</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> 查询成功，result即为当前所在城市信息</span>
+<span style="color: #008080;">323</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">324</span> <span style="color: #000000;">                })
+</span><span style="color: #008080;">325</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">326</span> <span style="color: #000000;">            beforeConfirm(poi,index){
+</span><span style="color: #008080;">327</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">328</span>                 _this.showIndex =<span style="color: #000000;"> index
+</span><span style="color: #008080;">329</span>                 _this.selectPoi =<span style="color: #000000;"> poi;
+</span><span style="color: #008080;">330</span>                 _this.showConfirm = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">331</span>                 _this.markerSearch.setPosition(<span style="color: #0000ff;">new</span> AMap.LngLat(poi.location.lng,poi.location.lat))  <span style="color: #008000;">//</span><span style="color: #008000;">选择列表时，设置marker位置</span>
+<span style="color: #008080;">332</span> <span style="color: #000000;">                _this.map.setCenter([poi.location.lng,poi.location.lat])
+</span><span style="color: #008080;">333</span>                 _this.mapCenter =<span style="color: #000000;"> [poi.location.lng,poi.location.lat]
+</span><span style="color: #008080;">334</span>                 _this.circleSearch.setCenter(<span style="color: #0000ff;">new</span> AMap.LngLat(poi.location.lng,poi.location.lat))    <span style="color: #008000;">//</span><span style="color: #008000;">选择列表时，设置图层（圆）位置</span>
+<span style="color: #008080;">335</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">336</span> <span style="color: #000000;">            onShow(){
+</span><span style="color: #008080;">337</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">338</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">_this.$refs.confirm.setInputValue(_this.selectPoi.name);</span>
+<span style="color: #008080;">339</span>                 _this.montName =<span style="color: #000000;"> _this.selectPoi.name;
+</span><span style="color: #008080;">340</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">this.$refs['confirmFocus'].focus()</span>
+<span style="color: #008080;">341</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">342</span> <span style="color: #000000;">            onHide(){
+</span><span style="color: #008080;">343</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">344</span>                 console.log('onHide :'<span style="color: #000000;">);
+</span><span style="color: #008080;">345</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">346</span> <span style="color: #000000;">            onConfirm(value){
+</span><span style="color: #008080;">347</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">348</span>                 <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">_this.montName){
+</span><span style="color: #008080;">349</span>                     showToast('请输入考勤范围名称'<span style="color: #000000;">);
+</span><span style="color: #008080;">350</span>                     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">351</span>                 }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">352</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">判断是否已有该地址经纬度</span>
+<span style="color: #008080;">353</span>                     let gpsAddFlag = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">354</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">校验wifi mac是否重复</span>
+<span style="color: #008080;">355</span>                     _this.gpsChecked.forEach(i=&gt;<span style="color: #000000;">{
+</span><span style="color: #008080;">356</span>                         <span style="color: #0000ff;">if</span>(i.longitude == _this.selectPoi.location.lng.toFixed(6)*10e5&amp;&amp;i.dimension == _this.selectPoi.location.lat.toFixed(6)*10e5<span style="color: #000000;">){
+</span><span style="color: #008080;">357</span>                             showToast('已设置该考勤地点，请添加其他地点'<span style="color: #000000;">);
+</span><span style="color: #008080;">358</span>                             gpsAddFlag = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">359</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">360</span> <span style="color: #000000;">                    });
+</span><span style="color: #008080;">361</span>                     <span style="color: #0000ff;">if</span>(!!<span style="color: #000000;">gpsAddFlag){
+</span><span style="color: #008080;">362</span> <span style="color: #000000;">                        _this.addGps(_this.selectPoi, _this.montName);
+</span><span style="color: #008080;">363</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">364</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">365</span> 
+<span style="color: #008080;">366</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">367</span> <span style="color: #000000;">            addGps(poi, value){
+</span><span style="color: #008080;">368</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">369</span>                 let newPoi =<span style="color: #000000;"> {
+</span><span style="color: #008080;">370</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">id:poi.id,</span>
+<span style="color: #008080;">371</span>                     longitude:poi.location.lng.toFixed(6)*10e5<span style="color: #000000;">,
+</span><span style="color: #008080;">372</span>                     dimension:poi.location.lat.toFixed(6)*10e5<span style="color: #000000;">,
+</span><span style="color: #008080;">373</span> <span style="color: #000000;">                    address:poi.address,
+</span><span style="color: #008080;">374</span>                     regionName:value||<span style="color: #000000;">poi.name,
+</span><span style="color: #008080;">375</span>                     radius:500
+<span style="color: #008080;">376</span> <span style="color: #000000;">                };
+</span><span style="color: #008080;">377</span> <span style="color: #000000;">                _this.gpsChecked.push(newPoi);
+</span><span style="color: #008080;">378</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">let monetList = _this.uniqueArray(_this.$store.state.monetList, newPoi);</span>
+<span style="color: #008080;">379</span>                 _this.$store.commit('updateChangeflag'<span style="color: #000000;">);
+</span><span style="color: #008080;">380</span>                 _this.$store.commit('updateMonetList'<span style="color: #000000;">,  _this.gpsChecked);
+</span><span style="color: #008080;">381</span>                 _this.$router.isBack = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">382</span>                 _this.$router.push({ name: 'setting'<span style="color: #000000;"> })
+</span><span style="color: #008080;">383</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">384</span>             <span style="color: #008000;">//</span><span style="color: #008000;">搜索框事件</span>
+<span style="color: #008080;">385</span> <span style="color: #000000;">            onSubmit () {
+</span><span style="color: #008080;">386</span>                 let _this = <span style="color: #0000ff;">this</span>
+<span style="color: #008080;">387</span> <span style="color: #000000;">                _this.$refs.search.setBlur();
+</span><span style="color: #008080;">388</span>                 _this.showIndex = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">389</span> <span style="color: #000000;">                _this.searchMap()
+</span><span style="color: #008080;">390</span>                 console.log('on Submit'<span style="color: #000000;">)
+</span><span style="color: #008080;">391</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">392</span> <span style="color: #000000;">            onFocus () {
+</span><span style="color: #008080;">393</span>                 let _this = <span style="color: #0000ff;">this</span>
+<span style="color: #008080;">394</span> <span style="color: #000000;">                _this.searchCity();
+</span><span style="color: #008080;">395</span>                 console.log('on focus'<span style="color: #000000;">)
+</span><span style="color: #008080;">396</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">397</span> <span style="color: #000000;">            onCancel () {
+</span><span style="color: #008080;">398</span>                 console.log('on cancel'<span style="color: #000000;">)
+</span><span style="color: #008080;">399</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">400</span> <span style="color: #000000;">            refresh(){
+</span><span style="color: #008080;">401</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">该方法安卓会重新打开一个页面，暂时不用this.$router.go(0);</span>
+<span style="color: #008080;">402</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">403</span>                 _this.pois =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">404</span>                 _this.markers =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">405</span>                 _this.searchValue = ''<span style="color: #000000;">;
+</span><span style="color: #008080;">406</span> <span style="color: #000000;">                _this.$refs.search.setBlur();
+</span><span style="color: #008080;">407</span> <span style="color: #000000;">                _this.dataInit();
+</span><span style="color: #008080;">408</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">409</span>             <span style="color: #008000;">//</span><span style="color: #008000;">判断已选择的是否存在</span>
+<span style="color: #008080;">410</span> <span style="color: #000000;">            uniqueArray(arr, poi){
+</span><span style="color: #008080;">411</span>                 let res =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">412</span>                <span style="color: #008000;">//</span><span style="color: #008000;"> var json = {};</span>
+<span style="color: #008080;">413</span> 
+<span style="color: #008080;">414</span>                 <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; arr.length; i++<span style="color: #000000;">){
+</span><span style="color: #008080;">415</span>                    <span style="color: #0000ff;">if</span>( arr[i].id ==<span style="color: #000000;"> poi.id ){
+</span><span style="color: #008080;">416</span>                       <span style="color: #008000;">//</span><span style="color: #008000;">已存在</span>
+<span style="color: #008080;">417</span>                        console.log('已存在'<span style="color: #000000;">)
+</span><span style="color: #008080;">418</span>                    }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">419</span> <span style="color: #000000;">                       res.push(arr[i]);
+</span><span style="color: #008080;">420</span> <span style="color: #000000;">                   }
+</span><span style="color: #008080;">421</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">422</span>                 <span style="color: #0000ff;">if</span>(arr.length == 0<span style="color: #000000;">){
+</span><span style="color: #008080;">423</span>                     res[0] =<span style="color: #000000;"> poi ;
+</span><span style="color: #008080;">424</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">425</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> res;
+</span><span style="color: #008080;">426</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">427</span>             <span style="color: #008000;">//</span><span style="color: #008000;">初始化设置地图中心</span>
+<span style="color: #008080;">428</span> <span style="color: #000000;">            setMapCenter(data){
+</span><span style="color: #008080;">429</span>                 <span style="color: #0000ff;">this</span>.mapCenter =<span style="color: #000000;"> data;
+</span><span style="color: #008080;">430</span>                 <span style="color: #0000ff;">this</span>.map.setZoomAndCenter(14<span style="color: #000000;">, data);
+</span><span style="color: #008080;">431</span>                 LocationObserverFunction({observerType: 1<span style="color: #000000;">});
+</span><span style="color: #008080;">432</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">433</span> <span style="color: #000000;">            createMap(){
+</span><span style="color: #008080;">434</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">435</span>                <span style="color: #008000;">//</span><span style="color: #008000;"> _this.initMap();</span>
+<span style="color: #008080;">436</span> <span style="color: #000000;">                _this.clickMap();
+</span><span style="color: #008080;">437</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> _this.initAmap()</span>
+<span style="color: #008080;">438</span>                 _this.mapdesc = ''<span style="color: #000000;">;
+</span><span style="color: #008080;">439</span>                 setTimeout(()=&gt;<span style="color: #000000;">{
+</span><span style="color: #008080;">440</span>                     _this.mapdesc = '载入地图失败，点击重新载入'<span style="color: #000000;">;
+</span><span style="color: #008080;">441</span> <span style="color: #000000;">                    _this.initAmap();
+</span><span style="color: #008080;">442</span>                 },1500<span style="color: #000000;">)
+</span><span style="color: #008080;">443</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">444</span>             <span style="color: #008000;">//</span><span style="color: #008000;">初始化地图 //无用</span>
+<span style="color: #008080;">445</span> <span style="color: #000000;">            initMap(){
+</span><span style="color: #008080;">446</span> <span style="color: #000000;">                VueAMap.initAMapApiLoader({
+</span><span style="color: #008080;">447</span>                     key: '6dc72bbbc2824a9295b256b8330ae7ef'<span style="color: #000000;">,
+</span><span style="color: #008080;">448</span>                     plugin: ['AMap.Autocomplete', 'AMap.PlaceSearch', 'AMap.Scale', 'AMap.OverView', 'AMap.ToolBar', 'AMap.MapType', 'AMap.PolyEditor', 'AMap.CircleEditor','AMap.CitySearch','AMap.Geolocation','AMap.Geocoder'<span style="color: #000000;">],
+</span><span style="color: #008080;">449</span>                     v: '1.4.4'
+<span style="color: #008080;">450</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">451</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">452</span>             <span style="color: #008000;">//</span><span style="color: #008000;">初始化高德地图</span>
+<span style="color: #008080;">453</span> <span style="color: #000000;">            initAmap(){
+</span><span style="color: #008080;">454</span>                 let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">455</span>                 <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">_this.map){
+</span><span style="color: #008080;">456</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('_this.mapCenter :', _this.mapCenter);</span>
+<span style="color: #008080;">457</span>                     _this.map = <span style="color: #0000ff;">new</span> AMap.Map('imap'<span style="color: #000000;">, {
+</span><span style="color: #008080;">458</span>                         <span style="color: #008000;">//</span><span style="color: #008000;"> center: _this.mapCenter,</span>
+<span style="color: #008080;">459</span>                         zoom: 12
+<span style="color: #008080;">460</span> <span style="color: #000000;">                    });
+</span><span style="color: #008080;">461</span>                     _this.map.plugin(['AMap.Autocomplete', 'AMap.PlaceSearch', 'AMap.Scale', 'AMap.OverView', 'AMap.ToolBar', 'AMap.MapType', 'AMap.PolyEditor', 'AMap.CircleEditor','AMap.CitySearch','AMap.Geolocation','AMap.Geocoder'],<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">462</span>                             <span style="color: #0000ff;">var</span> geolocation = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AMap.Geolocation({
+</span><span style="color: #008080;">463</span>                             <span style="color: #008000;">//</span><span style="color: #008000;"> 是否使用高精度定位，默认：true</span>
+<span style="color: #008080;">464</span>                             enableHighAccuracy: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;">465</span>                             <span style="color: #008000;">//</span><span style="color: #008000;"> 设置定位超时时间，默认：无穷大</span>
+<span style="color: #008080;">466</span>                             timeout: 10000<span style="color: #000000;">,
+</span><span style="color: #008080;">467</span>                             <span style="color: #008000;">//</span><span style="color: #008000;"> 定位按钮的停靠位置的偏移量，默认：Pixel(10, 20)</span>
+<span style="color: #008080;">468</span>                             buttonOffset: <span style="color: #0000ff;">new</span> AMap.Pixel(10, 20<span style="color: #000000;">),
+</span><span style="color: #008080;">469</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">  定位成功后调整地图视野范围使定位位置及精度范围视野内可见，默认：false</span>
+<span style="color: #008080;">470</span>                             zoomToAccuracy: <span style="color: #0000ff;">true</span><span style="color: #000000;">,     
+</span><span style="color: #008080;">471</span>                             <span style="color: #008000;">//</span><span style="color: #008000;">  定位按钮的排放位置,  RB表示右下</span>
+<span style="color: #008080;">472</span>                             buttonPosition: 'RB'
+<span style="color: #008080;">473</span> <span style="color: #000000;">                            })
+</span><span style="color: #008080;">474</span> 
+<span style="color: #008080;">475</span> <span style="color: #000000;">                            geolocation.getCurrentPosition()
+</span><span style="color: #008080;">476</span>                             AMap.event.addListener(geolocation, 'complete'<span style="color: #000000;">, _this.onComplete)
+</span><span style="color: #008080;">477</span>                             AMap.event.addListener(geolocation, 'error'<span style="color: #000000;">, _this.onError)
+</span><span style="color: #008080;">478</span> <span style="color: #000000;">                    });
+</span><span style="color: #008080;">479</span>                     _this.map.on('dragstart',<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">480</span>                             _this.nowGps=<span style="color: #000000;">[];
+</span><span style="color: #008080;">481</span>                             let nowCenter = _this.map.getCenter()   <span style="color: #008000;">//</span><span style="color: #008000;">获取当前坐标经纬度</span>
+<span style="color: #008080;">482</span>                             let nowLng =<span style="color: #000000;"> Number(nowCenter.lng);
+</span><span style="color: #008080;">483</span>                             let nowlat =<span style="color: #000000;"> Number(nowCenter.lat);
+</span><span style="color: #008080;">484</span> <span style="color: #000000;">                            _this.nowGps.push(nowLng)
+</span><span style="color: #008080;">485</span> <span style="color: #000000;">                            _this.nowGps.push(nowlat)
+</span><span style="color: #008080;">486</span>                             _this.getRadiusGps(_this.nowGps)        <span style="color: #008000;">//</span><span style="color: #008000;">设置默认城市，设置中心marker        </span>
+<span style="color: #008080;">487</span>                             _this.searchValue =''          
+<span style="color: #008080;">488</span>                             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('12121 :', 'circle之前');         </span>
+<span style="color: #008080;">489</span>                             _this.setCircle()                       <span style="color: #008000;">//</span><span style="color: #008000;">设置中心图层（圆）</span>
+<span style="color: #008080;">490</span>                         _this.map.on('dragging',<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">491</span>                             _this.nowGps=<span style="color: #000000;">[];
+</span><span style="color: #008080;">492</span>                             let nowCenter =<span style="color: #000000;"> _this.map.getCenter()
+</span><span style="color: #008080;">493</span>                             let nowLng =<span style="color: #000000;"> Number(nowCenter.lng);
+</span><span style="color: #008080;">494</span>                             let nowlat =<span style="color: #000000;"> Number(nowCenter.lat);
+</span><span style="color: #008080;">495</span> <span style="color: #000000;">                            _this.nowGps.push(nowLng)
+</span><span style="color: #008080;">496</span> <span style="color: #000000;">                            _this.nowGps.push(nowlat)
+</span><span style="color: #008080;">497</span>                             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('_this.marker.getPosition() :', _this.marker.getPosition());</span>
+<span style="color: #008080;">498</span>                             _this.marker.setPosition(<span style="color: #0000ff;">new</span> AMap.LngLat(nowLng,nowlat))    <span style="color: #008000;">//</span><span style="color: #008000;">使marker跟随，推拽移动</span>
+<span style="color: #008080;">499</span>                             _this.circle.setCenter(<span style="color: #0000ff;">new</span> AMap.LngLat(nowLng,nowlat))      <span style="color: #008000;">//</span><span style="color: #008000;">使图层（圆）跟随，拖拽移动</span>
+<span style="color: #008080;">500</span>                             <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('_this.nowGps :', _this.nowGps);</span>
+<span style="color: #008080;">501</span> <span style="color: #000000;">                        })
+</span><span style="color: #008080;">502</span> <span style="color: #000000;">                    })
+</span><span style="color: #008080;">503</span>                     _this.map.on('dragend',<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">504</span>                         _this.showIndex = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">505</span>                         _this.searchMap(_this.nowGps)   <span style="color: #008000;">//</span><span style="color: #008000;">拖拽结束 搜索当前坐标点信息</span>
+<span style="color: #008080;">506</span> <span style="color: #000000;">                })
+</span><span style="color: #008080;">507</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">508</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">509</span>             <span style="color: #008000;">//</span><span style="color: #008000;">设置默认城市，设置中心marker    </span>
+<span style="color: #008080;">510</span> <span style="color: #000000;">            getRadiusGps(val){
+</span><span style="color: #008080;">511</span>                 let _this =<span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">512</span>                 _this.geocoder = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AMap.Geocoder({
+</span><span style="color: #008080;">513</span>                     city: _this.nowCity, <span style="color: #008000;">//</span><span style="color: #008000;">城市设为北京，默认：&ldquo;全国&rdquo;</span>
+<span style="color: #008080;">514</span>                     radius: 500 <span style="color: #008000;">//</span><span style="color: #008000;">范围，默认：500</span>
+<span style="color: #008080;">515</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">516</span>                 _this.markers = [];<span style="color: #008000;">//</span><span style="color: #008000;">清空</span>
+<span style="color: #008080;">517</span>                 _this.map.clearMap();<span style="color: #008000;">//</span><span style="color: #008000;">清空</span>
+<span style="color: #008080;">518</span> <span style="color: #000000;">                _this.markers.push(val);
+</span><span style="color: #008080;">519</span>                 _this.marker = <span style="color: #0000ff;">new</span><span style="color: #000000;"> AMap.Marker({
+</span><span style="color: #008080;">520</span>                     <span style="color: #008000;">//</span><span style="color: #008000;"> content:poi.name,</span>
+<span style="color: #008080;">521</span>                     position: <span style="color: #0000ff;">new</span> AMap.LngLat(val[0],val[1<span style="color: #000000;">]),
+</span><span style="color: #008080;">522</span>                     title: 'marker'
+<span style="color: #008080;">523</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">524</span> <span style="color: #000000;">                _this.map.add(_this.marker);
+</span><span style="color: #008080;">525</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">526</span>             <span style="color: #008000;">//</span><span style="color: #008000;">PC获取当前坐标经纬度，成功时</span>
+<span style="color: #008080;">527</span> <span style="color: #000000;">            onComplete(data){
+</span><span style="color: #008080;">528</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> console.log('1data :', data);</span>
+<span style="color: #008080;">529</span>                 let _this = <span style="color: #0000ff;">this</span> 
+<span style="color: #008080;">530</span>                 _this.PcGpsData =<span style="color: #000000;"> data
+</span><span style="color: #008080;">531</span> <span style="color: #000000;">                _this.getLocationInfo()
+</span><span style="color: #008080;">532</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">533</span>             <span style="color: #008000;">//</span><span style="color: #008000;">PC获取当前坐标经纬度，失败时</span>
+<span style="color: #008080;">534</span> <span style="color: #000000;">            onError(err){
+</span><span style="color: #008080;">535</span>                 console.log('1err :'<span style="color: #000000;">, err);
+</span><span style="color: #008080;">536</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">537</span>             <span style="color: #008000;">//</span><span style="color: #008000;">初始化地图</span>
+<span style="color: #008080;">538</span> <span style="color: #000000;">            clickMap(){
+</span><span style="color: #008080;">539</span>                 <span style="color: #0000ff;">var</span> url = '//webapi.amap.com/maps?v=1.4.6&amp;key=6dc72bbbc2824a9295b256b8330ae7ef&amp;callback=initAmap'<span style="color: #000000;">;
+</span><span style="color: #008080;">540</span>                 <span style="color: #0000ff;">var</span> jsapi = document.createElement('script'<span style="color: #000000;">);
+</span><span style="color: #008080;">541</span>                 jsapi.charset = 'utf-8'<span style="color: #000000;">;
+</span><span style="color: #008080;">542</span>                 jsapi.src =<span style="color: #000000;"> url;
+</span><span style="color: #008080;">543</span> <span style="color: #000000;">                document.head.appendChild(jsapi);
+</span><span style="color: #008080;">544</span> <span style="color: #000000;">            },
+</span><span style="color: #008080;">545</span>             <span style="color: #008000;">//</span><span style="color: #008000;">动态设置列表高度</span>
+<span style="color: #008080;">546</span> <span style="color: #000000;">            setMapListHeight(){
+</span><span style="color: #008080;">547</span>                 let _this = <span style="color: #0000ff;">this</span>
+<span style="color: #008080;">548</span>                 let searchHeight =<span style="color: #000000;"> _this.$refs.search1.$el.offsetHeight
+</span><span style="color: #008080;">549</span>                 let mapHeight =<span style="color: #000000;"> _this.$refs.map.$el.offsetHeight
+</span><span style="color: #008080;">550</span>                 let Height = searchHeight+mapHeight+'px'
+<span style="color: #008080;">551</span>                 _this.$refs.mapList.$el.style.height =` calc(100vh -<span style="color: #000000;"> ${Height})`;
+</span><span style="color: #008080;">552</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">553</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">554</span> <span style="color: #000000;">        watch:{
+</span><span style="color: #008080;">555</span> <span style="color: #000000;">            PcGpsData(newValue,oldValue){
+</span><span style="color: #008080;">556</span>                 
+<span style="color: #008080;">557</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">558</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">559</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">560</span> &lt;/script&gt;
+<span style="color: #008080;">561</span> &lt;style scoped lang="less"&gt;
+<span style="color: #008080;">562</span>     @import '~components/style/common.less'<span style="color: #000000;">;
+</span><span style="color: #008080;">563</span> <span style="color: #000000;">    .header{
+</span><span style="color: #008080;">564</span>         border-top:0<span style="color: #000000;">;
+</span><span style="color: #008080;">565</span> 
+<span style="color: #008080;">566</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">567</span> <span style="color: #000000;">    .tab{
+</span><span style="color: #008080;">568</span>         <span style="color: #008000;">//</span><span style="color: #008000;">background: @color-white;</span>
+<span style="color: #008080;">569</span> <span style="color: #000000;">        overflow: hidden;
+</span><span style="color: #008080;">570</span>         .amap-<span style="color: #000000;">wrapper {
+</span><span style="color: #008080;">571</span>             width: 100%<span style="color: #000000;">;
+</span><span style="color: #008080;">572</span> <span style="color: #000000;">            height: 50vh;
+</span><span style="color: #008080;">573</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">574</span>         .mont-<span style="color: #000000;">list{
+</span><span style="color: #008080;">575</span>             overflow-<span style="color: #000000;">y: scroll;
+</span><span style="color: #008080;">576</span> <span style="color: #000000;">            height:50vh;
+</span><span style="color: #008080;">577</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">578</span>         .mont-<span style="color: #000000;">input{
+</span><span style="color: #008080;">579</span>             font-size: 1<span style="color: #000000;">.2rem;
+</span><span style="color: #008080;">580</span> <span style="color: #000000;">            padding: .5rem;
+</span><span style="color: #008080;">581</span>             width: 85%<span style="color: #000000;">;
+</span><span style="color: #008080;">582</span>             box-sizing: content-<span style="color: #000000;">box;
+</span><span style="color: #008080;">583</span> <span style="color: #000000;">            background: transparent;
+</span><span style="color: #008080;">584</span> <span style="color: #000000;">            border: 1px solid #e2e3e4;
+</span><span style="color: #008080;">585</span>             border-<span style="color: #000000;">radius: 5px;
+</span><span style="color: #008080;">586</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">587</span> <span style="color: #000000;">        .panel{
+</span><span style="color: #008080;">588</span>             font-<span style="color: #000000;">size: 1rem;
+</span><span style="color: #008080;">589</span>             .panel-<span style="color: #000000;">box {
+</span><span style="color: #008080;">590</span> <span style="color: #000000;">                padding: 15px;
+</span><span style="color: #008080;">591</span> <span style="color: #000000;">                position: relative;
+</span><span style="color: #008080;">592</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">593</span>             .panel-<span style="color: #000000;">box_attend {
+</span><span style="color: #008080;">594</span> <span style="color: #000000;">                display: flex;
+</span><span style="color: #008080;">595</span>                 align-<span style="color: #000000;">items: center;
+</span><span style="color: #008080;">596</span>                 .panel-<span style="color: #000000;">box_hd {
+</span><span style="color: #008080;">597</span>                     margin-<span style="color: #000000;">right: .8em;
+</span><span style="color: #008080;">598</span> <span style="color: #000000;">                    width: 60px;
+</span><span style="color: #008080;">599</span> <span style="color: #000000;">                    height: 60px;
+</span><span style="color: #008080;">600</span>                     line-<span style="color: #000000;">height: 60px;
+</span><span style="color: #008080;">601</span>                     text-<span style="color: #000000;">align: center;
+</span><span style="color: #008080;">602</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">603</span>                 .panel-<span style="color: #000000;">box_bd {
+</span><span style="color: #008080;">604</span>                     flex: 1<span style="color: #000000;">;
+</span><span style="color: #008080;">605</span>                     min-width: 0<span style="color: #000000;">;
+</span><span style="color: #008080;">606</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">607</span>                 .panel-<span style="color: #000000;">box_img {
+</span><span style="color: #008080;">608</span>                     width: 100%<span style="color: #000000;">;
+</span><span style="color: #008080;">609</span>                     max-height: 100%<span style="color: #000000;">;
+</span><span style="color: #008080;">610</span>                     vertical-<span style="color: #000000;">align: top;
+</span><span style="color: #008080;">611</span>                     border-<span style="color: #000000;">radius: .4rem;
+</span><span style="color: #008080;">612</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">613</span>                 .panel-<span style="color: #000000;">box_title {
+</span><span style="color: #008080;">614</span>                     font-weight: 400<span style="color: #000000;">;
+</span><span style="color: #008080;">615</span> <span style="color: #000000;">                    width: auto;
+</span><span style="color: #008080;">616</span> <span style="color: #000000;">                    overflow: hidden;
+</span><span style="color: #008080;">617</span>                     text-<span style="color: #000000;">overflow: ellipsis;
+</span><span style="color: #008080;">618</span>                     white-<span style="color: #000000;">space: nowrap;
+</span><span style="color: #008080;">619</span>                     word-<span style="color: #000000;">wrap: normal;
+</span><span style="color: #008080;">620</span>                     word-wrap: <span style="color: #0000ff;">break</span>-<span style="color: #000000;">word;
+</span><span style="color: #008080;">621</span>                     word-<span style="color: #0000ff;">break</span>: <span style="color: #0000ff;">break</span>-<span style="color: #000000;">all;
+</span><span style="color: #008080;">622</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">623</span>                 .panel-<span style="color: #000000;">box_day{
+</span><span style="color: #008080;">624</span>                     text-<span style="color: #000000;">align: right;
+</span><span style="color: #008080;">625</span>                     margin-<span style="color: #000000;">right: .32rem;
+</span><span style="color: #008080;">626</span>                     color:@color-<span style="color: #000000;">blue;
+</span><span style="color: #008080;">627</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">628</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">629</span>             .panel-<span style="color: #000000;">box_desc {
+</span><span style="color: #008080;">630</span>                 color: #999999<span style="color: #000000;">;
+</span><span style="color: #008080;">631</span>                 font-<span style="color: #000000;">size: 13px;
+</span><span style="color: #008080;">632</span>                 line-height: 1.2<span style="color: #000000;">;
+</span><span style="color: #008080;">633</span> <span style="color: #000000;">                overflow: hidden;
+</span><span style="color: #008080;">634</span>                 text-<span style="color: #000000;">overflow: ellipsis;
+</span><span style="color: #008080;">635</span>                 display: -webkit-<span style="color: #000000;">box;
+</span><span style="color: #008080;">636</span>                 -webkit-box-<span style="color: #000000;">orient: vertical;
+</span><span style="color: #008080;">637</span>                 -webkit-line-clamp: 2<span style="color: #000000;">;
+</span><span style="color: #008080;">638</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">639</span>             .panel-<span style="color: #000000;">box_time{
+</span><span style="color: #008080;">640</span>                 flex: 1<span style="color: #000000;">;
+</span><span style="color: #008080;">641</span>                 -webkit-flex: 1<span style="color: #000000;">;
+</span><span style="color: #008080;">642</span>                 display: -webkit-<span style="color: #000000;">box;
+</span><span style="color: #008080;">643</span>                 display: -webkit-<span style="color: #000000;">flex;
+</span><span style="color: #008080;">644</span> <span style="color: #000000;">                display: flex;
+</span><span style="color: #008080;">645</span> 
+<span style="color: #008080;">646</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">647</span> <span style="color: #000000;">            .box_time {
+</span><span style="color: #008080;">648</span>                 padding-top: 0<span style="color: #000000;">.2rem;
+</span><span style="color: #008080;">649</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">650</span> <span style="color: #000000;">            .box_icon {
+</span><span style="color: #008080;">651</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;">position: absolute;</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">652</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;">right: 0.2rem;</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">653</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;">top: 0.45rem;</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">654</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;">text-align: right;</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">655</span>                 <span style="color: #008000;">/*</span><span style="color: #008000;">width: 0.4rem;</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">656</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">657</span> <span style="color: #000000;">            .box_icon_img {
+</span><span style="color: #008080;">658</span>                 width: 0<span style="color: #000000;">.6rem;
+</span><span style="color: #008080;">659</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">660</span>             .set-<span style="color: #000000;">tips{
+</span><span style="color: #008080;">661</span> <span style="color: #000000;">                position: relative;
+</span><span style="color: #008080;">662</span> <span style="color: #000000;">                display: flex;
+</span><span style="color: #008080;">663</span>                 align-<span style="color: #000000;">items: center;
+</span><span style="color: #008080;">664</span>                 padding: 15px 0<span style="color: #000000;">;
+</span><span style="color: #008080;">665</span>                 color: @color-<span style="color: #000000;">blue;
+</span><span style="color: #008080;">666</span> <span style="color: #000000;">                label {
+</span><span style="color: #008080;">667</span>                     <span style="color: #008000;">/*</span><span style="color: #008000;">width: 2rem;</span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">668</span> <span style="color: #000000;">                    height: 2rem;
+</span><span style="color: #008080;">669</span>                     line-height: 2<span style="color: #000000;">.5rem;
+</span><span style="color: #008080;">670</span>                     margin: 0 .5rem 0<span style="color: #000000;"> 1rem;
+</span><span style="color: #008080;">671</span> <span style="color: #000000;">                    display: block;
+</span><span style="color: #008080;">672</span>                     word-wrap: <span style="color: #0000ff;">break</span>-<span style="color: #000000;">word;
+</span><span style="color: #008080;">673</span>                     word-<span style="color: #0000ff;">break</span>: <span style="color: #0000ff;">break</span>-<span style="color: #000000;">all;
+</span><span style="color: #008080;">674</span> <span style="color: #000000;">                    img{
+</span><span style="color: #008080;">675</span>                         width: 1<span style="color: #000000;">.3rem;
+</span><span style="color: #008080;">676</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">677</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">678</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">679</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">680</span> <span style="color: #000000;">        .bdtop{
+</span><span style="color: #008080;">681</span>             border-<span style="color: #000000;">top: 1px solid #dddddd;
+</span><span style="color: #008080;">682</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">683</span>         .icon-<span style="color: #000000;">del{
+</span><span style="color: #008080;">684</span> <span style="color: #000000;">            width: 1rem;
+</span><span style="color: #008080;">685</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">686</span> <span style="color: #000000;">        .mgbtm{
+</span><span style="color: #008080;">687</span>             margin-<span style="color: #000000;">bottom: .5rem;
+</span><span style="color: #008080;">688</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">689</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">690</span> <span style="color: #000000;">    .list{
+</span><span style="color: #008080;">691</span>         margin-top: 0<span style="color: #000000;">.32rem;
+</span><span style="color: #008080;">692</span>         padding-bottom: 3<span style="color: #000000;">.5rem;
+</span><span style="color: #008080;">693</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">694</span> &lt;/style&gt;
+<span style="color: #008080;">695</span> 
+<span style="color: #008080;">696</span> &lt;style lang="less"&gt;
+<span style="color: #008080;">697</span>     div .weui-<span style="color: #000000;">dialog__btn_primary {
+</span><span style="color: #008080;">698</span> <span style="color: #000000;">        color: #478aee;
+</span><span style="color: #008080;">699</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">700</span>     .page-setting-<span style="color: #000000;">setgps {
+</span><span style="color: #008080;">701</span>        div .weui-<span style="color: #000000;">cell {
+</span><span style="color: #008080;">702</span> <span style="color: #000000;">           padding: 14px 15px;
+</span><span style="color: #008080;">703</span>            border-<span style="color: #000000;">bottom: 1px solid #D1D1D1;
+</span><span style="color: #008080;">704</span>            &amp;<span style="color: #000000;">:before {
+</span><span style="color: #008080;">705</span>                 border-top: 0<span style="color: #000000;">;
+</span><span style="color: #008080;">706</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">707</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">708</span>         .weui-search-<span style="color: #000000;">bar__form {
+</span><span style="color: #008080;">709</span>             font-<span style="color: #000000;">size: 22px;
+</span><span style="color: #008080;">710</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">711</span>        .weui-search-bar__box .weui-icon-<span style="color: #000000;">search{
+</span><span style="color: #008080;">712</span>            line-<span style="color: #000000;">height: 32px;
+</span><span style="color: #008080;">713</span> <span style="color: #000000;">       }
+</span><span style="color: #008080;">714</span>       .weui-search-bar__box .weui-search-<span style="color: #000000;">bar__input {
+</span><span style="color: #008080;">715</span>           padding: 0<span style="color: #000000;">;
+</span><span style="color: #008080;">716</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">717</span>       
+<span style="color: #008080;">718</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">719</span> &lt;/style&gt;</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

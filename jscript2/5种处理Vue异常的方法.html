@@ -1,0 +1,207 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修5种处理Vue异常的方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>5种处理Vue异常的方法</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/handling-errors-in-vuejs.html</div><br>
+    <ul>
+<li>原文: <a href="https://www.raymondcamden.com/2019/05/01/handling-errors-in-vuejs">Handling Errors in Vue.js</a></li>
+<li>译者: <a href="https://www.fundebug.com/">Fundebug</a></li>
+</ul>
+<p><strong>本文采用意译，版权归原作者所有</strong></p>
+<p>去年一整年，我都在使用最爱的—Vue.js— 来做项目。最近突然意识到，我竟然从来没有认真去处理异常。我可以自恋地说：&quot;我写的代码是完美的，没有BUG。&quot; 我相信大家都明白这是迷之自信。最近，我花了不少时间研究了Vue中处理异常的各种技巧，在此想把我学到的分享给大家。</p>
+<h2 id="错误大全">错误大全</h2>
+<p>为了测试各种异常处理技巧，我故意触发三种类型的错误。</p>
+<ol>
+<li>第一种：引用一个不能存在的变量：</li>
+</ol>
+<pre><code><code>&lt;div id=&quot;app&quot; v-cloak&gt;
+  Hello, {{name}}
+&lt;/div&gt;</code></pre>
+<p>上述代码运行后不会抛出错误，但是在控制台会有<code>[Vue warn]</code>消息。</p>
+<p><img src="./images/5种处理Vue异常的方法0.png" alt="Error messages" /></p>
+<p>你可以在Codepen查看例子<a href="https://codepen.io/cfjedimaster/embed/qweOKB?height=265&amp;theme-id=0&amp;default-tab=js%2Cresult&amp;user=cfjedimaster&amp;slug-hash=qweOKB&amp;pen-title=Error1A&amp;name=cp_embed_1">完整代码</a>。</p>
+<ol>
+<li>第二种：将变量绑定到一个被计算出来的属性，计算的时候会抛出异常。</li>
+</ol>
+<pre><code><code>&lt;div id=&quot;app&quot; v-cloak&gt;
+  Hello, {{name2}}
+&lt;/div&gt;
+
+&lt;script&gt;
+const app = new Vue({
+  el:&#39;#app&#39;,
+  computed:{
+    name2() {
+      return x;
+    }
+  }
+})
+&lt;/script&gt;</code></pre>
+<p>运行上述代码会在控制台抛出一个<code>[Vue warn]</code>和一个常规的错误，网页白屏。</p>
+<p><img src="./images/5种处理Vue异常的方法1.png" alt="Error messages" /></p>
+<p>你可以在Codepen查看例子<a href="https://codepen.io/cfjedimaster/embed/BEXoOw?height=265&amp;theme-id=0&amp;default-tab=js%2Cresult&amp;user=cfjedimaster&amp;slug-hash=BEXoOw&amp;pen-title=Error1B&amp;name=cp_embed_2">完整代码</a>。</p>
+<ol>
+<li>第三种：执行一个会抛出异常的方法</li>
+</ol>
+<pre><code><code>&lt;div id=&quot;app&quot; v-cloak&gt;
+    &lt;button @click=&quot;doIt&quot;&gt;Do It&lt;/button&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+const app = new Vue({
+  el:&#39;#app&#39;,
+  methods:{
+      doIt() {
+          return x;
+      }
+  }
+})
+&lt;/script&gt;</code></pre>
+<p>这个错误在控制台也<code>[Vue warn]</code>和常规报错。和上一个错误的区别在于，只有你点击了按钮才会触发函数调用，才会报错。</p>
+<p><img src="./images/5种处理Vue异常的方法2.png" alt="Error with the click handler" /></p>
+<p>你可以在Codepen查看例子<a href="https://codepen.io/cfjedimaster/embed/oOKjJb?height=265&amp;theme-id=0&amp;default-tab=js%2Cresult&amp;user=cfjedimaster&amp;slug-hash=oOKjJb&amp;pen-title=Error1C&amp;name=cp_embed_3">完整代码</a>。</p>
+<p>在继续之前，我想声明上面3个例子并不代表所有类型的错误。这3种是比较常见的错误。</p>
+<p>好了，我们该怎么处理异常呢？我很惊讶在Vue的<a href="https://vuejs.org/v2/guide/">文档</a>中竟然没有介绍异常处理的章节。</p>
+<p><img src="./images/5种处理Vue异常的方法3.png" alt="Results for Error" /></p>
+<p>是的，文档中是有一个，但是介绍极其简短。</p>
+<blockquote>
+<p>如果在组件渲染时出现运行错误，错误将会被传递至全局 <code>Vue.config.errorHandler</code> 配置函数 (如果已设置)。利用这个钩子函数来配合错误跟踪服务是个不错的主意。比如 <a href="https://sentry.io/">Sentry</a>，它为 Vue 提供了<a href="https://sentry.io/for/vue/">官方集成</a>。</p>
+</blockquote>
+<p>P.S. 国产BUG监控服务<a href="https://www.fundebug.com">Fundebug</a>也为Vue提供了<a href="https://docs.fundebug.com/notifier/javascript/framework/vuejs.html">官方集成</a>。</p>
+<p>我个人建议官方应该有详细的介绍。总的来说，Vue中异常处理包含以下几个方面的技巧：</p>
+<ul>
+<li>errorHandler</li>
+<li>warnHandler</li>
+<li>renderError</li>
+<li>errorCaptured</li>
+<li>window.onerror (不仅仅针对Vue)</li>
+</ul>
+<h2 id="技巧1errorhandler">技巧1：errorHandler</h2>
+<p>我们要学习的第一个技巧是<a href="https://vuejs.org/v2/api/#errorHandler">errorHandler</a>。你也许知道，这是Vue中最广泛使用的异常处理方式。</p>
+<pre class="js"><code>Vue.config.errorHandler = function(err, vm, info) {
+
+}</code></pre>
+<p><code>err</code>指代error对象，<code>info</code>是一个Vue特有的字符串，<code>vm</code>指代Vue应用本身。记住在一个页面你可以有多个Vue应用。这个error handler作用到所有的应用。</p>
+<pre class="js"><code>Vue.config.errorHandler = function(err, vm, info) {
+  console.log(`Error: ${err.toString()}\nInfo: ${info}`);
+}</code></pre>
+<p>第一种错误不会触发errorHandler，它只是一个warning。</p>
+<p>第二种错误会抛出错误被errorHandler捕获：</p>
+<pre><code><code>Error: ReferenceError: x is not defined
+Info: render</code></pre>
+<p>第三种错误也会被捕获：</p>
+<pre><code><code>Error: ReferenceError: x is not defined
+Info: v-on handler</code></pre>
+<p>记住<code>info</code>里面的信息也是非常有用的。</p>
+<h2 id="技巧2-warnhandler">技巧2: warnHandler</h2>
+<p><a href="https://vuejs.org/v2/api/#warnHandler">warnHandler</a>用来捕获Vue warning。记住在生产环境是不起作用的。</p>
+<pre class="js"><code>Vue.config.warnHandler = function(msg, vm, trace) {
+
+}</code></pre>
+<p><code>msg</code>和<code>vm</code>都容易理解，<code>trace</code>代表了组件树。请看下面的例子：</p>
+<pre class="js"><code>Vue.config.warnHandler = function(msg, vm, trace) {
+  console.log(`Warn: ${msg}\nTrace: ${trace}`);
+}</code></pre>
+<p>第一个错误被<code>warnHandler</code>捕获：</p>
+<pre><code><code>Warn: Property or method &#39;name&#39; is not defined on the instance but referenced during render. Make sure that this property is reactive, either in the data option, or for class-based components, by initializing the property. See: https://vuejs.org/v2/guide/reactivity.html#Declaring-Reactive-Properties.
+Trace: 
+
+(found in &lt;Root&gt;)</code></pre>
+<p>你可以查看三个例子的实际运行情况:<br />
+第一个: <a href="https://codepen.io/cfjedimaster/embed/oOKxEa?height=265&amp;theme-id=0&amp;default-tab=js%2Cresult&amp;user=cfjedimaster&amp;slug-hash=oOKxEa&amp;pen-title=Error1A%20with%20Handler&amp;name=cp_embed_4">例子1</a><br />
+第二个: <a href="https://codepen.io/cfjedimaster/embed/PgMNao?height=265&amp;theme-id=0&amp;default-tab=js%2Cresult&amp;user=cfjedimaster&amp;slug-hash=PgMNao&amp;pen-title=Error1B%20with%20Handler&amp;name=cp_embed_5">例子2</a><br />
+第三个: <a href="https://codepen.io/cfjedimaster/embed/wZVGEK?height=265&amp;theme-id=0&amp;default-tab=js%2Cresult&amp;user=cfjedimaster&amp;slug-hash=wZVGEK&amp;pen-title=Error1C%20with%20Handler&amp;name=cp_embed_6">例子3</a></p>
+<h2 id="技巧3-rendererror">技巧3: renderError</h2>
+<p>和前面两个不同，这个技巧不适用于全局，和组件相关。并且只适用于非生产环境。</p>
+<p>下面是一个简单的例子：</p>
+<pre class="js"><code>const app = new Vue({
+  el:&#39;#app&#39;,
+  renderError (h, err) {
+    return h(&#39;pre&#39;, { style: { color: &#39;red&#39; }}, err.stack)
+  }
+})</code></pre>
+<p>第一个例子是没有效果的，因为只是一个warning。第二个例子就会在网页上显示具体的错误信息: <a href="https://codepen.io/cfjedimaster/embed/NmQrwa?height=265&amp;theme-id=0&amp;default-tab=result&amp;user=cfjedimaster&amp;slug-hash=NmQrwa&amp;pen-title=Error1B%20with%20renderError&amp;name=cp_embed_7">示例代码</a></p>
+<p>老实说，我没觉得这个比直接看控制台好多少。但是，如果你们的QA团队或则测试对浏览器控制台不熟悉的话，这个还是蛮有用的。</p>
+<h2 id="技巧4-errorcaptured">技巧4: errorCaptured</h2>
+<p><a href="https://cn.vuejs.org/v2/api/#errorCaptured">errorCaptured</a>是最后一个和Vue相关的技巧，这个技巧让我很迷惑，现在还是有点搞不明白。文档是这么介绍的：</p>
+<blockquote>
+<p>当捕获一个来自子孙组件的错误时被调用。此钩子会收到三个参数：错误对象、发生错误的组件实例以及一个包含错误来源信息的字符串。此钩子可以返回 <code>false</code> 以阻止该错误继续向上传播。</p>
+</blockquote>
+<p>基于我的一些分析，这个error Handler只能在父组件中处理子组件的错误。据我所知，我们没法直接在Vue的主实例(main instance)中使用它。</p>
+<p>为了测试，我构造了下面的例子：</p>
+<pre class="js"><code>Vue.component(&#39;cat&#39;, {
+  template:`
+&lt;div&gt;&lt;h1&gt;Cat: &lt;/h1&gt;
+  &lt;slot&gt;&lt;/slot&gt;
+&lt;/div&gt;`,
+  props:{
+    name:{
+      required:true,
+      type:String
+    }
+  },
+   errorCaptured(err,vm,info) {
+    console.log(`cat EC: ${err.toString()}\ninfo: ${info}`); 
+     return false;
+  }
+
+});
+
+Vue.component(&#39;kitten&#39;, {
+  template:&#39;&lt;div&gt;&lt;h1&gt;Kitten: {{ dontexist() }}&lt;/h1&gt;&lt;/div&gt;&#39;,
+  props:{
+    name:{
+      required:true,
+      type:String
+    }
+  }
+});</code></pre>
+<p>注意 <code>kitten</code> 组件的代码是有BUG的。</p>
+<pre><code><code>&lt;div id=&quot;app&quot; v-cloak&gt;
+  &lt;cat name=&quot;my cat&quot;&gt;
+      &lt;kitten&gt;&lt;/kitten&gt;
+  &lt;/cat&gt;
+&lt;/div&gt;</code></pre>
+<p>捕获的信息如下:</p>
+<pre><code><code>cat EC: TypeError: dontexist is not a function
+info: render</code></pre>
+<p>下面是运行<a href="https://codepen.io/cfjedimaster/embed/MRMbYJ?height=265&amp;theme-id=0&amp;default-tab=js%2Cresult&amp;user=cfjedimaster&amp;slug-hash=MRMbYJ&amp;pen-title=Error1&amp;name=cp_embed_8">实例</a>。</p>
+<p><code>errorCaptured</code>是个很有趣的特性，我想哪些构建组件库的开发者应该会用到吧。这个特性更像是一个面向组件开发者而不是一般开发者。</p>
+<h2 id="终极技巧-window.onerror">终极技巧: window.onerror</h2>
+<p><img src="./images/5种处理Vue异常的方法4.png" alt="Obligatory LOTR reference ring" /></p>
+<p>最后也是最重要的一个候选项 <a href="https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers/onerror">window.onerror</a>。它是一个全局的异常处理函数，可以抓取所有的JavaScript异常。</p>
+<pre class="js"><code>window.onerror = function(message, source, line, column, error) {
+
+}</code></pre>
+<p>我想函数的参数中只有<code>source</code>难以从字面上理解吧，它代表了当前的URL。</p>
+<p>接下来事情就比较好玩了。如果你定义了<code>onerror</code>，但是没有启用<code>Vue.config.errorHandler</code>，那么有很多异常都抓不到。Vue希望你要定义它，否则异常不会抛出去的。这到底有没有意义？我不是很懂，我觉得没必要，甚至有点奇怪。</p>
+<p>如果定义<code>errorHandler</code>的代码有BUG，那么运行起来也不会被<code>onerror</code>抓到。下面的例子中，如果将<code>oopsIDidItAgain()</code>解注释，你就会发现这个问题。只有第二个按钮没有和Vue绑定，所以报错无论如何都会被抓到。<a href="https://codepen.io/cfjedimaster/embed/WWVowN?height=265&amp;theme-id=0&amp;default-tab=js%2Cresult&amp;user=cfjedimaster&amp;slug-hash=WWVowN&amp;pen-title=Error1C%20with%20Handler%20(window)">运行实例</a></p>
+<h2 id="总结">总结</h2>
+<p>正如开篇提到，这是我第一次写关于这个主题的文章。我也希望从大家获得反馈，包括评论、建议以及修订意见。我希望大家可以分享自己如何使用的具体事例。</p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有阳光保险、荔枝FM、掌门1对1、核桃编程、微脉等众多品牌企业。欢迎免费试用！</p>
+<p><img src="./images/5种处理Vue异常的方法5.png" /></p>
+<h3 id="版权声明">版权声明</h3>
+<p>转载时请注明作者<a href="https://www.fundebug.com/">Fundebug</a>以及本文地址：</p>
+<p><a href="https://blog.fundebug.com/2019/06/17/handling-errors-in-vuejs" class="uri">https://blog.fundebug.com/2019/06/17/handling-errors-in-vuejs</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

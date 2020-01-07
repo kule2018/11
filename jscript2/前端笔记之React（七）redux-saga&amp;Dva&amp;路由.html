@@ -1,0 +1,716 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端笔记之React（七）redux-saga&amp;Dva&amp;路由' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端笔记之React（七）redux-saga&amp;Dva&amp;路由</center></div><div class='banquan'>原文出处:本文由博客园博主RopeHuo提供。<br/>
+原文连接:https://www.cnblogs.com/rope/p/10741748.html</div><br>
+    <h1><strong><span style="font-family: 宋体;">一、</span>redux-saga<span style="font-family: 宋体;">解决异步</span></strong></h1>
+<p><strong>redux-thunk <span style="font-family: 宋体;">和 </span><span style="font-family: Consolas;">redux-saga</span></strong></p>
+<p><span style="font-family: 宋体;">使用</span>redux<span style="font-family: 宋体;">它们是必选的，二选一，它们两个都可以很好的实现一些复杂情况下</span><span style="font-family: Consolas;">redux</span><span style="font-family: 宋体;">，本质都是为了解决异步</span><span style="font-family: Consolas;">action</span><span style="font-family: 宋体;">而生，使</span><span style="font-family: Consolas;">redux</span><span style="font-family: 宋体;">保持完整性，不至于太过混乱。</span><span style="font-family: Consolas;">redux-saga </span><span style="font-family: 宋体;">是一个用于管理</span><span style="font-family: Consolas;">Redux </span><span style="font-family: 宋体;">应用异步操作的中间件。 </span><span style="font-family: Consolas;">redux-saga </span><span style="font-family: 宋体;">通过创建 </span><span style="font-family: Consolas;">Sagas</span><span style="font-family: 宋体;">将所有的异步操作逻辑收集在一个地方集中处理，可以用来代替 </span><span style="font-family: Consolas;">redux-thunk </span><span style="font-family: 宋体;">中间件。而且提供了</span><span style="font-family: Consolas;">takeLatest/takeEvery</span><span style="font-family: 宋体;">可以对事件的仅关注最近事件、关注每一次、事件限频；</span><span style="font-family: Consolas;">reudx-saga</span><span style="font-family: 宋体;">更方便测试，等等太多了。</span></p>
+<div class="cnblogs_code">
+<pre><code>npm install --save redux-saga</pre>
+</div>
+<p><a href="https://redux-saga.js.org/"><span style="text-decoration: underline;">https://redux-saga.js.org/</span></a></p>
+<p><a href="https://redux-saga-in-chinese.js.org/"><span style="text-decoration: underline;">https://redux-saga-in-chinese.js.org/</span></a></p>
+<p>新手教学：</p>
+<p><a href="https://redux-saga-in-chinese.js.org/docs/introduction/BeginnerTutorial.html"><span style="text-decoration: underline;">https://redux-saga-in-chinese.js.org/docs/introduction/BeginnerTutorial.html</span></a></p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong>saga<span style="font-family: 宋体;">就是拦截</span><span style="font-family: Consolas;">action</span><span style="font-family: 宋体;">，进行异步请求，转发</span><span style="font-family: Consolas;">action</span><span style="font-family: 宋体;">，再去</span><span style="font-family: Consolas;">reducer</span><span style="font-family: 宋体;">进行处理请求</span></strong></span></p>
+<p><span style="font-family: 宋体;">在</span>app<span style="font-family: 宋体;">根目录创建</span><span style="font-family: Consolas;">sagas.js</span><span style="font-family: 宋体;">文件，和</span><span style="font-family: Consolas;">main.js</span><span style="font-family: 宋体;">同级</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('c1059e0f-87fe-49b7-80f6-01acc5d5ccce')"><img id="code_img_closed_c1059e0f-87fe-49b7-80f6-01acc5d5ccce" class="code_img_closed" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由0.png" alt="" /><img id="code_img_opened_c1059e0f-87fe-49b7-80f6-01acc5d5ccce" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('c1059e0f-87fe-49b7-80f6-01acc5d5ccce',event)" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由1.png" alt="" />
+<div id="cnblogs_code_open_c1059e0f-87fe-49b7-80f6-01acc5d5ccce" class="cnblogs_code_hide">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> ES6的新特性，叫做Generator，产生器</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> 是一种可以被调用的时候加next()打断点的特殊函数</span>
+export <span style="color: #0000ff;">function</span>*<span style="color: #000000;"> helloSaga() {
+    console.log(</span>'Hello Sagas!'<span style="color: #000000;">);
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>main.js<span style="font-family: 宋体;">：</span></p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import ReactDOM from </span>"react-dom"<span style="color: #000000;">;
+import { createStore, <span style="color: #ff0000;">applyMiddleware</span>} from </span>"redux"<span style="color: #000000;">;
+import {Provider} from </span>"react-redux"<span style="color: #000000;">;
+<span style="color: #ff0000;">import createSagaMiddleware from </span></span><span style="color: #ff0000;">'redux-saga'</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+
+import App from </span>"./containers/App.js"<span style="color: #000000;">;
+import reducer from </span>"./reducers"<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">引入sages文件</span>
+<span style="color: #ff0000;">import { helloSaga } from './sagas.js'</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;">创建saga中间件</span>
+<span style="color: #ff0000;">const sagaMiddleware =</span><span style="color: #000000;"><span style="color: #ff0000;"> createSagaMiddleware(helloSaga)</span>
+const store </span>=<span style="color: #000000;"> createStore(reducer, applyMiddleware(<span style="color: #ff0000;">sagaMiddleware</span>));
+</span><span style="color: #008000;">//</span><span style="color: #008000;">运行</span>
+<span style="color: #000000;"><span style="color: #ff0000;">sagaMiddleware.run(helloSaga)</span>
+
+ReactDOM.render(
+    </span>&lt;Provider store={store}&gt;
+        &lt;App&gt;&lt;/App&gt;
+    &lt;/Provider&gt;,
+    document.getElementById("app"<span style="color: #000000;">)
+);</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>components/counter/index.js<span style="font-family: 宋体;">写一个按钮：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">onClick</span><span style="color: #0000ff;">={()=</span><span style="color: #0000ff;">&gt;</span>{<span style="color: #ff0000;">this.props.counterActions.addServer()}</span>}&gt;加服务器数据<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><strong>actions/counterActions.js<span style="font-family: 宋体;">文件中发出一个</span><span style="font-family: Consolas;">action</span><span style="font-family: 宋体;">叫</span><span style="font-family: Consolas;">ADDSERVER</span><span style="font-family: 宋体;">，但异步还没发出：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>import { ADD, MINUS, <span style="color: #ff0000;">ADDSERVER</span> } from "../constants/COUNTER.js"<span style="color: #000000;">;
+export const add </span>= () =&gt; ({"type"<span style="color: #000000;"> : ADD});
+export const minus </span>= () =&gt; ({"type"<span style="color: #000000;"> : MINUS});
+<span style="color: #ff0000;">export const addServer </span></span><span style="color: #ff0000;">= () =&gt; ({"type" : ADDSERVER});</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>constants/COUNTER.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>export const <span style="color: #ff0000;">ADDSERVER</span> = "<span style="color: #ff0000;">ADDSERVER</span>" </pre>
+</div>
+<p><strong><span style="font-family: 宋体;">改变</span>saga.js<span style="font-family: 宋体;">：</span><span style="font-family: Consolas;">saga</span><span style="font-family: 宋体;">开始工作，它要开始劫持监听</span><span style="font-family: Consolas;">ADDSERVER</span></strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #ff0000;">import { delay } from 'redux-saga'
+import { put, takeEvery , all} from 'redux-saga/effects'</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;">worker Saga将执行异步的ADDSERVER任务</span>
+<span style="color: #0000ff;">function* addServerAsync(){
+    <span style="color: #ff0000;">alert("我是工作saga")</span>
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">watcher Saga</span>
+创建了一个 Saga watchAddServer。用了redux-<span style="color: #000000;">saga提供的辅助函数takeEvery，<br />用于监听所有的 ADDSERVER action，并在 action 被匹配时执行addServerAsync任务。
+</span><span style="color: #0000ff;">function* watchAddServer(){
+//takeEvery表示&ldquo;使用每一个&rdquo;，当有action的type是ADDSERVER时，就执addServerAsync函数
+   <span style="color: #ff0000;"> yield takeEvery('ADDSERVER', addServerAsync);</span>
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">向外暴露一个默认的rootSaga，有一个设置的监听队列</span>
+<span style="color: #0000ff;">export default function* rootSaga(){
+    //创建一系列的监听队列
+    <span style="color: #ff0000;">yield all([watchAddServer()])</span>
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">改变</span>main.js:</p>
+<div class="cnblogs_code">
+<pre><code>import React from "react"<span style="color: #000000;">;
+import ReactDOM from </span>"react-dom"<span style="color: #000000;">;
+import {createStore , applyMiddleware} from </span>"redux"<span style="color: #000000;">;
+import {Provider} from </span>"react-redux"<span style="color: #000000;">;
+import logger from </span>"redux-logger"<span style="color: #000000;">;
+import createSagaMiddleware from </span>'redux-saga'<span style="color: #000000;">;
+
+import reducer from </span>"./reducers/index.js"<span style="color: #000000;">;
+import App from </span>"./containers/App.js"<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">引入sagas文件</span>
+<span style="color: #ff0000;">import rootSaga from './sagas.js';
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建saga中间件</span>
+const sagaMiddleware =<span style="color: #000000;"> createSagaMiddleware();
+
+const store </span>=<span style="color: #000000;"> createStore(reducer, applyMiddleware(logger, sagaMiddleware));
+<span style="color: #ff0000;">sagaMiddleware.run(rootSaga);</span>
+
+ReactDOM.render(
+    </span>&lt;Provider store={store}&gt;
+        &lt;App&gt;&lt;/App&gt;
+    &lt;/Provider&gt;
+<span style="color: #000000;">    ,
+    document.getElementById(</span>"app"<span style="color: #000000;">)
+);</span></pre>
+</div>
+<p><img src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由2.png" alt="" /></p>
+<p>sagas.js <span style="font-family: 宋体;">请求服务器的具体语句，写在</span><span style="font-family: Consolas;">worker saga</span><span style="font-family: 宋体;">中。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function* addServerAsync() {
+    //拉取数据
+  <span style="color: #ff0000;">  const {result} = yield fetch("/api").then(data=&gt;data.json());</span>
+    //put就是发出（转发）action，action的type为了避讳，加_SYNC后缀
+    <span style="color: #ff0000;">yield put({ "type": "ADDSERVER_SYNC" , result});</span>
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>reducers/counter.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">default</span> (state = {"v" : 0} , action) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">if</span>(action.type == "ADD"<span style="color: #000000;">){
+        ...
+    }</span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(action.type == "MINUS"<span style="color: #000000;">){
+        ...
+    }</span><span style="color: #ff0000;">else if(action.type == "ADDSERVER_SYNC"){
+        return {
+            "v": state.v +</span><span style="color: #000000;"><span style="color: #ff0000;"> action.result
+        }
+    }</span> 
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> state;
+}</span></pre>
+</div>
+<p><img src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由3.png" alt="" /></p>
+<p><strong>saga<span style="font-family: 宋体;">就是拦截</span><span style="font-family: Consolas;">action</span><span style="font-family: 宋体;">，进行异步请求，转发</span><span style="font-family: Consolas;">action</span><span style="font-family: 宋体;">，再去</span><span style="font-family: Consolas;">reducer</span><span style="font-family: 宋体;">进行处理请求</span></strong></p>
+<p><strong>&nbsp;</strong>删除actions<span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">constants</span><span style="font-family: 宋体;">文件夹，</span><strong><span style="font-family: 宋体;">然后给</span>reducers/counter.js<span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">type</span><span style="font-family: 宋体;">都加上引号！</span></strong></p>
+<p><strong><span style="font-family: 宋体;"><img src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由4.png" alt="" /></span></strong></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">改</span>counter/index.js<span style="font-family: 宋体;">，不用</span><span style="font-family: Consolas;">bindActionCreators</span><span style="font-family: 宋体;">了，直接发出</span><span style="font-family: Consolas;">action</span><span style="font-family: 宋体;">。</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+import {connect} from </span>"react-redux"<span style="color: #000000;">;
+class Counter extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+    render() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> (
+            </span>&lt;div&gt;
+                &lt;h1&gt;Counter : {<span style="color: #0000ff;">this</span>.props.v}&lt;/h1&gt;
+                &lt;button onClick={()=&gt;{<span style="color: #ff0000;">this.props.add()</span>}}&gt;增加&lt;/button&gt;
+                &lt;button onClick={()=&gt;{<span style="color: #ff0000;">this.props.minus()</span>}}&gt;减少&lt;/button&gt;
+                 &lt;button onClick={()=&gt;{<span style="color: #ff0000;">this.props.addServer()</span>}}&gt;加服务器数据&lt;/button&gt;
+            &lt;/div&gt;
+<span style="color: #000000;">        );
+    }
+}
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> connect(
+    ({counter}) </span>=&gt;<span style="color: #000000;"> ({
+        v : counter.v
+    }),
+    <span style="color: #ff0000;">(dispatch) </span></span><span style="color: #ff0000;">=&gt; ({
+        add(){
+            dispatch({"type" : "ADD"});
+        },
+        minus() {
+            dispatch({"type": "MINUS" });
+        },
+        addServer() {
+            dispatch({"type": "ADDSERVER"</span><span style="color: #000000;"><span style="color: #ff0000;"> });
+        }
+    })</span>
+)(Counter);</span></pre>
+</div>
+<p><strong><span style="font-family: 宋体;">加入</span>pie<span style="font-family: 宋体;">图表组件</span></strong></p>
+<p>&nbsp;</p>
+<p><strong>components/pie/index.js<span style="font-family: 宋体;">组件，记得在</span><span style="font-family: Consolas;">App.js</span><span style="font-family: 宋体;">引入组件</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+import {connect} from </span>"react-redux"<span style="color: #000000;">;
+
+class Pie extends React.Component {
+    constructor(props) {
+        super(props);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">请求数据</span>
+<span style="color: #000000;"><span style="color: #ff0000;">         props.loadServerData();</span>
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">组件已经上树</span>
+<span style="color: #000000;">    componentDidMount(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">echarts是引入的百度的包提供的全局变量</span>
+        <span style="color: #0000ff;">this</span>.pic = echarts.init(<span style="color: #0000ff;">this</span><span style="color: #000000;">.refs.pic);
+    }
+    componentWillUpdate(nextProps){
+        </span><span style="color: #0000ff;">var</span> option =<span style="color: #000000;"> {
+            ...
+        };
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">设置option组件就能显示了！</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.pic.setOption(option);
+    }
+
+    render() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> (
+              </span>&lt;div&gt;
+                &lt;h1&gt;我是pie组件！&lt;/h1&gt;
+                &lt;div ref="pic" style={{"width":"300px" ,"height":"300px"}}&gt;&lt;/div&gt;
+                &lt;button onClick={()=&gt;{<span style="color: #ff0000;">this.props.toupiao('a')</span>}}&gt;清晰&lt;/button&gt;
+                &lt;button onClick={()=&gt;{<span style="color: #ff0000;">this.props.toupiao('b')</span>}}&gt;一般&lt;/button&gt;
+                &lt;button onClick={()=&gt;{<span style="color: #ff0000;">this.props.toupiao('c')</span>}}&gt;懵逼&lt;/button&gt;
+              &lt;/div&gt;
+<span style="color: #000000;">        );
+    }
+}
+
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> connect(
+    <span style="color: #0000ff;">({pie})</span></span><span style="color: #0000ff;">=&gt;({
+        <span style="color: #ff0000;">result: pie.result</span>
+    }),
+    (dispatch)=&gt;({
+        loadServerData(){
+          <span style="color: #ff0000;">  dispatch({ "type": "LOADSERVERDATA"})</span>
+        },
+        toupiao(zimu){
+            <span style="color: #ff0000;">dispatch({ "type": "TOUPIAO"</span></span><span style="color: #000000;"><span style="color: #0000ff;"><span style="color: #ff0000;"> , zimu})</span>
+        }
+    })</span>
+)(Pie);</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>reducers/pie.js<span style="font-family: 宋体;">，在</span><span style="font-family: Consolas;">reducers/index.js</span><span style="font-family: 宋体;">中引入</span></strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">export default (state = {"result" : []} , action) =&gt; {
+    </span><span style="color: #0000ff;">if</span> (action.type == "<span style="color: #ff0000;">LOADSERVERDATA_SYNC</span>"<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+            ...state ,
+            result : action.result
+        }
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> state;
+<span style="color: #0000ff;">}</span></span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>sagas.js</strong></p>
+<div class="cnblogs_code">
+<pre><code>import { delay } from 'redux-saga'<span style="color: #000000;">;
+import { put, takeEvery , all} from </span>'redux-saga/effects'<span style="color: #000000;">;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">worker Saga</span>
+<span style="color: #0000ff;">function</span>*<span style="color: #000000;"> addServer() {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">拉取数据，转发action</span>
+    const {result} = yield fetch("/api").then(data=&gt;<span style="color: #000000;">data.json());
+    yield put({ </span>"type": "ADDSERVER_SYNC"<span style="color: #000000;"> , result});
+}
+
+</span><span style="color: #0000ff;">function*</span><span style="color: #000000;"><span style="color: #0000ff;"> loadServerData() {</span>
+    const {result} </span>= yield fetch("<span style="color: #ff0000;">/api2</span>").then(data=&gt;<span style="color: #000000;">data.json());
+    yield put({ </span>"type": "<span style="color: #ff0000;">LOADSERVERDATA_SYNC</span>"<span style="color: #000000;">, result });
+<span style="color: #0000ff;">}
+
+</span></span><span style="color: #0000ff;">function*</span><span style="color: #000000;"><span style="color: #0000ff;"> toupiao</span>(<span style="color: #ff0000;">action</span>) <span style="color: #0000ff;">{</span>
+    const {result} </span>= yield fetch("<span style="color: #ff0000;">/toupiao/</span>" <span style="color: #ff0000;">+ action.zimu</span>).then(data=&gt;<span style="color: #000000;">data.json());
+    yield put({ </span>"type": "<span style="color: #ff0000;">LOADSERVERDATA_SYNC</span>"<span style="color: #000000;">, result });
+<span style="color: #0000ff;">}
+
+</span></span><span style="color: #008000;">//</span><span style="color: #008000;"> watcher Saga</span>
+<span style="color: #0000ff;">function</span>*<span style="color: #000000;"> watchAddServer() {
+    yield takeEvery(</span>'ADDSERVER'<span style="color: #000000;">, addServer);
+}
+
+</span><span style="color: #0000ff;">function*</span><span style="color: #000000;"><span style="color: #0000ff;"> watchLoadServerData() {</span>
+  <span style="color: #ff0000;">  yield takeEvery(</span></span><span style="color: #ff0000;">'LOADSERVERDATA'</span><span style="color: #000000;"><span style="color: #ff0000;">, loadServerData);</span>
+<span style="color: #0000ff;">}
+
+</span></span><span style="color: #0000ff;">function*</span><span style="color: #000000;"><span style="color: #0000ff;"> watchToupiao() {</span>
+    <span style="color: #ff0000;">yield takeEvery(</span></span><span style="color: #ff0000;">'TOUPIAO'</span><span style="color: #000000;"><span style="color: #ff0000;">, toupiao);</span>
+<span style="color: #0000ff;">}
+
+</span></span><span style="color: #008000;">//</span><span style="color: #008000;">向外暴露一个默认的rootSaga，有一个all设置的监听队列</span>
+<span style="color: #0000ff;">export default function* rootSaga(){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">创建一系列的监听队列</span>
+<span style="color: #000000;"><span style="color: #ff0000;">    yield all([watchAddServer(), watchLoadServerData() , watchToupiao()])</span>
+<span style="color: #0000ff;">}</span></span></pre>
+</div>
+<hr />
+<h1>二、<strong>Dva<span style="font-family: 宋体;">简介和配置</span></strong></h1>
+<h2><strong>2.1 Dva<span style="font-family: 宋体;">简介</span></strong></h2>
+<p>文档：<a href="https://github.com/dvajs/dva/blob/master/README_zh-CN.md"><span style="text-decoration: underline;">https://github.com/dvajs/dva/blob/master/README_zh-CN.md</span></a></p>
+<p>&nbsp;</p>
+<p>React<span style="font-family: 宋体;">繁文缛节很多，为什么？</span></p>
+<p><span style="font-family: 宋体;">因为</span>React<span style="font-family: 宋体;">将注意力放到了组件开发上，可以用</span><span style="font-family: Consolas;">class App extends React.Component</span><span style="font-family: 宋体;">类，它就是一个组件了，可以被任意插拔，</span><span style="font-family: Consolas;">&lt;App&gt;&lt;/App&gt;</span><span style="font-family: 宋体;">。</span></p>
+<p><span style="font-family: 宋体;">可被预测状态容器</span>Redux<span style="font-family: 宋体;">感觉在</span><span style="font-family: Consolas;">React</span><span style="font-family: 宋体;">&ldquo;之外&rdquo;，不&ldquo;浑然一体&rdquo;。</span></p>
+<p><span style="font-family: 宋体;">比如要配置</span>Redux<span style="font-family: 宋体;">：</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('84c0ba31-862b-4b54-859f-e480dfe48a11')"><img id="code_img_closed_84c0ba31-862b-4b54-859f-e480dfe48a11" class="code_img_closed" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由0.png" alt="" /><img id="code_img_opened_84c0ba31-862b-4b54-859f-e480dfe48a11" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('84c0ba31-862b-4b54-859f-e480dfe48a11',event)" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由1.png" alt="" />
+<div id="cnblogs_code_open_84c0ba31-862b-4b54-859f-e480dfe48a11" class="cnblogs_code_hide">
+<pre><code><span style="color: #000000;">&hellip;&hellip;
+</span><span style="color: #0000ff;">var</span> {createStore} from "redux"<span style="color: #000000;">;
+&hellip;&hellip;
+const store </span>=<span style="color: #000000;"> createStore(reducer);
+&hellip;&hellip;
+</span>&lt;Provider store={store}&gt;
+    &lt;App&gt;&lt;/App&gt;
+&lt;/Provider&gt;
+<span style="color: #000000;">组件中：
+connect()(App);</span></pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">如果要使用异步，更感觉是在</span>React<span style="font-family: 宋体;">&ldquo;之外&rdquo;，不&ldquo;浑然一体&rdquo;。</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('103c7023-8571-4a47-9349-5c099e74b02a')"><img id="code_img_closed_103c7023-8571-4a47-9349-5c099e74b02a" class="code_img_closed" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由0.png" alt="" /><img id="code_img_opened_103c7023-8571-4a47-9349-5c099e74b02a" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('103c7023-8571-4a47-9349-5c099e74b02a',event)" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由1.png" alt="" />
+<div id="cnblogs_code_open_103c7023-8571-4a47-9349-5c099e74b02a" class="cnblogs_code_hide">
+<pre><code><span style="color: #000000;">&hellip;&hellip;
+</span><span style="color: #0000ff;">var</span> {createStore} from "redux"<span style="color: #000000;">;
+&hellip;&hellip;
+const store </span>=<span style="color: #000000;"> createStore(reducer , applyMiddleware(saga));
+run(rootSaga);
+&hellip;&hellip;
+</span>&lt;Provider store={store}&gt;
+    &lt;App&gt;&lt;/App&gt;
+&lt;/Provider&gt;</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">这是因为</span>React<span style="font-family: 宋体;">将注意力放到了组件开发上。</span></p>
+<p>Vue<span style="font-family: 宋体;">框架要比</span><span style="font-family: Consolas;">React</span><span style="font-family: 宋体;">好很多，浑然一体方面简直无敌。</span></p>
+<p>Vue<span style="font-family: 宋体;">天生带有</span><span style="font-family: Consolas;">Vuex</span><span style="font-family: 宋体;">，天生就可以有可被预测状态容器，有异步解决的方案。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">阿里巴巴的云谦，发明了</span>dvajs<span style="font-family: 宋体;">这个库，&ldquo;集大成&rdquo;者，本质的目的就是让程序&ldquo;浑然一体&rdquo;，一方面是方便起步，更大的发明利于团队组件开发，不用频繁在组件文件</span><span style="font-family: Consolas;">actions</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">saga</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">reducers</span><span style="font-family: 宋体;">文件之间进行切换了。</span></p>
+<hr />
+<h2><strong>2.2 Hello World</strong></h2>
+<div class="cnblogs_code">
+<pre><code>npm install --save dva</pre>
+</div>
+<p>dva<span style="font-family: 宋体;">中集成了</span><span style="font-family: Consolas;">redux</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">react-redux</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">redux-saga</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">react-router-redux</span><span style="font-family: 宋体;">，所以我们的项目装</span><span style="font-family: Consolas;">dva</span><span style="font-family: 宋体;">之前，要去掉这</span><span style="font-family: Consolas;">4</span><span style="font-family: 宋体;">个依赖。</span></p>
+<p>&nbsp;</p>
+<p><strong><span style="font-family: 宋体;">注意：现在的</span>package.js<span style="font-family: 宋体;">文件没有以上这些依赖：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  </span>"name": "react_study"<span style="color: #000000;">,
+  </span>"version": "1.0.0"<span style="color: #000000;">,
+  </span>"description": ""<span style="color: #000000;">,
+  </span>"main": "index.js"<span style="color: #000000;">,
+  </span>"scripts"<span style="color: #000000;">: {
+    </span>"test": "echo \"Error: no test specified\" &amp;&amp; exit 1"<span style="color: #000000;">
+  },
+  </span>"author": ""<span style="color: #000000;">,
+  </span>"license": "ISC"<span style="color: #000000;">,
+  </span>"devDependencies"<span style="color: #000000;">: {
+    </span>"babel-core": "^6.26.3"<span style="color: #000000;">,
+    </span>"babel-loader": "^7.1.5"<span style="color: #000000;">,
+    </span>"babel-plugin-transform-object-rest-spread": "^6.26.0"<span style="color: #000000;">,
+    </span>"babel-plugin-transform-runtime": "^6.23.0"<span style="color: #000000;">,
+    </span>"babel-preset-env": "^1.7.0"<span style="color: #000000;">,
+    </span>"babel-preset-react": "^6.24.1"<span style="color: #000000;">
+  },
+  </span>"dependencies"<span style="color: #000000;">: {
+    </span><span style="color: #ff0000;">"dva": "^2.4.0",
+    </span>"express": "^4.16.3"<span style="color: #000000;">,
+    </span>"react": "^16.4.2"<span style="color: #000000;">,
+    </span>"react-dom": "^16.4.2"<span style="color: #000000;">,
+    </span>"redux-logger": "^3.0.6"<span style="color: #000000;">
+  }
+}</span></pre>
+</div>
+<p><span style="font-family: 宋体;">后端</span>app.js<span style="font-family: 宋体;">提供静态化路由：</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('bf270e81-7714-4908-9488-3b54bba9f4cb')"><img id="code_img_closed_bf270e81-7714-4908-9488-3b54bba9f4cb" class="code_img_closed" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由0.png" alt="" /><img id="code_img_opened_bf270e81-7714-4908-9488-3b54bba9f4cb" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('bf270e81-7714-4908-9488-3b54bba9f4cb',event)" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由1.png" alt="" />
+<div id="cnblogs_code_open_bf270e81-7714-4908-9488-3b54bba9f4cb" class="cnblogs_code_hide">
+<pre><code><span style="color: #0000ff;">var</span> express = require("express"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> app =<span style="color: #000000;"> express();
+app.use(express.static(</span>"www"<span style="color: #000000;">))
+
+app.get(</span>"/api",(req,res)=&gt;<span style="color: #000000;">{
+    res.json({</span>"result":10<span style="color: #000000;">})
+})
+
+app.listen(</span>3000);</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p>main.js</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('41386ba2-8cc3-4dd1-8af5-a7cc3b39dfa5')"><img id="code_img_closed_41386ba2-8cc3-4dd1-8af5-a7cc3b39dfa5" class="code_img_closed" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由0.png" alt="" /><img id="code_img_opened_41386ba2-8cc3-4dd1-8af5-a7cc3b39dfa5" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('41386ba2-8cc3-4dd1-8af5-a7cc3b39dfa5',event)" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由1.png" alt="" />
+<div id="cnblogs_code_open_41386ba2-8cc3-4dd1-8af5-a7cc3b39dfa5" class="cnblogs_code_hide">
+<pre><code>import dva from 'dva'<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;">引入路由</span>
+import router from './router.js'<span style="color: #000000;">;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建app应用</span>
+const app =<span style="color: #000000;"> dva();
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">注册视图，创建路由</span>
+<span style="color: #000000;">app.router(router)
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">启动应用 上树运行</span>
+app.start('#app');</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p>router.js<span style="font-family: 宋体;">是路由，单页面应用的</span><span style="font-family: Consolas;">hash</span><span style="font-family: 宋体;">路由，</span><span style="font-family: Consolas;">router.js</span><span style="font-family: 宋体;">文件暂时不写任何路由功能，只返回一个标签。</span></p>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span> ()=&gt;<span style="color: #000000;">{
+    </span><span style="color: #0000ff;">return</span> &lt;h1&gt;我是dva&lt;/h1&gt;
+}</pre>
+</div>
+<p><img src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由13.png" alt="" /></p>
+<hr />
+<h2><strong>2.3<span style="font-family: 宋体;">使用组件</span></strong></h2>
+<p>组件没有任何的简化，还是原来的写法：</p>
+<p>components/App.js</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('798fca3d-7ab4-4fcb-9e71-8924e6bf5a48')"><img id="code_img_closed_798fca3d-7ab4-4fcb-9e71-8924e6bf5a48" class="code_img_closed" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由0.png" alt="" /><img id="code_img_opened_798fca3d-7ab4-4fcb-9e71-8924e6bf5a48" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('798fca3d-7ab4-4fcb-9e71-8924e6bf5a48',event)" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由1.png" alt="" />
+<div id="cnblogs_code_open_798fca3d-7ab4-4fcb-9e71-8924e6bf5a48" class="cnblogs_code_hide">
+<pre><code>import React from 'react'<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class App extends React.Component {
+    constructor(){
+        super()
+    }
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div&gt;
+            &lt;h1&gt;我是App组件&lt;/h1&gt;
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">在</span>router.js<span style="font-family: 宋体;">（路由文件）引入</span><span style="font-family: Consolas;">App</span><span style="font-family: 宋体;">组件，表示一上来就挂载</span><span style="font-family: Consolas;">App</span><span style="font-family: 宋体;">组件：</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('e15c4090-a0d6-4c76-8664-7b53d57a3e08')"><img id="code_img_closed_e15c4090-a0d6-4c76-8664-7b53d57a3e08" class="code_img_closed" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由0.png" alt="" /><img id="code_img_opened_e15c4090-a0d6-4c76-8664-7b53d57a3e08" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('e15c4090-a0d6-4c76-8664-7b53d57a3e08',event)" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由1.png" alt="" />
+<div id="cnblogs_code_open_e15c4090-a0d6-4c76-8664-7b53d57a3e08" class="cnblogs_code_hide">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+import App from </span>'./components/App'<span style="color: #000000;">;
+export </span><span style="color: #0000ff;">default</span> ()=&gt;<span style="color: #000000;">{
+    </span><span style="color: #0000ff;">return</span> &lt;App&gt;&lt;/App&gt;
+}</pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p><img src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由18.png" alt="" /></p>
+<hr />
+<h2><strong>2.4<span style="font-family: 宋体;">使用</span><span style="font-family: 华文中宋;">redux</span><span style="font-family: 宋体;">，创建</span><span style="font-family: 华文中宋;">model</span><span style="font-family: 宋体;">，组件要问天要数据</span></strong></h2>
+<p><span style="font-family: 宋体;">这里非常大的改变，照着</span>Vuex<span style="font-family: 宋体;">改的</span></p>
+<p><span style="font-family: 宋体;">注意：不是创建</span>reducers<span style="font-family: 宋体;">文件夹，而是创建</span><span style="font-family: Consolas;">models</span><span style="font-family: 宋体;">文件夹，创建</span><span style="font-family: Consolas;">counter.js</span></p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('d81516c0-8f3d-4acb-9528-6bb0a800d1f3')"><img id="code_img_closed_d81516c0-8f3d-4acb-9528-6bb0a800d1f3" class="code_img_closed" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由0.png" alt="" /><img id="code_img_opened_d81516c0-8f3d-4acb-9528-6bb0a800d1f3" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('d81516c0-8f3d-4acb-9528-6bb0a800d1f3',event)" src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由1.png" alt="" />
+<div id="cnblogs_code_open_d81516c0-8f3d-4acb-9528-6bb0a800d1f3" class="cnblogs_code_hide">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    </span>"namespace":"counter", <span style="color: #008000;">//</span><span style="color: #008000;">命名空间</span>
+    "state"<span style="color: #000000;">:{
+        a : </span>100<span style="color: #000000;">
+    }
+}</span></pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">内部，</span>dva<span style="font-family: 宋体;">会自动将</span><span style="font-family: Consolas;">counter</span><span style="font-family: 宋体;">作为一个</span><span style="font-family: Consolas;">reducer</span><span style="font-family: 宋体;">的名字，进行</span><span style="font-family: Consolas;">combineReducers</span></strong></span></p>
+<p>&nbsp;</p>
+<p>main.js</p>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+import dva from </span>'dva'<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 引入路由</span>
+import router from './router.js'<span style="color: #000000;">;
+<span style="color: #ff0000;">import counter from </span></span><span style="color: #ff0000;">'./model/counter.js';
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建app</span>
+const app =<span style="color: #000000;"> dva();
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建路由</span>
+<span style="color: #000000;">app.router(router)
+</span><span style="color: #ff0000;">//创建并使用全局数据
+app.model(counter)
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">上树运行</span>
+app.start('#app');</pre>
+</div>
+<p><span style="font-family: 宋体;">组件没有任何变化，只不过</span>connect<span style="font-family: 宋体;">要从</span><span style="font-family: Consolas;">dva</span><span style="font-family: 宋体;">中引包。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由21.png" alt="" /></p>
+<hr />
+<h2><strong>2.5<span style="font-family: 宋体;">改变天上数据</span></strong></h2>
+<p>dispatch()<span style="font-family: 宋体;">没有改变</span></p>
+<p>model<span style="font-family: 宋体;">文件</span><span style="font-family: Consolas;">counter.js</span><span style="font-family: 宋体;">创建一个属性叫</span><span style="font-family: Consolas;">reducers</span><span style="font-family: 宋体;">，里面放一个</span><span style="font-family: Consolas;">add</span><span style="font-family: 宋体;">函数，依然是纯函数，不能改变</span><span style="font-family: Consolas;">state</span><span style="font-family: 宋体;">，只能返回新的</span><span style="font-family: Consolas;">state</span><span style="font-family: 宋体;">。</span></p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    </span>"namespace" : "counter"<span style="color: #000000;">,
+    </span>"state"<span style="color: #000000;"> : {
+        </span>"a" : 100<span style="color: #000000;">
+    },
+    </span><span style="color: #ff0000;">"reducers" : {
+        add(state,action){
+            return {
+                "a" : state.a +</span><span style="color: #000000;"><span style="color: #ff0000;"> action.n
+            }
+        }
+    }</span>
+}</span></pre>
+</div>
+<p><img src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由22.png" alt="" /></p>
+<hr />
+<h2><strong>2.6<span style="font-family: 宋体;">异步</span></strong></h2>
+<p><span style="font-family: 宋体;">改变</span>model<span style="font-family: 宋体;">中</span><span style="font-family: Consolas;">counter.js</span><span style="font-family: 宋体;">文件，刚才已经有了</span><span style="font-family: Consolas;">reducers</span><span style="font-family: 宋体;">函数，那里是写同步的函数。</span></p>
+<p><span style="font-family: 宋体;">现在要创建一个</span>effects<span style="font-family: 宋体;">函数，这里写异步的函数，很像</span><span style="font-family: Consolas;">vuex</span><span style="font-family: 宋体;">！！</span></p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    </span>"namespace" : "counter"<span style="color: #000000;"> , 
+    </span>"state"<span style="color: #000000;"> : {
+        </span>"a" : 100<span style="color: #000000;">
+    },
+    </span>"reducers"<span style="color: #000000;"> : {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">这里写同步函数</span>
+<span style="color: #000000;">        add(state , action){
+            </span><span style="color: #0000ff;">return</span> { "a": state.a +<span style="color: #000000;"> action.n}
+        }
+    },
+    </span><span style="color: #ff0000;">"effects" : {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">这里写异步函数</span>
+      <span style="color: #0000ff;">  *</span><span style="color: #000000;"><span style="color: #0000ff;">addServer(action , {put}){</span>
+           <span style="color: #ff0000;"> const {result} </span></span><span style="color: #ff0000;">= yield fetch("/api").then(data=&gt;data.json());
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">异步终点一定是某个同步函数，所以put重新触发某个reducers中的同步函数</span><span style="color: #008000;">
+//</span><span style="color: #008000;">带着载荷参数，去改变state的数据</span>
+            <span style="color: #ff0000;">yield put({"type" : "add" , "n"</span><span style="color: #000000;"><span style="color: #ff0000;"> : result})</span>
+        <span style="color: #0000ff;">}</span>
+   <span style="color: #ff0000;"> }</span>
+}</span></pre>
+</div>
+<p>组件的按钮没有变化：</p>
+<p>&nbsp;<img src="./images/前端笔记之React（七）redux-saga&amp;Dva&amp;路由23.png" alt="" /></p>
+<hr />
+<h2>&nbsp;</h2>
+<h2><strong>2.7<span style="font-family: 宋体;">使用</span><span style="font-family: 华文中宋;">logger</span><span style="font-family: 宋体;">插件&nbsp;</span></strong></h2>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+import dva from </span>'dva'<span style="color: #000000;">;
+<span style="color: #ff0000;">import logger from </span></span><span style="color: #ff0000;">'redux-logger';
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">引入路由</span>
+import router from './router.js'<span style="color: #000000;">;
+import counter from </span>'./models/counter.js'<span style="color: #000000;">;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建app</span>
+<span style="color: #ff0000;">const app = dva({ onAction: logger});
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建路由</span>
+<span style="color: #000000;">app.router(router);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建并使用模型</span>
+<span style="color: #000000;">app.model(counter);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">上树运行</span>
+app.start("#app");</pre>
+</div>
+<hr />
+<h1>三、<strong>React</strong><strong>路由</strong></h1>
+<h2><strong>3.1<span style="font-family: 宋体;">概述</span></strong></h2>
+<p>每个公司用的路由都不一样，这里不一样是很不一样。</p>
+<p>dva<span style="font-family: 宋体;">中依赖</span><span style="font-family: Consolas;">react-router-redux</span><span style="font-family: 宋体;">，没有改变任何语法</span></p>
+<p><span style="font-family: 宋体;">但是</span>react-router-redux<span style="font-family: 宋体;">出了</span><span style="font-family: Consolas;">5</span><span style="font-family: 宋体;">代版本，它的</span><span style="font-family: Consolas;">2</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">4</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">5</span><span style="font-family: 宋体;">都特别不一样。</span></p>
+<p>参考文章：</p>
+<p>2<span style="font-family: 宋体;">代：</span><span style="text-decoration: underline;"><a href="http://www.ruanyifeng.com/blog/2016/05/react_router.html?utm_source=tool.lu">http://www.ruanyifeng.com/blog/2016/05/react_router.html?utm_source=tool.lu</a></span></p>
+<p>5<span style="font-family: 宋体;">代：</span><a href="https://blog.csdn.net/isaisai/article/details/78086913"><span style="text-decoration: underline;">https://blog.csdn.net/isaisai/article/details/78086913</span></a></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">还可以不用官方这个路由，用</span>UI-Router</p>
+<p>更可以不用单页面路由，用服务器后端的路由</p>
+<p><span style="font-family: 宋体;">我们介绍的是单页面的，</span>dva2.3<span style="font-family: 宋体;">中的</span><span style="font-family: Consolas;">react-router-redux 5</span><span style="font-family: 宋体;">代的路由写法。</span></p>
+<hr />
+<h2><strong>3.2<span style="font-family: 宋体;">基本使用</span></strong></h2>
+<p>react-router-redux<span style="font-family: 宋体;">是单层级路由，路由的描述，没有任何嵌套</span></p>
+<p><span style="color: #ff0000;"><strong>直接路由到最内层组件。</strong></span></p>
+<p>main.js</p>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+import dva from </span>'dva'<span style="color: #000000;">;
+import logger from </span>'redux-logger'<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 引入路由</span>
+<span style="color: #ff0000;">import router from './router.js';
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建app</span>
+const app =<span style="color: #000000;"> dva({ onAction: logger});
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建路由</span>
+<span style="color: #ff0000;">app.router(router)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">创建并使用数据模型</span>
+<span style="color: #000000;">app.model(counter)
+</span><span style="color: #008000;">//</span><span style="color: #008000;">上树运行</span>
+app.start('#app');</pre>
+</div>
+<p>&nbsp;</p>
+<p>app/router.js<span style="font-family: 宋体;">路由文件：</span></p>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+<span style="color: #ff0000;">import { Router, Switch, Route } from </span></span><span style="color: #ff0000;">'dva/router';
+
+import Index from "./components/index.js";
+import CarList from "./components/carlist/index.js";
+import UserList from "./components/userlist/index.js"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+ 
+export </span><span style="color: #0000ff;">default</span> ({ history, app }) =&gt;<span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span>  &lt;Router history={history}&gt;
+        &lt;Switch&gt;
+        　　 <span style="color: #ff0000;">&lt;Route exact path="/" component={Index} /&gt;
+            &lt;Route exact path="/carlist" component={CarList} /&gt;
+            &lt;Route exact path="/userlist" component={UserList} /&gt;</span>
+        &lt;/Switch&gt;
+    &lt;/Router&gt;
+}</pre>
+</div>
+<p><span style="color: #ff0000;"><strong>这个路由是一个被动的写法：子组件声明我被谁嵌套，而不是父组件声明我嵌套谁。</strong></span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">最内层组件，比如</span>CarList<span style="font-family: 宋体;">组件，写法：</span></p>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+import {connect} from </span>"dva"<span style="color: #000000;">;
+<span style="color: #ff0000;">import App from </span></span><span style="color: #ff0000;">"../../containers/App.js"</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> class CarList extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+    render() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> (
+           </span><span style="color: #ff0000;">&lt;App menu="汽车"&gt;</span>
+                &lt;div&gt;
+                    &lt;h1&gt;我是Carlist组件&lt;/h1&gt;
+                &lt;/div&gt;
+         <span style="color: #ff0000;">  &lt;/App&gt;</span>
+<span style="color: #000000;">        );
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>App.js</p>
+<div class="cnblogs_code">
+<pre><code>import React from 'react'<span style="color: #000000;">;
+import { connect } from </span>'dva'<span style="color: #000000;">;
+import { Layout, Menu, Breadcrumb, Icon } from </span>'antd'<span style="color: #000000;">;
+import { push } from </span>'react-router-redux'<span style="color: #000000;">;
+const { SubMenu } </span>=<span style="color: #000000;"> Menu;
+const { Header, Content, Sider } </span>=<span style="color: #000000;"> Layout;
+
+
+class App extends React.Component {
+    constructor() {
+        super()
+    }
+    render() {
+        </span><span style="color: #0000ff;">return</span> &lt;div&gt;
+            &lt;Layout&gt;
+                &lt;Header className="header"&gt;
+                    &lt;div className="logo" /&gt;
+                    &lt;<span style="color: #000000;">Menu
+                        theme</span>="dark"<span style="color: #000000;">
+                        mode</span>="horizontal"<span style="color: #000000;">
+                        defaultSelectedKeys</span>={<span style="color: #ff0000;">[this</span><span style="color: #000000;"><span style="color: #ff0000;">.props.menu]</span>}
+                        style</span>={{ lineHeight: '64px'<span style="color: #000000;"> }}
+                       <span style="color: #ff0000;"> onClick</span></span><span style="color: #ff0000;">={(e) =&gt; { this.props.dispatch(push(e.item.props.url))}}
+                    </span>&gt;
+                    
+                        <span style="color: #ff0000;">&lt;Menu.Item key="首页" url="/"&gt;首页&lt;/Menu.Item&gt;
+                        &lt;Menu.Item key="汽车" url="/carlist"&gt;汽车&lt;/Menu.Item&gt;
+                        &lt;Menu.Item key="用户" url="/userlist"&gt;用户&lt;/Menu.Item&gt;</span>
+                    &lt;/Menu&gt;
+                &lt;/Header&gt;
+                &lt;Layout&gt;
+                    &lt;Layout style={{ padding: '0 24px 24px' }}&gt;
+                        &lt;Breadcrumb style={{ margin: '16px 0' }}&gt;
+                            &lt;Breadcrumb.Item&gt;Home&lt;/Breadcrumb.Item&gt;
+                            &lt;Breadcrumb.Item&gt;List&lt;/Breadcrumb.Item&gt;
+                            &lt;Breadcrumb.Item&gt;App&lt;/Breadcrumb.Item&gt;
+                        &lt;/Breadcrumb&gt;
+                        &lt;Content style={{ background: '#fff', padding: 24, margin: 0, minHeight: 280 }}&gt;<span style="color: #ff0000;">
+                            {this.props.children}
+                        </span>&lt;/Content&gt;
+                    &lt;/Layout&gt;
+                &lt;/Layout&gt;
+            &lt;/Layout&gt;,
+        &lt;/div&gt;
+<span style="color: #000000;">    }
+}
+
+export </span><span style="color: #0000ff;">default</span> connect()(App);</pre>
+</div>
+<p>路由跳转：</p>
+<div class="cnblogs_code">
+<pre><code>onClick={(e)=&gt;{<span style="color: #0000ff;">this</span>.props.dispatch(push(e.item.props.url))}}</pre>
+</div>
+<hr />
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

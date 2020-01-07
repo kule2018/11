@@ -1,0 +1,74 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修redux-thunk 源码学习记录' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>redux-thunk 源码学习记录</center></div><div class='banquan'>原文出处:本文由博客园博主Shapeying提供。<br/>
+原文连接:https://www.cnblogs.com/shapeY/p/10768380.html</div><br>
+    <p>redux触发store更新，使用的dispatch(action),在关于createStore的源码解读中可以看到，store.dispatch限制了action必须是一个纯对象。是为了保持reducer的纯净性</p>
+<blockquote>
+<p>只要传入参数相同，返回计算得到的下一个 state 就一定相同。没有特殊情况、没有副作用，没有 API 请求、没有变量修改，单纯执行计算。</p>
+</blockquote>
+<p>redux-thunk是redux推荐的一个异步处理middleware，它可以在触发<code>store.dispatch</code>之前完成reducer中不能搞定的副作用，比如异步操作。</p>
+<h2 id="源码实现">源码实现</h2>
+<pre><code><code>function createThunkMiddleware(extraArgument) {
+  return ({ dispatch, getState }) =&gt; next =&gt; action =&gt; {
+    // 如果ation是函数，这调用这个函数，并且传入dispatch和getState
+    if (typeof action === &#39;function&#39;) {
+      // 此处的dispatch是在applyMiddleware中改写过的
+      return action(dispatch, getState, extraArgument);
+    }
+
+    // 如果是对象，这调用下一个middleware
+    return next(action);
+  };
+}
+
+const thunk = createThunkMiddleware(); // 返回一个middleware
+// 提供原函数，可以传递额外的参数
+thunk.withExtraArgument = createThunkMiddleware;
+
+export default thunk;</code></pre>
+<p>redux-thunk这个middleware可以<strong>接受函数类型的action</strong>，在action函数中进行各种自定义的操作（延时，接口请求等），然后再使用传入的<code>dispatch</code>触发实际的action动作（纯对象）。这样就不会影响reducer的纯洁性。</p>
+<h2 id="实例">实例</h2>
+<p>异步的action</p>
+<pre><code><code>export function logTime (time) {
+    return {
+        type: LOG_TIME,
+        time
+    }
+}
+
+export function delayLogTime () {
+    let now = new Date().toString();
+    return (dispatch) =&gt; { //可接受dispatch，getState
+        // 进行副作用操作
+        setTimeout( ()=&gt; {
+            // 实际触发ation
+            dispatch(logTime(`${now} --- ${new Date().toString()}`))
+        },1000)
+    }
+}</code></pre>
+<p>使用<code>redux-thunk</code></p>
+<pre><code><code>import thunk from &#39;redux-thunk&#39;
+
+let store = createStore(reducer,applyMiddleware(thunk))</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

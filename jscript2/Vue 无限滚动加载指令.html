@@ -1,0 +1,128 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Vue 无限滚动加载指令' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Vue 无限滚动加载指令</center></div><div class='banquan'>原文出处:本文由博客园博主破壳而出的蝌蚪提供。<br/>
+原文连接:https://www.cnblogs.com/whnba/p/10775118.html</div><br>
+    <p>也不存在什么加载咯， 就是一个判断滚动条是否到达浏览器底部了。 如果到了就触发事件，米到就不处理。</p>
+<p>计算公式提简单的&nbsp;&nbsp; 底部等于（0） =&nbsp; 滚动条高度 - 滚动条顶部距离 - 可视高度。&nbsp; 反正结果就是0。</p>
+<p>&nbsp;</p>
+<h3>一、获取滚动条位置</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Scroll {
+    static get top() {
+        </span><span style="color: #0000ff;">return</span> Math.max(document.documentElement.scrollTop ||<span style="color: #000000;"> document.body.scrollTop);
+    }
+    static get clientHeight() {
+        </span><span style="color: #0000ff;">return</span> Math.max(document.documentElement.clientHeight ||<span style="color: #000000;"> document.body.clientHeight);
+    }
+    static get clientWidth() {
+        </span><span style="color: #0000ff;">return</span> Math.max(document.documentElement.clientWidth ||<span style="color: #000000;"> document.body.clientWidth);
+    }
+    static get height() {
+        </span><span style="color: #0000ff;">return</span> Math.max(document.documentElement.scrollHeight ||<span style="color: #000000;"> document.body.scrollHeight);
+    }
+    static get width() {
+        </span><span style="color: #0000ff;">return</span> Math.max(document.documentElement.scrollWidth ||<span style="color: #000000;"> document.body.scrollWidth);
+    }
+    static get bottom() {
+        </span><span style="color: #0000ff;">return</span> Scroll.height - Scroll.clientHeight -<span style="color: #000000;"> Scroll.top;
+    }
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>二、给根节点绑定滚动事件</h3>
+<p><span style="color: #ff0000;"><strong>vue</strong>给body元素绑定滚动条事件，真TMD草蛋。事件绑定上去了 妈的 就是不触发事件。不知道什么鬼问题。</span></p>
+<p><span style="color: #000000;">最后直接给根节点HTML绑定滚动事件。</span></p>
+<div class="cnblogs_code">
+<pre><code>const on = (<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (document.addEventListener) {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> (element, event, handler) {
+            </span><span style="color: #0000ff;">if</span> (element &amp;&amp; event &amp;&amp;<span style="color: #000000;"> handler) {
+                element.addEventListener(event, handler, </span><span style="color: #0000ff;">false</span><span style="color: #000000;">);
+            }
+        };
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> (element, event, handler) {
+            </span><span style="color: #0000ff;">if</span> (element &amp;&amp; event &amp;&amp;<span style="color: #000000;"> handler) {
+                element.attachEvent(</span>'on' +<span style="color: #000000;"> event, handler);
+            }
+        };
+    }
+})();</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>三、注册全局指令</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 降低事件执行频率
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+const downsampler </span>= (<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    let result </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> (time, func) {
+        </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">result) {
+            result </span>= setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+                func();
+                result </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            }, time);
+        }
+    }
+})();</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>Vue.directive("infinite-scroll"<span style="color: #000000;">, {
+    bind(el, binding, vnode) {
+        on(window, </span>'scroll', <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+            </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> binding.value === "function" &amp;&amp; Scroll.bottom &lt;= 50<span style="color: #000000;">) {   // 小于50就触发
+                downsampler(</span>50, binding.value);  <span style="color: #008000;">//</span><span style="color: #008000;"> 降低触发频率</span>
+<span style="color: #000000;">            }
+        })
+    }
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>四、实例：</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="app"</span><span style="color: #ff0000;"> v-infinite-scroll</span><span style="color: #0000ff;">="coupon"</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">v-for</span><span style="color: #0000ff;">="item in goods"</span><span style="color: #0000ff;">&gt;</span>
+            &lt;p&gt;{{item}}&lt;/p&gt;
+      <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>        let v = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Vue({
+            el: </span>".app"<span style="color: #000000;">,
+            data(){
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+                    goods:[]
+                }
+            },
+            methods: {
+                coupon() {
+                    </span><span style="color: #0000ff;">this</span>.goods.push("你呵呵"<span style="color: #000000;">)
+                }
+            }
+        })</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>演示地址：http://whnba.gitee.io/tkspa/</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

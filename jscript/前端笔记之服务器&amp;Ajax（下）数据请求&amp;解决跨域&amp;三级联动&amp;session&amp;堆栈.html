@@ -1,0 +1,537 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈</center></div><div class='banquan'>原文出处:本文由博客园博主RopeHuo提供。<br/>
+原文连接:https://www.cnblogs.com/rope/p/10704824.html</div><br>
+    <h1>一、<strong><span style="font-family: 宋体;">请求后端的</span>JSON<span style="font-family: 宋体;">数据</span></strong></h1>
+<p>JSON<span style="font-family: 宋体;">是前后端通信的交互格式，</span><span style="font-family: Consolas;">JSON(JavaScript Object Notation, JS </span><span style="font-family: 宋体;">对象标记</span><span style="font-family: Consolas;">) </span><span style="font-family: 宋体;">是一种轻量级的数据交换格式。</span></p>
+<p>JSON<span style="font-family: 宋体;">是互联网各个后台与前代沟通必备格式，取代了原来的</span><span style="font-family: Consolas;">XML</span><span style="font-family: 宋体;">。</span></p>
+<p>XML<span style="font-family: 宋体;">数据格式特别&ldquo;恶心&rdquo;，现在市场上</span><span style="font-family: Consolas;">99%</span><span style="font-family: 宋体;">以上的数据格式都是</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">。</span></p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">工作中都是后端（</span>Java<span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">PHP</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">Node</span><span style="font-family: 宋体;">）给我们提供</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">格式的数据，然后我们前端用</span><span style="font-family: Consolas;">Ajax</span><span style="font-family: 宋体;">去请求得到</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">数据，将</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">数据渲染在前端页面中。但是服务器给我们返回的数据是字符串</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">，因此没办法打点调用属性，下面我们要学习如何解析后端给我们返回的</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">。</span></strong></span></p>
+<hr />
+<h2><strong>1.1 JSON<span style="font-family: 宋体;">解析方法</span><span style="font-family: 华文中宋;">1</span></strong></h2>
+<p><span style="font-family: 宋体;">获取</span>PHP<span style="font-family: 宋体;">中的</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">接口数据：</span></p>
+<p>l&nbsp;<span style="font-family: 宋体;">会发现服务器给我们返回的数据是字符串</span>JSON<span style="font-family: 宋体;">，因此没办法打点调用属性</span></p>
+<p>l&nbsp;PHP<span style="font-family: 宋体;">中可以将数组变为</span><span style="font-family: Consolas;">JSON</span><span style="font-family: 宋体;">，使用方法</span><span style="font-family: Consolas;">json_encode(</span><span style="font-family: 宋体;">数组</span><span style="font-family: Consolas;">)</span></p>
+<p>&nbsp;</p>
+<p>json_db.php<span style="font-family: 宋体;">后端提供</span>JSON<span style="font-family: 宋体;">数据：</span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;?<span style="color: #000000;">php
+    </span><span style="color: #008080;">header</span>("Content-type","application/json"<span style="color: #000000;">);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">用数组模拟，然后给客戶端返回JSON格式的数据</span>
+    <span style="color: #800080;">$arr</span> = <span style="color: #0000ff;">array</span>("result"=&gt; <span style="color: #0000ff;">array</span><span style="color: #000000;">(
+            </span><span style="color: #0000ff;">array</span>("name" =&gt; "李白", "age" =&gt; 31, "sex"=&gt;"男"),
+            <span style="color: #0000ff;">array</span>("name" =&gt; "苏轼", "age" =&gt; 32, "sex"=&gt;"男"),
+            <span style="color: #0000ff;">array</span>("name" =&gt; "王安石", "age" =&gt; 33, "sex"=&gt;"男"),
+            <span style="color: #0000ff;">array</span>("name" =&gt; "杜甫", "age" =&gt; 34, "sex"=&gt;"男"),
+            <span style="color: #0000ff;">array</span>("name" =&gt; "李清照", "age" =&gt; 35, "sex"=&gt;"女"<span style="color: #000000;">)
+        )
+    );
+
+    </span><span style="color: #0000ff;">echo</span> json_encode(<span style="color: #800080;">$arr</span>); <span style="color: #008000;">//</span><span style="color: #008000;">将数组变为JSON</span>
+?&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;<span style="font-family: 宋体;">前端请求</span>php<span style="font-family: 宋体;">提供的接口，得到数据渲染在页面</span></p>
+<div class="cnblogs_code">
+<pre><code> $.get("php/json_db.php", <span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+</span><span style="color: #ff0000;">var dataObj = JSON.parse(data);</span> <span style="color: #008000;">//</span><span style="color: #008000;">将后端返回的字符串转为JSON对象</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;">循环遍历输出</span>
+    <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; dataObj.result.length;i++<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">var</span> arr =<span style="color: #000000;"> dataObj.result[i];
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">上树</span>
+        $("ul").append("&lt;li&gt;"+ arr.name + arr.age + arr.sex +"&lt;/li&gt;"<span style="color: #000000;">)
+        console.log(dataObj.result[i].age)
+        console.log(dataObj.result[i].sex)
+    }
+ })
+
+JSON.parse()        将JSON形式的字符串转换为JSON对象
+JSON.stringify()   将JSON对象转换为字符串</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>获取数据库中的数据，以</strong><strong>JSON<span style="font-family: 宋体;">的格式返回给前端</span></strong><strong>：</strong></p>
+<p><strong>data_db.php</strong><strong>后端</strong><strong><span style="font-family: 宋体;">提供</span>JSON<span style="font-family: 宋体;">数据：</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>&lt;?<span style="color: #000000;">php
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">连接数据库，参数：数据库地址、用户名、密码</span>
+    <span style="color: #008080;">mysql_connect</span>('localhost', 'root', '123456'<span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">选择要操作的数据库</span>
+    <span style="color: #008080;">mysql_select_db</span>("student"<span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">设置编码</span>
+    <span style="color: #008080;">mysql_query</span>("SET NAMES utf8"<span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">写执行插入的SQL语句，保存到数据库的表中</span>
+    <span style="color: #800080;">$sql</span> = "SELECT * FROM gz0902"<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">执行SQL语句，会返回成功插入的结果（条数）</span>
+    <span style="color: #800080;">$result</span> = <span style="color: #008080;">mysql_query</span>(<span style="color: #800080;">$sql</span><span style="color: #000000;">);
+
+    </span><span style="color: #800080;">$arr</span> = <span style="color: #0000ff;">array</span>(); <span style="color: #008000;">//</span><span style="color: #008000;">空数组，循环遍历添加进来的
+
+    //循环遍历赋值，添加到数组</span>
+    <span style="color: #0000ff;">while</span>(<span style="color: #800080;">$row</span> = <span style="color: #008080;">mysql_fetch_array</span>(<span style="color: #800080;">$result</span><span style="color: #000000;">)){
+        </span><span style="color: #008080;">array_push</span>(<span style="color: #800080;">$arr</span>, <span style="color: #800080;">$row</span><span style="color: #000000;">);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">输出JSON</span>
+    <span style="color: #800080;">$resultJSON</span> = <span style="color: #0000ff;">array</span>("result" =&gt; <span style="color: #800080;">$arr</span><span style="color: #000000;">);
+    </span><span style="color: #0000ff;">echo</span> json_encode(<span style="color: #800080;">$resultJSON</span><span style="color: #000000;">);
+
+</span>?&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;<span style="font-family: 宋体;">前端解析</span>JSON</p>
+<div class="cnblogs_code">
+<pre><code>$.get("php/data_db.php", <span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">将JSON形式的字符串转为真的JSON对象</span>
+   <span style="color: #ff0000;">var dataObj = typeof data == "object" ? data : JSON.parse(data);
+   </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; dataObj.result.length;i++<span style="color: #000000;">){
+       </span><span style="color: #0000ff;">var</span> arr =<span style="color: #000000;"> dataObj.result[i];
+       $(</span>"ul").append("&lt;li&gt;"+ arr.name + arr.age + arr.sex +"&lt;/li&gt;"<span style="color: #000000;">)
+       console.log(dataObj.result[i].age)
+       console.log(dataObj.result[i].sex)
+   }
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<hr />
+<h2><strong>1.2 JSON<span style="font-family: 宋体;">解析方法</span><span style="font-family: 华文中宋;">2</span></strong></h2>
+<p><span style="font-family: 宋体;">概述：</span>eval()<span style="font-family: 宋体;">是系统默认的函数，是</span><span style="font-family: Consolas;">window</span><span style="font-family: 宋体;">对象方法，因此可以省略</span><span style="font-family: Consolas;">window</span><span style="font-family: 宋体;">直接使用。</span></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eval()<span style="font-family: 宋体;">函数可以将字符串变为语句，把它作为</span><span style="font-family: Consolas;">JavaScript</span><span style="font-family: 宋体;">代码执行。</span></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;eval()<span style="font-family: 宋体;">尽量少用，但是由于兼容性好，所以该用的时候也要用</span></p>
+<p>JavaScript<span style="font-family: 宋体;">为什么不推荐使用</span><span style="font-family: Consolas;">eval</span><span style="font-family: 宋体;">？</span></p>
+<p><span style="text-decoration: underline;"><a href="https://www.zhihu.com/question/20591877">https://www.zhihu.com/question/20591877</a></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> str = "alert(1+2+3)"<span style="color: #000000;">;
+console.log(eval(str));
+
+</span><span style="color: #0000ff;">var</span> data = "({a:100,b:200})"<span style="color: #000000;">;
+</span><span style="color: #0000ff;">var</span> data = "{a:100,b:200}"<span style="color: #000000;">;
+console.log(eval(</span>"("+ data +")"<span style="color: #000000;">))
+
+</span><span style="color: #0000ff;">var</span> fun = "function fun(){alert(1)};fun()"<span style="color: #000000;">;
+console.log(eval(fun))
+
+$.get(</span>"php/json_db.php", <span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">将JSON形式的字符串转为真的JSON对象</span>
+    <span style="color: #0000ff;">var</span> dataObj = <span style="color: #ff0000;">eval("(" + data + ")"</span><span style="color: #000000;"><span style="color: #ff0000;">)</span>;
+})</span></pre>
+</div>
+<hr />
+<h2><strong>1.3 JSON<span style="font-family: 宋体;">解析方法</span><span style="font-family: 华文中宋;">3</span></strong></h2>
+<p><span style="font-family: 宋体;">第三种方法：使用</span>JS<span style="font-family: 宋体;">的内置构造函数</span><span style="font-family: Consolas;">new Function()</span><span style="font-family: 宋体;">。</span></p>
+<p>参数：从第一个开始到倒数第二个都是形参，最后一个参数是执行的程序。</p>
+<p>Function()<span style="font-family: 宋体;">函数能把字符串变为语句：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> sum = <span style="color: #0000ff;">new</span> Function("a","b","c","return a+b+c"<span style="color: #000000;">);
+console.log(sum(</span>3,4,5<span style="color: #000000;">));
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 等价于</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> sum(a,b,c){
+   </span><span style="color: #0000ff;">return</span> a+b+<span style="color: #000000;">c;
+}
+
+$.get(</span>"php/json_db.php", <span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">将JSON形式的字符串转为真的JSON对象</span>
+   <span style="color: #0000ff;">var</span> dataObj = (<span style="color: #ff0000;">new Function("return" +</span><span style="color: #000000;"><span style="color: #ff0000;"> data)()</span>);
+   console.log(dataObj)
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<hr />
+<p>&nbsp;</p>
+<h1><!--[if !supportLists]-->二、<!--[endif]--><strong>B/S<span style="font-family: 宋体;">结构</span></strong></h1>
+<p><strong><span style="font-family: 宋体;"><img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈0.png" alt="" /></span></strong></p>
+<p>&nbsp;</p>
+<p><img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈1.png" alt="" /></p>
+<p><span style="font-family: 宋体;">概述：</span>Ajax<span style="font-family: 宋体;">这门技术它遵循</span><span style="font-family: Consolas;">&ldquo;</span><span style="font-family: 宋体; color: #ff0000;">同源策略</span>&rdquo;<span style="font-family: 宋体;">，</span><span style="color: #ff0000;"><span style="font-family: 宋体;">也就说</span>Ajax<span style="font-family: 宋体;">不能跨域</span></span><span style="font-family: 宋体;">。</span></p>
+<p><span style="font-family: 宋体;">同源策略：它是由</span>Netscape<span style="font-family: 宋体;">提出的一个著名的安全策略</span>，<span style="font-family: 宋体;">现在所有支持</span>JavaScript<span style="font-family: 宋体;">的浏览器都会使用这个策略。</span></p>
+<p><span style="font-family: 宋体;">所谓的同源策略：</span><span style="font-family: 宋体;"><span style="color: #ff0000;">域名、协议、端口相同</span>。</span></p>
+<p><span style="font-family: 宋体;">当一个浏览器的两个</span>tab<span style="font-family: 宋体;">页分别打开：百度和谷歌的页面</span></p>
+<p><span style="font-family: 宋体;">当浏览器的百度</span>tab<span style="font-family: 宋体;">页执行一个脚本的时候会检查这个脚本是属于哪个页面的，</span></p>
+<p><span style="font-family: 宋体;">即检查是否同源，只有和百度同源的脚本才会被执行。</span></p>
+<p><span style="font-family: 宋体;">如果非同源，那么在请求数据时，浏览器会在控制台中报一个异常，提示拒绝访问。</span></p>
+<p><span style="font-family: 宋体;">跨域：其实就是访问不在同一个服务器上的数据，就形成了跨域。</span></p>
+<p>比如：<span style="font-family: 宋体;">老师的服务器</span>IP<span style="font-family: 宋体;">是</span><span style="font-family: Consolas;">192.168.1.100</span><span style="font-family: 宋体;">，但是访问某同学的服务器中的文件，造成了跨域</span>，会报错<span style="font-family: 宋体;">。</span></p>
+<hr />
+<h2><strong>2.1 Ajax<span style="font-family: 宋体;">不能跨域</span></strong></h2>
+<p><span style="font-family: 宋体;">概述：</span>Ajax<span style="font-family: 宋体;">不能跨域，就比如我们的程序，不能获取百度、淘宝、京东服务器的数据。</span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;script type="text/javascript"&gt;<span style="color: #000000;">
+     $.get(</span>"http://127.0.0.88/result.txt", <span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+        console.log(data)
+     })
+</span>&lt;/script&gt;</pre>
+</div>
+<p><img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈2.png" alt="" /></p>
+<p>提示：刚才模拟两个服务器之间请求数据，会发现<span style="color: #ff0000;">Ajax</span><span style="font-family: 宋体;"><span style="color: #ff0000;">不能跨域</span>。</span></p>
+<hr />
+<p>&nbsp;</p>
+<h2><strong>2.2 JSONP<span style="font-family: 宋体;">跨域</span></strong></h2>
+<p><span style="font-family: 宋体;">跨域请求数据也是可以的，只不过</span>Ajax<span style="font-family: 宋体;">这技术不行，而</span><span style="font-family: Consolas;">JSONP</span><span style="font-family: 宋体;">这种数据格式可以进行跨域。很多年前，浏览器是没有跨域限制的，可以正常跨域，浏览器为了安全和隐私限制了</span><span style="font-family: Consolas;">Ajax</span><span style="font-family: 宋体;">跨域。</span></p>
+<p>我们可以通过一些数据手段解决：</p>
+<p><span style="color: #ff0000;"><strong>为什么使用跨域？当请求不在同一个服务器数据的时候就用跨域，或者偷数据的时候。</strong></span></p>
+<p><span style="font-family: 宋体;">实现方式：</span>HTML<span style="font-family: 宋体;">中用</span><span style="font-family: Consolas;">script</span><span style="font-family: 宋体;">标签引用这个</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">文件，其实就是对引用文件的函数执行，此时函数定义在</span><span style="font-family: Consolas;">HTML</span><span style="font-family: 宋体;">中。</span></p>
+<p>&nbsp;</p>
+<p><strong>JSONP<span style="font-family: 宋体;">原理就是：</span></strong><span style="color: #ff0000;"><strong>将函数执行的部分，放到了服务器上面。</strong></span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;script type="text/javascript"&gt;
+    <span style="color: #ff0000;">function fun(data){
+        console.log(data)
+    }
+</span>&lt;/script&gt;
+&lt;script <span style="color: #ff0000;">src="http://127.0.0.88/fun_info.txt"</span>&gt;&lt;/script&gt;</pre>
+</div>
+<p>提示：这是老师的本地静态页面，当访问某个同学服务器的时候，返回的数据来源于某同学服务器。</p>
+<p>将函数执行的部分放在服务器上。当自己服务器想获取其他服务器上面的数据，你必须声明一个和其他服务器上同名的函数。</p>
+<p>&nbsp;</p>
+<p>这是<span style="color: #ff0000;">http://127.0.0.88/fun_info.txt的数据</span>：</p>
+<div class="cnblogs_code">
+<pre><code>fun({"name":"陈雪凝","age":16, "sex":"女"});</pre>
+</div>
+<p>提示：怎么实现的？</p>
+<p><span style="font-family: 宋体;">答：</span>script<span style="font-family: 宋体;">标签当中的</span><span style="font-family: Consolas;">src</span><span style="font-family: 宋体;">属性指向一个地址，发起了一次请求。</span></p>
+<p>&nbsp;</p>
+<p>JSONP<span style="font-family: 宋体;">的优缺点：</span></p>
+<p>优点：</p>
+<p>l&nbsp;<span style="font-family: 宋体;">与利用</span>XHR<span style="font-family: 宋体;">对象发送</span><span style="font-family: Consolas;">Ajax</span><span style="font-family: 宋体;">请求不同，</span><span style="font-family: Consolas;">JSONP</span><span style="font-family: 宋体;">可以跨越同源策略；</span></p>
+<p>l&nbsp;JSONP<span style="font-family: 宋体;">的兼容性好，可以在众多浏览器中运行。</span></p>
+<p>缺点：</p>
+<p>l&nbsp;<span style="font-family: 宋体;">只支持</span>GET<span style="font-family: 宋体;">一种类型的</span><span style="font-family: Consolas;">HTTP</span><span style="font-family: 宋体;">请求，应用场景有限；</span></p>
+<p>l&nbsp;调用失败时缺少必要的提示信息，不方便排查问题；</p>
+<p>l&nbsp;<span style="font-family: 宋体;">存在一定的安全风险，但可以使用</span>Referer<span style="font-family: 宋体;">和</span><span style="font-family: Consolas;">Token</span><span style="font-family: 宋体;">校验进行规避；</span></p>
+<p>l&nbsp;不便于控制；</p>
+<p>l&nbsp;没有回调函数的功能。</p>
+<hr />
+<h2><strong>2.3<span style="font-family: 宋体;">原生</span><span style="font-family: 华文中宋;">JSONP</span><span style="font-family: 宋体;">跨越请求数据</span></strong></h2>
+<div class="cnblogs_code">
+<pre><code>&lt;body&gt;
+    &lt;button id="btn"&gt;发起请求（JSONP）&lt;/button&gt;
+&lt;/body&gt;
+&lt;script type="text/javascript"&gt;
+     <span style="color: #0000ff;">var</span> btn = document.getElementById("btn"<span style="color: #000000;">);
+
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">函数的定义的</span>
+     <span style="color: #0000ff;">function</span><span style="color: #000000;"> fun(data){
+        console.log(data)
+     }
+
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">发起请求，获取到函数执行部分</span>
+     btn.onclick = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建script标签，并指定请求数据地址</span>
+        <span style="color: #0000ff;">var</span> oscript = document.createElement('script'<span style="color: #000000;">);
+        oscript.src </span>= "http://127.0.0.88/fun_info.txt"<span style="color: #000000;">;
+       
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">上树</span>
+<span style="color: #000000;">        document.body.appendChild(oscript);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">过河拆桥，拿完下树</span>
+<span style="color: #000000;">        document.body.removeChild(oscript);
+     }
+</span>&lt;/script&gt;</pre>
+</div>
+<p><span style="font-family: 宋体;">提示：</span>script<span style="font-family: 宋体;">标签发起一次请求后，就可以获取到数据，然后让元素下树，不影响返回的数据。</span></p>
+<p>&nbsp;</p>
+<p>Url<span style="font-family: 宋体;">中的</span><span style="color: #ff0000;"><strong>callback</strong><strong>对应的是函数的名</strong></span><strong>。</strong></p>
+<p><span style="font-family: 宋体;">提示：如果想获取别人服务器上的</span>JSONP<span style="font-family: 宋体;">数据，你必须声明一个和别人服务器上的同名函数（也可以改名）</span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;script type="text/javascript"&gt;
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"><span style="color: #ff0000;"> fetchJSON_comment98</span>(data){
+        console.log(data)
+    }
+</span>&lt;/script&gt;
+&lt;!-- &lt;script type="text/javascript" src="http://127.0.0.88/result.txt"&gt;&lt;/script&gt; --&gt;
+&lt;script src="http://127.0.0.88/fun_info.txt"&gt;&lt;/script&gt;
+&lt;script src="https://sclub.jd.com/comment/productPageComments.action?<span style="color: #ff0000;">callback=fetchJSON_comment98</span>&amp;productId=598283&amp;score=1&amp;sortType=5&amp;page=0&amp;pageSize=10&amp;isShadowSku=0&amp;fold=1"&gt;&lt;/script&gt;</pre>
+</div>
+<hr />
+<h2><strong>2.4<span style="font-family: 宋体;">原生</span><span style="font-family: 华文中宋;">JSONP</span><span style="font-family: 宋体;">函数封装</span></strong></h2>
+<p><span style="font-family: 宋体;">概述：封装一个函数，这个函数的作用就是跨域请求别人服务器的数据，用户只需要传进来，</span>url<span style="font-family: 宋体;">和函数名。</span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;script type="text/javascript"&gt;
+     <span style="color: #0000ff;">var</span> btn = document.getElementById("btn"<span style="color: #000000;">);
+
+     </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> JSONP(url, callback){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">给传进来的匿名函数起名，并定义在全局</span>
+       <span style="color: #ff0000;"> window.fun = callback;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">创建DOM</span>
+        <span style="color: #0000ff;">var</span> oscript = document.createElement('script'<span style="color: #000000;">);
+        oscript.src </span>=<span style="color: #000000;"> url;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">上树</span>
+<span style="color: #000000;">        document.body.appendChild(oscript);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">过河拆桥，拿完下树</span>
+<span style="color: #000000;">        document.body.removeChild(oscript);
+     }
+
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">发起请求</span>
+     btn.onclick = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        JSONP(</span>"http://127.0.0.88/fun_info.txt", <span style="color: #ff0000;">function(data){
+            console.log(data);  //data数据是从函数执行部分传过来的
+</span><span style="color: #000000;"><span style="color: #ff0000;">        })</span>
+     }
+</span>&lt;/script&gt;</pre>
+</div>
+<hr />
+<h2><strong>2.5 jQuery<span style="font-family: 宋体;">的</span><span style="font-family: 华文中宋;">JSONP</span><span style="font-family: 宋体;">跨域</span></strong></h2>
+<p><span style="font-family: 宋体;">概述：</span>jQuery<span style="font-family: 宋体;">对</span><span style="font-family: Consolas;">JSONP</span><span style="font-family: 宋体;">进行了封装，</span><span style="font-family: Consolas;">jsonCallback</span><span style="font-family: 宋体;">就是传进去的函数名字</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">获取某个服务器的</span>JSON<span style="font-family: 宋体;">数据：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">$.ajax({
+   url:</span>"http://127.0.0.88/fun_info.txt"<span style="color: #000000;">,
+  <span style="color: #ff0000;"> dataType:</span></span><span style="color: #ff0000;">"jsonp",
+   jsonpCallback:"fun", //函数名</span>
+   success:<span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+       console.log(data)
+   }
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>获取京东评论的数据：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">$.ajax({
+   url:</span>"<span style="color: #000000;">https://sclub.jd.com/comment/productPageComments.action?<span style="color: #ff0000;">callback=fetchJSON_comment98</span>&amp;productId=598283&amp;scor
+e=1&amp;sortType=5&amp;page=0&amp;pageSize=10</span>"<span style="color: #000000;">,
+   dataType:</span>"jsonp"<span style="color: #000000;">,
+  <span style="color: #ff0000;"> jsonpCallback:</span></span><span style="color: #ff0000;">"fetchJSON_comment98"</span><span style="color: #000000;"><span style="color: #ff0000;">,</span>
+   success:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+       console.log(data)
+   }
+})</span></pre>
+</div>
+<p><span style="font-family: 宋体;">用</span>jQuery<span style="font-family: 宋体;">跨域的时候，</span><span style="font-family: Consolas;">url</span><span style="font-family: 宋体;">中的</span><span style="font-family: Consolas;">callback</span><span style="font-family: 宋体;">后面是函数的名称，也可以自己修改函数名。</span></p>
+<p><span style="font-family: 宋体;">如果</span>url<span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">callback</span><span style="font-family: 宋体;">后面是</span><span style="font-family: Consolas;">?</span><span style="font-family: 宋体;">号，不用写</span><span style="color: #ff0000;">jsonpCallback<span style="font-family: 宋体;">回调函数，</span>jQuery<span style="font-family: 宋体;">会随机的命名函数。</span></span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">$.ajax({
+  url:</span>"<span style="color: #000000;">https://sclub.jd.com/comment/
+productPageComments.action?<span style="color: #ff0000;">callback=?</span>&amp;productId=598283&amp;score=1&amp;sortType=5&amp;page=0&amp;pageSize=10</span>"<span style="color: #000000;">,
+  dataType:</span>"jsonp"<span style="color: #000000;">,
+  success:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+      console.log(data)
+  }
+})</span></pre>
+</div>
+<p>下面就是jQuery<span style="font-family: 宋体;">随机的函数名。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈3.png" alt="" /></p>
+<hr />
+<h2><strong>2.6<span style="font-family: 宋体;">三级联动</span></strong></h2>
+<div class="cnblogs_code">
+<pre><code>&lt;body&gt;
+    &lt;select id="province"&gt;&lt;/select&gt;
+    &lt;select id="city"&gt;&lt;/select&gt;
+    &lt;select id="area"&gt;&lt;/select&gt;
+&lt;/body&gt;
+&lt;script type="text/javascript" src="js/jquery-2.2.4.min.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;<span style="color: #000000;">
+    $.get(</span>"data/city.txt",<span style="color: #0000ff;">function</span><span style="color: #000000;">(data){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">转JSON对象</span>
+        <span style="color: #0000ff;">var</span> dataObj =<span style="color: #000000;"> JSON.parse(data);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">循环所有数据，让省份上树</span>
+        $.each(dataObj.all, <span style="color: #0000ff;">function</span><span style="color: #000000;">(key,value){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log(key,value);</span>
+            <span style="color: #0000ff;">var</span> $option = $("&lt;option&gt;"+ value.name +"&lt;/option&gt;"<span style="color: #000000;">);
+            $(</span>"#province"<span style="color: #000000;">).append($option);
+        });
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">当省的数据发送变化时，执行以下方法</span>
+        <span style="color: #0000ff;">var</span> cityArr =<span style="color: #000000;"> [];
+        $(</span>"#province").on("change", <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">拿到当前选择的省的名字</span>
+            <span style="color: #0000ff;">var</span> pro = $("#province option:selected"<span style="color: #000000;">).text();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历省，得到市</span>
+            $.each(dataObj.all, <span style="color: #0000ff;">function</span><span style="color: #000000;">(item,val){
+                </span><span style="color: #0000ff;">if</span>(val.name ==<span style="color: #000000;"> pro){
+                    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; val.city.length;i++<span style="color: #000000;">){
+                        $(</span>"&lt;option&gt;" + val.city[i].name + "&lt;/option&gt;").appendTo('#city'<span style="color: #000000;">);
+                    }
+                    cityArr.push(val.city)
+
+                    </span><span style="color: #008000;">//</span><span style="color: #008000;">遍历得到区</span>
+                    $.each(val.city[0].area, <span style="color: #0000ff;">function</span><span style="color: #000000;">(index,val){
+                        $(</span>"&lt;option&gt;" + val + "&lt;/option&gt;").appendTo('#area'<span style="color: #000000;">);
+                    })
+                }
+
+            })
+        })
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">当市改变时触发，改变区&lsquo;</span>
+        $("#city").on("change", <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            $(</span>"#area").empty(); <span style="color: #008000;">//</span><span style="color: #008000;">清空内容</span>
+            <span style="color: #008000;">//</span><span style="color: #008000;">获取当前被选中的城市名字</span>
+            <span style="color: #0000ff;">var</span> city = $("#city option:selected"<span style="color: #000000;">).text();
+
+            </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; cityArr[0].length;i++<span style="color: #000000;">){
+                </span><span style="color: #0000ff;">if</span>(cityArr[0][i].name ==<span style="color: #000000;"> city){
+                    $.each(cityArr[</span>0][i].area, <span style="color: #0000ff;">function</span><span style="color: #000000;">(index, val){
+                        $(</span>"&lt;option&gt;" + val + "&lt;/option&gt;").appendTo('#area'<span style="color: #000000;">);
+                    })
+                }
+            }
+        })
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">页面加载初始化城市数据</span>
+        $("#province").triggerHandler('change'<span style="color: #000000;">);
+    })
+</span>&lt;/script&gt;</pre>
+</div>
+<hr />
+<h1>三、<span style="font-size: 15px;"><strong style="font-size: 2em;">效果</strong></span></h1>
+<h2><strong>3.1<span style="font-family: 宋体;">加载完毕显示</span><span style="font-family: 华文中宋;">-</span><span style="font-family: 宋体;">原生的套路</span></strong></h2>
+<div class="cnblogs_code">
+<pre><code>&lt;style type="text/css"&gt;<span style="color: #000000;">
+    div{
+        width: 300px;
+        height: 300px;
+        background: url(</span>'./images/loading.gif') no-<span style="color: #000000;">repeat;
+    }
+    img{display: none;}
+</span>&lt;/style&gt;
+&lt;body&gt;
+    &lt;div&gt;
+        &lt;img src="./images/19.png" &gt;
+    &lt;/div&gt;
+&lt;/body&gt;
+&lt;script type="text/javascript"&gt;
+     <span style="color: #0000ff;">var</span> img = document.getElementsByTagName('img')[0<span style="color: #000000;">];
+     </span><span style="color: #008000;">//</span><span style="color: #008000;">当图片加载完毕后，显示</span>
+     img.onload = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        img.style.display </span>= 'block'<span style="color: #000000;">;
+     }
+</span>&lt;/script&gt;</pre>
+</div>
+<hr />
+<h2><strong>3.2<span style="font-family: 宋体;">加载完毕显示</span><span style="font-family: 华文中宋;">-jquery</span><span style="font-family: 宋体;">的套路</span></strong></h2>
+<p>Image<span style="font-family: 宋体;">是系统当中内置的构造函数，因此可以直接使用，返回的是一个</span><span style="font-family: Consolas;">img</span><span style="font-family: 宋体;">元素对象；</span></p>
+<div class="cnblogs_code">
+<pre><code>&lt;body&gt;
+    &lt;div id="box"&gt;&lt;/div&gt;
+&lt;/body&gt;
+&lt;script type="text/javascript" src="js/jquery-1.12.4.min.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript"&gt;
+    <span style="color: #008000;">//</span><span style="color: #008000;"> var img = document.createElement('img');</span>
+    <span style="color: #0000ff;">var</span> img = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Image();
+    img.src </span>= "./images/18.png"<span style="color: #000000;">;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">加载完毕上树</span>
+    $(img).load(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        $(</span><span style="color: #0000ff;">this</span>).appendTo($('#box'<span style="color: #000000;">));
+    })
+</span>&lt;/script&gt;</pre>
+</div>
+<hr />
+<h1>四、<strong>聊天室</strong></h1>
+<p><strong>聊天室制作思路：</strong></p>
+<div class="cnblogs_code">
+<pre><code>用户点击登录把输入的用户名传给Login.php，Login.php接收后正则验证用户名是否合法，如果不合法给前端返回一个-1,<span style="color: #ff0000;">exit返回</span>，<br />前端接收到返回是-1就提醒用户重新输入，如果合法就开启会话<span style="color: #ff0000;">session_start()</span>，并且存储用户名，<span style="color: #ff0000;">$_SESSION[name]=$name</span>;且返回一个1给前端，<br />前端收到是1就登录成功，跳转到聊天页面<span style="color: #ff0000;">（有中文记得声明utf-8编码）</span>，再开启会话，读取用户名，判断用户按下回车时，将用户名和输入内容写进数据库，<br />数据库再开会话接受数据，连接数据库，插入数据，执行这条数据<span style="color: #ff0000;">$result=mysql_query($sql)</span>;如果他是真就返回1，否则返回-1，<br />聊天页面请求里的函数接受到时1就把输入框清空，起初有滚动条且卷动值是自己的高，开一个定时器，清空聊天框的内容，向数据库get请求JSON数据，数据库连接，<br />读取数据表且排序<span style="color: #ff0000;">（记得声明JSON）</span>执行这个表，声明一个数组，他有一个最大的键，循环拿去数据表中的项，存在一个变量，将这个变量push到我们声明的数据最大的键里，<br />它的值就是一个数组，在pint_r输出，记得把这个数组转成JSON，聊天页面接收返回值它最大的键再存一个变量，循环这个变量，并且打点取数据上树，定时器间隔请求。</pre>
+</div>
+<p>&nbsp;</p>
+<p>概述：<span style="color: #ff0000;">HTTP</span><span style="font-family: 宋体;"><span style="color: #ff0000;">超文本传输协议，属于短轮询链接，发起一次请求与一次响应之后就断开链接</span>。</span></p>
+<p>PHP session <span style="font-family: 宋体;">变量用于存储有关用户会话的信息，或更改用户会话的设置。</span><span style="font-family: Consolas;">Session </span><span style="font-family: 宋体;">变量保存的信息是单一用户的，并且可供应用程序中的所有页面使用。</span></p>
+<p><a href="http://www.w3school.com.cn/php/php_sessions.asp"><span style="text-decoration: underline;">http://www.w3school.com.cn/php/php_sessions.asp</span></a></p>
+<p><span style="font-family: 宋体;">提示：</span>session PHP<span style="font-family: 宋体;">有，</span><span style="font-family: Consolas;">JS</span><span style="font-family: 宋体;">也有，它是一个后台给前端用户发的一个&lsquo;信物&rsquo;，可以分辨出谁是谁；</span></p>
+<p>&nbsp;</p>
+<p>Session <span style="font-family: 宋体;">的使用：</span></p>
+<p>Session <span style="font-family: 宋体;">不同于</span><span style="font-family: Consolas;">cookie</span><span style="font-family: 宋体;">，必须先启动</span><span style="font-family: Consolas;">Session_start();</span></p>
+<p><span style="font-family: 宋体;">当第一次访问网站的时候，</span>Session_start()<span style="font-family: 宋体;">函数就会创建一个唯一的</span><span style="font-family: Consolas;">Session_ID</span><span style="font-family: 宋体;">。并自动通过</span><span style="font-family: Consolas;">HTTP</span><span style="font-family: 宋体;">的响应头，将这个</span><span style="font-family: Consolas;">Session_ID</span><span style="font-family: 宋体;">保存到客户端的</span><span style="font-family: Consolas;">coookie</span><span style="font-family: 宋体;">，同时，也在服务器端创建了一个以</span><span style="font-family: Consolas;">Session_ID</span><span style="font-family: 宋体;">命名的文件，用于保存。</span></p>
+<p><span style="font-family: 宋体;">这个用户的会话信息。当同一个用户再次访问这个网站的时候，也会自动的通过</span>HTTP<span style="font-family: 宋体;">的请求头将</span><span style="font-family: Consolas;">cookie</span><span style="font-family: 宋体;">中保存的</span><span style="font-family: Consolas;">session_ID</span><span style="font-family: 宋体;">再次的携带过来，这时，</span><span style="font-family: Consolas;">Session_start()</span><span style="font-family: 宋体;">函数就不会再次的分配一个新的</span><span style="font-family: Consolas;">Session_ID</span><span style="font-family: 宋体;">，而是在服务器端的硬盘中去寻找个这个</span><span style="font-family: Consolas;">Session_ID</span><span style="font-family: 宋体;">同名的</span><span style="font-family: Consolas;">Session</span><span style="font-family: 宋体;">文件，将这之前的伪这个用户保存的会话信息读出来。在当前的脚本中应用，达到跟踪用户的目的。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">提示：</span>PHP<span style="font-family: 宋体;">中的正则方法</span><span style="font-family: Consolas;">preg_match(</span><span style="font-family: 宋体;">正则字符串</span><span style="font-family: Consolas;">,</span><span style="font-family: 宋体;">字符串</span><span style="font-family: Consolas;">)</span><span style="font-family: 宋体;">返回一个布尔值，</span><span style="font-family: Consolas;">exit</span><span style="font-family: 宋体;">是</span><span style="font-family: Consolas;">PHP</span><span style="font-family: 宋体;">中</span><span style="font-family: Consolas;">return</span><span style="font-family: 宋体;">语句。</span></p>
+<p><span style="font-family: 宋体;">免费</span>API<span style="font-family: 宋体;">接口</span></p>
+<p><a href="https://www.zhihu.com/question/32225726"><span style="text-decoration: underline;">https://www.zhihu.com/question/32225726</span></a></p>
+<p><a href="https://www.showapi.com/apiShow/apiMap"><span style="text-decoration: underline;">https://www.showapi.com/apiShow/apiMap</span></a></p>
+<p>&nbsp;</p>
+<hr />
+<h1><strong>五、复习</strong></h1>
+<h2><strong>5.1<span style="font-family: 宋体;">基本类型和引用类型</span></strong></h2>
+<p>JavaScript<span style="font-family: 宋体;">语言有：语言核心、</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">BOM</span><span style="font-family: 宋体;">，复习语言核心部分。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">JavaScript的数据类型有哪些：
+    ● 基本类型值：number、string、</span><span style="color: #0000ff;">boolean</span>、undefined、<span style="color: #0000ff;">null</span><span style="color: #000000;">
+    ● 引用类型值：Object、Array、Function、RegExp、Math、Date</span></pre>
+</div>
+<p>为什么要区分基本类型和引用类型？有以下两点不一样：</p>
+<p>区分的方式是根据内存中存储的位置而区分。</p>
+<p>基本类型：在内存中占用的空间是固定大小的，它们的值保存在<span style="color: #ff0000;">栈内存</span>，通过值来访问。</p>
+<p>引用类型：大小不固定，栈内存中存放它们的地址指向的是<span style="color: #ff0000;">堆内存</span>中的对象，是按引用访问。</p>
+<hr />
+<h2><strong>5.2<span style="font-family: 宋体;">栈内存和堆内存</span></strong></h2>
+<p><span style="font-family: 宋体;">栈（</span>stack<span style="font-family: 宋体;">）会自动的分配空间，会自动的释放空间。</span></p>
+<p><span style="font-family: 宋体;">堆（</span>heap<span style="font-family: 宋体;">）会动态的分配内存空间，大小不固定，也不会自动释放空间。</span></p>
+<p><span style="color: #ff0000;"><strong>计算机中存储的媒介：</strong></span></p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">硬盘：文档、音乐、视频、文档等（计算机断电后，数据还保留），存储空间【</span>240G<span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">500G</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">1T</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">2T</span><span style="font-family: 宋体;">】</span></strong></span></p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">内存：存储的介质，读取和写入速度比硬盘快（计算机断电后数据就没了）。存储空间【</span>2G<span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">4G</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">8G</span><span style="font-family: 宋体;">】</span></strong></span></p>
+<p><span style="color: #ff0000;"><strong>CPU<span style="font-family: 宋体;">缓存（</span><span style="font-family: Consolas;">cache</span><span style="font-family: 宋体;">）：是位于</span><span style="font-family: Consolas;">CPU</span><span style="font-family: 宋体;">与内存之间的临时存储器，计算机断电后数据也没了，存储空间【</span><span style="font-family: Consolas;">256KB</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">2M</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">4M</span><span style="font-family: 宋体;">、</span><span style="font-family: Consolas;">8M</span><span style="font-family: 宋体;">】。</span></strong></span></p>
+<p><span style="color: #ff0000;"><strong>&nbsp;</strong></span></p>
+<p><span style="color: #ff0000;"><strong>内存有五大空间：堆、栈、自由存储空间、全局、常量</strong></span></p>
+<p><span style="color: #ff0000;"><strong><span style="font-family: 宋体;">区别</span>1<span style="font-family: 宋体;">：基本类型在内存中都是&ldquo;栈内存&rdquo;存储，引用类型值都是&ldquo;堆内存&rdquo;存储。</span></strong></span></p>
+<p><span style="color: #ff0000;"><strong>先说说什么是内存？</strong></span></p>
+<p>&nbsp;<img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈4.png" alt="" /></p>
+<p>计算机的内存能存多少东西？</p>
+<p><span style="font-family: 宋体;">计算机系统有位数：</span>32<span style="font-family: 宋体;">位、</span><span style="font-family: Consolas;">64</span><span style="font-family: 宋体;">位</span></p>
+<p><span style="font-family: 宋体;">以</span>64<span style="font-family: 宋体;">位举例：内存条一条内容有</span><span style="font-family: Consolas;">64</span><span style="font-family: 宋体;">位的</span><span style="font-family: Consolas;">2</span><span style="font-family: 宋体;">进制的值，就是</span><span style="font-family: Consolas;">8</span><span style="font-family: 宋体;">个</span><span style="font-family: Consolas;">bytes</span></p>
+<p><span style="font-family: 宋体;">内存条</span>4G<span style="font-family: 宋体;">空间等于 </span><span style="font-family: Consolas;">4 * 1024 * 1024 * 1024</span><span style="font-family: 宋体;">个</span><span style="font-family: Consolas;">bytes</span><span style="font-family: 宋体;">，也等于</span><span style="font-family: Consolas;">4 * 1024 * 1024 * 1024 </span><span style="font-family: 宋体;">&divide; </span><span style="font-family: Consolas;">8</span><span style="font-family: 宋体;">个字节。</span><span style="font-family: Consolas;">536870912</span></p>
+<p><span style="font-family: 宋体;">内存条</span>8G<span style="font-family: 宋体;">空间等于 </span><span style="font-family: Consolas;">8 * 1024 * 1024 * 1024</span><span style="font-family: 宋体;">个</span><span style="font-family: Consolas;">bytes</span><span style="font-family: 宋体;">，也等于</span><span style="font-family: Consolas;">8 * 1024 * 1024 * 1024 </span><span style="font-family: 宋体;">&divide; </span><span style="font-family: Consolas;">8</span><span style="font-family: 宋体;">个字节。</span><span style="font-family: Consolas;">1073741824</span></p>
+<p>&nbsp;</p>
+<p><span style="color: #ff0000;"><strong>内存中存储的信息都有对应的地址。</strong></span></p>
+<p>&nbsp;<img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈5.png" alt="" /></p>
+<p><span style="font-family: 宋体;">基本类型值，都是内存中的一个小单元格中，字符串如果太长，此时会用</span>&ldquo;链表&rdquo;的形式去规划内存，此时就会认为在一个地址中。</p>
+<p><span style="font-family: 宋体;">什么是</span>&ldquo;栈&rdquo;，类似光盘架的结构、或羽毛球筒。先放进去的，一定是最后被取出来的，进出都在一端，属于&ldquo;first in last out&rdquo;【FILO】</p>
+<p>&nbsp;<img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈6.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">内存条叫做做</span>&ldquo;栈内存&rdquo;，本质原因就是内存会维持一个&ldquo;空白区域&rdquo;的清单：</p>
+<p>&nbsp;<img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈7.png" alt="" /></p>
+<p>现在根据上图，如果程序员要var a=1;<span style="font-family: 宋体;">此时这个</span><span style="font-family: Consolas;">1</span><span style="font-family: 宋体;">被写入到</span><span style="font-family: Consolas;">45533</span><span style="font-family: 宋体;">地址上，因为目前它是栈顶，</span><span style="font-family: Consolas;">45533</span><span style="font-family: 宋体;">就&ldquo;出栈&rdquo;。</span></p>
+<p><span style="font-family: 宋体;">再</span>var b=2;<span style="font-family: 宋体;">此时</span><span style="font-family: Consolas;">b</span><span style="font-family: 宋体;">被写入在</span><span style="font-family: Consolas;">45534</span><span style="font-family: 宋体;">上，因为此时的栈顶是</span><span style="font-family: Consolas;">45533</span><span style="font-family: 宋体;">，就&ldquo;出栈&rdquo;。</span></p>
+<p><span style="font-family: 宋体;">此时写</span>var a =<span style="font-family: 宋体;">&ldquo;哈哈&rdquo;</span><span style="font-family: Consolas;">,</span><span style="font-family: 宋体;">此时</span><span style="font-family: Consolas;">a</span><span style="font-family: 宋体;">被释放，</span><span style="font-family: Consolas;">45533</span><span style="font-family: 宋体;">重新回到栈顶，被改写为&ldquo;哈哈&rdquo;的时候，此时再次出栈。等于</span><span style="font-family: Consolas;">45533</span><span style="font-family: 宋体;">的小单元格从</span><span style="font-family: Consolas;">1</span><span style="font-family: 宋体;">变为&ldquo;哈哈&rdquo;。</span></p>
+<p>&nbsp;</p>
+<p>引用类型值，此时内存处理办法是堆内存：</p>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="694">
+<p class="15">&nbsp;var arr=[1,2,3,"J","Q","<span style="font-family: 宋体;">小王</span><span style="font-family: Consolas;">"];</span></p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;<img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈8.png" alt="" /></p>
+<p><span style="color: #ff0000;"><strong>此时称为堆内存。</strong></span></p>
+<p><span style="color: #ff0000;"><strong>区别</strong><strong>2<span style="font-family: 宋体;">：基本类型在进行赋值的时候，此时会在内存中克隆一份；引用类型，只传地址。</span></strong></span></p>
+<p>&nbsp;<img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈9.png" alt="" /></p>
+<table border="1" cellspacing="0">
+<tbody>
+<tr>
+<td valign="top" width="694">
+<p class="15">&nbsp;var arr=[1,2,3,"J","Q","<span style="font-family: 宋体;">小王</span><span style="font-family: Consolas;">"];</span></p>
+<p class="15">&nbsp;var b = a;</p>
+</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;<img src="./images/前端笔记之服务器&amp;Ajax（下）数据请求&amp;解决跨域&amp;三级联动&amp;session&amp;堆栈10.png" alt="" /></p>
+<p><span style="color: #ff0000;"><strong>对</strong><strong>a<span style="font-family: 宋体;">的更改也会影响</span><span style="font-family: Consolas;">b</span><span style="font-family: 宋体;">。</span></strong></span></p>
+<p><span style="color: #ff0000;"><strong>注意：基本类型在当执行环境结束时被销毁，而引用类型不会随着执行环境结束而销毁，只有当所有引用它的变量不存在时，这个对象才被垃圾回收机制回收。</strong></span></p>
+<p>&nbsp;</p>
+<hr />
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

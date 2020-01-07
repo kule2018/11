@@ -1,0 +1,236 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修完整且易读的最新版小程序登录态和检验注册过没的app.js写法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>完整且易读的最新版小程序登录态和检验注册过没的app.js写法</center></div><div class='banquan'>原文出处:本文由博客园博主华哒妹妹提供。<br/>
+原文连接:https://www.cnblogs.com/ranandrun/p/wxLogin.html</div><br>
+    <div class="toc">
+    <p class="toc-title">目录</p>
+    <div class="toc-list">
+        <ul>
+        <li><a href="#可参考的官方页面">0、可参考的官方页面</a></li>
+        <li><a href="#流程">1、流程</a></li>
+        <li><a href="#app.js代码">2、app.js代码</a></li>
+        <li><a href="#java后台怎么通过code获取openid">3、java后台怎么通过code获取openId</a></li>
+        </ul>
+    </div>
+</div>
+<p><img src="./images/完整且易读的最新版小程序登录态和检验注册过没的app.js写法0.png" /></p>
+<h2 id="可参考的官方页面">0、可参考的官方页面</h2>
+<p>获取登录凭证：https://developers.weixin.qq.com/miniprogram/dev/api/wx.login.html<br />
+检查登录态是否过期： https://developers.weixin.qq.com/miniprogram/dev/api/wx.checkSession.html</p>
+<blockquote>
+<p>备注：你要明白什么是登录态：这里的登录态是微信小程序自己的登录态，我们可以再自己写个登录页面作为自己的登录态，不过为了用户体验良好我直接以微信登录态做为自己的登录态。所以我的整个小程序是直接自动登录的<br />
+注意：微信小程序缓存很容易被清除，所以你必须时刻提防小程序缓存被清除的状态下怎么处理。</p>
+</blockquote>
+<blockquote>
+<p>备注：我从后台返回来给小程序的对象格式为：</p>
+</blockquote>
+<pre><code><code>    public ResultCode resultCode; // 业务响应码
+    public String resultMsg = &quot;&quot;; // 返回信息描述
+    public String errCode; // 错误代码
+    public String errCodeDes = &quot;&quot;; // 错误描述
+    public Object data; // 返回业务数据
+
+     public enum ResultCode {
+        SUCCESS, // 业务处理成功
+        FAIL; // 业务处理失败
+    }</code></pre>
+<h2 id="流程">1、流程</h2>
+<p>（1）调用wx.checkSession检查用户登录态是否过期，如果没有过期就<u>检查用户注册没注册①</u>，如果过期了就去重新<u>执行登录流程②</u><br />
+（2）②的流程为：调用wx.login来获取登录凭证（code），然后把code发给后台，后台调用 auth.code2Session，使用 code 换取 openid 等信息来获取openId , 把openId返回给小程序， 然后把openId放到小程序缓存里面，然后<u>检查用户注册没注册①</u><br />
+（3）①的流程为：先从缓存查该用户注册没注册过（通过检查缓存变量registered存不存在），有就是老用户，没有就去后台通过openId查有没有这个用户，把结果返回给小程序，如果后台有这个用户，说明已经注册过，就把在缓存里加个registered并赋值true。<br />
+（4）然后我们就可以在其他页面通过registered来判断用户注册没注册过，从而跳转进入注册页面或者是主页</p>
+<h2 id="app.js代码">2、app.js代码</h2>
+<pre class="js"><code>
+App({
+      globalData: {
+        serverHost: &#39;http://localhost:8080&#39;, //服务器域名
+      },
+      onLaunch: function() {
+        var that = this;
+        //检查登录态是否过期
+        wx.checkSession({
+          success() {
+            // session_key 未过期，并且在本生命周期一直有效
+            console.log(&quot;【用户小程序登录态未过期】&quot;);
+            that.isRegister();
+          },
+          fail() {
+            // session_key 已经失效，需要重新执行登录流程
+            that.wxLogin();
+          }
+        })
+      },
+
+
+      //查看当前用户是否已经注册过
+      isRegister: function() {
+        var that = this;
+        var host = this.globalData.serverHost;
+        // （先从缓存查该用户，有就是老用户，没有就后台查有没有这个用户，后台查到有这个用户就放缓存，没有就是新用户）
+        wx.getStorage({
+          key: &#39;registered&#39;,
+          success(res) {
+            console.log(&quot;【通过缓存查询到该用户是已经注册过的】&quot;);
+            console.log(&quot;【当前用户的openid为:】&quot; + wx.getStorageSync(&#39;openid&#39;));
+          },
+          fail(res) {
+            var openid;
+            openid = wx.getStorageSync(&#39;openid&#39;);
+            wx.request({
+              url: host + &#39;写自己的后台请求检查用户存不存在的URL&#39;,
+              method: &#39;POST&#39;,
+              data: {
+                openId: openid,
+              },
+              header: {
+                &quot;Content-Type&quot;: &quot;application/x-www-form-urlencoded&quot;
+              },
+              success: (res) =&gt; {
+                if (后台返回注册过&quot;) {
+                  if (res.data.data) {
+                    console.log(&quot;【通过后台查询到该用户已经注册过】&quot;);
+                    wx.setStorage({
+                      key: &quot;registered&quot;,
+                      data: true
+                    });
+                  } else {
+                    console.log(&quot;【通过后台查询到该用户还没注册过】&quot;);
+                  }
+                }
+              }
+            })
+          },
+        })
+
+      },
+
+      //该函数用来登录的
+      wxLogin: function() {
+        var that = this;
+        //设置后台host
+        var host = this.globalData.serverHost;
+        console.log(&quot;【用户重新执行小程序登录流程】&quot;);
+        wx.login({
+          success(res) {
+            // 发起网络请求,发送 res.code 到后台换取 openId
+            if (res.code) {
+              var code = res.code;
+              wx.request({
+                url: host + &#39;写自己后台用code换取OpenId的请求URL&#39;,
+                method: &#39;POST&#39;,
+                data: {
+                  code: code,
+                },
+                header: {
+                  &quot;Content-Type&quot;: &quot;application/x-www-form-urlencoded&quot;
+                },
+                success: (res) =&gt; {
+                  console.log(&quot;【获取用户openid成功】&quot;);
+                  console.log(&quot;【从后台获取到用户openid为】&quot; + res.data.data.openid)
+                  let openId = res.data.data.openid;
+                  wx.setStorage({
+                    key: &quot;openid&quot;,
+                    data: res.data.data.openid
+                  });
+                  console.log(&quot;【用户openid放入缓存成功】&quot;);
+                  that.isRegister();
+                }
+              })
+            }
+          }
+        })
+      },
+  },
+
+})</code></pre>
+<h2 id="java后台怎么通过code获取openid">3、java后台怎么通过code获取openId</h2>
+<pre><code><code>import net.sf.json.JSONObject;
+
+/**
+ * @author niqinhua
+ * @date 2019/3/8 9:19
+ */
+public class WXUtil {
+    public static JSONObject getOpenidAndSessionKey(String code) {
+        String url = &quot;https://api.weixin.qq.com/sns/jscode2session&quot;;
+        String param = &quot;appid=写自己的appId&amp;secret=写自己的密钥&amp;js_code=&quot; +
+                 code + &quot;&amp;grant_type=authorization_code&quot;;
+        String wxReturnResult = sendGet(url, param);
+        JSONObject wxReturnResultObject = JSONObject.fromObject(wxReturnResult);
+        return wxReturnResultObject;
+
+    }
+
+  /**
+     * 从规范上，建议把这个方法抽出来放到HttpUtil类里面
+     * 向指定URL发送GET方法的请求
+     * @param url 发送请求的URL
+     * @param param 请求参数，请求参数应该是 name1=value1&amp;name2=value2 的形式。
+     * @return URL 所代表远程资源的响应结果
+     */
+    public static String sendGet(String url, String param) {
+        String result = &quot;&quot;;
+        BufferedReader in = null;
+        try {
+            String urlNameString = url + &quot;?&quot; + param;
+            URL realUrl = new URL(urlNameString);
+            // 打开和URL之间的连接
+            URLConnection connection = realUrl.openConnection();
+            // 设置通用的请求属性
+            connection.setRequestProperty(&quot;accept&quot;, &quot;*/*&quot;);
+            connection.setRequestProperty(&quot;connection&quot;, &quot;Keep-Alive&quot;);
+            connection.setRequestProperty(&quot;user-agent&quot;, &quot;Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1;SV1)&quot;);
+            // 建立实际的连接
+            connection.connect();
+            // 定义 BufferedReader输入流来读取URL的响应
+            in = new BufferedReader(new InputStreamReader(
+                    connection.getInputStream()));
+            String line;
+            while ((line = in.readLine()) != null) {
+                result += line;
+            }
+        } catch (Exception e) {
+            System.out.println(&quot;【HTTP发送GET请求出现异常】:访问URL：&quot;+url+&quot;,错误：&quot;+e.getMessage());
+        }
+        // 使用finally块来关闭输入流
+        finally {
+            try {
+                if (in != null) {
+                    in.close();
+                }
+            } catch (Exception e2) {
+                System.out.println(&quot;【HTTP请求关闭输入流异常】:访问URL：&quot;+url+&quot;,错误：&quot;+e2.getMessage());
+            }
+        }
+        return result;
+    }
+
+}</code></pre>
+<p>上面只是工具类直接拿就行，真正业务逻辑要自己写，我只给出重点部分</p>
+<pre><code><code>JSONObject wxReturnJson = WXUtil.getOpenidAndSessionKey(code);
+if (wxReturnJson.get(&quot;errCode&quot;)!=null) {
+    //log.error(&quot;【获取用户的openid】【失败】【传递参数code无效】&quot;);
+} else {
+    //log.info(&quot;【获取用户的openid】【成功】【传递参数code无效】&quot;);
+}</code></pre>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

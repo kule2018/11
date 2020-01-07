@@ -1,0 +1,249 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修gulp使用详情 及 3.0到4.0的坑' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>gulp使用详情 及 3.0到4.0的坑</center></div><div class='banquan'>原文出处:本文由博客园博主徐小禹_web提供。<br/>
+原文连接:https://www.cnblogs.com/xuxiaoyu/p/11152980.html</div><br>
+    <h2>项目的所有依赖都可以安装，每个都有详细的注释。</h2>
+<div class="cnblogs_code">
+<pre><code>const gulp = require('gulp'<span style="color: #000000;">);
+const sass </span>= require('gulp-sass'<span style="color: #000000;">);
+const browserSync </span>= require("browser-sync").create(), <span style="color: #008000;">//</span><span style="color: #008000;">自动刷新</span>
+reload =<span style="color: #000000;"> browserSync.reload;
+const filter </span>= require('gulp-filter'<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> gulp-filter 包， 以确保只有 *.css 文件响应 .reload - 这样一来，</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> 您还是会得到CSS注入，而不是整个页面重载。</span>
+const useref = require('gulp-useref'); <span style="color: #008000;">//</span><span style="color: #008000;">合并JS</span>
+const uglify = require('gulp-uglify'); <span style="color: #008000;">//</span><span style="color: #008000;">js压缩</span>
+const minifyCSS = require('gulp-minify-css'); <span style="color: #008000;">//</span><span style="color: #008000;">压缩css</span>
+
+<span style="color: #0000ff;">var</span> gulpIf = require('gulp-if'<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">var</span> del = require('del'<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">var</span> runSequence = require('run-sequence');<span style="color: #008000;">//</span><span style="color: #008000;">组织任务执行顺序,未使用</span>
+
+<span style="color: #0000ff;">var</span> rename = require('gulp-rename');<span style="color: #008000;">//</span><span style="color: #008000;">重命名</span>
+
+<span style="color: #0000ff;">var</span> watch=require('gulp-watch');<span style="color: #008000;">//</span><span style="color: #008000;">监视</span>
+
+<span style="color: #0000ff;">var</span> minifyHtml = require("gulp-minify-html");<span style="color: #008000;">//</span><span style="color: #008000;">压缩html</span>
+
+<span style="color: #0000ff;">var</span> babel = require("gulp-babel"<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> npm install --save-dev gulp-babel@7 babel-core babel-preset-env</span>
+
+<span style="color: #0000ff;">var</span> jshint = require("gulp-jshint");<span style="color: #008000;">//</span><span style="color: #008000;">js检查</span>
+<span style="color: #0000ff;">var</span> imagemin = require('gulp-imagemin');<span style="color: #008000;">//</span><span style="color: #008000;">压缩图片文件</span>
+<span style="color: #0000ff;">var</span> pngquant = require('imagemin-pngquant'); <span style="color: #008000;">//</span><span style="color: #008000;">png图片压缩插件</span>
+<span style="color: #0000ff;">var</span> connect=require('gulp-connect');<span style="color: #008000;">//</span><span style="color: #008000;">引入gulp-connect模块 浏览器刷新</span>
+<span style="color: #0000ff;">var</span> cache = require('gulp-cache');<span style="color: #008000;">//</span><span style="color: #008000;">压缩图片可能会占用较长时间，使用 gulp-cache 插件可以减少重复压缩。</span>
+<span style="color: #0000ff;">var</span> RevAll = require("gulp-rev-all");<span style="color: #008000;">//</span><span style="color: #008000;">md5后缀</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('html',<span style="color: #0000ff;">function</span>(){<span style="color: #008000;">//</span><span style="color: #008000;">编译html</span>
+<span style="color: #0000ff;">return</span> gulp.src('app/*.html'<span style="color: #000000;">)
+.pipe(gulp.dest(</span>'app/dist'<span style="color: #000000;">))
+.pipe(connect.reload());
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('css',<span style="color: #0000ff;">function</span>(){<span style="color: #008000;">//</span><span style="color: #008000;">编译scss</span>
+<span style="color: #0000ff;">return</span> gulp.src('app/scss/**/*.scss'<span style="color: #000000;">)
+.pipe(sass())</span><span style="color: #008000;">//</span><span style="color: #008000;">编译scss</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> .pipe(gulp.dest('app/css')) //当前对应css文件</span>
+.pipe(gulp.dest('app/dist/css')) <span style="color: #008000;">//</span><span style="color: #008000;">当前对应css文件</span>
+.pipe(connect.reload());<span style="color: #008000;">//</span><span style="color: #008000;">更新</span>
+})</pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('js',<span style="color: #0000ff;">function</span>(){<span style="color: #008000;">//</span><span style="color: #008000;">编译ES6并且压缩</span>
+<span style="color: #0000ff;">return</span> gulp.src('app/js/**/*.js'<span style="color: #000000;">)
+.pipe(jshint())</span><span style="color: #008000;">//</span><span style="color: #008000;">检查代码</span>
+.pipe(babel({<span style="color: #008000;">//</span><span style="color: #008000;">编译ES6</span>
+presets: ['es2015'<span style="color: #000000;">]
+}))
+.pipe(uglify())</span><span style="color: #008000;">//</span><span style="color: #008000;">压缩js</span>
+.pipe(gulp.dest('app/dist/js'<span style="color: #000000;">))
+.pipe(connect.reload());
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('fonts', <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #0000ff;">return</span> gulp.src('app/fonts/**/*'<span style="color: #000000;">)
+.pipe(gulp.dest(</span>'app/dist/fonts'<span style="color: #000000;">))
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('images', <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+</span><span style="color: #0000ff;">return</span> gulp.src('app/images/**/*.+(png|jpg|jpeg|gif|svg)'<span style="color: #000000;">)
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> Caching images that ran through imagemin</span>
+.pipe(cache(imagemin({<span style="color: #008000;">//</span><span style="color: #008000;">压缩图片文件</span>
+interlaced: <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+})))
+.pipe(gulp.dest(</span>'dist/images'<span style="color: #000000;">))
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('clean:app/dist', <span style="color: #0000ff;">function</span>() {<span style="color: #008000;">//</span><span style="color: #008000;">删除之前生成的文件</span>
+<span style="color: #0000ff;">return</span> del(['app/dist'<span style="color: #000000;">]);
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('clean:dist', <span style="color: #0000ff;">function</span>() {<span style="color: #008000;">//</span><span style="color: #008000;">异步清理除dist目录图片以外的文件</span>
+<span style="color: #0000ff;">return</span> del(['app/dist/**/*', '!dist/images', '!dist/images/**/*'<span style="color: #000000;">]);
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('minFs', <span style="color: #0000ff;">function</span>() {<span style="color: #008000;">//</span><span style="color: #008000;">压缩文件</span>
+<span style="color: #0000ff;">return</span> gulp.src('app/dist/*.html'<span style="color: #000000;">)
+.pipe(useref())</span><span style="color: #008000;">//</span><span style="color: #008000;">合并js</span>
+<span style="color: #000000;">.pipe(
+gulpIf(</span>'*.js',uglify())<span style="color: #008000;">//</span><span style="color: #008000;">压缩js</span>
+<span style="color: #000000;">)
+.pipe(gulpIf(</span>'*.css', minifyCSS()))<span style="color: #008000;">//</span><span style="color: #008000;">压缩css</span>
+.pipe(RevAll.revision({<span style="color: #008000;">//</span><span style="color: #008000;">不被重命名</span>
+dontRenameFile:[/^\/favicon.ico$/g, ".html"<span style="color: #000000;">]
+})) 
+.pipe(gulp.dest(</span>'dist'<span style="color: #000000;">));
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('connect:app',<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+connect.server({
+root:</span>'app',<span style="color: #008000;">//</span><span style="color: #008000;">根目录</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> ip:'192.168.11.62',//默认localhost:8080</span>
+livereload:<span style="color: #0000ff;">true</span>,<span style="color: #008000;">//</span><span style="color: #008000;">自动更新</span>
+port:9998<span style="color: #008000;">//</span><span style="color: #008000;">端口</span>
+<span style="color: #000000;">})
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('connect:dist',<span style="color: #0000ff;">function</span><span style="color: #000000;">(cb){
+connect.server({
+root:</span>'app',<span style="color: #008000;">//</span><span style="color: #008000;">根目录</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> ip:'192.168.11.62',//默认localhost:8080</span>
+livereload:<span style="color: #0000ff;">true</span>,<span style="color: #008000;">//</span><span style="color: #008000;">自动更新</span>
+port:9999<span style="color: #008000;">//</span><span style="color: #008000;">端口</span>
+<span style="color: #000000;">})
+cb()</span><span style="color: #008000;">//</span><span style="color: #008000;">执行回调，表示这个异步任务已经完成，起通作用,这样会执行下个任务</span>
+})</pre>
+</div>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code>gulp.task('watchs',<span style="color: #0000ff;">function</span>(){<span style="color: #008000;">//</span><span style="color: #008000;">监听变化执行任务</span><span style="color: #008000;">
+//</span><span style="color: #008000;">当匹配任务变化才执行相应任务</span>
+gulp.watch('app/*.html',gulp.series('html'<span style="color: #000000;">));
+gulp.watch(</span>'app/scss/**/*.scss',gulp.series('css'<span style="color: #000000;">));
+gulp.watch(</span>'app/js/**/*.js',gulp.series('js'<span style="color: #000000;">));
+gulp.watch(</span>'app/fonts/**/*',gulp.series('fonts'<span style="color: #000000;">));
+gulp.watch(</span>'app/images/**/*',gulp.series('images'<span style="color: #000000;">));
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<blockquote>
+<p>//gulp.series|4.0 依赖顺序执行<br />//gulp.parallel|4.0 多个依赖嵌套'html','css','js'并行</p>
+
+
+
+
+</blockquote>
+<h2>下面1和2分别运行</h2>
+<h3>1.自动监测文件变化并刷新浏览器</h3>
+<p>//初始生成app/dist目录</p>
+<blockquote>
+<p>gulp.task('init',gulp.series('clean:app/dist',gulp.parallel('html','css','js','fonts','images')));</p>
+
+
+
+
+</blockquote>
+<p>//启动任务connect:app服务，并监控变化</p>
+<blockquote>
+<h3>gulp.task('run',gulp.series('init','connect:app','watchs'));</h3>
+
+
+
+
+</blockquote>
+<h3>2.生成打包文件</h3>
+<blockquote>
+<p>gulp.task('build',gulp.series('clean:dist',gulp.parallel('init'),'minFs'));</p>
+
+
+
+
+</blockquote>
+<p>//启动任务connect:dist服务，生成打包文件后，监控其变化</p>
+<blockquote>
+<p>gulp.task('serve',gulp.series('connect:dist','build','clean:app/dist','watchs'));</p>
+
+
+
+
+</blockquote>
+<p>&nbsp;</p>
+<h1><strong>3.0到4.0的坑</strong></h1>
+<p>AssertionError [ERR_ASSERTION]: Task never defined: getLanguageObj</p>
+<p><img src="./images/gulp使用详情 及 3.0到4.0的坑0.png" alt="" /></p>
+<p>任务一定需要先创建后使用，先后顺序需要调换。</p>
+<h2>使用gulp-each为什么只编译一个文件</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 对每一个JS文件进行处理</span>
+stream = stream.pipe(each(<span style="color: #0000ff;">function</span><span style="color: #000000;">(content, file, callback) {
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 获得JS文件全路径</span>
+<span style="color: #0000ff;">var</span> path = file.history[0<span style="color: #000000;">];
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 处理单个文件</span>
+<span style="color: #000000;">dealPath(path );
+callback(</span><span style="color: #0000ff;">null</span>,<span style="color: #0000ff;">null</span><span style="color: #000000;">);
+}));</span></pre>
+</div>
+<p>原有的编译不需要执行callback也可以执行，gulp-each升级后一定需要加上callback方法</p>
+<h2>gulp src设置base,修改存放路径</h2>
+<div class="cnblogs_code">
+<pre><code>gulp.src('websrc/**/*.js',{base:'websrc'}).pipe(gulp.dest('zh'));</pre>
+</div>
+<p>这样会将源目录下的websrc这层目录去掉，比如源目录"websrc/pages/common/index.js"会存放到目标目录下"zh/pages/common/index.js"</p>
+<h2>gulp watch方法的变动</h2>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> gulp3.0</span>
+gulp.watch(['websrc/**/*.html'], <span style="color: #0000ff;">function</span><span style="color: #000000;">(event) {
+event.type </span>= 'added'<span style="color: #008000;">//</span><span style="color: #008000;">或者changed、deleted</span><span style="color: #008000;">
+//</span><span style="color: #008000;">event.path 是文件的绝对路径</span>
+<span style="color: #000000;">}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> gulp4.0</span>
+gulp.watch(['websrc/**/*.html'].on('all', <span style="color: #0000ff;">function</span><span style="color: #000000;">(event, path, stats) {
+event</span>= 'add'<span style="color: #008000;">//</span><span style="color: #008000;">或者change、unlink</span><span style="color: #008000;">
+//</span><span style="color: #008000;">path 是文件的相对路径</span>
+})</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

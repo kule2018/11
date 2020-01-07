@@ -1,0 +1,218 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修实现简单的粒子连线' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>实现简单的粒子连线</center></div><div class='banquan'>原文出处:本文由博客园博主峰三提供。<br/>
+原文连接:https://www.cnblogs.com/-fzh/p/10632807.html</div><br>
+    <p>先看一看效果：</p>
+<p><img src="./images/实现简单的粒子连线0.png" alt="" /></p>
+<p>先分析粒子连线的实现步骤：</p>
+<p>1.初始化一张画布</p>
+<p>2.创建粒子</p>
+<p>　　1）创建粒子即在画布上画一个个小圆</p>
+<p>　　2）初始化粒子的属性：数量：num 300；半径：3；圆形为随机排列且满足：x:0&lt;x&lt;浏览器的宽度；y:0&lt;y&lt;浏览器的高度；</p>
+<p>3.粒子运动</p>
+<p>这里要理解粒子运动的本质并不是粒子在运动，而是不断地重新绘画粒子，擦除之前的粒子；</p>
+<p>4.粒子连线</p>
+<p>　　1）是否构成连线的条件</p>
+<p>　　2）构成条件的粒子之间连接成线</p>
+<p>（接下来说一下一些步骤的实现，没按标准格式，文末有源码！）</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>先初始化一张画布</p>
+<p>&nbsp;<span class="cnblogs_code"><span style="color: #008080;">1</span> &lt;canvas id="canvas"&gt;&lt;/canvas&gt;</span>&nbsp;　</p>
+<p>设置一下样式</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">body{
+</span><span style="color: #008080;">2</span>     margin:0<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">#canvas{
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    display: block;
+</span><span style="color: #008080;">6</span>     background-<span style="color: #000000;">color: black;
+</span><span style="color: #008080;">7</span> }</pre>
+</div>
+<p>具体的画布大小我们在js代码中实现</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> cxt=document.getElementById("canvas").getContext('2d'<span style="color: #000000;">);//创建画笔
+</span><span style="color: #008080;">2</span> <span style="color: #0000ff;">var</span> canvas=document.getElementById("canvas"<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> canvas.width=<span style="color: #000000;">window.innerWidth;//设置画布宽高
+</span><span style="color: #008080;">4</span> canvas.height=window.innerHeight;</pre>
+</div>
+<p>粒子的属性</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> num=300<span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">var</span> data=[];<span style="color: #008000;">//</span><span style="color: #008000;">储存粒子的属性数据</span>
+<span style="color: #008080;"> 3</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> init(){
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;num;i++<span style="color: #000000;">){
+</span><span style="color: #008080;"> 5</span>         data[i]=<span style="color: #000000;">{
+</span><span style="color: #008080;"> 6</span>             x1: Math.random() *<span style="color: #000000;"> window.innerWidth,//随机的粒子圆心坐标
+</span><span style="color: #008080;"> 7</span>             y1: Math.random() *<span style="color: #000000;"> window.innerHeight,
+</span><span style="color: #008080;"> 8</span>             sX: Math.random() * 0.6 - 0.3,<span style="color: #008000;">//</span><span style="color: #008000;">取值范围0.3-0.3，是粒子运动的偏移量</span>
+<span style="color: #008080;"> 9</span>             sY: Math.random() * 0.6 - 0.3
+<span style="color: #008080;">10</span> <span style="color: #000000;">            };
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">            createArc(data[i].x1,data[i].y1);//调用创建粒子的函数
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">     }
+</span><span style="color: #008080;">14</span> init();    </pre>
+</div>
+<p>创建粒子的函数</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> createArc(x,y){
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">                cxt.save();
+</span><span style="color: #008080;">3</span> <span style="color: #000000;">                cxt.beginPath();
+</span><span style="color: #008080;">4</span>                 cxt.fillStyle='greenyellow'<span style="color: #000000;">;//粒子的颜色
+</span><span style="color: #008080;">5</span>                 cxt.arc(x,y,2,0,Math.PI*2,<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">6</span> <span style="color: #000000;">                cxt.closePath();
+</span><span style="color: #008080;">7</span> <span style="color: #000000;">                cxt.fill();
+</span><span style="color: #008080;">8</span> <span style="color: #000000;">                cxt.restore();
+</span><span style="color: #008080;">9</span>             }</pre>
+</div>
+<p>粒子运动</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> drawPath(){
+</span><span style="color: #008080;"> 2</span>       cxt.clearRect(0,0,window.innerWidth,window.innerHeight);<span style="color: #008000;">//</span><span style="color: #008000;">先清除之前的圆</span>
+<span style="color: #008080;"> 3</span>       <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;num;i++<span style="color: #000000;">){
+</span><span style="color: #008080;"> 4</span>            data[i].x1+=<span style="color: #000000;">data[i].sX;
+</span><span style="color: #008080;"> 5</span>            data[i].y1+=<span style="color: #000000;">data[i].sY;
+</span><span style="color: #008080;"> 6</span>            <span style="color: #008000;">//</span><span style="color: #008000;">边界值检测，如果坐标跑出窗口则坐标的偏移量变为负使得它反向</span>
+<span style="color: #008080;"> 7</span>            <span style="color: #0000ff;">if</span>(data[i].x1&lt;0||data[i].x1&gt;window.innerWidth) data[i].sX=-<span style="color: #000000;">data[i].sX;
+</span><span style="color: #008080;"> 8</span>            <span style="color: #0000ff;">if</span>(data[i].y1&lt;0||data[i].y1&gt;window.innerHeight) data[i].sY=-<span style="color: #000000;">data[i].sY;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">           createArc(data[i].x1,data[i].y1);
+</span><span style="color: #008080;">10</span>           <span style="color: #008000;">//</span><span style="color: #008000;">利用勾股定理判断是否连线，如果两点之间的距离小于某一值则调用createLine函数创建线条</span>
+<span style="color: #008080;">11</span>            <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> j=i+1;j&lt;num;j++){<span style="color: #008000;">//</span><span style="color: #008000;">下一个点/下下一个点...</span>
+<span style="color: #008080;">12</span>                 <span style="color: #0000ff;">if</span>(Math.pow(data[i].x1-data[j].x1,2)+Math.pow(data[i].y1-data[j].y1,2)&lt;100*80<span style="color: #000000;">)createLine(data[i].x1,data[i].y1,data[j].x1,data[j].y1);    
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">           }
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">   }
+</span><span style="color: #008080;">16</span> setInterval(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){   //利用定时器，没1毫秒调用一次该函数，使得粒子不断地擦除旧圆绘画新圆
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">    drawPath()</span>},1);</pre>
+</div>
+<p>以下是创建线条地<span style="color: #000000;">createLine函数</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> createLine(x1,y1,x2,y2){
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    cxt.save();
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> lin=<span style="color: #000000;">cxt.createLinearGradient(x1,y1,x2,y2);
+</span><span style="color: #008080;"> 4</span>     lin.addColorStop(0,'blue'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 5</span>     lin.addColorStop(1,'green'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 6</span>         cxt.lineWidth=1.5<span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>     cxt.strokeStyle=<span style="color: #000000;">lin;
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">    cxt.beginPath();
+</span><span style="color: #008080;"> 9</span>     <span style="color: #008000;">//</span><span style="color: #008000;">连线</span>
+<span style="color: #008080;">10</span> <span style="color: #000000;">    cxt.moveTo(x1,y1);
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    cxt.closePath();
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    cxt.lineTo(x2,y2);
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    cxt.stroke();
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    cxt.restore();
+</span><span style="color: #008080;">15</span> }    </pre>
+</div>
+<p>至此代码就结束了，以下是源码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> &lt;!DOCTYPE html&gt;
+<span style="color: #008080;"> 2</span> &lt;html&gt;
+<span style="color: #008080;"> 3</span>     &lt;head&gt;
+<span style="color: #008080;"> 4</span>         &lt;meta charset="utf-8"&gt;
+<span style="color: #008080;"> 5</span>         &lt;title&gt;粒子连线&lt;/title&gt;
+<span style="color: #008080;"> 6</span>         &lt;style&gt;
+<span style="color: #008080;"> 7</span> <span style="color: #000000;">            body{
+</span><span style="color: #008080;"> 8</span>                 margin:0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            #canvas{
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">                display: block;
+</span><span style="color: #008080;">12</span>                 background-<span style="color: #000000;">color: black;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">14</span>         &lt;/style&gt;
+<span style="color: #008080;">15</span>     &lt;/head&gt;
+<span style="color: #008080;">16</span>         &lt;canvas id="canvas"&gt;&lt;/canvas&gt;
+<span style="color: #008080;">17</span>         &lt;script&gt;
+<span style="color: #008080;">18</span>             <span style="color: #008000;">//</span><span style="color: #008000;">初始化画布属性</span>
+<span style="color: #008080;">19</span>             <span style="color: #0000ff;">var</span> cxt=document.getElementById("canvas").getContext('2d'<span style="color: #000000;">);
+</span><span style="color: #008080;">20</span>             <span style="color: #0000ff;">var</span> canvas=document.getElementById("canvas"<span style="color: #000000;">);
+</span><span style="color: #008080;">21</span>             canvas.width=<span style="color: #000000;">window.innerWidth;
+</span><span style="color: #008080;">22</span>             canvas.height=<span style="color: #000000;">window.innerHeight;
+</span><span style="color: #008080;">23</span>             <span style="color: #0000ff;">var</span> num=300<span style="color: #000000;">;
+</span><span style="color: #008080;">24</span>             <span style="color: #0000ff;">var</span> data=[];<span style="color: #008000;">//</span><span style="color: #008000;">储存粒子的属性数据</span>
+<span style="color: #008080;">25</span>             <span style="color: #0000ff;">function</span><span style="color: #000000;"> init(){
+</span><span style="color: #008080;">26</span>                 <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;num;i++<span style="color: #000000;">){
+</span><span style="color: #008080;">27</span>                     data[i]=<span style="color: #000000;">{
+</span><span style="color: #008080;">28</span>                         x1: Math.random() *<span style="color: #000000;"> window.innerWidth,
+</span><span style="color: #008080;">29</span>                         y1: Math.random() *<span style="color: #000000;"> window.innerHeight,
+</span><span style="color: #008080;">30</span>                         sX: Math.random() * 0.6 - 0.3,<span style="color: #008000;">//</span><span style="color: #008000;">取值范围0.3-0.3</span>
+<span style="color: #008080;">31</span>                         sY: Math.random() * 0.6 - 0.3
+<span style="color: #008080;">32</span> <span style="color: #000000;">                    };
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">                    createArc(data[i].x1,data[i].y1);
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">            init();
+</span><span style="color: #008080;">37</span>             
+<span style="color: #008080;">38</span>             <span style="color: #008000;">//</span><span style="color: #008000;">创建粒子</span>
+<span style="color: #008080;">39</span>             <span style="color: #0000ff;">function</span><span style="color: #000000;"> createArc(x,y){
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">                cxt.save();
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">                cxt.beginPath();
+</span><span style="color: #008080;">42</span>                 cxt.fillStyle='greenyellow'<span style="color: #000000;">;
+</span><span style="color: #008080;">43</span>                 cxt.arc(x,y,2,0,Math.PI*2,<span style="color: #0000ff;">false</span><span style="color: #000000;">);
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">                cxt.closePath();
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">                cxt.fill();
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">                cxt.restore();
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">48</span>             
+<span style="color: #008080;">49</span>             <span style="color: #008000;">//</span><span style="color: #008000;">创建线条</span>
+<span style="color: #008080;">50</span>             <span style="color: #0000ff;">function</span><span style="color: #000000;"> createLine(x1,y1,x2,y2){
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">                cxt.save();
+</span><span style="color: #008080;">52</span>                 <span style="color: #0000ff;">var</span> lin=<span style="color: #000000;">cxt.createLinearGradient(x1,y1,x2,y2);
+</span><span style="color: #008080;">53</span>                 lin.addColorStop(0,'blue'<span style="color: #000000;">);
+</span><span style="color: #008080;">54</span>                 lin.addColorStop(1,'green'<span style="color: #000000;">);
+</span><span style="color: #008080;">55</span>                 cxt.lineWidth=1.5<span style="color: #000000;">;
+</span><span style="color: #008080;">56</span>                 cxt.strokeStyle=<span style="color: #000000;">lin;
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">                cxt.beginPath();
+</span><span style="color: #008080;">58</span>                 <span style="color: #008000;">//</span><span style="color: #008000;">连线</span>
+<span style="color: #008080;">59</span> <span style="color: #000000;">                cxt.moveTo(x1,y1);
+</span><span style="color: #008080;">60</span> <span style="color: #000000;">                cxt.closePath();
+</span><span style="color: #008080;">61</span> <span style="color: #000000;">                cxt.lineTo(x2,y2);
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">                cxt.stroke();
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">                cxt.restore();
+</span><span style="color: #008080;">64</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">65</span>             
+<span style="color: #008080;">66</span>             <span style="color: #008000;">//</span><span style="color: #008000;">粒子运动</span>
+<span style="color: #008080;">67</span>             <span style="color: #0000ff;">function</span><span style="color: #000000;"> drawPath(){
+</span><span style="color: #008080;">68</span>                 cxt.clearRect(0,0,window.innerWidth,window.innerHeight);<span style="color: #008000;">//</span><span style="color: #008000;">先清除之前的圆</span>
+<span style="color: #008080;">69</span>                 <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=0;i&lt;num;i++<span style="color: #000000;">){
+</span><span style="color: #008080;">70</span>                     data[i].x1+=<span style="color: #000000;">data[i].sX;
+</span><span style="color: #008080;">71</span>                     data[i].y1+=<span style="color: #000000;">data[i].sY;
+</span><span style="color: #008080;">72</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">边界值检测</span>
+<span style="color: #008080;">73</span>                     <span style="color: #0000ff;">if</span>(data[i].x1&lt;0||data[i].x1&gt;window.innerWidth) data[i].sX=-<span style="color: #000000;">data[i].sX;
+</span><span style="color: #008080;">74</span>                     <span style="color: #0000ff;">if</span>(data[i].y1&lt;0||data[i].y1&gt;window.innerHeight) data[i].sY=-<span style="color: #000000;">data[i].sY;
+</span><span style="color: #008080;">75</span> <span style="color: #000000;">                    createArc(data[i].x1,data[i].y1);
+</span><span style="color: #008080;">76</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">利用勾股定理判断是否连线</span>
+<span style="color: #008080;">77</span>                     <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> j=i+1;j&lt;num;j++){<span style="color: #008000;">//</span><span style="color: #008000;">下一个点/下下一个点...</span>
+<span style="color: #008080;">78</span>                         <span style="color: #0000ff;">if</span>(Math.pow(data[i].x1-data[j].x1,2)+Math.pow(data[i].y1-data[j].y1,2)&lt;100*80<span style="color: #000000;">)createLine(data[i].x1,data[i].y1,data[j].x1,data[j].y1);    
+</span><span style="color: #008080;">79</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">80</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">81</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">82</span>             setInterval(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">83</span> <span style="color: #000000;">                drawPath()
+</span><span style="color: #008080;">84</span>             },1<span style="color: #000000;">);
+</span><span style="color: #008080;">85</span>         &lt;/script&gt;
+<span style="color: #008080;">86</span>     &lt;body&gt;
+<span style="color: #008080;">87</span>     &lt;/body&gt;
+<span style="color: #008080;">88</span> &lt;/html&gt;</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

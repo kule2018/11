@@ -1,0 +1,767 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript数据结构——图的实现' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript数据结构——图的实现</center></div><div class='banquan'>原文出处:本文由博客园博主Jaxu提供。<br/>
+原文连接:https://www.cnblogs.com/jaxu/p/11338294.html</div><br>
+    <p>　　在计算机科学中，图是一种网络结构的抽象模型，它是一组由边连接的顶点组成。一个图<em>G = (V, E)</em>由以下元素组成：</p>
+<ul>
+<li>V：一组顶点</li>
+<li>E：一组边，连接V中的顶点</li>
+</ul>
+<p>　　下图表示了一个图的结构：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现0.png" alt="" width="416" height="288" /></p>
+<p>　　在介绍如何用JavaScript实现图之前，我们先介绍一些和图相关的术语。</p>
+<p>　　如上图所示，由一条边连接在一起的顶点称为<strong>相邻顶点</strong>，A和B是相邻顶点，A和D是相邻顶点，A和C是相邻顶点......A和E是不相邻顶点。一个顶点的<strong>度</strong>是其相邻顶点的数量，A和其它三个顶点相连，所以A的度为3，E和其它两个顶点相连，所以E的度为2......<strong>路径</strong>是一组相邻顶点的连续序列，如上图中包含路径ABEI、路径ACDG、路径ABE、路径ACDH等。<strong>简单路径</strong>要求路径中不包含有重复的顶点，如果将<strong>环</strong>的最后一个顶点去掉，它也是一个简单路径。例如路径ADCA是一个环，它不是一个简单路径，如果将路径中的最后一个顶点A去掉，那么它就是一个简单路径。如果图中不存在环，则称该图是<strong>无环的</strong>。如果图中任何两个顶点间都存在路径，则该图是<strong>连通的</strong>，如上图就是一个连通图。如果图的边没有方向，则该图是<strong>无向图</strong>，上图所示为无向图，反之则称为<strong>有向图</strong>，下图所示为有向图：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现1.png" alt="" width="405" height="278" /></p>
+<p>　　在有向图中，如果两个顶点间在双向上都存在路径，则称这两个顶点是<strong>强连通</strong>的，如上图中C和D是强连通的，而A和B是非强连通的。如果有向图中的任何两个顶点间在双向上都存在路径，则该有向图是<strong>强连通的</strong>，非强连通的图也称为<strong>稀疏图</strong>。</p>
+<p>　　此外，图还可以是<strong>加权的</strong>。前面我们看到的图都是<strong>未加权的</strong>，下图为一个加权的图：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现2.png" alt="" width="402" height="280" /></p>
+<p>　　可以想象一下，前面我们介绍的<a href="https://www.cnblogs.com/jaxu/p/11309385.html" target="_blank">树</a>和<a href="https://www.cnblogs.com/jaxu/p/11277732.html" target="_blank">链表</a>也属于图的一种特殊形式。图在计算机科学中的应用十分广泛，例如我们可以搜索图中的一个特定顶点或一条特定的边，或者寻找两个顶点间的路径以及最短路径，检测图中是否存在环等等。</p>
+<p>　　存在多种不同的方式来实现图的数据结构，下面介绍几种常用的方式。</p>
+<h3>邻接矩阵</h3>
+<p>　　在邻接矩阵中，我们用一个二维数组来表示图中顶点之间的连接，如果两个顶点之间存在连接，则这两个顶点对应的二维数组下标的元素的值为1，否则为0。下图是用邻接矩阵方式表示的图：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现3.png" alt="" width="583" height="316" /></p>
+<p>　　如果是加权的图，我们可以将邻接矩阵中二维数组里的值1改成对应的加权数。邻接矩阵方式存在一个缺点，如果图是非强连通的，则二维数组中会有很多的0，这表示我们使用了很多的存储空间来表示根本不存在的边。另一个缺点就是当图的顶点发生改变时，对于二维数组的修改会变得不太灵活。</p>
+<h3>邻接表</h3>
+<p>　　图的另外一种实现方式是邻接表，它是对邻接矩阵的一种改进。邻接表由图中每个顶点的相邻顶点列表所组成。如下图所示，我们可以用数组、链表、字典或散列表来表示邻接表。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现4.png" alt="" width="553" height="313" /></p>
+<h3>关联矩阵</h3>
+<p>　　我们还可以用关联矩阵来表示图。在关联矩阵中，矩阵的行表示顶点，列表示边。关联矩阵通常用于边的数量比顶点多的情况下，以节省存储空间。如下图所示为关联矩阵方式表示的图：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现5.png" alt="" width="618" height="299" /></p>
+<p>　　下面我们重点看下如何用邻接表的方式表示图。我们的Graph类的骨架如下，它用邻接表方式来实现无向图：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class Graph {
+    constructor () {
+        </span><span style="color: #0000ff;">this</span>.vertices = []; <span style="color: #008000;">//</span><span style="color: #008000;"> 用来存放图中的顶点</span>
+        <span style="color: #0000ff;">this</span>.adjList = <span style="color: #0000ff;">new</span> Dictionary(); <span style="color: #008000;">//</span><span style="color: #008000;"> 用来存放图中的边</span>
+<span style="color: #000000;">    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 向图中添加一个新顶点</span>
+<span style="color: #000000;">    addVertex (v) {}
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 向图中添加a和b两个顶点之间的边</span>
+<span style="color: #000000;">    addEdge (a, b) {}
+}</span></pre>
+</div>
+<p>　　在Graph类中，我们用数组vertices来保存图中的所有顶点，用字典（请参考<a href="https://www.cnblogs.com/jaxu/p/11302315.html" target="_blank">《JavaScript数据结构&mdash;&mdash;字典和散列表的实现》</a>一文中的Dictionary类）adjList来保存图中每一个顶点到相邻顶点的关系列表，在字典中，顶点被作为键值。请参考前面我们给出的邻接表的示意图。然后在Graph类中，我们提供两个方法，方法addVertex()用来向图中添加一个新顶点，方法addEdge()用来向图中添加给定的顶点a和顶点b之间的边。让我们来看下这两个方法的实现。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">addVertex (v) {
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.vertices.includes(v)) {
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.vertices.push(v);
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList.set(v, []);
+    }
+}</span></pre>
+</div>
+<p>　　要添加一个新顶点，首先要判断该顶点在图中是否已经存在了，如果已经存在则不能添加。如果不存在，就在vertices数组中添加一个新元素，然后在字典adjList中添加一个以该顶点作为key的新元素，值为空数组。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">addEdge (a, b) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果图中没有顶点a，先添加顶点a</span>
+    <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList.has(a)) {
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.addVertex(a);
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果图中没有顶点b，先添加顶点b</span>
+    <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList.has(b)) {
+        </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.addVertex(b);
+    }
+
+    </span><span style="color: #0000ff;">this</span>.adjList.get(a).push(b); <span style="color: #008000;">//</span><span style="color: #008000;"> 在顶点a中添加指向顶点b的边</span>
+    <span style="color: #0000ff;">this</span>.adjList.get(b).push(a); <span style="color: #008000;">//</span><span style="color: #008000;"> 在顶点b中添加指向顶点a的边</span>
+}</pre>
+</div>
+<p>　　addEdge()方法也很简单，首先要确保给定的两个顶点a和b在图中必须存在，如果不存在，则调用addVertex()方法进行添加，然后分别在字典中找到键值为顶点a和键值为顶点b的元素，在对应的值中添加一个新元素。<br />　　下面是Graph类的完整代码，其中的toString()方法是为了我们测试用的，它的存在不是必须的。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('ea4c10a4-e30b-4613-8c72-1f9b30351eb6')"><img id="code_img_closed_ea4c10a4-e30b-4613-8c72-1f9b30351eb6" class="code_img_closed" src="./images/JavaScript数据结构——图的实现6.png" alt="" /><img id="code_img_opened_ea4c10a4-e30b-4613-8c72-1f9b30351eb6" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('ea4c10a4-e30b-4613-8c72-1f9b30351eb6',event)" src="./images/JavaScript数据结构——图的实现7.png" alt="" />
+<div id="cnblogs_code_open_ea4c10a4-e30b-4613-8c72-1f9b30351eb6" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">class Graph {
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    constructor () {
+</span><span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">this</span>.vertices = []; <span style="color: #008000;">//</span><span style="color: #008000;"> 用来存放图中的顶点</span>
+<span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">this</span>.adjList = <span style="color: #0000ff;">new</span> Dictionary(); <span style="color: #008000;">//</span><span style="color: #008000;"> 用来存放图中的边</span>
+<span style="color: #008080;"> 5</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 向图中添加一个新顶点</span>
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">    addVertex (v) {
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.vertices.includes(v)) {
+</span><span style="color: #008080;">10</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.vertices.push(v);
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList.set(v, []);
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">14</span> 
+<span style="color: #008080;">15</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 向图中添加a和b两个顶点之间的边</span>
+<span style="color: #008080;">16</span> <span style="color: #000000;">    addEdge (a, b) {
+</span><span style="color: #008080;">17</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 如果图中没有顶点a，先添加顶点a</span>
+<span style="color: #008080;">18</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList.has(a)) {
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addVertex(a);
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">21</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 如果图中没有顶点b，先添加顶点b</span>
+<span style="color: #008080;">22</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList.has(b)) {
+</span><span style="color: #008080;">23</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addVertex(b);
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">25</span> 
+<span style="color: #008080;">26</span>         <span style="color: #0000ff;">this</span>.adjList.get(a).push(b); <span style="color: #008000;">//</span><span style="color: #008000;"> 在顶点a中添加指向顶点b的边</span>
+<span style="color: #008080;">27</span>         <span style="color: #0000ff;">this</span>.adjList.get(b).push(a); <span style="color: #008000;">//</span><span style="color: #008000;"> 在顶点b中添加指向顶点a的边</span>
+<span style="color: #008080;">28</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">29</span> 
+<span style="color: #008080;">30</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 获取图的vertices</span>
+<span style="color: #008080;">31</span> <span style="color: #000000;">    getVertices () {
+</span><span style="color: #008080;">32</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.vertices;
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">34</span> 
+<span style="color: #008080;">35</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 获取图中的adjList</span>
+<span style="color: #008080;">36</span> <span style="color: #000000;">    getAdjList () {
+</span><span style="color: #008080;">37</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList;
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">39</span> 
+<span style="color: #008080;">40</span> <span style="color: #000000;">    toString() {
+</span><span style="color: #008080;">41</span>         let s = ''<span style="color: #000000;">;
+</span><span style="color: #008080;">42</span>         <span style="color: #0000ff;">this</span>.vertices.forEach((v) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">43</span>             s += `${v} -&gt;<span style="color: #000000;"> `;
+</span><span style="color: #008080;">44</span>             <span style="color: #0000ff;">this</span>.adjList.get(v).forEach((n) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">45</span>                 s +=<span style="color: #000000;"> `${n} `;
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">47</span>             s += '\n'<span style="color: #000000;">;
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">49</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> s;
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">51</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">Graph</span></div>
+<p>　　对于本文一开始给出的图，我们添加下面的测试用例：</p>
+<div class="cnblogs_code">
+<pre><code>let graph = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Graph();
+let myVertices </span>= ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'<span style="color: #000000;">];
+myVertices.forEach((v) </span>=&gt;<span style="color: #000000;"> {
+    graph.addVertex(v);
+});
+graph.addEdge(</span>'A', 'B'<span style="color: #000000;">);
+graph.addEdge(</span>'A', 'C'<span style="color: #000000;">);
+graph.addEdge(</span>'A', 'D'<span style="color: #000000;">);
+graph.addEdge(</span>'C', 'D'<span style="color: #000000;">);
+graph.addEdge(</span>'C', 'G'<span style="color: #000000;">);
+graph.addEdge(</span>'D', 'G'<span style="color: #000000;">);
+graph.addEdge(</span>'D', 'H'<span style="color: #000000;">);
+graph.addEdge(</span>'B', 'E'<span style="color: #000000;">);
+graph.addEdge(</span>'B', 'F'<span style="color: #000000;">);
+graph.addEdge(</span>'E', 'I'<span style="color: #000000;">);
+
+console.log(graph.toString());</span></pre>
+</div>
+<p>　　下面是测试结果：</p>
+<div class="cnblogs_code">
+<pre><code>A -&gt;<span style="color: #000000;"> B C D 
+B </span>-&gt;<span style="color: #000000;"> A E F 
+C </span>-&gt;<span style="color: #000000;"> A D G 
+D </span>-&gt;<span style="color: #000000;"> A C G H 
+E </span>-&gt;<span style="color: #000000;"> B I 
+F </span>-&gt;<span style="color: #000000;"> B 
+G </span>-&gt;<span style="color: #000000;"> C D 
+H </span>-&gt;<span style="color: #000000;"> D 
+I </span>-&gt; E </pre>
+</div>
+<p>　　可以看到，与示意图是相符合的。</p>
+<p>　　和<a href="https://www.cnblogs.com/jaxu/p/11309385.html" target="_blank">树</a>类似，我们也可以对图进行遍历，以访问图中的所有顶点。图的遍历方式分为两种：<strong>广度优先</strong>（Breadth-First Search，BFS）和<strong>深度优先</strong>（Depth-First Search，DFS）。对图的遍历可以用来寻找特定的顶点或两个顶点之间的最短路径，以及检查图是否连通、图中是否含有环等。</p>
+<table style="margin-left: auto; margin-right: auto;" border="1" cellspacing="0">
+<tbody>
+<tr>
+<td style="text-align: center;"><strong>算法</strong></td>
+<td style="text-align: center;"><strong>数据结构</strong></td>
+<td style="text-align: center;"><strong>描述</strong></td>
+</tr>
+<tr>
+<td>深度优先</td>
+<td>栈</td>
+<td>将图的顶点存入栈中（有关栈的介绍可以参考<a href="https://www.cnblogs.com/jaxu/p/11264017.html" target="_blank">《JavaScript数据结构&mdash;&mdash;栈的实现与应用》</a>），顶点是沿着路径被探索的，存在新的相邻顶点就去访问。</td>
+</tr>
+<tr>
+<td>广度优先</td>
+<td>队列</td>
+<td>将图的顶点存入队列中（有关队列的介绍可以参考<a href="https://www.cnblogs.com/jaxu/p/11268862.html" target="_blank">《JavaScript数据结构&mdash;&mdash;队列的实现与应用》</a>），最先入队列的顶点先被探索。</td>
+</tr>
+</tbody>
+</table>
+<p>　　在接下来要实现的算法中，我们按照如下的约定对图中的顶点进行遍历，每个顶点最多访问两次：</p>
+<ul>
+<li>白色：表示该顶点未被访问。</li>
+<li>灰色：表示该顶点被访问过，但未被探索。</li>
+<li>黑色：表示该顶点被访问并且被探索过。</li>
+</ul>
+<h3>广度优先</h3>
+<p>　　广度优先算法会从指定的第一个顶点开始遍历图，先访问这个顶点的所有相邻顶点，然后再访问这些相邻顶点的相邻顶点，以此类推。最终，广度优先算法会先广后深地访问图中的所有顶点。下面是广度优先遍历的示意图：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现8.png" alt="" width="402" height="437" /></p>
+<p>　　由于我们采用邻接表的方式来存储图的数据，对于图的每个顶点，都有一个字典与之对应，字典的键值为顶点的值，字典的内容为与该顶点相邻的顶点列表。基于这种数据结构，我们可以考虑将所有顶点的邻接顶点存入队列，然后依次处理队列中的顶点。下面是具体的遍历步骤：</p>
+<ol>
+<li>将开始顶点存入队列。</li>
+<li>遍历开始顶点的所有邻接顶点，如果这些邻接顶点没有被访问过（颜色为白色），则将它们标记为被访问（颜色为灰色），然后加入队列。</li>
+<li>将开始顶点标记为被处理（颜色为黑色）。</li>
+<li>循环处理队列中的顶点，直到队列为空。</li>
+</ol>
+<p>　　下面是该算法的具体实现：</p>
+<div class="cnblogs_code">
+<pre><code>let Colors =<span style="color: #000000;"> {
+    WHITE: </span>0<span style="color: #000000;">,
+    GREY: </span>1<span style="color: #000000;">,
+    BLACK: </span>2<span style="color: #000000;">
+};
+
+let initializeColor </span>= vertices =&gt;<span style="color: #000000;"> {
+    let color </span>=<span style="color: #000000;"> {};
+    vertices.forEach(v </span>=&gt; color[v] =<span style="color: #000000;"> Colors.WHITE);
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> color;
+};
+
+let breadthFirstSearch </span>= (graph, startVertex, callback) =&gt;<span style="color: #000000;"> {
+    let vertices </span>=<span style="color: #000000;"> graph.getVertices();
+    let adjList </span>=<span style="color: #000000;"> graph.getAdjList();
+    let color </span>=<span style="color: #000000;"> initializeColor(vertices);
+    let queue </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Queue();
+
+    queue.enqueue(startVertex);
+
+    </span><span style="color: #0000ff;">while</span> (!<span style="color: #000000;">queue.isEmpty()) {
+        let u </span>=<span style="color: #000000;"> queue.dequeue();
+        adjList.get(u).forEach(n </span>=&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">if</span> (color[n] ===<span style="color: #000000;"> Colors.WHITE) {
+                color[n] </span>=<span style="color: #000000;"> Colors.GREY;
+                queue.enqueue(n);
+            }
+        });
+
+
+        color[u] </span>=<span style="color: #000000;"> Colors.BLACK;
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (callback) callback(u);
+    }
+};</span></pre>
+</div>
+<p>　　breadthFirstSearch()方法接收一个graph对象，图的数据通过该对象传入。参数startVertex指定了遍历的起始顶点。回调函数callback规定了要如何处理被遍历到的顶点。</p>
+<p>　　首先通过initializeColor()函数将所有的顶点标记为未被访问过（颜色为白色），这些颜色保存在以顶点值为key的color对象中。图的vertices和adjList属性可以通过getVertices()和getAdjList()方法得到，然后构造一个队列queue（有关队列类Queue请参考<a href="https://www.cnblogs.com/jaxu/p/11268862.html" target="_blank">《JavaScript数据结构&mdash;&mdash;队列的实现与应用》</a>），按照上面描述的步骤对图的顶点进行遍历。</p>
+<p>　　在前面我们给出的测试用例的基础上，添加下面的代码，来看看breadthFirstSearch()方法的执行结果：</p>
+<div class="cnblogs_code">
+<pre><code>breadthFirstSearch(graph, 'A', value =&gt; console.log(`visited vertex: ${value}`));</pre>
+</div>
+<p>　　参数graph为前面测试用例中Graph类的实例，也就是我们用来保存图的数据的对象，'A'被作为遍历的起始顶点，在回调函数中，打印一行文本，用来展示顶点被遍历的顺序。下面是测试结果：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">visited vertex: A
+visited vertex: B
+visited vertex: C
+visited vertex: D
+visited vertex: E
+visited vertex: F
+visited vertex: G
+visited vertex: H
+visited vertex: I</span></pre>
+</div>
+<p>　　尝试将'I'作为起始顶点，看看执行结果：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">visited vertex: I
+visited vertex: E
+visited vertex: B
+visited vertex: A
+visited vertex: F
+visited vertex: C
+visited vertex: D
+visited vertex: G
+visited vertex: H</span></pre>
+</div>
+<p>　　为了方便理解，我们将顶点I放到最上面。从顶点I开始，首先遍历到的是它的相邻顶点E，然后是E的相邻顶点B，其次是B的相邻顶点A和F，A的相邻顶点C和D，C的相邻顶点G（D已经被遍历过了），最后是D的相邻顶点H（C和G已经被遍历过了）。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现9.png" alt="" width="384" height="278" /></p>
+<h4>寻找最短路径</h4>
+<p>　　前面展示了广度优先算法的工作原理，我们可以使用它做更多的事情，例如在一个图G中，从顶点v开始到其它所有顶点间的最短距离。我们考虑一下如何用BFS来实现寻找最短路径。</p>
+<p>　　假设两个相邻顶点间的距离为1，从顶点v开始，在其路径上每经过一个顶点，距离加1。下面是对breadthFirstSearch()方法的改进，用来返回从起始顶点开始到其它所有顶点间的距离，以及所有顶点的前置顶点。</p>
+<div class="cnblogs_code">
+<pre><code>let BFS = (graph, startVertex) =&gt;<span style="color: #000000;"> {
+    let vertices </span>=<span style="color: #000000;"> graph.getVertices();
+    let adjList </span>=<span style="color: #000000;"> graph.getAdjList();
+    let color </span>=<span style="color: #000000;"> initializeColor(vertices);
+    let queue </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Queue();
+    let distances </span>=<span style="color: #000000;"> {};
+    let predecessors </span>=<span style="color: #000000;"> {};
+
+    queue.enqueue(startVertex);
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化所有顶点的距离为0，前置节点为null</span>
+    vertices.forEach(v =&gt;<span style="color: #000000;"> {
+        distances[v] </span>= 0<span style="color: #000000;">;
+        predecessors[v] </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    });
+
+    </span><span style="color: #0000ff;">while</span> (!<span style="color: #000000;">queue.isEmpty()) {
+        let u </span>=<span style="color: #000000;"> queue.dequeue();
+        adjList.get(u).forEach(n </span>=&gt;<span style="color: #000000;"> {
+            </span><span style="color: #0000ff;">if</span> (color[n] ===<span style="color: #000000;"> Colors.WHITE) {
+                color[n] </span>=<span style="color: #000000;"> Colors.GREY;
+                distances[n] </span>= distances[u] + 1<span style="color: #000000;">;
+                predecessors[n] </span>=<span style="color: #000000;"> u;
+                queue.enqueue(n);
+            }
+        });
+
+
+        color[u] </span>=<span style="color: #000000;"> Colors.BLACK;
+    }
+
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {distances, predecessors};
+};</span></pre>
+</div>
+<p>　　在BFS()方法中，我们定义了两个对象distances和predecessors，用来保存从起始顶点出发到其它所有顶点的距离以及这些顶点的前置顶点。BFS()方法不需要callback回调函数，因为它会自行输出最终结果。与breadthFirstSearch()方法的逻辑类似，只不过在开始的时候将所有顶点的距离初始化为0，前置顶点初始化为null，然后在遍历的过程中，重新设置顶点的distances值和predecessors值。我们仍然将顶点A作为起始顶点，来看看测试结果：</p>
+<div class="cnblogs_code">
+<pre><code>console.log(BFS(graph, 'A'));</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  distances: { A: </span><span style="color: #800080;">0</span>, B: <span style="color: #800080;">1</span>, C: <span style="color: #800080;">1</span>, D: <span style="color: #800080;">1</span>, E: <span style="color: #800080;">2</span>, F: <span style="color: #800080;">2</span>, G: <span style="color: #800080;">2</span>, H: <span style="color: #800080;">2</span>, I: <span style="color: #800080;">3</span><span style="color: #000000;"> },
+  predecessors: {
+    A: </span><span style="color: #0000ff;">null</span><span style="color: #000000;">,
+    B: </span><span style="color: #800000;">'</span><span style="color: #800000;">A</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    C: </span><span style="color: #800000;">'</span><span style="color: #800000;">A</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    D: </span><span style="color: #800000;">'</span><span style="color: #800000;">A</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    E: </span><span style="color: #800000;">'</span><span style="color: #800000;">B</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    F: </span><span style="color: #800000;">'</span><span style="color: #800000;">B</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    G: </span><span style="color: #800000;">'</span><span style="color: #800000;">C</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    H: </span><span style="color: #800000;">'</span><span style="color: #800000;">D</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    I: </span><span style="color: #800000;">'</span><span style="color: #800000;">E</span><span style="color: #800000;">'</span><span style="color: #000000;">
+  }
+}</span></pre>
+</div>
+<p>　　如你所见，distances为从顶点A开始到其它所有顶点的最短距离（相邻顶点间的距离为1），predecessors记录了所有顶点的前置顶点。以BFS()方法的返回结果为基础，通过下面的代码，我们可以得出从顶点A开始到其它所有顶点的最短路径：</p>
+<div class="cnblogs_code">
+<pre><code>let shortestPathA = BFS(graph, 'A'<span style="color: #000000;">);
+let startVertex </span>= 'A'<span style="color: #000000;">;
+myVertices.forEach(v </span>=&gt;<span style="color: #000000;"> {
+    let path </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Stack();
+    </span><span style="color: #0000ff;">for</span> (let v2 = v; v2 !== startVertex; v2 =<span style="color: #000000;"> shortestPathA.predecessors[v2]) {
+        path.push(v2);
+    }
+
+    path.push(startVertex</span><span style="color: #000000;">);
+    let s </span>=<span style="color: #000000;"> path.pop();
+    </span><span style="color: #0000ff;">while</span> (!<span style="color: #000000;">path.isEmpty()) {
+        s </span>+= ` -<span style="color: #000000;"> ${path.pop()}`;
+    }
+
+    console.log(s);
+});</span></pre>
+</div>
+<p>　　其中的Stack类可以参考<a href="https://www.cnblogs.com/jaxu/p/11264017.html" target="_blank">《JavaScript数据结构&mdash;&mdash;栈的实现与应用》</a>。下面是对应的执行结果：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">A
+A </span>-<span style="color: #000000;"> B
+A </span>-<span style="color: #000000;"> C
+A </span>-<span style="color: #000000;"> D
+A </span>- B -<span style="color: #000000;"> E
+A </span>- B -<span style="color: #000000;"> F
+A </span>- C -<span style="color: #000000;"> G
+A </span>- D -<span style="color: #000000;"> H
+A </span>- B - E - I</pre>
+</div>
+<p>&nbsp;　　以上我们说的都是未加权的图，对于加权的图，广度优先算法并不是最合适的。下面给出了另外几种最短路径算法：</p>
+<p><strong>Dijkstra</strong> - 寻找从指定顶点到其它所有顶点的最短路径的贪心算法。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('3a069560-c7a5-41ce-b6a5-49d4e9c42902')"><img id="code_img_closed_3a069560-c7a5-41ce-b6a5-49d4e9c42902" class="code_img_closed" src="./images/JavaScript数据结构——图的实现6.png" alt="" /><img id="code_img_opened_3a069560-c7a5-41ce-b6a5-49d4e9c42902" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('3a069560-c7a5-41ce-b6a5-49d4e9c42902',event)" src="./images/JavaScript数据结构——图的实现7.png" alt="" />
+<div id="cnblogs_code_open_3a069560-c7a5-41ce-b6a5-49d4e9c42902" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> const INF =<span style="color: #000000;"> Number.MAX_SAFE_INTEGER;
+</span><span style="color: #008080;"> 2</span> const minDistance = (dist, visited) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 3</span>   let min =<span style="color: #000000;"> INF;
+</span><span style="color: #008080;"> 4</span>   let minIndex = -1<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>   <span style="color: #0000ff;">for</span> (let v = 0; v &lt; dist.length; v++<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">if</span> (visited[v] === <span style="color: #0000ff;">false</span> &amp;&amp; dist[v] &lt;=<span style="color: #000000;"> min) {
+</span><span style="color: #008080;"> 7</span>       min =<span style="color: #000000;"> dist[v];
+</span><span style="color: #008080;"> 8</span>       minIndex =<span style="color: #000000;"> v;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">11</span>   <span style="color: #0000ff;">return</span><span style="color: #000000;"> minIndex;
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">13</span> const dijkstra = (graph, src) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">14</span>   const dist =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">15</span>   const visited =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">16</span>   const { length } =<span style="color: #000000;"> graph;
+</span><span style="color: #008080;">17</span>   <span style="color: #0000ff;">for</span> (let i = 0; i &lt; length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">18</span>     dist[i] =<span style="color: #000000;"> INF;
+</span><span style="color: #008080;">19</span>     visited[i] = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">21</span>   dist[src] = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">22</span>   <span style="color: #0000ff;">for</span> (let i = 0; i &lt; length - 1; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">23</span>     const u =<span style="color: #000000;"> minDistance(dist, visited);
+</span><span style="color: #008080;">24</span>     visited[u] = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">25</span>     <span style="color: #0000ff;">for</span> (let v = 0; v &lt; length; v++<span style="color: #000000;">) {
+</span><span style="color: #008080;">26</span>       <span style="color: #0000ff;">if</span> (!visited[v] &amp;&amp; graph[u][v] !== 0 &amp;&amp; dist[u] !== INF &amp;&amp; dist[u] + graph[u][v] &lt;<span style="color: #000000;"> dist[v]) {
+</span><span style="color: #008080;">27</span>         dist[v] = dist[u] +<span style="color: #000000;"> graph[u][v];
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">31</span>   <span style="color: #0000ff;">return</span><span style="color: #000000;"> dist;
+</span><span style="color: #008080;">32</span> };</pre>
+</div>
+<span class="cnblogs_code_collapse">dijkstra</span></div>
+<p><strong>Floyd-Warshall</strong> - 计算图中所有最短路径的动态规划算法。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('f7eef2a7-f154-4f9d-9ad6-f983b7676998')"><img id="code_img_closed_f7eef2a7-f154-4f9d-9ad6-f983b7676998" class="code_img_closed" src="./images/JavaScript数据结构——图的实现6.png" alt="" /><img id="code_img_opened_f7eef2a7-f154-4f9d-9ad6-f983b7676998" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('f7eef2a7-f154-4f9d-9ad6-f983b7676998',event)" src="./images/JavaScript数据结构——图的实现7.png" alt="" />
+<div id="cnblogs_code_open_f7eef2a7-f154-4f9d-9ad6-f983b7676998" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> const floydWarshall = graph =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 2</span>   const dist =<span style="color: #000000;"> [];
+</span><span style="color: #008080;"> 3</span>   const { length } =<span style="color: #000000;"> graph;
+</span><span style="color: #008080;"> 4</span>   <span style="color: #0000ff;">for</span> (let i = 0; i &lt; length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 5</span>     dist[i] =<span style="color: #000000;"> [];
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">for</span> (let j = 0; j &lt; length; j++<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 7</span>       <span style="color: #0000ff;">if</span> (i ===<span style="color: #000000;"> j) {
+</span><span style="color: #008080;"> 8</span>         dist[i][j] = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 9</span>       } <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">isFinite(graph[i][j])) {
+</span><span style="color: #008080;">10</span>         dist[i][j] =<span style="color: #000000;"> Infinity;
+</span><span style="color: #008080;">11</span>       } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">12</span>         dist[i][j] =<span style="color: #000000;"> graph[i][j];
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">16</span>   <span style="color: #0000ff;">for</span> (let k = 0; k &lt; length; k++<span style="color: #000000;">) {
+</span><span style="color: #008080;">17</span>     <span style="color: #0000ff;">for</span> (let i = 0; i &lt; length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">18</span>       <span style="color: #0000ff;">for</span> (let j = 0; j &lt; length; j++<span style="color: #000000;">) {
+</span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">if</span> (dist[i][k] + dist[k][j] &lt;<span style="color: #000000;"> dist[i][j]) {
+</span><span style="color: #008080;">20</span>           dist[i][j] = dist[i][k] +<span style="color: #000000;"> dist[k][j];
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">25</span>   <span style="color: #0000ff;">return</span><span style="color: #000000;"> dist;
+</span><span style="color: #008080;">26</span> };</pre>
+</div>
+<span class="cnblogs_code_collapse">floydWarshall</span></div>
+<p><strong>Kruskal</strong> - 求解加权无向连通图的最小生成树（MST）的贪心算法。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('6d116b29-7aec-437c-b190-853b21f1a878')"><img id="code_img_closed_6d116b29-7aec-437c-b190-853b21f1a878" class="code_img_closed" src="./images/JavaScript数据结构——图的实现6.png" alt="" /><img id="code_img_opened_6d116b29-7aec-437c-b190-853b21f1a878" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('6d116b29-7aec-437c-b190-853b21f1a878',event)" src="./images/JavaScript数据结构——图的实现7.png" alt="" />
+<div id="cnblogs_code_open_6d116b29-7aec-437c-b190-853b21f1a878" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> const INF =<span style="color: #000000;"> Number.MAX_SAFE_INTEGER;
+</span><span style="color: #008080;"> 2</span> const find = (i, parent) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 3</span>   <span style="color: #0000ff;">while</span><span style="color: #000000;"> (parent[i]) {
+</span><span style="color: #008080;"> 4</span>     i = parent[i]; <span style="color: #008000;">//</span><span style="color: #008000;"> eslint-disable-line prefer-destructuring</span>
+<span style="color: #008080;"> 5</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;"> 6</span>   <span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">};
+</span><span style="color: #008080;"> 8</span> const union = (i, j, parent) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 9</span>   <span style="color: #0000ff;">if</span> (i !==<span style="color: #000000;"> j) {
+</span><span style="color: #008080;">10</span>     parent[j] =<span style="color: #000000;"> i;
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">13</span>   <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">15</span> const initializeCost = graph =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">16</span>   const cost =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">17</span>   const { length } =<span style="color: #000000;"> graph;
+</span><span style="color: #008080;">18</span>   <span style="color: #0000ff;">for</span> (let i = 0; i &lt; length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">19</span>     cost[i] =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">20</span>     <span style="color: #0000ff;">for</span> (let j = 0; j &lt; length; j++<span style="color: #000000;">) {
+</span><span style="color: #008080;">21</span>       <span style="color: #0000ff;">if</span> (graph[i][j] === 0<span style="color: #000000;">) {
+</span><span style="color: #008080;">22</span>         cost[i][j] =<span style="color: #000000;"> INF;
+</span><span style="color: #008080;">23</span>       } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">24</span>         cost[i][j] =<span style="color: #000000;"> graph[i][j];
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">28</span>   <span style="color: #0000ff;">return</span><span style="color: #000000;"> cost;
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">30</span> const kruskal = graph =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">31</span>   const { length } =<span style="color: #000000;"> graph;
+</span><span style="color: #008080;">32</span>   const parent =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">33</span>   let ne = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">  let a;
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">  let b;
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">  let u;
+</span><span style="color: #008080;">37</span> <span style="color: #000000;">  let v;
+</span><span style="color: #008080;">38</span>   const cost =<span style="color: #000000;"> initializeCost(graph);
+</span><span style="color: #008080;">39</span>   <span style="color: #0000ff;">while</span> (ne &lt; length - 1<span style="color: #000000;">) {
+</span><span style="color: #008080;">40</span>     <span style="color: #0000ff;">for</span> (let i = 0, min = INF; i &lt; length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">41</span>       <span style="color: #0000ff;">for</span> (let j = 0; j &lt; length; j++<span style="color: #000000;">) {
+</span><span style="color: #008080;">42</span>         <span style="color: #0000ff;">if</span> (cost[i][j] &lt;<span style="color: #000000;"> min) {
+</span><span style="color: #008080;">43</span>           min =<span style="color: #000000;"> cost[i][j];
+</span><span style="color: #008080;">44</span>           a = u =<span style="color: #000000;"> i;
+</span><span style="color: #008080;">45</span>           b = v =<span style="color: #000000;"> j;
+</span><span style="color: #008080;">46</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">49</span>     u =<span style="color: #000000;"> find(u, parent);
+</span><span style="color: #008080;">50</span>     v =<span style="color: #000000;"> find(v, parent);
+</span><span style="color: #008080;">51</span>     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (union(u, v, parent)) {
+</span><span style="color: #008080;">52</span>       ne++<span style="color: #000000;">;
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">54</span>     cost[a][b] = cost[b][a] =<span style="color: #000000;"> INF;
+</span><span style="color: #008080;">55</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">56</span>   <span style="color: #0000ff;">return</span><span style="color: #000000;"> parent;
+</span><span style="color: #008080;">57</span> };</pre>
+</div>
+<span class="cnblogs_code_collapse">kruskal</span></div>
+<p><strong>Prime</strong> - 求解加权无向连通图的最小生成树（MST）的贪心算法。</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('3774a812-c795-4e72-a530-6e1b49056279')"><img id="code_img_closed_3774a812-c795-4e72-a530-6e1b49056279" class="code_img_closed" src="./images/JavaScript数据结构——图的实现6.png" alt="" /><img id="code_img_opened_3774a812-c795-4e72-a530-6e1b49056279" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('3774a812-c795-4e72-a530-6e1b49056279',event)" src="./images/JavaScript数据结构——图的实现7.png" alt="" />
+<div id="cnblogs_code_open_3774a812-c795-4e72-a530-6e1b49056279" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> const INF =<span style="color: #000000;"> Number.MAX_SAFE_INTEGER;
+</span><span style="color: #008080;"> 2</span> const minKey = (graph, key, visited) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 3</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> Initialize min value</span>
+<span style="color: #008080;"> 4</span>   let min =<span style="color: #000000;"> INF;
+</span><span style="color: #008080;"> 5</span>   let minIndex = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span>   <span style="color: #0000ff;">for</span> (let v = 0; v &lt; graph.length; v++<span style="color: #000000;">) {
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">if</span> (visited[v] === <span style="color: #0000ff;">false</span> &amp;&amp; key[v] &lt;<span style="color: #000000;"> min) {
+</span><span style="color: #008080;"> 8</span>       min =<span style="color: #000000;"> key[v];
+</span><span style="color: #008080;"> 9</span>       minIndex =<span style="color: #000000;"> v;
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">12</span>   <span style="color: #0000ff;">return</span><span style="color: #000000;"> minIndex;
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">14</span> const prim = graph =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">15</span>   const parent =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">16</span>   const key =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">17</span>   const visited =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">18</span>   const { length } =<span style="color: #000000;"> graph;
+</span><span style="color: #008080;">19</span>   <span style="color: #0000ff;">for</span> (let i = 0; i &lt; length; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">20</span>     key[i] =<span style="color: #000000;"> INF;
+</span><span style="color: #008080;">21</span>     visited[i] = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">23</span>   key[0] = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">24</span>   parent[0] = -1<span style="color: #000000;">;
+</span><span style="color: #008080;">25</span>   <span style="color: #0000ff;">for</span> (let i = 0; i &lt; length - 1; i++<span style="color: #000000;">) {
+</span><span style="color: #008080;">26</span>     const u =<span style="color: #000000;"> minKey(graph, key, visited);
+</span><span style="color: #008080;">27</span>     visited[u] = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">28</span>     <span style="color: #0000ff;">for</span> (let v = 0; v &lt; length; v++<span style="color: #000000;">) {
+</span><span style="color: #008080;">29</span>       <span style="color: #0000ff;">if</span> (graph[u][v] &amp;&amp; !visited[v] &amp;&amp; graph[u][v] &lt;<span style="color: #000000;"> key[v]) {
+</span><span style="color: #008080;">30</span>         parent[v] =<span style="color: #000000;"> u;
+</span><span style="color: #008080;">31</span>         key[v] =<span style="color: #000000;"> graph[u][v];
+</span><span style="color: #008080;">32</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">33</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">34</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">35</span>   <span style="color: #0000ff;">return</span><span style="color: #000000;"> parent;
+</span><span style="color: #008080;">36</span> };</pre>
+</div>
+<span class="cnblogs_code_collapse">prim</span></div>
+<h3>深度优先</h3>
+<p>　　深度优先算法从图的第一个顶点开始，沿着这个顶点的一条路径递归查找到最后一个顶点，然后返回并探查路径上的其它路径，直到所有路径都被访问到。最终，深度优先算法会先深后广地访问图中的所有顶点。下面是深度优先遍历的示意图：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现18.png" alt="" width="399" height="272" /></p>
+<p>　　我们仍然采用和广度优先算法一样的思路，一开始将所有的顶点初始化为白色，然后沿着路径递归探查其余顶点，当顶点被访问过，将颜色改为灰色，如果顶点被探索过（处理过），则将颜色改为黑色。下面是深度优先算法的具体实现：</p>
+<div class="cnblogs_code">
+<pre><code>let depthFirstSearchVisit = (u, color, adjList, callback) =&gt;<span style="color: #000000;"> {
+    color[u] </span>=<span style="color: #000000;"> Colors.GREY;
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (callback) callback(u);
+
+    adjList.get(u).forEach(n </span>=&gt;<span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (color[n] ===<span style="color: #000000;"> Colors.WHITE) {
+            depthFirstSearchVisit(n, color, adjList, callback);
+        }
+    });
+
+    color[u] </span>=<span style="color: #000000;"> Colors.BLACK;
+};
+
+let depthFirstSearch </span>= (graph, callback) =&gt;<span style="color: #000000;"> {
+    let vertices </span>=<span style="color: #000000;"> graph.getVertices();
+    let adjList </span>=<span style="color: #000000;"> graph.getAdjList();
+    let color </span>=<span style="color: #000000;"> initializeColor(vertices);
+
+    vertices.forEach(v </span>=&gt;<span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (color[v] ===<span style="color: #000000;"> Colors.WHITE) {
+            depthFirstSearchVisit(v, color, adjList, callback);
+        }
+    });
+};</span></pre>
+</div>
+<p>　　具体执行步骤为：</p>
+<ol>
+<li>将图中所有顶点的颜色初始化为白色。</li>
+<li>遍历顶点，此时A作为第一个顶点，它的颜色为白色，于是调用函数depthFirstSearchVisit()，并将顶点A、color、graph.adjList作为参数传入。</li>
+<li>在depthFirstSearchVisit()函数内部，由于顶点A被访问过了，所以将颜色设置为灰色，并执行callback回调函数（如果存在），然后遍历A的邻接顶点B、C、D。</li>
+<li>B未被访问过，颜色为白色，所以将B作为参数递归调用depthFirstSearchVisit()函数。B设置为灰色，callback('B')。遍历B的邻接节点E和F。</li>
+<li>E未被访问过，颜色为白色，所以将E作为参数递归调用depthFirstSearchVisit()函数。E设置为灰色，callback('E')。遍历E的邻接节点I。</li>
+<li>I未被访问过，颜色为白色，所以将I作为参数递归调用depthFirstSearchVisit()函数。I设置为灰色，callback('I')。I没有邻接节点，然后将I设置为黑色。递归返回到5。</li>
+<li>E没有其它邻接节点，将E设置为黑色。递归返回到4。</li>
+<li>遍历B的另一个邻接节点F，F未被访问过，颜色为白色，所以将F作为参数递归调用depthFirstSearchVisit()函数。F设置为灰色，callback('F')。F没有邻接节点，然后将F设置为黑色。递归返回到4。</li>
+<li>B的所有邻接节点都被访问过了，将B设置为黑色。递归返回到3。</li>
+<li>访问A的第二个邻接节点C，C未被访问过，颜色为白色，所以将C作为参数递归调用depthFirstSearchVisit()函数。C设置为灰色，callback('C')。遍历C的邻接节点D、G。</li>
+<li>D未被访问过，颜色为白色，所以将D作为参数递归调用depthFirstSearchVisit()函数。D设置为灰色，callback('D')。遍历D的邻接节点G和H。</li>
+<li>G未被访问过，颜色为白色，所以将G作为参数递归调用depthFirstSearchVisit()函数。G设置为灰色，callback('G')。G没有邻接节点，然后将G设置为黑色。递归返回到11。</li>
+<li>遍历D的另一个邻接节点H，H未被访问过，颜色为白色，所以将H作为参数递归调用depthFirstSearchVisit()函数。H设置为灰色，callback('H')。H没有邻接节点，然后将H设置为黑色。递归返回到11。</li>
+<li>D的所有邻接节点都被访问过了，将D设置为黑色。递归返回到10。</li>
+<li>遍历C的另一个邻接节点G，由于G已经被访问过，对C的邻接节点的遍历结束。将C设置为黑色。递归返回到3。</li>
+<li>访问A的最后一个邻接节点D，由于D已经被访问过，对A的邻接节点的遍历结束。将A设置为黑色。</li>
+<li>然后对剩余的节点进行遍历。由于剩余的节点都被设置为黑色了，所以程序结束。</li>
+</ol>
+<p>　　对应的测试用例及执行结果如下：</p>
+<div class="cnblogs_code">
+<pre><code>depthFirstSearch(graph, value =&gt; console.log(`visited vertex: ${value}`));</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">visited vertex: A
+visited vertex: B
+visited vertex: E
+visited vertex: I
+visited vertex: F
+visited vertex: C
+visited vertex: D
+visited vertex: G
+visited vertex: H</span></pre>
+</div>
+<p>　　为了便于理解，我们将整个遍历过程用下面的示意图来展示：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现19.png" alt="" width="1103" height="1003" /></p>
+<p>　　前面说过，深度优先算法的数据结构是栈，然而这里我们并没有使用栈来存储任何数据，而是使用了函数的递归调用，其实递归也是栈的一种表现形式。另外一点，如果图是连通的（即图中任何两个顶点之间都存在路径），我们可以对上述代码中的depthFirstSearch()方法进行改进，只需要对图的起始顶点开始遍历一次就可以了，而不需要遍历图的所有顶点，因为从起始顶点开始的递归就可以覆盖图的所有顶点。</p>
+<h4>拓扑排序</h4>
+<p>　　前面展示了深度优先算法的工作原理，我们可以使用它做更多的事情，例如拓扑排序（toplogical sorting，也叫做topsort或者toposort）。与广度优先算法类似，我们也对上面的depthFirstSeach()方法进行改进，以说明如何使用深度优先算法来实现拓扑排序：</p>
+<div class="cnblogs_code">
+<pre><code>let DFSVisit = (u, color, discovery, finished, predecessors, time, adjList) =&gt;<span style="color: #000000;"> {
+    color[u] </span>=<span style="color: #000000;"> Colors.GREY;
+    discovery[u] </span>= ++<span style="color: #000000;">time.count;
+
+    adjList.get(u).forEach(n </span>=&gt;<span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (color[n] ===<span style="color: #000000;"> Colors.WHITE) {
+            predecessors[n] </span>=<span style="color: #000000;"> u;
+            DFSVisit(n, color, discovery, finished, predecessors, time, adjList);
+        }
+    });
+
+    color[u] </span>=<span style="color: #000000;"> Colors.BLACK;
+    finished[u] </span>= ++<span style="color: #000000;">time.count;
+};
+
+let DFS </span>= graph =&gt;<span style="color: #000000;"> {
+    let vertices </span>=<span style="color: #000000;"> graph.getVertices();
+    let adjList </span>=<span style="color: #000000;"> graph.getAdjList();
+    let color </span>=<span style="color: #000000;"> initializeColor(vertices);
+    let discovery </span>=<span style="color: #000000;"> {};
+    let finished </span>=<span style="color: #000000;"> {};
+    let predecessors </span>=<span style="color: #000000;"> {};
+    let time </span>= { count: 0<span style="color: #000000;"> };
+
+    vertices.forEach(v </span>=&gt;<span style="color: #000000;"> {
+        finished[v] </span>= 0<span style="color: #000000;">;
+        discovery[v] </span>= 0<span style="color: #000000;">;
+        predecessors[v] </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+    });
+
+    vertices.forEach(v </span>=&gt;<span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span> (color[v] ===<span style="color: #000000;"> Colors.WHITE) {
+            DFSVisit(v, color, discovery, finished, predecessors, time, adjList);
+        }
+    });
+
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {discovery, finished, predecessors};
+};</span></pre>
+</div>
+<p>　　DFS()方法会输出图中每个顶点的发现时间和探索时间，我们假定时间从0开始，每经过一步时间值加1。在DFS()方法中，我们用变量discovery，finished，predecessors来保存每个顶点的发现时间、探索时间和前置顶点（这个和广度优先算法中寻找最短路径中的一致，但最终执行结果会有区别），最终的输出结果中也会反映这三个值。这里需要注意的是，变量time之所以被定义为对象而不是一个普通的数字，是因为我们需要在函数间传递这个变量，如果只是作为值传递，函数内部对变量的修改不会影响到它的原始值，但是我们就是需要在函数递归调用的过程中不断记录time的变化过程，所以采用值传递的方式显然不行。因此我们将time定义为一个对象，对象被作为引用传递给函数，这样在函数内部对它的修改就会反映到原始值上。</p>
+<p>　　来看看对DFS()方法的测试结果：</p>
+<div class="cnblogs_code">
+<pre><code>console.log(DFS(graph));</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  discovery: { A: </span><span style="color: #800080;">1</span>, B: <span style="color: #800080;">2</span>, C: <span style="color: #800080;">10</span>, D: <span style="color: #800080;">11</span>, E: <span style="color: #800080;">3</span>, F: <span style="color: #800080;">7</span>, G: <span style="color: #800080;">12</span>, H: <span style="color: #800080;">14</span>, I: <span style="color: #800080;">4</span><span style="color: #000000;"> },
+  finished: { A: </span><span style="color: #800080;">18</span>, B: <span style="color: #800080;">9</span>, C: <span style="color: #800080;">17</span>, D: <span style="color: #800080;">16</span>, E: <span style="color: #800080;">6</span>, F: <span style="color: #800080;">8</span>, G: <span style="color: #800080;">13</span>, H: <span style="color: #800080;">15</span>, I: <span style="color: #800080;">5</span><span style="color: #000000;"> },
+  predecessors: {
+    A: </span><span style="color: #0000ff;">null</span><span style="color: #000000;">,
+    B: </span><span style="color: #800000;">'</span><span style="color: #800000;">A</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    C: </span><span style="color: #800000;">'</span><span style="color: #800000;">A</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    D: </span><span style="color: #800000;">'</span><span style="color: #800000;">C</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    E: </span><span style="color: #800000;">'</span><span style="color: #800000;">B</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    F: </span><span style="color: #800000;">'</span><span style="color: #800000;">B</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    G: </span><span style="color: #800000;">'</span><span style="color: #800000;">D</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    H: </span><span style="color: #800000;">'</span><span style="color: #800000;">D</span><span style="color: #800000;">'</span><span style="color: #000000;">,
+    I: </span><span style="color: #800000;">'</span><span style="color: #800000;">E</span><span style="color: #800000;">'</span><span style="color: #000000;">
+  }
+}</span></pre>
+</div>
+<p>　　我们将结果反映到示意图上，这样更加直观：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现20.png" alt="" width="390" height="268" /></p>
+<p>　　示意图上每一个顶点左边的数字是顶点的发现时间，右边的数字是顶点的探索时间，全部完成时间是18，可以结合前面的深度优先算法遍历过程示意图来看，它们是对应的。同时我们也看到，深度优先算法的predecessors和广度优先算法的predecessors会有所不同。</p>
+<p>　　拓扑排序只能应用于<strong>有向无环图</strong>（DAG）。基于上面DFS()方法的返回结果，我们可以对顶点的完成时间（探索时间finished）进行排序，以得到我们需要的拓扑排序结果。</p>
+<p>　　如果要实现有向图，只需要对前面我们实现的Graph类的addEdge()方法略加修改，将最后一行删掉。当然，我们也可以在Graph类的构造函数中指明是有向图还是无向图，下面是改进后的Graph类：</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('4390819a-00f4-436b-ac0b-ddfd827a0e31')"><img id="code_img_closed_4390819a-00f4-436b-ac0b-ddfd827a0e31" class="code_img_closed" src="./images/JavaScript数据结构——图的实现6.png" alt="" /><img id="code_img_opened_4390819a-00f4-436b-ac0b-ddfd827a0e31" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('4390819a-00f4-436b-ac0b-ddfd827a0e31',event)" src="./images/JavaScript数据结构——图的实现7.png" alt="" />
+<div id="cnblogs_code_open_4390819a-00f4-436b-ac0b-ddfd827a0e31" class="cnblogs_code_hide">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">class Graph {
+</span><span style="color: #008080;"> 2</span>     constructor (isDirected = <span style="color: #0000ff;">false</span><span style="color: #000000;">) {
+</span><span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">this</span>.isDirected =<span style="color: #000000;"> isDirected;
+</span><span style="color: #008080;"> 4</span>         <span style="color: #0000ff;">this</span>.vertices = []; <span style="color: #008000;">//</span><span style="color: #008000;"> 用来存放图中的顶点</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">this</span>.adjList = <span style="color: #0000ff;">new</span> Dictionary(); <span style="color: #008000;">//</span><span style="color: #008000;"> 用来存放图中的边</span>
+<span style="color: #008080;"> 6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 向图中添加一个新顶点</span>
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">    addVertex (v) {
+</span><span style="color: #008080;">10</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.vertices.includes(v)) {
+</span><span style="color: #008080;">11</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.vertices.push(v);
+</span><span style="color: #008080;">12</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList.set(v, []);
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 向图中添加a和b两个顶点之间的边</span>
+<span style="color: #008080;">17</span> <span style="color: #000000;">    addEdge (a, b) {
+</span><span style="color: #008080;">18</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 如果图中没有顶点a，先添加顶点a</span>
+<span style="color: #008080;">19</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList.has(a)) {
+</span><span style="color: #008080;">20</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addVertex(a);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">22</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 如果图中没有顶点b，先添加顶点b</span>
+<span style="color: #008080;">23</span>         <span style="color: #0000ff;">if</span> (!<span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList.has(b)) {
+</span><span style="color: #008080;">24</span>             <span style="color: #0000ff;">this</span><span style="color: #000000;">.addVertex(b);
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">26</span> 
+<span style="color: #008080;">27</span>         <span style="color: #0000ff;">this</span>.adjList.get(a).push(b); <span style="color: #008000;">//</span><span style="color: #008000;"> 在顶点a中添加指向顶点b的边</span>
+<span style="color: #008080;">28</span>         <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.isDirected !== <span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+</span><span style="color: #008080;">29</span>             <span style="color: #0000ff;">this</span>.adjList.get(b).push(a); <span style="color: #008000;">//</span><span style="color: #008000;"> 如果为无向图，则在顶点b中添加指向顶点a的边</span>
+<span style="color: #008080;">30</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 获取图的vertices</span>
+<span style="color: #008080;">34</span> <span style="color: #000000;">    getVertices () {
+</span><span style="color: #008080;">35</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.vertices;
+</span><span style="color: #008080;">36</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 获取图中的adjList</span>
+<span style="color: #008080;">39</span> <span style="color: #000000;">    getAdjList () {
+</span><span style="color: #008080;">40</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.adjList;
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">42</span> 
+<span style="color: #008080;">43</span> <span style="color: #000000;">    toString() {
+</span><span style="color: #008080;">44</span>         let s = ''<span style="color: #000000;">;
+</span><span style="color: #008080;">45</span>         <span style="color: #0000ff;">this</span>.vertices.forEach((v) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">46</span>             s += `${v} -&gt;<span style="color: #000000;"> `;
+</span><span style="color: #008080;">47</span>             <span style="color: #0000ff;">this</span>.adjList.get(v).forEach((n) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">48</span>                 s +=<span style="color: #000000;"> `${n} `;
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">50</span>             s += '\n'<span style="color: #000000;">;
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">52</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> s;
+</span><span style="color: #008080;">53</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">54</span> }</pre>
+</div>
+<span class="cnblogs_code_collapse">Graph</span></div>
+<p>　　然后我们对有向图应用DFS算法：</p>
+<div class="cnblogs_code">
+<pre><code>let graph = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Graph();
+let myVertices </span>= ['A', 'B', 'C', 'D', 'E', 'F'<span style="color: #000000;">];
+myVertices.forEach((v) </span>=&gt;<span style="color: #000000;"> {
+    graph.addVertex(v);
+});
+graph.addEdge(</span>'A', 'C'<span style="color: #000000;">);
+graph.addEdge(</span>'A', 'D'<span style="color: #000000;">);
+graph.addEdge(</span>'B', 'D'<span style="color: #000000;">);
+graph.addEdge(</span>'B', 'E'<span style="color: #000000;">);
+graph.addEdge(</span>'C', 'F'<span style="color: #000000;">);
+graph.addEdge(</span>'F', 'E'<span style="color: #000000;">);
+console.log(DFS(graph));</span></pre>
+</div>
+<p>　　下面是返回结果：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+  discovery: { A: </span><span style="color: #800080;">1</span>, B: <span style="color: #800080;">11</span>, C: <span style="color: #800080;">2</span>, D: <span style="color: #800080;">8</span>, E: <span style="color: #800080;">4</span>, F: <span style="color: #800080;">3</span><span style="color: #000000;"> },
+  finished: { A: </span><span style="color: #800080;">10</span>, B: <span style="color: #800080;">12</span>, C: <span style="color: #800080;">7</span>, D: <span style="color: #800080;">9</span>, E: <span style="color: #800080;">5</span>, F: <span style="color: #800080;">6</span><span style="color: #000000;"> },
+  predecessors: { A: </span><span style="color: #0000ff;">null</span>, B: <span style="color: #0000ff;">null</span>, C: <span style="color: #800000;">'</span><span style="color: #800000;">A</span><span style="color: #800000;">'</span>, D: <span style="color: #800000;">'</span><span style="color: #800000;">A</span><span style="color: #800000;">'</span>, E: <span style="color: #800000;">'</span><span style="color: #800000;">F</span><span style="color: #800000;">'</span>, F: <span style="color: #800000;">'</span><span style="color: #800000;">C</span><span style="color: #800000;">'</span><span style="color: #000000;"> }
+}</span></pre>
+</div>
+<p>　　示意图如下：</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/JavaScript数据结构——图的实现23.png" alt="" width="255" height="263" /></p>
+<p>　　对顶点的完成时间进行倒序排序，得到的拓扑排序结果为：B - A - D - C - F - E。</p>
+<p>　　下一章我们将介绍如何用JavaScript来实现各种常见的排序算法。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

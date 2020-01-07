@@ -1,0 +1,162 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修实现 call、apply、bind' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>实现 call、apply、bind</center></div><div class='banquan'>原文出处:本文由博客园博主liuyongjia提供。<br/>
+原文连接:https://www.cnblogs.com/liuyongjia/p/11861990.html</div><br>
+    <h1 id="实现-callapplybind">实现 call、apply、bind</h1>
+<p>在之前<a href="https://www.cnblogs.com/liuyongjia/p/7696101.html">一篇文章</a>写了这三个参数的区别，但是其实面试更常考察如何实现。其实所有的原生函数的 polyfill 如何实现，只需要考虑 4 点即可：</p>
+<ol>
+<li>基本功能</li>
+<li>原型</li>
+<li>this</li>
+<li>返回值</li>
+</ol>
+<h2 id="call">call</h2>
+<ol>
+<li><p>call 的基本功能：</p>
+<blockquote>
+<p>call() 方法使用一个指定的 this 值和单独给出的一个或多个参数来调用一个函数。</p>
+</blockquote></li>
+<li>原型<br />
+不涉及原型链的转移，不用管</li>
+<li>this<br />
+本质上，call 就是 this 的转移</li>
+<li><p>返回值</p></li>
+</ol>
+<p>简单实现：</p>
+<pre><code><code>Function.prototype.myCall = function(context = window, ...args) {
+  context.fn = this; // 先将fn挂在context上，
+  var res = context.fn(...args); // 然后通过context调用fn，使得fn中的this指向指到context上
+  delete context.fn; // 最后删除掉context上的fn
+  return res; // 返回原函数的返回值
+};</code></pre>
+<p>上面为了简单，使用了 ES6 的剩余参数和展开语法，基本用这个回答面试官就好了。当然，如果不让使用剩余参数，那就只能使用<code>eval</code>或者<code>new Function</code>的字符串拼接大法了，可以参考这篇<a href="https://www.cnblogs.com/liuyongjia/p/10962850.html">模板引擎</a>。<br />
+再就是 fn 可能会和 context 重名，整一个不会重名的 uniqueID 挂上去，执行完毕后删除。</p>
+<h2 id="apply">apply</h2>
+<p>之前提过 apply 和 call 区别，只有一些入参和性能上的区别。直接上代码：</p>
+<pre><code><code>Function.prototype.myApply = function(context = window, args) {
+  context.fn = this; // 先将fn挂在context上，
+  var res = context.fn(...args); // 然后通过context调用fn，使得fn中的this指向指到context上
+  delete context.fn; // 最后删除掉context上的fn
+  return res; // 返回原函数的返回值
+};</code></pre>
+<h2 id="bind">bind</h2>
+<p>bind 有点不一样，它会返回一个绑定了 this 的函数。</p>
+<blockquote>
+<p>bind()方法创建一个新的函数，在 bind()被调用时，这个新函数的 this 被 bind 的第一个参数指定，其余的参数将作为新函数的参数供调用时使用。</p>
+</blockquote>
+<pre><code><code>Function.prototype.myBind = function(context, ...args) {
+  var fn = this;
+
+  var newFn = function(...restArgs) {
+    // 使用call去调用fn，因为bind可能会bind一部分参数，所以把restArgs也传进去
+    return fn.call(context, ...args, ...restArgs);
+  };
+
+  return newFn;
+};</code></pre>
+<p>上面的函数基本上覆盖了大部分场景，但是不能支持<code>new</code>调用——</p>
+<blockquote>
+<p>绑定函数自动适应于使用 new 操作符去构造一个由目标函数创建的新实例。当一个绑定函数是用来构建一个值的，原来提供的 this 就会被忽略。不过提供的参数列表仍然会插入到构造函数调用时的参数列表之前。</p>
+</blockquote>
+<p>如果直接使用我们上面所写的<code>bind</code>，就会返回</p>
+<pre><code><code>function Person(age, name) {
+  this.name = name;
+  this.age = age;
+}
+
+var Age18Person = Person.myBind(null, 18);
+
+var a = {};
+var Age20Person = Person.myBind(a, 20);
+
+var p18 = new Age18Person(&quot;test18&quot;); // newFn {}
+var p20 = new Age20Person(&quot;test20&quot;); // newFn {}
+// a {name: &quot;test20&quot;, age: 20}
+// window {name: &quot;test18&quot;, age: 18}</code></pre>
+<p>显然，返回了以<code>newFn</code>生成的对象，并且，因为传入的是<code>null</code>，所以，对<code>context</code>的赋值转移到了<code>window</code>。<br />
+这里需要判断是否被 new 调用，然后丢弃没用的 context。</p>
+<pre><code><code>Function.prototype.myBind = function(context, ...args) {
+  var fn = this;
+
+  var newFn = function(...restArgs) {
+    // 如果是new构造，则使用new构造的实例
+    if (new.target) {
+      return fn.call(this, ...args, ...restArgs);
+    }
+    // 使用call去调用fn，因为bind可能会bind一部分参数，所以把restArgs也传进去
+    return fn.call(context, ...args, ...restArgs);
+  };
+
+  return newFn;
+};</code></pre>
+<p>再次调用上面的<code>new</code>构造，发现实例的原型不是指向我们希望的 Person</p>
+<pre><code><code>var Age18Person = Person.myBind(null, 18);
+
+var p18 = new Age18Person(&quot;test18&quot;); // newFn {}
+
+p instanceof Person; // false
+p instanceof Age18Person; // false</code></pre>
+<p>记录一下原型链，再来一遍</p>
+<pre><code><code>Function.prototype.myBind = function(context, ...args) {
+  var fn = this;
+
+  var newFn = function(...restArgs) {
+    // 如果是new构造，则使用new构造的实例
+    if (new.target) {
+      return fn.call(this, ...args, ...restArgs);
+    }
+    // 使用call去调用fn，因为bind可能会bind一部分参数，所以把restArgs也传进去
+    return fn.call(context, ...args, ...restArgs);
+  };
+
+  // 绑定原型链
+  newFn.prototype = this.prototype;
+
+  return newFn;
+};</code></pre>
+<p>但是这里还有个问题，如果改了<code>Age18Person</code>的<code>prototype</code>，也会影响到<code>Person</code>的<code>prototype</code>。<br />
+所以，需要做一个中转——</p>
+<pre><code><code>Function.prototype.myBind = function(context, ...args) {
+  var fn = this;
+
+  var newFn = function(...restArgs) {
+    // 如果是new构造，则使用new构造的实例
+    if (new.target) {
+      return fn.call(this, ...args, ...restArgs);
+    }
+    // 使用call去调用fn，因为bind可能会bind一部分参数，所以把restArgs也传进去
+    return fn.call(context, ...args, ...restArgs);
+  };
+
+  var NOOP = function() {};
+
+  // 绑定原型链
+  NOOP.prototype = this.prototype;
+  newFn.prototype = new NOOP();
+
+  return newFn;
+};</code></pre>
+<p>这样基本上就算完成了，当然更推荐<a href="https://github.com/Raynos/function-bind">function-bind</a>方案。<br />
+完</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

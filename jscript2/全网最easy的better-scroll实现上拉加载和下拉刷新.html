@@ -1,0 +1,102 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修全网最easy的better-scroll实现上拉加载和下拉刷新' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>全网最easy的better-scroll实现上拉加载和下拉刷新</center></div><div class='banquan'>原文出处:本文由博客园博主pubdreamcc提供。<br/>
+原文连接:https://www.cnblogs.com/dreamcc/p/10877495.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>移动端页面常见的一种效果：下拉刷新（pulldownrefresh）和上拉加载（pullupload），目的都是为了增强用户的体验效果，因此各种移动端滑动插件也是层出不穷，今天小编也在这里给大家推荐一个滑动插件：<code>better-scroll</code>。</p>
+<blockquote>
+<p>GitHub地址：<a href="https://github.com/ustbhuangyi/better-scroll">better-scroll</a></p>
+</blockquote>
+<p>利用better-scroll也很轻易的实现上述效果。</p>
+<ol>
+<li>vue创建项目</li>
+</ol>
+<p>项目是基于vue-cli脚手架创建的，所以先必须创建项目（步骤略）。</p>
+<ol>
+<li>引入<code>better-scroll</code>插件</li>
+</ol>
+<p>下载：<code>npm install better-scroll --save</code></p>
+<p>项目中引入：<code>import BScroll from 'better-scroll'</code></p>
+<p>引入之后我们可以通过<code>new BScroll()</code>得到一个scroll对象实例，better-scroll的基本语法是：</p>
+<pre><code><code>let wrapper = document.querySelector(&#39;.wrapper&#39;) 
+let scroll = new BScroll(wrapper, {})</code></pre>
+<p>better-scroll之所以可以滑动，其原理在于父级元素指定具体宽高，子元素宽高大于父级元素，即可实现滑动，以上两点缺一不可。可以看以下官方图解：</p>
+<p><img src="./images/全网最easy的better-scroll实现上拉加载和下拉刷新0.png" alt="图解" /></p>
+<p>因为我们在vue项目中使用，所以这里还必须强调一点，初始化better-scroll得到scroll对象时必须保证DOM结构渲染完毕，也就是说wrapper里面的内容都渲染完毕之后才能初始化better-scroll，否则可能导致滑动失效。常见的我们可以把初始化BScroll放在<code>this.$nextTick</code>回调函数种执行，因为在此时wrapper 的 DOM 已经渲染了，我们可以正确计算它以及它内层 content 的高度，以确保滚动正常。</p>
+<p>这里的 <code>this.$nextTick</code> 是一个异步函数，为了确保 DOM 已经渲染，感兴趣的同学可以了解一下它的内部实现细节，底层用到了<code>MutationObserver</code>或者是 <code>setTimeout(fn, 0)</code>。其实我们在这里把 this.$nextTick 替换成 setTimeout(fn, 20) 也是可以的（20 ms 是一个经验值，每一个 Tick 约为 17 ms），对用户体验而言都是无感知的。</p>
+<ol>
+<li>BScroll初始化时配置<code>pullUpLoad</code>和<code>pullDownRefresh</code>属性</li>
+</ol>
+<pre><code><code>mounted () {
+  ...发Ajax得到数据...
+...
+
+  this.$nextTick(() =&gt; {
+    this.myScroll = new BScroll(this.$refs.wrap, {
+      scrollY: true,
+      pullDownRefresh: {
+        threshold: 50,
+        probeType: 3
+      },
+      pullUpLoad: {
+        threshold: 744
+      }
+    })
+  })
+}</code></pre>
+<p><code>pullDownRefresh</code>表示开启下拉刷新，<code>pullUpLoad</code>表示开启上拉加载，默认值全为<code>false</code>，这里具体用法可以去看下<code>better-scroll</code>的官网API。因为页面大多数情况下都是先从后端拿数据过来，然后再渲染DOM结构，所以我在vue<code>mounted</code>钩子里面先发Ajax得到数据后，再利用this.$nextTick()保证DOM渲染完毕后再初始化BScroll。</p>
+<ol>
+<li>为BScroll实例对象绑定<code>pullingUp</code>和<code>pullingDown</code>事件</li>
+</ol>
+<p>pullingUp和pullingDown事件分别对应上拉加载和下拉刷新动作触发事件，在其回调函数里面可以做一些其他的操作，比如常见的从后台获取数据等。切记，一定要在回调的最后调用<code>finishPullUp()</code>和<code>finishPullDown()</code>方法来告诉BScroll一次上拉加载和下拉刷新动作结束，否则上拉加载和下拉刷新效果只会触发一次，本人亲自验证！在拿到数据后，如果wrapper里面的结构发生变化一定要调用<code>refresh()</code>方法重新初始化BScroll，否则会导致滑动异常。</p>
+<pre><code><code>
+this.myScroll.on(&#39;pullingDown&#39;, () =&gt; {
+
+  ...发送Ajax从后台拿数据...
+  ...
+  this.$nextTick(() =&gt; {
+    this.myScroll.refresh() // DOM 结构发生变化后，重新初始化BScroll
+  })
+  this.myScroll.finishPullDown() // 下拉刷新动作完成后调用此方法告诉BScroll完成一次下拉动作
+})
+
+this.myScroll.on(&#39;pullingUp&#39;, () =&gt; {
+
+  ...发送Ajax从后台拿数据...
+  ...
+  this.$nextTick(() =&gt; {
+    this.myScroll.refresh() // DOM 结构发生变化后，重新初始化BScroll
+  })
+  this.myScroll.finishPullUp() // 上拉加载动作完成后调用此方法告诉BScroll完成一次上拉动作
+})</code></pre>
+<ol>
+<li>完成效果图</li>
+</ol>
+<p><img src="./images/全网最easy的better-scroll实现上拉加载和下拉刷新1.png" /></p>
+<h2 id="后语">后语</h2>
+<p>本文最初摘自我的GitHub仓库：<strong>web-study</strong>，如果你觉得本文对你前端的学习有帮助，希望给个<strong>star</strong>，我也会定时更新仓库的内容，欢迎转载，谢谢。仓库地址：<a href="https://github.com/pubdreamcc/web-study">web-study</a></p>
+<blockquote>
+<p>如果你有更好的移动端滑动插件推荐，欢迎留言，分享知识也是一种学习。</p>
+</blockquote>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

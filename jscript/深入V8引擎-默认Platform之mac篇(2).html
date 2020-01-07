@@ -1,0 +1,307 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-默认Platform之mac篇(2)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-默认Platform之mac篇(2)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10974907.html</div><br>
+    <p>　　<strong>先说结论，V8引擎在默认Platform中初始化的这个线程是用于处理类似于setTimeout的延时任务。</strong></p>
+<p>　　另外附一些图，包括继承树、关键属性归属、纯逻辑工作流程，对代码木得兴趣的看完图可以X掉了。</p>
+<p><img src="./images/深入V8引擎-默认Platform之mac篇(2)0.png" alt="" /></p>
+<p><img src="./images/深入V8引擎-默认Platform之mac篇(2)1.png" alt="" /></p>
+<p><img src="./images/深入V8引擎-默认Platform之mac篇(2)2.png" alt="" /></p>
+<p>　　上一篇讲了V8初始化默认Platform对象时会做三件事，其中生成空白DefaultPlatform、获取线程池大小已经讲过了，剩下线程启动相关的内容。</p>
+<p>　　写之前花了10几分钟学了下mac下C++的线程，对API有一个初步了解，给一个简单的例子，大概流程如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> V8源码中设置的stack_size 在测试demo中不好使</span>
+<span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> stack_size = <span style="color: #800080;">1</span> * <span style="color: #800080;">1024</span> * <span style="color: #800080;">512</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">int</span> tmp = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 线程的任务 参数来源于创建时的第四个参数</span>
+<span style="color: #0000ff;">void</span>* add(<span style="color: #0000ff;">void</span>*<span style="color: #000000;"> number){
+  tmp </span>= tmp + *(<span style="color: #0000ff;">int</span>*<span style="color: #000000;">)number;
+  printf(</span><span style="color: #800000;">"</span><span style="color: #800000;">tmp: %i\n</span><span style="color: #800000;">"</span><span style="color: #000000;">, tmp);
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> nullptr;
+};
+
+</span><span style="color: #0000ff;">int</span> main(<span style="color: #0000ff;">int</span> argc, <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span> *<span style="color: #000000;"> argv[]) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建线程对象</span>
+<span style="color: #000000;">  pthread_t pt;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建线程属性</span>
+<span style="color: #000000;">  pthread_attr_t attr;
+  memset(</span>&amp;attr, <span style="color: #800080;">0</span>, <span style="color: #0000ff;">sizeof</span><span style="color: #000000;">(attr));
+  pthread_attr_init(</span>&amp;<span style="color: #000000;">attr);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置属性的size</span>
+  pthread_attr_setstacksize(&amp;<span style="color: #000000;">attr, stack_size);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 函数参数</span>
+  <span style="color: #0000ff;">int</span> num = <span style="color: #800080;">5</span><span style="color: #000000;">;
+  </span><span style="color: #0000ff;">int</span>* ptr = &amp;<span style="color: #000000;">num;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 生成一个线程
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 参数列表参照各个变量</span>
+  <span style="color: #0000ff;">int</span> ret = pthread_create(&amp;pt, &amp;<span style="color: #000000;">attr, add, ptr);
+  </span><span style="color: #0000ff;">if</span>(ret != <span style="color: #800080;">0</span>) printf(<span style="color: #800000;">"</span><span style="color: #800000;">cannot create thread</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+  </span><span style="color: #0000ff;">return</span> <span style="color: #800080;">0</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　通过几个步骤，就可以创建一条线程来处理任务，启动后的输出就懒得截图了，反正就是打印一个5。</p>
+<p>　　有了上面的例子，可以慢慢来看V8初始化时多线程的启动过程，首先是入门方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 3</span>
+<span style="color: #0000ff;">void</span><span style="color: #000000;"> DefaultPlatform::EnsureBackgroundTaskRunnerInitialized() {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里初始化DefaultPlatform的属性 需要加锁</span>
+  <span style="color: #0000ff;">base</span>::MutexGuard guard(&amp;<span style="color: #000000;">lock_);
+  </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">worker_threads_task_runner_) {
+    worker_threads_task_runner_ </span>=
+        <span style="color: #008000;">//</span><span style="color: #008000;"> 3-2</span>
+        std::make_shared&lt;DefaultWorkerThreadsTaskRunner&gt;<span style="color: #000000;">(
+            thread_pool_size_, time_function_for_testing_
+                                   </span>?<span style="color: #000000;"> time_function_for_testing_
+                                  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-1</span>
+<span style="color: #000000;">                                   : DefaultTimeFunction);
+  }
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-1</span>
+<span style="color: #0000ff;">double</span><span style="color: #000000;"> DefaultTimeFunction() {
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">base</span>::TimeTicks::HighResolutionNow().ToInternalValue() /<span style="color: #000000;">
+         static_cast</span>&lt;<span style="color: #0000ff;">double</span>&gt;(<span style="color: #0000ff;">base</span><span style="color: #000000;">::Time::kMicrosecondsPerSecond);
+}</span></pre>
+</div>
+<p>　　if中的worker_threads_task_runner是DefaultPlatform的私有属性，由于初始化时默认值为NULL，这里做一个定义赋值。第一个参数是在第二步获取的线程池大小，第二个参数是一个计数方法，默认引用之前Time模块里的东西，返回硬件时间戳，具体实现可以看我之前写的。</p>
+<p>　　接下来看DefaultWorkerThreadsTaskRunner类的构造函数，接受2个参数。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 3-2
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> queue_ =&gt; DelayedTaskQueue::DelayedTaskQueue(TimeFunction time_function) : time_function_(time_function) {}</span>
+<span style="color: #000000;">DefaultWorkerThreadsTaskRunner::DefaultWorkerThreadsTaskRunner(
+    uint32_t thread_pool_size, TimeFunction time_function)
+    : queue_(time_function),
+      time_function_(time_function),
+      thread_pool_size_(thread_pool_size) {
+  </span><span style="color: #0000ff;">for</span> (uint32_t i = <span style="color: #800080;">0</span>; i &lt; thread_pool_size; ++<span style="color: #000000;">i) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-3</span>
+    thread_pool_.push_back(<span style="color: #0000ff;">base</span>::make_unique&lt;WorkerThread&gt;(<span style="color: #0000ff;">this</span><span style="color: #000000;">));
+  }
+}</span></pre>
+</div>
+<p>　　用2个参数初始化了3个属性，并且根据size往线程池中添加线程，thread_pool_这个属性用vector在管理，push_back相当于JS的push，当成数组来理解就行了。</p>
+<p>　　添加的WorkerThread类是在DefaultWorkerThreadsTaskRunner里面的一个私有内部类，继承于Thread，单纯的用来管理线程。C++的this比较简单，没有JS那么多概念，就是一个指向当前对象的指针，来看一下线程类的构造函数。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 3-3</span>
+DefaultWorkerThreadsTaskRunner::WorkerThread::WorkerThread(DefaultWorkerThreadsTaskRunner*<span style="color: #000000;"> runner)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里调用父类构造函数</span>
+    : Thread(Options(<span style="color: #800000;">"</span><span style="color: #800000;">V8 DefaultWorkerThreadsTaskRunner WorkerThread</span><span style="color: #800000;">"</span><span style="color: #000000;">)),
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里初始化当前类属性</span>
+<span style="color: #000000;">      runner_(runner) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-4</span>
+<span style="color: #000000;">  Start();
+}</span></pre>
+</div>
+<p>　　这里同时调用了父类构造函数并初始化本身的属性，runner就是上面那个对象本身。这个构造函数长得比较奇怪，其中Options类是Thread的内部类，有一个接受一个类型为字符串的构造函数，而Thread的构造函数只接受Options类型，所以会这样，代码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span><span style="color: #000000;"> Thread {
+ </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Opaque data type for thread-local storage keys.</span>
+  <span style="color: #0000ff;">using</span> LocalStorageKey =<span style="color: #000000;"> int32_t;
+
+  </span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Options {
+   </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+    Options() : name_(</span><span style="color: #800000;">"</span><span style="color: #800000;">v8:&lt;unknown&gt;</span><span style="color: #800000;">"</span>), stack_size_(<span style="color: #800080;">0</span><span style="color: #000000;">) {}
+    </span><span style="color: #0000ff;">explicit</span> Options(<span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>* name, <span style="color: #0000ff;">int</span> stack_size = <span style="color: #800080;">0</span><span style="color: #000000;">)
+        : name_(name), stack_size_(stack_size) {}
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">  };
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Create new thread.</span>
+  <span style="color: #0000ff;">explicit</span> Thread(<span style="color: #0000ff;">const</span> Options&amp;<span style="color: #000000;"> options);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+}</pre>
+</div>
+<p>　　可以简单理解这里给线程取了一个名字，在给Options命名的同时，其实也给Thread命名了，如下。</p>
+<div class="cnblogs_code">
+<pre><code>Thread::Thread(<span style="color: #0000ff;">const</span> Options&amp;<span style="color: #000000;"> options)
+    : data_(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> PlatformData),
+      stack_size_(options.stack_size()),
+      start_semaphore_(nullptr) {
+  </span><span style="color: #0000ff;">if</span> (stack_size_ &gt; <span style="color: #800080;">0</span> &amp;&amp; static_cast&lt;size_t&gt;(stack_size_) &lt;<span style="color: #000000;"> PTHREAD_STACK_MIN) {
+    stack_size_ </span>=<span style="color: #000000;"> PTHREAD_STACK_MIN;
+  }
+  set_name(options.name());
+}
+
+</span><span style="color: #0000ff;">class</span><span style="color: #000000;"> Thread {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> The thread name length is limited to 16 based on Linux's implementation of
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> prctl().</span>
+  <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> kMaxThreadNameLength = <span style="color: #800080;">16</span><span style="color: #000000;">;
+  </span><span style="color: #0000ff;">char</span><span style="color: #000000;"> name_[kMaxThreadNameLength];
+}
+
+</span><span style="color: #0000ff;">void</span> Thread::set_name(<span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>*<span style="color: #000000;"> name) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里的长度被限制在16以内</span>
+  strncpy(name_, name, <span style="color: #0000ff;">sizeof</span><span style="color: #000000;">(name_));
+  name_[</span><span style="color: #0000ff;">sizeof</span>(name_) - <span style="color: #800080;">1</span>] = <span style="color: #800000;">'</span><span style="color: #800000;">\0</span><span style="color: #800000;">'</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　看注释说，由于Linux的prctl方法限制了长度，所以这里的name也最多只能保存16位，而且C++的字符串的最后一位还要留给结束符，所以理论上传入Options的超长字符串"V8 DefaultWorkerThreadsTaskRunner WorkerThread"只有前15位作为Thread的name保存下来了，也就是"V8 Defaultworke"，非常戏剧性的把r给砍掉了。。。</p>
+<p>　　初始化完成后，会调用Start方法启动线程，这个方法并不需要子类实现，而是基类已经定义好了，保留关键代码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 3-4</span>
+<span style="color: #0000ff;">void</span><span style="color: #000000;"> Thread::Start() {
+  </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> result;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 线程对象</span>
+<span style="color: #000000;">  pthread_attr_t attr;
+  memset(</span>&amp;attr, <span style="color: #800080;">0</span>, <span style="color: #0000ff;">sizeof</span><span style="color: #000000;">(attr));
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化线程对象</span>
+  result = pthread_attr_init(&amp;<span style="color: #000000;">attr);
+  size_t stack_size </span>=<span style="color: #000000;"> stack_size_;
+  </span><span style="color: #0000ff;">if</span> (stack_size == <span style="color: #800080;">0</span><span style="color: #000000;">) {
+    stack_size </span>= <span style="color: #800080;">1</span> * <span style="color: #800080;">1024</span> * <span style="color: #800080;">1024</span><span style="color: #000000;">;
+  }
+  </span><span style="color: #0000ff;">if</span> (stack_size &gt; <span style="color: #800080;">0</span><span style="color: #000000;">) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置线程对象属性</span>
+    result = pthread_attr_setstacksize(&amp;<span style="color: #000000;">attr, stack_size);
+  }
+  {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建一个新线程
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-5</span>
+    result = pthread_create(&amp;data_-&gt;thread_, &amp;attr, ThreadEntry, <span style="color: #0000ff;">this</span><span style="color: #000000;">);
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 摧毁线程对象</span>
+  result = pthread_attr_destroy(&amp;<span style="color: #000000;">attr);
+}</span></pre>
+</div>
+<p>　　参照一下文章开始的demo，可以看出去掉了合法性检测和宏之后，在初始化和启动线程基本上V8的形式是一样的。</p>
+<p>　　简单总结一下，V8初始化了一个DefaultPlatform类，计算了一下可用线程池大小，生成了几条线程弄进线程池，而每条线程的任务就是那个ThreadEntry，这篇全部写完算了。</p>
+<p>&nbsp;</p>
+<p>　　这个方法贼麻烦。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 3-5</span>
+<span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span>* ThreadEntry(<span style="color: #0000ff;">void</span>*<span style="color: #000000;"> arg) {
+  Thread</span>* thread = reinterpret_cast&lt;Thread*&gt;<span style="color: #000000;">(arg);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> We take the lock here to make sure that pthread_create finished first since
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> we don't know which thread will run first (the original thread or the new
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> one).</span>
+  { MutexGuard lock_guard(&amp;thread-&gt;data()-&gt;<span style="color: #000000;">thread_creation_mutex_); }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-6</span>
+  SetThreadName(thread-&gt;<span style="color: #000000;">name());
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-7</span>
+  thread-&gt;<span style="color: #000000;">NotifyStartedAndRun();
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> nullptr;
+}</span></pre>
+</div>
+<p>　　由于线程任务的参数定义与返回值都是void*，这里直接做一个强转。随后会加一个线程锁，因为这几个线程在初始化的时候并不需要同时执行这个任务。执行的第一个方法虽然从名字来看只是简单的给线程设置名字，但是内容却不简单。　　</p>
+<p>　　传入SetThreadName方法的参数是之前那个被截断的字符串，看一下这个方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 3-6</span>
+<span style="color: #0000ff;">static</span> <span style="color: #0000ff;">void</span> SetThreadName(<span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>*<span style="color: #000000;"> name) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> pthread_setname_np is only available in 10.6 or later, so test
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> for it at runtime.</span>
+  <span style="color: #0000ff;">int</span> (*dynamic_pthread_setname_np)(<span style="color: #0000ff;">const</span> <span style="color: #0000ff;">char</span>*<span style="color: #000000;">);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 读取动态链接库</span>
+  *reinterpret_cast&lt;<span style="color: #0000ff;">void</span>**&gt;(&amp;dynamic_pthread_setname_np) =<span style="color: #000000;">
+    dlsym(RTLD_DEFAULT, </span><span style="color: #800000;">"</span><span style="color: #800000;">pthread_setname_np</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+  </span><span style="color: #0000ff;">if</span> (dynamic_pthread_setname_np == nullptr) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Mac OS X does not expose the length limit of the name, so hardcode it.</span>
+  <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> kMaxNameLength = <span style="color: #800080;">63</span><span style="color: #000000;">;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 从读取到的方法处理name</span>
+<span style="color: #000000;">  dynamic_pthread_setname_np(name);
+}</span></pre>
+</div>
+<p>　　里面用了一个很玄的api的叫dlsym，官方解释如下。</p>
+<blockquote>
+<p>The function&nbsp;<strong>dlsym</strong>() takes a "handle" of a dynamic library returned by&nbsp;<strong>dlopen</strong>() and the null-terminated symbol name, returning the address where that symbol is loaded into memory.</p>
+</blockquote>
+<p>　　大概就是根据句柄读取一个动态链接库，名字就是那个字符串，返回其在内存中的地址，所以这块的调试全是机器码，根本看不懂，最后返回的一个函数。<img src="./images/深入V8引擎-默认Platform之mac篇(2)3.png" alt="" /></p>
+<p>　　知道这是个函数就行了，至于怎么设置线程名字我也不太想知道。</p>
+<p>　　第二步的方法名就是运行线程的任务，调用链比较长，会来回在几个类之间穿梭，调用各自属性的方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 3-7</span>
+<span style="color: #0000ff;">void</span><span style="color: #000000;"> NotifyStartedAndRun() {
+  </span><span style="color: #0000ff;">if</span> (start_semaphore_) start_semaphore_-&gt;<span style="color: #000000;">Signal();
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-8</span>
+<span style="color: #000000;">  Run();
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-8</span>
+<span style="color: #0000ff;">void</span><span style="color: #000000;"> DefaultWorkerThreadsTaskRunner::WorkerThread::Run() {
+  runner_</span>-&gt;single_worker_thread_id_.store(<span style="color: #0000ff;">base</span><span style="color: #000000;">::OS::GetCurrentThreadId(), std::memory_order_relaxed);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-9</span>
+  <span style="color: #0000ff;">while</span> (std::unique_ptr&lt;Task&gt; task = runner_-&gt;<span style="color: #000000;">GetNext()) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 每一个task会实现自己的run函数</span>
+    task-&gt;<span style="color: #000000;">Run();
+  }
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-9</span>
+std::unique_ptr&lt;Task&gt;<span style="color: #000000;"> DefaultWorkerThreadsTaskRunner::GetNext() {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3-10</span>
+  <span style="color: #0000ff;">return</span><span style="color: #000000;"> queue_.GetNext();
+}</span></pre>
+</div>
+<p>　　不理清楚，这个地方真的很麻烦，绕得很，可以看顶部的继承图。总之，最后调用的是DefaultWorkerThreadsTaskRunner类上一个类型为DelayedTaskQueue类的GetNext方法，返回类型是Task类，V8只是简单定义了一个基类，实际运行时的task都需要继承这个类并实现其Run方法以便线程执行。</p>
+<p>　　最后的最后，GetNext的逻辑其实可以参考libuv的逻辑，机制都大同小异，方法的源码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 3-10</span>
+std::unique_ptr&lt;Task&gt;<span style="color: #000000;"> DelayedTaskQueue::GetNext() {
+  </span><span style="color: #0000ff;">base</span>::MutexGuard guard(&amp;<span style="color: #000000;">lock_);
+  </span><span style="color: #0000ff;">for</span><span style="color: #000000;"> (;;) {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 这一片内容完全可以参考libuv事件轮询的前两步
+     * 1、从DelayQueue队列中依次取出超过指定时间的task
+     * 2、将所有超时的task放到task_queue_队列中
+     * 3、从task_queue_中将task依次取出并返回
+     * 4、外部会调用task的Run方法并重复调用该函数
+    </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">double</span> now =<span style="color: #000000;"> MonotonicallyIncreasingTime();
+    std::unique_ptr</span>&lt;Task&gt; task =<span style="color: #000000;"> PopTaskFromDelayedQueue(now);
+    </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (task) {
+      task_queue_.push(std::move(task));
+      task </span>=<span style="color: #000000;"> PopTaskFromDelayedQueue(now);
+    }
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">task_queue_.empty()) {
+      std::unique_ptr</span>&lt;Task&gt; result =<span style="color: #000000;"> std::move(task_queue_.front());
+      task_queue_.pop();
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+    }
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (terminated_) {
+      queues_condition_var_.NotifyAll();
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> nullptr;
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 1、当task_queue_队列没有task需要处理 但是delay_task_queue_有待处理task
+     * 这里会计算当前队列中延迟task中最近的触发时间 等待对应的时间再次触发
+     * 2、当两个队列都没有需要的事件
+     * 线程会直接休眠等待唤醒
+    </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (task_queue_.empty() &amp;&amp; !<span style="color: #000000;">delayed_task_queue_.empty()) {
+      </span><span style="color: #0000ff;">double</span> wait_in_seconds = delayed_task_queue_.begin()-&gt;first -<span style="color: #000000;"> now;
+      </span><span style="color: #0000ff;">base</span>::TimeDelta wait_delta = <span style="color: #0000ff;">base</span>::TimeDelta::FromMicroseconds(<span style="color: #0000ff;">base</span>::TimeConstants::kMicrosecondsPerSecond *<span style="color: #000000;"> wait_in_seconds);
+
+      </span><span style="color: #0000ff;">bool</span> notified = queues_condition_var_.WaitFor(&amp;<span style="color: #000000;">lock_, wait_delta);
+      USE(notified);
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      queues_condition_var_.Wait(</span>&amp;<span style="color: #000000;">lock_);
+    }
+  }
+}</span></pre>
+</div>
+<p>　　哎&hellip;&hellip;V8引擎不过如此。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

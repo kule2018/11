@@ -1,0 +1,332 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[Vue源码]一起来学Vue模板编译原理（二）-AST生成Render字符串' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[Vue源码]一起来学Vue模板编译原理（二）-AST生成Render字符串</center></div><div class='banquan'>原文出处:本文由博客园博主小磊哥er提供。<br/>
+原文连接:https://www.cnblogs.com/yzsunlei/p/12118360.html</div><br>
+    <p>本文我们一起通过学习Vue模板编译原理（二）-AST生成Render字符串来分析Vue源码。预计接下来会围绕Vue源码来整理一些文章，如下。</p>
+<ul>
+<li><a href="">一起来学Vue双向绑定原理-数据劫持和发布订阅</a></li>
+<li><a href="">一起来学Vue模板编译原理(一)-Template生成AST</a></li>
+<li><a href="">一起来学Vue模板编译原理(二)-AST生成Render字符串</a></li>
+<li><a href="">一起来学Vue虚拟DOM解析-Virtual Dom实现和Dom-diff算法</a></li>
+</ul>
+<p>这些文章统一放在我的git仓库：<a href="https://github.com/yzsunlei/javascript-series-code-analyzing" class="uri">https://github.com/yzsunlei/javascript-series-code-analyzing</a>。觉得有用记得star收藏。</p>
+<h2 id="编译过程">编译过程</h2>
+<p>模板编译是Vue中比较核心的一部分。关于 Vue 编译原理这块的整体逻辑主要分三个部分，也可以说是分三步，前后关系如下：</p>
+<blockquote>
+<p>第一步：将模板字符串转换成element ASTs（解析器）</p>
+</blockquote>
+<blockquote>
+<p>第二步：对 AST 进行静态节点标记，主要用来做虚拟DOM的渲染优化（优化器）</p>
+</blockquote>
+<blockquote>
+<p>第三步：使用element ASTs生成render函数代码字符串（代码生成器）</p>
+</blockquote>
+<p>对应的Vue源码如下，源码位置在<code>src/compiler/index.js</code></p>
+<pre><code><code>export const createCompiler = createCompilerCreator(function baseCompile (
+  template: string,
+  options: CompilerOptions
+): CompiledResult {
+  // 1.parse，模板字符串 转换成 抽象语法树(AST)
+  const ast = parse(template.trim(), options)
+  // 2.optimize，对 AST 进行静态节点标记
+  if (options.optimize !== false) {
+    optimize(ast, options)
+  }
+  // 3.generate，抽象语法树(AST) 生成 render函数代码字符串
+  const code = generate(ast, options)
+  return {
+    ast,
+    render: code.render,
+    staticRenderFns: code.staticRenderFns
+  }
+})</code></pre>
+<p>这篇文档主要讲第三步使用element ASTs生成render函数代码字符串，对应的源码实现我们通常称之为代码生成器。</p>
+<h2 id="代码生成器运行过程">代码生成器运行过程</h2>
+<p>在分析代码生成器的原理前，我们先举例看下代码生成器的具体作用。</p>
+<pre class="html"><code>&lt;div&gt;
+  &lt;p&gt;{{name}}&lt;/p&gt;
+&lt;/div&gt;</code></pre>
+<p>在上节&quot;Template生成AST&quot;中，我们已经说了通过解析器会把上面模板解析成抽象语法树(AST)，解析结果如下：</p>
+<pre class="javascript"><code>{
+  tag: &quot;div&quot;
+  type: 1,
+  staticRoot: false,
+  static: false,
+  plain: true,
+  parent: undefined,
+  attrsList: [],
+  attrsMap: {},
+  children: [
+    {
+      tag: &quot;p&quot;
+      type: 1,
+      staticRoot: false,
+      static: false,
+      plain: true,
+      parent: {tag: &quot;div&quot;, ...},
+      attrsList: [],
+      attrsMap: {},
+      children: [{
+        type: 2,
+        text: &quot;{{name}}&quot;,
+        static: false,
+        expression: &quot;_s(name)&quot;
+      }]
+    }
+  ]
+}</code></pre>
+<ul>
+<li>而在这一节我们会将AST转换成可以直接执行的JavaScript字符串，最终结果如下：</li>
+</ul>
+<pre class="javascript"><code>with(this) {
+    return _c(&#39;div&#39;, [_c(&#39;p&#39;, [_v(_s(name))]), _v(&quot; &quot;), _m(0)])
+}</code></pre>
+<p>现在看不懂不要紧。其实生成器的过程就是 generate 函数拿到解析好的 AST 对象，递归 AST 树，为不同的 AST 节点创建不同的内部调用方法，然后组合成可执行的JavaScript字符串，等待后面的调用。</p>
+<h2 id="内部调用方法">内部调用方法</h2>
+<p>我们看上面示例生成的JavaScript字符串，会发现里面会有<code>_v</code>、<code>_c</code>、<code>_s</code>这样的东西，这些其实就是Vue内部定义的一些调用方法。</p>
+<p>其中 <code>_c</code> 函数定义在 <code>src/core/instance/render.js</code> 中。</p>
+<pre><code><code>  vm.$slots = resolveSlots(options._renderChildren, renderContext)
+  vm.$scopedSlots = emptyObject
+  // 定义的_c函数是用来创建元素的
+  vm._c = (a, b, c, d) =&gt; createElement(vm, a, b, c, d, false)
+
+  vm.$createElement = (a, b, c, d) =&gt; createElement(vm, a, b, c, d, true)</code></pre>
+<p>而其他 <code>_s</code>、<code>_v</code> 是定义在 <code>src/core/instance/render-helpers/index.js</code> 中：</p>
+<pre><code><code>export function installRenderHelpers (target: any) {
+  target._o = markOnce
+  target._n = toNumber
+  target._s = toString
+  target._l = renderList //生成列表VNode
+  target._t = renderSlot //生成解析slot节点
+  target._q = looseEqual
+  target._i = looseIndexOf
+  target._m = renderStatic //生成静态元素
+  target._f = resolveFilter
+  target._k = checkKeyCodes
+  target._b = bindObjectProps //绑定对象属性
+  target._v = createTextVNode //创建文本VNode
+  target._e = createEmptyVNode //创建空节点VNode
+  target._u = resolveScopedSlots
+  target._g = bindObjectListeners
+  target._d = bindDynamicKeys
+  target._p = prependModifier
+}</code></pre>
+<p>以上都是会在生成的JavaScript字符串中用到的，像比较常用的 <code>_c</code> 执行 <code>createElement</code> 去创建 <code>VNode</code>， <code>_l</code> 对应 <code>renderList</code> 渲染列表；<code>_v</code> 对应 <code>createTextVNode</code> 创建文本 <code>VNode</code>；<code>_e</code> 对于 <code>createEmptyVNode</code> 创建空的 <code>VNode</code>。</p>
+<h2 id="整体逻辑">整体逻辑</h2>
+<p>代码生成器的入口函数是<code>generate</code>，具体定义如下，源码位置在<code>src/compiler/codegen/index.js</code></p>
+<pre><code><code>export function generate (
+  ast: ASTElement | void,
+  options: CompilerOptions
+): CodegenResult {
+  // 初始化一些options
+  const state = new CodegenState(options)
+  // 传入ast和options进行生成
+  const code = ast ? genElement(ast, state) : &#39;_c(&quot;div&quot;)&#39; //重点
+  return {
+    // 最外层包一个 with(this) 之后返回
+    render: `with(this){return ${code}}`,
+    // 这个数组中的函数与 VDOM 中的 diff 算法优化相关
+    // 那些被标记为 staticRoot 节点的 VNode 就会单独生成 staticRenderFns
+    staticRenderFns: state.staticRenderFns
+  }
+}</code></pre>
+<p>生成器入口函数就比较简单，先初始化一些配置options，然后传入ast进行生成，没有ast时直接生成一个空div，最后返回生成的JavaScript字符串和静态节点的渲染函数。这里会把静态节点区分出来，便于后面的Vnode diff，即Vue比较算法更新DOM，现在先略过。</p>
+<p>现在我们重点看看genElement函数，代码位置在<code>src/compiler/codegen/index.js</code></p>
+<pre><code><code>export function genElement (el: ASTElement, state: CodegenState): string {
+  if (el.parent) {
+    el.pre = el.pre || el.parent.pre
+  }
+
+  if (el.staticRoot &amp;&amp; !el.staticProcessed) {
+    return genStatic(el, state) // 静态节点处理生成函数
+  } else if (el.once &amp;&amp; !el.onceProcessed) {
+    return genOnce(el, state)   // v-once处理生成函数
+  } else if (el.for &amp;&amp; !el.forProcessed) {
+    return genFor(el, state)    // v-for处理生成函数
+  } else if (el.if &amp;&amp; !el.ifProcessed) {
+    return genIf(el, state)     // v-if处理生成函数
+  } else if (el.tag === &#39;template&#39; &amp;&amp; !el.slotTarget &amp;&amp; !state.pre) {
+    return genChildren(el, state) || &#39;void 0&#39; // 子节点处理生成函数
+  } else if (el.tag === &#39;slot&#39;) {
+    return genSlot(el, state)   // slot处理生成函数
+  } else {
+    // component or element
+    let code
+    if (el.component) {
+      code = genComponent(el.component, el, state)  // component组件处理生成函数
+    } else {
+      let data
+      if (!el.plain || (el.pre &amp;&amp; state.maybeComponent(el))) {
+        data = genData(el, state)  // attributes节点属性处理生成函数
+      }
+
+      const children = el.inlineTemplate ? null : genChildren(el, state, true)
+      code = `_c(&#39;${el.tag}&#39;${
+        data ? `,${data}` : &#39;&#39; // data
+      }${
+        children ? `,${children}` : &#39;&#39; // children
+      })`
+    }
+    // module transforms
+    for (let i = 0; i &lt; state.transforms.length; i++) {
+      code = state.transforms[i](el, code)
+    }
+    return code
+  }
+}</code></pre>
+<p>你会发现genElement函数里面有很多条件判断。这是因为Vue里面的指令写法实在太多，像 <code>v-if</code> 、 <code>v-for</code> 、 <code>v-slot</code>等，每种指令写法都分离出一个函数来单独处理，这样代码阅读起来也清晰明了。下面，我们重点来看看 <code>genFor</code> 和 <code>genData</code> 的具体处理逻辑。</p>
+<h2 id="genfor">genFor</h2>
+<p>genFor 函数是用来处理 v-for 指令写法的，源码位置在<code>src/compiler/codegen/index.js</code></p>
+<pre><code><code>export function genFor (
+  el: any,
+  state: CodegenState,
+  altGen?: Function,
+  altHelper?: string
+): string {
+  const exp = el.for
+  const alias = el.alias
+  const iterator1 = el.iterator1 ? `,${el.iterator1}` : &#39;&#39;
+  const iterator2 = el.iterator2 ? `,${el.iterator2}` : &#39;&#39;
+
+  if (process.env.NODE_ENV !== &#39;production&#39; &amp;&amp;
+    state.maybeComponent(el) &amp;&amp;
+    el.tag !== &#39;slot&#39; &amp;&amp;
+    el.tag !== &#39;template&#39; &amp;&amp;
+    !el.key
+  ) {
+    state.warn(
+      `&lt;${el.tag} v-for=&quot;${alias} in ${exp}&quot;&gt;: component lists rendered with ` +
+      `v-for should have explicit keys. ` +
+      `See https://vuejs.org/guide/list.html#key for more info.`,
+      el.rawAttrsMap[&#39;v-for&#39;],
+      true /* tip */
+    )
+  }
+
+  el.forProcessed = true // avoid recursion
+  return `${altHelper || &#39;_l&#39;}((${exp}),` +
+    `function(${alias}${iterator1}${iterator2}){` +
+      `return ${(altGen || genElement)(el, state)}` +
+    &#39;})&#39;
+}</code></pre>
+<p>genFor 的逻辑其实就是，首先 AST 元素节点中获取了和 for 相关的一些属性，然后返回了一个代码字符串。</p>
+<h2 id="gendata">genData</h2>
+<p>genData 函数是用来处理节点属性的，源码位置在<code>src/compiler/codegen/index.js</code></p>
+<pre><code><code>export function genData (el: ASTElement, state: CodegenState): string {
+  let data = &#39;{&#39;
+
+  // directives first.
+  // directives may mutate the el&#39;s other properties before they are generated.
+  const dirs = genDirectives(el, state)
+  if (dirs) data += dirs + &#39;,&#39;
+
+  // key
+  if (el.key) {
+    data += `key:${el.key},`
+  }
+  // ref
+  if (el.ref) {
+    data += `ref:${el.ref},`
+  }
+  if (el.refInFor) {
+    data += `refInFor:true,`
+  }
+  // pre
+  if (el.pre) {
+    data += `pre:true,`
+  }
+  // record original tag name for components using &quot;is&quot; attribute
+  if (el.component) {
+    data += `tag:&quot;${el.tag}&quot;,`
+  }
+  // module data generation functions
+  for (let i = 0; i &lt; state.dataGenFns.length; i++) {
+    data += state.dataGenFns[i](el)
+  }
+  // attributes
+  if (el.attrs) {
+    data += `attrs:${genProps(el.attrs)},`
+  }
+  // DOM props
+  if (el.props) {
+    data += `domProps:${genProps(el.props)},`
+  }
+  // event handlers
+  if (el.events) {
+    data += `${genHandlers(el.events, false)},`
+  }
+  if (el.nativeEvents) {
+    data += `${genHandlers(el.nativeEvents, true)},`
+  }
+  // slot target，only for non-scoped slots
+  if (el.slotTarget &amp;&amp; !el.slotScope) {
+    data += `slot:${el.slotTarget},`
+  }
+  // scoped slots
+  if (el.scopedSlots) {
+    data += `${genScopedSlots(el, el.scopedSlots, state)},`
+  }
+  // component v-model
+  if (el.model) {
+    data += `model:{value:${
+      el.model.value
+    },callback:${
+      el.model.callback
+    },expression:${
+      el.model.expression
+    }},`
+  }
+  // inline-template
+  if (el.inlineTemplate) {
+    const inlineTemplate = genInlineTemplate(el, state)
+    if (inlineTemplate) {
+      data += `${inlineTemplate},`
+    }
+  }
+  data = data.replace(/,$/, &#39;&#39;) + &#39;}&#39;
+  // v-bind dynamic argument wrap
+  if (el.dynamicAttrs) {
+    data = `_b(${data},&quot;${el.tag}&quot;,${genProps(el.dynamicAttrs)})`
+  }
+  // v-bind data wrap
+  if (el.wrapData) {
+    data = el.wrapData(data)
+  }
+  // v-on data wrap
+  if (el.wrapListeners) {
+    data = el.wrapListeners(data)
+  }
+  return data
+}</code></pre>
+<h2 id="总结一下">总结一下</h2>
+<p>代码生成是模板编译的第三步，它完成了AST到Render的转换，即将抽象语法树AST转换成可以直接执行的JavaScript字符串。</p>
+<p>其中genElement的代码比较多，因为需要分别处理的情况非常多，这里只是对genFor和genData的代码逻辑进行了说明。</p>
+<h2 id="相关">相关</h2>
+<ul>
+<li><a href="https://ustbhuangyi.github.io/vue-analysis/compile/codegen.html#generate" class="uri">https://ustbhuangyi.github.io/vue-analysis/compile/codegen.html#generate</a></li>
+<li><a href="https://github.com/liutao/vue2.0-source/blob/master/compile%E2%80%94%E2%80%94%E7%94%9F%E6%88%90render%E5%AD%97%E7%AC%A6%E4%B8%B2.md">https://github.com/liutao/vue2.0-source/blob/master/compile%E2%80%94%E2%80%94%E7%94%9F%E6%88%90render%E5%AD%97%E7%AC%A6%E4%B8%B2.md</a></li>
+<li><a href="https://github.com/lihongxun945/myblog/issues/29" class="uri">https://github.com/lihongxun945/myblog/issues/29</a></li>
+<li><a href="https://segmentfault.com/a/1190000012922342" class="uri">https://segmentfault.com/a/1190000012922342</a></li>
+</ul>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

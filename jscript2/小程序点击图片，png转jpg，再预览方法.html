@@ -1,0 +1,112 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修小程序点击图片，png转jpg，再预览方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>小程序点击图片，png转jpg，再预览方法</center></div><div class='banquan'>原文出处:本文由博客园博主Leepyng提供。<br/>
+原文连接:https://www.cnblogs.com/leepyng/p/11713989.html</div><br>
+    <div class="cnblogs_Highlighter" style="text-align: left;">
+<pre><code>//页面数据初始化添加参数：isSignCanvassShow<br /><br />//通过canvas将图片转为jpg，使图片生成白色底便于查看预览</pre>
+<pre><code>//list为原图片数组列表，index表示当前图片下标，
+//imgList表示已经通过canvas转化的图片列表
+    trasformImgType(list,index,imgList){
+        this.setData({
+            isSignCanvasShow:true
+        });
+        index=index?index:0;
+        const that=this;
+        let img=list[index].fileUrl; 
+        img=img.replace(/http/,'https');
+        tip.loading('正在打开图片');
+        //获取图片信息，
+        wx.getImageInfo({
+            src: img,
+            success (res) {
+                //画入canvas
+                const context = wx.createCanvasContext('picCanvas');
+                that.resetCanvas(context);
+                context.drawImage(res.path,0, 0);
+                context.draw(false,function(drawed){
+                    // console.log(drawed);
+                    wx.canvasToTempFilePath({
+                        x: 0,
+                        y: 0,
+                        width: 414,
+                        height: 300,
+                        destWidth: 414,
+                        destHeight:300,
+                        fileType: 'jpg',
+                        canvasId: 'picCanvas',
+                        success(imgRes) {
+                            tip.loaded();
+                            imgList.push(imgRes.tempFilePath);
+                            if(index&lt;list.length-1){
+                                that.trasformImgType(list,index+1,imgList)
+                                return;
+                            }
+                            that.setData({
+                                isSignCanvasShow:false
+                            })
+                            wx.previewImage({
+                                current: '', //图标当前下标
+                                urls: imgList, // 需要预览的图片http链接列表
+                                fail:function(res){
+                                    tip.alert('图片过期需刷新');
+                                },
+                            }) 
+                        },
+                        fail() {
+                            that.setData({
+                                isSignCanvasShow:false
+                            })
+                            tip.loaded();
+                            tip.alert('图片过期需刷新');
+                        }
+                    })
+                } )
+            }
+        })
+    },    
+    //重绘画板
+    resetCanvas(context){
+        context.rect(0, 0, this.data.screenWidth, this.data.screenHeight - 4);  //画板大小
+        context.setFillStyle('#fff');//背景填充
+        context.fill()  //设置填充
+        context.draw()    //开画
+
+    },</pre>
+</div>
+<p>　　</p>
+<pre><code>wxml文件需要添加如下代码：</pre>
+<div class="cnblogs_Highlighter">
+<pre><code>&lt;view hidden="{{!isSignCanvasShow}}"&gt;
+　　&lt;canvas canvas-id="picCanvas" id='picCanvas' class="pic-canvas" &gt;&lt;/canvas&gt;
+&lt;/view&gt;
+</pre>
+</div>
+<p>　　</p>
+<p>方法解释：</p>
+<p>&nbsp;通过wx.previewImage预览图片时，会出现格式为png预览背景为黑色时，图片查看不清楚，能过下面的方法转化为白色底，方便查看</p>
+<p>1、先用wx.getImageInfo 下载图片到本地，并且获取图片的信息；</p>
+<p>2、将图片画入canvas，并生成临时图片地址；</p>
+<p>3、将canvas生成的地址填写入imgList缓存起来；</p>
+<p>4、当所有图片都转化完成之后，调用wx.previewImage查看图片</p>
+<p><em id="__mceDel"><em id="__mceDel"><em id="__mceDel"><em id="__mceDel"><em id="__mceDel"><em id="__mceDel">5、每次转化完一片图片的时候，就重新绘制一下canvas；</em></em></em></em></em></em></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

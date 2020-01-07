@@ -1,0 +1,181 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修在 React 项目中引入 GG-Editor 编辑可视化流程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>在 React 项目中引入 GG-Editor 编辑可视化流程</center></div><div class='banquan'>原文出处:本文由博客园博主Wise.Wrong提供。<br/>
+原文连接:https://www.cnblogs.com/wisewrong/p/11018746.html</div><br>
+    <p><span style="font-size: 14px;">蚂蚁金服数据可视化团队曾经开源了一款<a href="https://github.com/antvis/g6-editor" target="_blank"> G6-Editor</a>，但后来停止了对外支持，学习成本太高</span></p>
+<p><span style="font-size: 14px;">好在后来他们团队的大牛<a href="https://github.com/gaoli" target="_blank">高力</a>结合 React + G6 开源了一个 <a href="http://ggeditor.com/" target="_blank">GG-Editor</a><span style="color: #888888;">（其实就是G6-Editor）</span></span></p>
+<p><span style="font-size: 14px;">不过相关的文档还是太少，实际的使用依然是一个不断摸索的过程...</span></p>
+<p><span style="font-size: 14px;">常见问题:&nbsp;<a href="https://github.com/gaoli/GGEditor/issues/130">https://github.com/gaoli/GGEditor/issues/130</a></span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;"><strong>一、引用 GG-Editor</strong></span></p>
+<p><span style="font-size: 14px;">直接通过 npm 或 yarn 安装依赖</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">npm install --save gg-editor</span></pre>
+</div>
+<p><span style="font-size: 14px;">由于对 GG-Editor 不熟悉，所以我将它自带的 Demo 作为模版，在此基础上进行开发</span></p>
+<p><span style="font-size: 14px;">将 <strong><span style="color: #333399;">node_modules/gg-editor/demo/src/</span></strong> 下的 <span style="color: #333399;"><strong>Flow</strong></span> 目录和 <span style="color: #333399;"><strong>components、common</strong></span>&nbsp;目录拷出来，放到开发目录下进行改造</span></p>
+<p><span style="font-size: 14px;">这个 demo 基于 ant 开发，所以需要引入 ant</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">npm install --save antd</span></pre>
+</div>
+<p><span style="font-size: 14px;"><strong>另外 demo 使用了 CSS Modules，需要在项目配置中启用</strong></span></p>
+<p><span style="font-size: 14px;">比如在我的项目中，就把原本的 index.css 重命名为 index.module.css，然后修改相应的引入路径</span></p>
+<p><span style="font-size: 14px;">由于只是开发可视化流程，所以 components 目录下多余的文件（以 Koni 和 Mind 开头的文件）都以删掉</span></p>
+<p><span style="font-size: 14px;">然后将 Flow/index.js 提出来作为项目入口，改造后的目录如下：</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程0.png" alt="" width="253" height="175" /></span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;"><strong>二、 Item 节点配置</strong></span></p>
+<p><span style="font-size: 14px;">demo 启动之后的界面是这样的</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程1.png" alt="" width="496" height="275" /></span></p>
+<p><span style="font-size: 14px;">左边是 gg-editor 提供的四种基础节点类型，其对应的组件是&nbsp;/components/EditorItemPanel</span></p>
+<p><span style="font-size: 14px;">这个组件下引入了四个 gg-deitor &lt;Item&gt; 组件，官方提供的 API 如下：</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程2.png" alt="" /></span></p>
+<p><span style="font-size: 14px;"><a href="http://ggeditor.com/docs/api/itemPanel.zh-CN.html">http://ggeditor.com/docs/api/itemPanel.zh-CN.html</a></span></p>
+<p><span style="font-size: 14px;">其中 type 有 <span style="color: #008080;">node</span> 和 <span style="color: #008080;">edge</span> 两个值可选，node 就是节点，edge 是连接节点的连线</span></p>
+<p><span style="font-size: 14px;">shape 可选参数有：<span style="color: #008080;">圆形 'flow-circle' | 圆角矩形 'flow-rect' | 菱形 'flow-rhombus' | 椭圆矩形&nbsp;'flow-capsule'</span></span></p>
+<p><span style="font-size: 14px;">src 可以引入一张图片作为当前节点的预览样式</span></p>
+<p><span style="font-size: 14px;">也可以自定义子节点，&lt;Item /&gt; 会接收 props.children 作为预览样式</span></p>
+<p><span style="color: #800000; font-size: 14px;"><strong>需要注意的是，不管是 src 还是子节点，都只是一个预览样式，并不等于编辑器画板中的样式</strong></span></p>
+<p><span style="font-size: 14px;">而画板中的样式，由 model 决定，其配置项如下：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #000000;">model: {
+    color: </span>'#333', <span style="color: #008000;">//</span><span style="color: #008000;"> 节点主题色（选中颜色、激活颜色基于该值）</span>
+    size: [10, 10], <span style="color: #008000;">//</span><span style="color: #008000;"> [x, y] 节点尺寸</span>
+    shape: 'cirle', <span style="color: #008000;">//</span><span style="color: #008000;"> 图形：圆形 circle | 圆角矩形 rect | 菱形 rhombus | 椭圆矩形 capsule</span>
+    style: { <span style="color: #008000;">//</span><span style="color: #008000;"> 关键形样式(可覆盖color的普通样式，但激活、选中依然无效，坑！)</span>
+        fill: 'red', <span style="color: #008000;">//</span><span style="color: #008000;"> 填充背景</span>
+        stroke: 'blue' <span style="color: #008000;">//</span><span style="color: #008000;"> 形状描边</span>
+<span style="color: #000000;">    },
+    label: { </span><span style="color: #008000;">//</span><span style="color: #008000;"> 节点标签</span>
+        text: '开始节点', <span style="color: #008000;">//</span><span style="color: #008000;"> 文本内容</span>
+        fill: 'green' <span style="color: #008000;">//</span><span style="color: #008000;"> 文本颜色</span>
+<span style="color: #000000;">    },
+    index: </span>1 <span style="color: #008000;">//</span><span style="color: #008000;"> 渲染层级</span>
+}</span></pre>
+</div>
+<p><span style="font-size: 14px;">不过 model 默认会继承 &lt;Item&gt; 组件的 props.shape 和 props.size，所以<span style="color: #008080;"><strong>通常 model 只需配置 color、label</strong></span></span></p>
+<p><span style="font-size: 14px;"><strong>这里有个比较难受的地方：画板中的节点样式由 model 控制，而节点预览样式由 CSS 或者图片控制，要想保证二者统一，就会需要很多额外的工作</strong></span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程3.png" alt="" width="667" height="571" /></span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;"><strong>三、自定义节点</strong></span></p>
+<p><span style="font-size: 14px;">如果 &lt;Item&gt; 自带的参数不满足需求，可以使用 &lt;ReisterNode&gt; 来封装自己的 &lt;Item&gt;</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程4.png" alt="" /></span></p>
+<p><span style="font-size: 14px;">&lt;ReisterNode&gt; 可以接收上面三个参数，其中 <span style="color: #008080;"><strong>name</strong></span> 是组件名称</span></p>
+<p><span style="font-size: 14px;">在 &lt;Item&gt; 的 shape 属性中指定 <span style="color: #008080;"><strong>name</strong></span>，就能拖拽生成自定义的节点</span></p>
+<p><span style="font-size: 14px;"><span style="color: #008080;"><strong>extend</strong></span> 可以继承一个基本图形（'flow-circle', 'flow-rect' 等）</span></p>
+<p><span style="font-size: 14px;"><span style="color: #008080;"><strong>config</strong></span> 可以参考官方的&nbsp;Issues：<a href="https://github.com/gaoli/GGEditor/issues/76">https://github.com/gaoli/GGEditor/issues/76</a></span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;">假如需要自定义一个 start-node，就可以自行封装一个 node 组件</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程5.png" alt="" width="674" height="452" /></span></p>
+<p><span style="font-size: 14px;">然后在&nbsp;ItemPanel 中的 &lt;Item&gt; 指定组件名称</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程6.png" alt="" width="286" height="98" /></span></p>
+<p><span style="font-size: 14px;">最后在 &lt;Flow&gt; 组件下面引入</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程7.png" alt="" width="394" height="92" /></span></p>
+<p><span style="font-size: 14px;">如果还是不明白 &lt;ReisterNode&gt; 如何使用，可以参考这个 Demo：<a href="https://codesandbox.io/s/4j62moqy0w">https://codesandbox.io/s/4j62moqy0w</a></span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;"><strong>四、Flow 编辑器配置</strong></span></p>
+<p><span style="font-size: 14px;">官方文档地址：<a href="http://ggeditor.com/docs/api/flow.zh-CN.html">http://ggeditor.com/docs/api/flow.zh-CN.html</a></span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程8.png" alt="" width="465" height="238" /></span></p>
+<p><span style="font-size: 14px;">组件默认可以将连线到空白处，设置 <span style="color: #008080;">noEndEdge</span> 为 false 就只能在节点之间连线</span></p>
+<p><span style="font-size: 14px;">align 参数可以设置对齐的样式，比如对齐线：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Flow </span><span style="color: #ff0000;">align</span><span style="color: #0000ff;">={{
+    </span><span style="color: #ff0000;"><span style="color: #000000;">line:</span> {
+        <span style="color: #800000;">stroke:</span> <span style="color: #000000;">'blue'</span>, <span style="color: #008000;">// 对齐线颜色</span>
+        <span style="color: #800000;">lineWidth:</span> <span style="color: #000000;">2</span> <span style="color: #008000;">// 对齐线宽度</span>
+    }
+<span style="color: #0000ff;">}} </span></span><span style="color: #0000ff;">/&gt;</span></span></pre>
+</div>
+<p><span style="font-size: 14px;">shortcut 可以配置内置的快捷键命令，支持的命令有：</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程9.png" alt="" width="626" height="604" /></span></p>
+<p><span style="color: #800000; font-size: 14px;"><strong>但经过试验，只有适用页面为 All 的命令可配置，而其它命令（如 Ctrl+C）都无效</strong></span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;">组件本身默认的连线是曲线 'flow-smooth'，在编辑时可以手动修改，也可以在 graph 中限定连线类型：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;"><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Flow </span><span style="color: #ff0000;">graph</span><span style="color: #0000ff;">={{edgeDefaultShape: </span><span style="color: #ff0000;">'flow-polyline-round'}}</span><span style="color: #0000ff;">/&gt;</span></span></pre>
+</div>
+<p><span style="font-size: 14px;">更多关于 graph 的配置项可以参考这里：<a href="https://www.yuque.com/antv/g6/api-graph#7bcsva">https://www.yuque.com/antv/g6/api-graph</a></span></p>
+<p><span style="font-size: 14px;">在 &lt;FLow&gt; 组件上，最重要的是监听事件：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 14px;">  <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">Flow </span><span style="color: #ff0000;">onNodeClick</span><span style="color: #0000ff;">={(e) =</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;"> {
+      console.log(e);
+    }}
+  /&gt;</span></span></pre>
+</div>
+<p><span style="font-size: 14px;">事件是整个编辑器的灵魂，下面将重点介绍一下 GG-Editor 的 Page Events</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 16px;"><strong>五、页面事件 Page Events</strong></span></p>
+<p><span style="font-size: 14px;">官方文档：<a href="http://ggeditor.com/docs/api/pageEvents.zh-CN.html">http://ggeditor.com/docs/api/pageEvents.zh-CN.html</a></span></p>
+<p><span style="font-size: 14px;">文档中对支持的事件和事件对象都有说明，这里不再细说，主要分享几个场景</span></p>
+<p><span style="color: #808080; font-size: 12px;">// 事件总览参考 /node_modules/gg-editor/src/common/constants.js</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;"><strong>1. 拖拽节点，区分新节点还是旧节点</strong></span></p>
+<p><span style="font-size: 14px;">监听拖拽放置事件：<span style="color: #0000ff;"><strong>onDrop</strong></span></span></p>
+<p><span style="font-size: 14px;">从 &lt;ItemPanel&gt; 拖拽新节点到画布的时候，onDrop 返回的事件对象是这样的：</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程10.png" alt="" /></span></p>
+<p><span style="font-size: 14px;">这时 currentItem 和 currentShape 都是 undefined</span></p>
+<p><span style="font-size: 14px;">而如果只是挪动旧节点的位置，这两个字段会记录拖拖动的图形图项</span></p>
+<p><span style="font-size: 14px;"><strong>或者监听<span style="color: #800000;">节点拖动结束</span>事件：<span style="color: #0000ff;">onNodeDragEnd</span></strong></span></p>
+<p><span style="font-size: 14px;">这个事件只会在拖动画布上的节点才会触发</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;"><strong>2. 锚点连线取消</strong></span></p>
+<p><span style="font-size: 14px;">连线触发的事件很多，比如&nbsp;<strong><span style="color: #0000ff;">onDrop、</span><strong><span style="color: #0000ff;">onDragEnd</span>，</strong></strong>不过个人推荐监听<strong><strong>&nbsp;</strong><span style="color: #0000ff;">onAfterChange</span></strong></span></p>
+<p><span style="font-size: 14px;">当子项更改的时候会触发 onAfterChange 事件，如果是连线，事件对象如下：</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程11.png" alt="" /></span></p>
+<p><span style="font-size: 14px;">如果有需求，当目标节点已经连线的时候，就取消连线，就可以根据 item 或者 model 对象中的参数进行判断</span></p>
+<p><span style="font-size: 14px;">最后用结合<span style="color: #800000;"><strong>异步函数</strong></span>和<strong><span style="color: #800000;"> &lt;withPropsAPI&gt;</span> </strong>组件取消连线：</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程12.png" alt="" width="535" height="174" /></span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程13.png" alt="" width="470" height="364" /></span></p>
+<p><span style="font-size: 14px;">这里用到的 &lt;withPropsAPI&gt; 组件，是 GG-Editor 自带的包装组件</span></p>
+<p><span style="font-size: 14px;">经过&nbsp;&lt;withPropsAPI&gt;&nbsp;包装的组件，会自带 <a href="http://ggeditor.com/docs/api/propsAPI.zh-CN.html" target="_blank">propsAPI</a> 属性</span></p>
+<p><span style="font-size: 14px;">executeCommand() 方法可以执行上面第四部分 (shortcut) 提到的所有命令</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;"><strong>3. 保存</strong></span></p>
+<p><span style="font-size: 14px;">上面 &lt;withPropsAPI&gt; 提供的 <span style="color: #0000ff;"><strong>propsAPI</strong></span> 属性中，包含了 save() 方法</span></p>
+<p><span style="font-size: 14px;">可以封装一个 SaveButton 组件，暴露一个 onSave 事件</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程14.png" alt="" width="420" height="144" /></span></p>
+<p><span style="font-size: 14px;">然后用&nbsp;&lt;withPropsAPI&gt; 包装该组件</span></p>
+<p><span style="font-size: 14px;">详情可以参考这个 Demo:&nbsp;<a href="https://codesandbox.io/s/r4kzkn441m">https://codesandbox.io/s/r4kzkn441m</a>&nbsp;</span></p>
+<p><span style="font-size: 14px;">&nbsp;</span></p>
+<p><span style="font-size: 14px;"><strong>4. 自定义键盘操作</strong></span></p>
+<p><span style="font-size: 14px;">上面提到过，Ctrl + C 的复制快捷键无效</span></p>
+<p><span style="font-size: 14px;">但这个功能十分关键，可以通过监听<span style="color: #0000ff;"><strong> onKeyDown</strong></span> 和 <span style="color: #0000ff;"><strong>onKeyUp</strong></span> 手动创建这个快捷命令</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程15.png" alt="" width="323" height="122" /></span></p>
+<p><span style="font-size: 14px;">创建一个 keysDown 字段来记录按下的按键，keyUp 时清空</span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程16.png" alt="" width="505" height="729" /></span></p>
+<p><span style="font-size: 14px;"><img src="./images/在 React 项目中引入 GG-Editor 编辑可视化流程17.png" alt="" width="472" height="350" /></span></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>小结：</strong></span></p>
+<p><span style="font-size: 14px;">上面的内容只介绍了 GG-Editor 核心的几个组件和功能</span></p>
+<p><span style="font-size: 14px;">像 &lt;Minimap&gt;、&lt;ContextMenu&gt;、&lt;Toolbar&gt; 这些组件参考 Demo 就足够，所以并没有提及</span></p>
+<p><span style="font-size: 14px;">基于上面的介绍，已经能够使用 GG-Editor 进行开发，如果有其它疑问，可以在 GitHub 仓库提 Issues</span></p>
+<p><span style="font-size: 14px;">最后发一下牢骚：阅读源码这种事，必须配一个程序员鼓励师才能开展</span></p>
+<p><span style="font-size: 14px;">&nbsp;&nbsp;</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

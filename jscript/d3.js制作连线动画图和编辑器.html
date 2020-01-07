@@ -1,0 +1,386 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修d3.js制作连线动画图和编辑器' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>d3.js制作连线动画图和编辑器</center></div><div class='banquan'>原文出处:本文由博客园博主eagle1098提供。<br/>
+原文连接:https://www.cnblogs.com/eagle1098/p/11431679.html</div><br>
+    <p>此文章为原创文章，原文地址：<a href="https://www.cnblogs.com/eagle1098/p/11431679.html">https://www.cnblogs.com/eagle1098/p/11431679.html</a></p>
+<p><img src="./images/d3.js制作连线动画图和编辑器0.png" alt="" width="572" height="329" /></p>
+<p>连线动画图</p>
+<p><img src="./images/d3.js制作连线动画图和编辑器1.png" alt="" width="572" height="453" /></p>
+<p>编辑器</p>
+<p>效果如上图所示。<br />本项目使用主要d3.jsv4制作，分两部分，一个是实际展示的连线动画图，另一个是管理人员使用鼠标编辑连线的页面。对于d3.js如何引入图片，如何画线等基础功能，这里就不再介绍了，大家可以找一些入门文章看一下。这里主要介绍一下重点问题。</p>
+<h4>1.连线动画图</h4>
+<p>此图的主要功能是每隔给定时间，通过ajax请求后台数据，并根据返回的数据动态改变每个图片下方的数值，动态改变连线上的动画流动方向和是否流动。<br />首先，确定图表中需要配置的内容，如各图片存储位置，连线和动画颜色，图片和连线的坐标等。这些数据需要在html中进行配置，最好写成object对象，赋值给我们自己的图表类的函数。比如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> data =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">  element:[{
+</span><span style="color: #008080;"> 3</span>     image: 'img/work.png'<span style="color: #000000;">,
+</span><span style="color: #008080;"> 4</span>     pos:[1,1], <span style="color: #008000;">//</span><span style="color: #008000;"> 图片位置</span>
+<span style="color: #008080;"> 5</span>     linePoint:[], <span style="color: #008000;">//</span><span style="color: #008000;"> 图片发出线段坐标数组</span>
+<span style="color: #008080;"> 6</span>     lineDir:0, <span style="color: #008000;">//</span><span style="color: #008000;"> 线段动画方向</span>
+<span style="color: #008080;"> 7</span>     title: '工作'
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">  }],
+</span><span style="color: #008080;"> 9</span>   lineColor:'black', <span style="color: #008000;">//</span><span style="color: #008000;"> 连线颜色</span>
+<span style="color: #008080;">10</span>   animateColor: 'red', <span style="color: #008000;">//</span><span style="color: #008000;"> 动画颜色</span>
+<span style="color: #008080;">11</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">12</span> <span style="color: #0000ff;">var</span> chart = <span style="color: #0000ff;">new</span> Myd3chart('#chart'<span style="color: #000000;">);
+</span><span style="color: #008080;">13</span> chart.lineChart(data);</pre>
+</div>
+<p>其中图片发出的线段坐标数组，使用外部文件提供，此文件由之后介绍的编辑器生成。<br />在设计我们自己的图表函数时，最好把每个功能划分成独立的函数，这样方便以后的维护和扩展。<br />动画线段采用css的方式，有动画的线段添加此css即可：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> .animate-<span style="color: #000000;">line{
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">  fill: none;
+</span><span style="color: #008080;"> 3</span>   stroke-width: 1<span style="color: #000000;">;
+</span><span style="color: #008080;"> 4</span>   stroke-dasharray: 50 100<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>   stroke-dashoffset: 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">  animation: stroke 6s infinite linear;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">@keyframes stroke {
+</span><span style="color: #008080;"> 9</span>   100%<span style="color: #000000;"> {
+</span><span style="color: #008080;">10</span>     stroke-dashoffset: 500; <span style="color: #008000;">/*</span><span style="color: #008000;"> 如果反向移动改为-500 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">11</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">12</span> }</pre>
+</div>
+<p>这个图表的难点在于动态改变连线上的流动动画，因为A线段的终点会连接到B线段上，如果B线段动画停止，则A线段上的动画仍然要从B上经过，而不能简单停止B线段上的动画。而且如果B线段上的接入点不止一个，还要判断接入点之间的顺序，只显示最靠近B起始点的接入点的动画。另外还要判断接入线段上是否有接入线段，层级关系里面如果有1个线段有动画，则此接入点就有动画流出。（这里说起来有点绕）<br />我的方法是：<br />1）统计每个线段上的所有接入点，这里就是图片名称，用于判断此线段是否有动画流出。<br />2）接收后台传来的数据时，判断每个线段是否有动画，如果有动画，则直接恢复其动画线段的起始点坐标；如果没有动画，则判断最靠近起始点的接入点是否有动画，如果有动画则将动画线段的起始点改为此接入点坐标。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 统计接入点</span>
+<span style="color: #008080;">  2</span>   <span style="color: #0000ff;">function</span><span style="color: #000000;"> findAccessPoint() {
+</span><span style="color: #008080;">  3</span>     <span style="color: #0000ff;">var</span> accessPoints =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">  4</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 记录每个线段上的接入点，data为配置数据</span>
+<span style="color: #008080;">  5</span>     data.eles.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(d, i){
+</span><span style="color: #008080;">  6</span>       <span style="color: #0000ff;">if</span>(d.line.length == 0<span style="color: #000000;">){
+</span><span style="color: #008080;">  7</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">  8</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">  9</span>       <span style="color: #0000ff;">var</span> acsp =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 10</span> <span style="color: #000000;">        name: d.title.text,
+</span><span style="color: #008080;"> 11</span>         ap: [], <span style="color: #008000;">//</span><span style="color: #008000;"> 接入点,按顺序排列，头部离开始点近</span>
+<span style="color: #008080;"> 12</span> <span style="color: #000000;">      };
+</span><span style="color: #008080;"> 13</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 本线段上，每两相邻的点作为一个元素存入数组</span>
+<span style="color: #008080;"> 14</span>       <span style="color: #0000ff;">var</span> linePair =<span style="color: #000000;"> [];
+</span><span style="color: #008080;"> 15</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 本线段起始点</span>
+<span style="color: #008080;"> 16</span>       <span style="color: #0000ff;">var</span> startPos = d.line[0<span style="color: #000000;">];
+</span><span style="color: #008080;"> 17</span>       d.line.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(dd, di){
+</span><span style="color: #008080;"> 18</span>         <span style="color: #0000ff;">if</span>(d.line[di+1<span style="color: #000000;">]){
+</span><span style="color: #008080;"> 19</span>           <span style="color: #0000ff;">var</span> pair =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 20</span> <span style="color: #000000;">            start: dd,
+</span><span style="color: #008080;"> 21</span>             end: d.line[di+1<span style="color: #000000;">]
+</span><span style="color: #008080;"> 22</span> <span style="color: #000000;">          };
+</span><span style="color: #008080;"> 23</span> <span style="color: #000000;">          linePair.push(pair);
+</span><span style="color: #008080;"> 24</span> <span style="color: #000000;">        }        
+</span><span style="color: #008080;"> 25</span> <span style="color: #000000;">      });
+</span><span style="color: #008080;"> 26</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 对每两相邻的点，查找接入点</span>
+<span style="color: #008080;"> 27</span>       linePair.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(dd, di){
+</span><span style="color: #008080;"> 28</span>         chartData.eles.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(ddd, ddi){
+</span><span style="color: #008080;"> 29</span>           <span style="color: #008000;">//</span><span style="color: #008000;"> 排除自己，查找自己线段上的接入点</span>
+<span style="color: #008080;"> 30</span>           <span style="color: #0000ff;">if</span>(i != ddi &amp;&amp; ddd.line.length &gt; 1<span style="color: #000000;">){
+</span><span style="color: #008080;"> 31</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 得到此线段终点</span>
+<span style="color: #008080;"> 32</span>             <span style="color: #0000ff;">var</span> pos = ddd.line[ddd.line.length - 1<span style="color: #000000;">];
+</span><span style="color: #008080;"> 33</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> dd.start开始点,dd.end结束点</span>
+<span style="color: #008080;"> 34</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 用x坐标计算在本线段上的y坐标，再和实际的y坐标比较</span>
+<span style="color: #008080;"> 35</span>             <span style="color: #0000ff;">var</span> computeY = dd.start[1] + 
+<span style="color: #008080;"> 36</span>               (pos[0] - dd.start[0])*(dd.end[1] - dd.start[1])/(dd.end[0] - dd.start[0]);
+<span style="color: #008080;"> 37</span>             <span style="color: #0000ff;">var</span> dif = Math.abs(computeY - pos[1<span style="color: #000000;">]);
+</span><span style="color: #008080;"> 38</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 如果误差在2以内，并且此线终点在当前线起点和终点之间</span>
+<span style="color: #008080;"> 39</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 认为此点为接入点</span>
+<span style="color: #008080;"> 40</span>             <span style="color: #0000ff;">if</span>(dif &lt; 2 &amp;&amp;<span style="color: #000000;"> (
+</span><span style="color: #008080;"> 41</span> <span style="color: #000000;">              (
+</span><span style="color: #008080;"> 42</span>                 ((pos[0] &gt; dd.start[0]) &amp;&amp; (pos[0] &lt; dd.end[0])) ||
+<span style="color: #008080;"> 43</span>                 ((pos[0] &lt; dd.start[0]) &amp;&amp; (pos[0] &gt; dd.end[0<span style="color: #000000;">]))
+</span><span style="color: #008080;"> 44</span>               ) &amp;&amp;<span style="color: #000000;"> (
+</span><span style="color: #008080;"> 45</span>                 ((pos[1] &gt; dd.start[1]) &amp;&amp; (pos[1] &lt; dd.end[1])) ||
+<span style="color: #008080;"> 46</span>                 ((pos[1] &lt; dd.start[1]) &amp;&amp; (pos[1] &gt; dd.end[1<span style="color: #000000;">]))
+</span><span style="color: #008080;"> 47</span> <span style="color: #000000;">              )
+</span><span style="color: #008080;"> 48</span> <span style="color: #000000;">            )) {
+</span><span style="color: #008080;"> 49</span>               <span style="color: #0000ff;">var</span> dis = Math.pow((pos[0] - startPos[0]),2) + Math.pow((pos[1] - startPos[1]),2<span style="color: #000000;">);
+</span><span style="color: #008080;"> 50</span>               <span style="color: #0000ff;">var</span> ap =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 51</span> <span style="color: #000000;">                name: ddd.title.text,
+</span><span style="color: #008080;"> 52</span> <span style="color: #000000;">                ap: pos,
+</span><span style="color: #008080;"> 53</span>                 distance: dis, <span style="color: #008000;">//</span><span style="color: #008000;"> 距离起始点的距离</span>
+<span style="color: #008080;"> 54</span>                 allNames: [], <span style="color: #008000;">//</span><span style="color: #008000;"> 所有通过此接入点的站点名称</span>
+<span style="color: #008080;"> 55</span> <span style="color: #000000;">              }
+</span><span style="color: #008080;"> 56</span> <span style="color: #000000;">              acsp.ap.push(ap);            
+</span><span style="color: #008080;"> 57</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 58</span> <span style="color: #000000;">          }
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;"> 60</span> <span style="color: #000000;">      })
+</span><span style="color: #008080;"> 61</span> <span style="color: #000000;">      accessPoints.push(acsp);
+</span><span style="color: #008080;"> 62</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;"> 63</span> 
+<span style="color: #008080;"> 64</span>     <span style="color: #008000;">//</span><span style="color: #008000;">对所有的接入点，按与起始点的距离排序，并查找此接入点的上层站点</span>
+<span style="color: #008080;"> 65</span>     accessPoints.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(d, i){
+</span><span style="color: #008080;"> 66</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 按distance由小到大排序</span>
+<span style="color: #008080;"> 67</span>       d.ap.sort(<span style="color: #0000ff;">function</span><span style="color: #000000;">(a, b){
+</span><span style="color: #008080;"> 68</span>         <span style="color: #0000ff;">return</span> a.distance -<span style="color: #000000;"> b.distance;
+</span><span style="color: #008080;"> 69</span> <span style="color: #000000;">      });
+</span><span style="color: #008080;"> 70</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 查找每个接入点的上层站点</span>
+<span style="color: #008080;"> 71</span>       d.ap.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(dd, di){
+</span><span style="color: #008080;"> 72</span> <span style="color: #000000;">        findPoint(dd.name, dd.allNames);
+</span><span style="color: #008080;"> 73</span> <span style="color: #000000;">      });
+</span><span style="color: #008080;"> 74</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;"> 75</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> name是接入点名称，arr是该接入点的allNames</span>
+<span style="color: #008080;"> 76</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> findPoint(name, arr){
+</span><span style="color: #008080;"> 77</span>       accessPoints.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(d, i){
+</span><span style="color: #008080;"> 78</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 在数组中找到指定名称的项</span>
+<span style="color: #008080;"> 79</span>         <span style="color: #0000ff;">if</span>(d.name ===<span style="color: #000000;"> name){
+</span><span style="color: #008080;"> 80</span>           <span style="color: #0000ff;">if</span>(d.ap.length&gt;0<span style="color: #000000;">){
+</span><span style="color: #008080;"> 81</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 把该项下面的ap中的名称加入给定arr</span>
+<span style="color: #008080;"> 82</span>             d.ap.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(dd, di){
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">              arr.push(dd.name);
+</span><span style="color: #008080;"> 84</span>               <span style="color: #008000;">//</span><span style="color: #008000;"> 如果该点内的allNames已经有值则直接加入</span>
+<span style="color: #008080;"> 85</span>               <span style="color: #0000ff;">if</span>(dd.allNames.length&gt;0<span style="color: #000000;">){
+</span><span style="color: #008080;"> 86</span>                 dd.allNames.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(d, i){
+</span><span style="color: #008080;"> 87</span> <span style="color: #000000;">                  arr.push(d);
+</span><span style="color: #008080;"> 88</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;"> 89</span>               } <span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 90</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 递归查找子接入点</span>
+<span style="color: #008080;"> 91</span> <span style="color: #000000;">                findPoint(dd.name, arr);
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">              }
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;"> 94</span>           } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 95</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 96</span> <span style="color: #000000;">          }
+</span><span style="color: #008080;"> 97</span>         }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 98</span>           <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 99</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">100</span> <span style="color: #000000;">      });
+</span><span style="color: #008080;">101</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">102</span>   }</pre>
+</div>
+<p>以上函数的运行结果会产生一个对象，存储每个接入线段上&lsquo;挂载&rsquo;的接入点，目的就是改变动画时方便判断。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 更新线条动画</span>
+<span style="color: #008080;"> 2</span>     aniLine.each(<span style="color: #0000ff;">function</span><span style="color: #000000;">(d, i){
+</span><span style="color: #008080;"> 3</span>         <span style="color: #0000ff;">var</span> curLine = d3.select(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+</span><span style="color: #008080;"> 4</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 找到对应的动画line</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">if</span> (dd.name === curLine.attr('tag'<span style="color: #000000;">)) {
+</span><span style="color: #008080;"> 6</span>           <span style="color: #008000;">//</span><span style="color: #008000;"> 处理动画是否运行</span>
+<span style="color: #008080;"> 7</span>           <span style="color: #0000ff;">if</span><span style="color: #000000;"> (dd.ani) {
+</span><span style="color: #008080;"> 8</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 此线条动画运行</span>
+<span style="color: #008080;"> 9</span>             curLine.style('animation-play-state', 'running'<span style="color: #000000;">);
+</span><span style="color: #008080;">10</span>             curLine.style('display', 'inline'<span style="color: #000000;">);
+</span><span style="color: #008080;">11</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 如果动画运行，则恢复原始动画路径</span>
+<span style="color: #008080;">12</span>             curLine.attr('d', <span style="color: #0000ff;">function</span><span style="color: #000000;">(d){
+</span><span style="color: #008080;">13</span>               <span style="color: #0000ff;">return</span><span style="color: #000000;"> line(chartData.eles[i].line);
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">            });
+</span><span style="color: #008080;">15</span>           } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">16</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 此线条动画停止</span>
+<span style="color: #008080;">17</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 先查找离本线段开始点最近的接入点</span>
+<span style="color: #008080;">18</span>             <span style="color: #0000ff;">var</span> acp =<span style="color: #000000;"> accessPoints;
+</span><span style="color: #008080;">19</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 从accessPoints中找到本节点的接入点集合</span>
+<span style="color: #008080;">20</span>             <span style="color: #0000ff;">var</span> ap =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">21</span>             acp.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(acd, aci){
+</span><span style="color: #008080;">22</span>               <span style="color: #0000ff;">if</span>(acd.name ===<span style="color: #000000;"> dd.name){
+</span><span style="color: #008080;">23</span>                 ap =<span style="color: #000000;"> acd.ap;
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">              }
+</span><span style="color: #008080;">25</span> <span style="color: #000000;">            });            
+</span><span style="color: #008080;">26</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 最近有动画接入点序号</span>
+<span style="color: #008080;">27</span>             <span style="color: #0000ff;">var</span> acIndex = -1<span style="color: #000000;">;
+</span><span style="color: #008080;">28</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 找到最近的有动画接入点，远近按数组序号递增</span>
+<span style="color: #008080;">29</span>             <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> j=0;j&lt;ap.length;j++<span style="color: #000000;">){
+</span><span style="color: #008080;">30</span>               <span style="color: #008000;">//</span><span style="color: #008000;"> 复制所有子接入点数组</span>
+<span style="color: #008080;">31</span>               <span style="color: #0000ff;">var</span> allNames =<span style="color: #000000;"> ap[j].allNames.concat();
+</span><span style="color: #008080;">32</span>               <span style="color: #008000;">//</span><span style="color: #008000;"> 将接入点名称也加入</span>
+<span style="color: #008080;">33</span> <span style="color: #000000;">              allNames.push(ap[j].name);
+</span><span style="color: #008080;">34</span>               <span style="color: #008000;">//</span><span style="color: #008000;"> 判断此接入点树中是否有动画，如果1个有就可以</span>
+<span style="color: #008080;">35</span>               allNames.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(name,ani){
+</span><span style="color: #008080;">36</span>                 data.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(datad, datai){
+</span><span style="color: #008080;">37</span>                   <span style="color: #0000ff;">if</span>(datad.name ===<span style="color: #000000;"> name){
+</span><span style="color: #008080;">38</span>                     <span style="color: #0000ff;">if</span><span style="color: #000000;">(datad.ani){
+</span><span style="color: #008080;">39</span>                       acIndex =<span style="color: #000000;"> j;
+</span><span style="color: #008080;">40</span>                       <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">                  }
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">44</span> <span style="color: #000000;">              });
+</span><span style="color: #008080;">45</span>               <span style="color: #0000ff;">if</span>(acIndex != -1<span style="color: #000000;">) {
+</span><span style="color: #008080;">46</span>                 <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">47</span> <span style="color: #000000;">              }
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">49</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> 如果存在有动画接入点</span>
+<span style="color: #008080;">50</span>             <span style="color: #0000ff;">if</span>(acIndex != -1<span style="color: #000000;">){
+</span><span style="color: #008080;">51</span>               curLine.style('animation-play-state', 'running'<span style="color: #000000;">);
+</span><span style="color: #008080;">52</span>               curLine.style('display', 'inline'<span style="color: #000000;">);
+</span><span style="color: #008080;">53</span>               curLine.attr('d', <span style="color: #0000ff;">function</span><span style="color: #000000;">(d){
+</span><span style="color: #008080;">54</span>                 <span style="color: #0000ff;">var</span> accp =<span style="color: #000000;"> ap[acIndex].ap;
+</span><span style="color: #008080;">55</span>                 <span style="color: #0000ff;">var</span> curLine =<span style="color: #000000;"> data.element[i].line.concat();
+</span><span style="color: #008080;">56</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 接入节点与开始点的距离</span>
+<span style="color: #008080;">57</span>                 <span style="color: #0000ff;">var</span> disAp = Math.pow((accp[0] - curLine[0][0]),2) +
+<span style="color: #008080;">58</span>                 Math.pow((accp[1] - curLine[0][1]),2<span style="color: #000000;">);
+</span><span style="color: #008080;">59</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 如果当前线段中有离开始节点比接入点近的节点</span>
+<span style="color: #008080;">60</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 则删除此节点</span>
+<span style="color: #008080;">61</span>                 curLine.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;">(curld, curli){
+</span><span style="color: #008080;">62</span>                   <span style="color: #0000ff;">if</span>(curli &gt; 0<span style="color: #000000;">){
+</span><span style="color: #008080;">63</span>                     <span style="color: #0000ff;">var</span> dis = Math.pow((curld[0] - curLine[0][0]),2) +
+<span style="color: #008080;">64</span>                       Math.pow((curld[1] - curLine[0][1]),2<span style="color: #000000;">);
+</span><span style="color: #008080;">65</span>                     <span style="color: #0000ff;">if</span>(dis &lt;<span style="color: #000000;"> disAp){
+</span><span style="color: #008080;">66</span>                       <span style="color: #008000;">//</span><span style="color: #008000;"> 删除此点</span>
+<span style="color: #008080;">67</span>                       curLine.splice(curli,1<span style="color: #000000;">);
+</span><span style="color: #008080;">68</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">69</span> <span style="color: #000000;">                  }
+</span><span style="color: #008080;">70</span> <span style="color: #000000;">                });
+</span><span style="color: #008080;">71</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> 从此接入点处开始动画</span>
+<span style="color: #008080;">72</span>                 curLine.splice(0,1<span style="color: #000000;">,accp);
+</span><span style="color: #008080;">73</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> debugger;</span>
+<span style="color: #008080;">74</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> line(curLine);
+</span><span style="color: #008080;">75</span> <span style="color: #000000;">              });
+</span><span style="color: #008080;">76</span>             }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">77</span>               <span style="color: #008000;">//</span><span style="color: #008000;"> 此线条动画停止</span>
+<span style="color: #008080;">78</span>               curLine.style('animation-play-state', 'paused'<span style="color: #000000;">);
+</span><span style="color: #008080;">79</span>               curLine.style('display', 'none'<span style="color: #000000;">);
+</span><span style="color: #008080;">80</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">81</span> <span style="color: #000000;">          }
+</span><span style="color: #008080;">82</span>         }</pre>
+</div>
+<h4>此文章为原创文章，原文地址：<a href="https://www.cnblogs.com/eagle1098/p/11431679.html">https://www.cnblogs.com/eagle1098/p/11431679.html</a></h4>
+<h4>2.编辑器</h4>
+<p>由于本图表需要配置大量坐标，如果手动填写的话效率十分低下，所以需要开发一个编辑器用来修改图表。<br />编辑器的主要使用方法为，使用鼠标拖动图标，双击确定起始位置并开始实时画线状态，随着鼠标移动动态画出线段，单击确定临时终点，再单击确定下一个终点，右击结束动态画线状态。如果鼠标单击其他图标，则终点为该图标的起始坐标。本程序的实时画线部分进行了倾斜的约束，即左倾或右倾30度角。<br />编辑器比展示图要简单一些，复杂部分在事件处理。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 拖动图标</span>
+<span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">var</span> draging =<span style="color: #000000;"> d3.drag()
+</span><span style="color: #008080;"> 3</span>       .on('drag', <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;"> 4</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 当长宽相同时,iconSize是图标大小[宽，高]</span>
+<span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">var</span> move = iconSize[0] / 2<span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span>           moveSubBg = [25, 53.5], moveTitle = [25, 50<span style="color: #000000;">];
+</span><span style="color: #008080;"> 7</span>         <span style="color: #0000ff;">var</span> g = d3.select(<span style="color: #0000ff;">this</span><span style="color: #000000;">),
+</span><span style="color: #008080;"> 8</span>           eventX = d3.event.x -<span style="color: #000000;"> move,
+</span><span style="color: #008080;"> 9</span>           eventY = d3.event.y -<span style="color: #000000;"> move;
+</span><span style="color: #008080;">10</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 设定图标位置</span>
+<span style="color: #008080;">11</span>         g.select('.image'<span style="color: #000000;">)
+</span><span style="color: #008080;">12</span>           .attr('x'<span style="color: #000000;">, eventX)
+</span><span style="color: #008080;">13</span>           .attr('y'<span style="color: #000000;">, eventY);
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">      })
+</span><span style="color: #008080;">15</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 拖拽结束</span>
+<span style="color: #008080;">16</span>       .on('end', <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">17</span>         <span style="color: #0000ff;">var</span> g = d3.select(<span style="color: #0000ff;">this</span><span style="color: #000000;">);
+</span><span style="color: #008080;">18</span>         g.select('.subBg'<span style="color: #000000;">)
+</span><span style="color: #008080;">19</span>           .attr('transform', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (d, i) {
+</span><span style="color: #008080;">20</span>           <span style="color: #008000;">//</span><span style="color: #008000;"> 对子标签的处理，自动符合字符串长度</span>
+<span style="color: #008080;">21</span>             <span style="color: #0000ff;">var</span> x = parseFloat(d3.select(<span style="color: #0000ff;">this</span>).attr('x')) + parseFloat(d3.select(<span style="color: #0000ff;">this</span>).attr('width')) / 2<span style="color: #000000;">,
+</span><span style="color: #008080;">22</span>               <span style="color: #008000;">//</span><span style="color: #008000;"> y没被缩放，所以不用处理</span>
+<span style="color: #008080;">23</span>               y = d3.select(<span style="color: #0000ff;">this</span>).attr('y'<span style="color: #000000;">),
+</span><span style="color: #008080;">24</span>               dsl = (d.title.subTitle.text + ''<span style="color: #000000;">).length;
+</span><span style="color: #008080;">25</span>             <span style="color: #0000ff;">var</span> scaleX = dsl * 5.5<span style="color: #000000;">;
+</span><span style="color: #008080;">26</span>             <span style="color: #0000ff;">return</span> 'translate(' + x + ' ' + y + ') scale(' + scaleX + ', 1) translate(' + -x + ' ' + -y + ')'<span style="color: #000000;">;
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">          });
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">      });
+</span><span style="color: #008080;">29</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 图标组增加拖动事件</span>
+<span style="color: #008080;">30</span>     imageGs.call(draging);</pre>
+</div>
+<p>以上拖动事件，只是调用基本方法。<br />实时画线功能需要提前定义临时存储对象，用来存储鼠标移动时线段的终点坐标。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 鼠标移动时，实时画线到鼠标当前位置，_bodyRect为主区域</span>
+<span style="color: #008080;"> 2</span>     _bodyRect.on('mousemove', <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;"> 3</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 如果不处于实时画线状态</span>
+<span style="color: #008080;"> 4</span>       <span style="color: #0000ff;">if</span>(!<span style="color: #000000;">_chartData.drawing){
+</span><span style="color: #008080;"> 5</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;"> 7</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 如果没有端点名称</span>
+<span style="color: #008080;"> 8</span>       <span style="color: #0000ff;">if</span> (!<span style="color: #000000;">_chartData.linePrePare.name) {
+</span><span style="color: #008080;"> 9</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">11</span>       <span style="color: #008000;">/*</span><span style="color: #008000;"> 实时画线 </span><span style="color: #008000;">*/</span>
+<span style="color: #008080;">12</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 判断线段倾斜方向,linePrePare为线段临时存储</span>
+<span style="color: #008080;">13</span>       <span style="color: #0000ff;">var</span> preLines =<span style="color: #000000;"> linePrePare.lines;
+</span><span style="color: #008080;">14</span>       <span style="color: #0000ff;">var</span> mousePos =<span style="color: #000000;"> d3.mouse(_bodyRect.node()),
+</span><span style="color: #008080;">15</span>         beforePos = preLines[preLines.length - 1<span style="color: #000000;">], newy,
+</span><span style="color: #008080;">16</span>         newPos =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">17</span>       <span style="color: #0000ff;">if</span>((mousePos[0]&gt;beforePos[0] &amp;&amp; mousePos[1]&gt;beforePos[1]) || (mousePos[0]&lt;beforePos[0] &amp;&amp; mousePos[1]&lt;beforePos[1<span style="color: #000000;">])){
+</span><span style="color: #008080;">18</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 向左倾斜\ 左上到右下：y = cy + 0.7*(x-cx)</span>
+<span style="color: #008080;">19</span>         newy = beforePos[1] + 0.7 * (mousePos[0] - beforePos[0<span style="color: #000000;">]);
+</span><span style="color: #008080;">20</span>       } <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">21</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 向右倾斜/ 左下到右上：y = cy - 0.7*(cx-x)</span>
+<span style="color: #008080;">22</span>         newy = beforePos[1] - 0.7 * (mousePos[0] - beforePos[0<span style="color: #000000;">]);
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">24</span>       newPos = [mousePos[0<span style="color: #000000;">], newy];
+</span><span style="color: #008080;">25</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 移除旧线</span>
+<span style="color: #008080;">26</span>       <span style="color: #0000ff;">if</span><span style="color: #000000;">(_chartData.tempLine.line){
+</span><span style="color: #008080;">27</span>         _chartData.tempLine.pos =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">28</span> <span style="color: #000000;">        _chartData.tempLine.line.remove();
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">30</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 画新线，tempLine为实时画线的临时存储</span>
+<span style="color: #008080;">31</span>       _chartData.tempLine.line = _chartData.lineRootG.append('path'<span style="color: #000000;">)
+</span><span style="color: #008080;">32</span>         .attr('class', 'line-path'<span style="color: #000000;">)
+</span><span style="color: #008080;">33</span>         .attr('stroke'<span style="color: #000000;">, chartData.line.color)
+</span><span style="color: #008080;">34</span>         .attr('stroke-width'<span style="color: #000000;">, chartData.line.width)
+</span><span style="color: #008080;">35</span>         .attr('fill', 'none'<span style="color: #000000;">)
+</span><span style="color: #008080;">36</span>         .attr('d', <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">37</span>           <span style="color: #0000ff;">var</span> newLine =<span style="color: #000000;"> [
+</span><span style="color: #008080;">38</span>             preLines[preLines.length - 1<span style="color: #000000;">],
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">            newPos
+</span><span style="color: #008080;">40</span> <span style="color: #000000;">          ];
+</span><span style="color: #008080;">41</span>           _chartData.tempLine.pos =<span style="color: #000000;"> newPos;
+</span><span style="color: #008080;">42</span>           <span style="color: #0000ff;">return</span><span style="color: #000000;"> line(newLine);
+</span><span style="color: #008080;">43</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">44</span> 
+<span style="color: #008080;">45</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 当鼠标移入某个建筑图标范围时</span>
+<span style="color: #008080;">46</span>       _chartData.imageGs.on('mouseenter', <span style="color: #0000ff;">function</span><span style="color: #000000;">(d, i){
+</span><span style="color: #008080;">47</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 移除旧线</span>
+<span style="color: #008080;">48</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;">(_chartData.tempLine.line){
+</span><span style="color: #008080;">49</span>           _chartData.tempLine.pos =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">          _chartData.tempLine.line.remove();
+</span><span style="color: #008080;">51</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">52</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 得到图标中心点坐标</span>
+<span style="color: #008080;">53</span>         <span style="color: #0000ff;">var</span> posX = parseFloat(d3.select(<span style="color: #0000ff;">this</span>).select('.image').attr('x')) + _chartConf.baseSize[0] / 2<span style="color: #000000;">;
+</span><span style="color: #008080;">54</span>         <span style="color: #0000ff;">var</span> posY = parseFloat(d3.select(<span style="color: #0000ff;">this</span>).select('.image').attr('y')) + _chartConf.baseSize[1] / 2<span style="color: #000000;">;
+</span><span style="color: #008080;">55</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 将此建筑图标的中心点坐标作为终点坐标画线</span>
+<span style="color: #008080;">56</span>         _chartData.tempLine.line = _chartData.lineRootG.append('path'<span style="color: #000000;">)
+</span><span style="color: #008080;">57</span>           .attr('class', 'line-path'<span style="color: #000000;">)
+</span><span style="color: #008080;">58</span>           .attr('stroke'<span style="color: #000000;">, chartData.line.color)
+</span><span style="color: #008080;">59</span>           .attr('stroke-width'<span style="color: #000000;">, chartData.line.width)
+</span><span style="color: #008080;">60</span>           .attr('fill', 'none'<span style="color: #000000;">)
+</span><span style="color: #008080;">61</span>           .attr('d', <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">62</span>             <span style="color: #0000ff;">var</span> newLine =<span style="color: #000000;"> [
+</span><span style="color: #008080;">63</span>               preLines[preLines.length - 1<span style="color: #000000;">],
+</span><span style="color: #008080;">64</span> <span style="color: #000000;">              [posX,posY]
+</span><span style="color: #008080;">65</span> <span style="color: #000000;">            ];
+</span><span style="color: #008080;">66</span>             _chartData.tempLine.pos =<span style="color: #000000;"> [posX,posY];
+</span><span style="color: #008080;">67</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> line(newLine);
+</span><span style="color: #008080;">68</span> <span style="color: #000000;">          });
+</span><span style="color: #008080;">69</span> <span style="color: #000000;">      });
+</span><span style="color: #008080;">70</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 当鼠标移出图标区域</span>
+<span style="color: #008080;">71</span>       _chartData.imageGs.on('mouseleave', <span style="color: #0000ff;">function</span><span style="color: #000000;">(d, i){
+</span><span style="color: #008080;">72</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 移除旧线</span>
+<span style="color: #008080;">73</span>         <span style="color: #0000ff;">if</span><span style="color: #000000;">(_chartData.tempLine.line){
+</span><span style="color: #008080;">74</span>           _chartData.tempLine.pos =<span style="color: #000000;"> [];
+</span><span style="color: #008080;">75</span> <span style="color: #000000;">          _chartData.tempLine.line.remove();
+</span><span style="color: #008080;">76</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">77</span> <span style="color: #000000;">      });
+</span><span style="color: #008080;">78</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 对图标单击鼠标，保存线</span>
+<span style="color: #008080;">79</span>       _chartData.imageGs.on('click', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (d, i) {
+</span><span style="color: #008080;">80</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 保存临时线</span>
+<span style="color: #008080;">81</span> <span style="color: #000000;">        drawLine();
+</span><span style="color: #008080;">82</span>         <span style="color: #008000;">//</span><span style="color: #008000;"> 停止实时画线</span>
+<span style="color: #008080;">83</span> <span style="color: #000000;">        exitDrawing();
+</span><span style="color: #008080;">84</span> <span style="color: #000000;">      });
+</span><span style="color: #008080;">85</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;">86</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 点击鼠标右键,停止实时画线</span>
+<span style="color: #008080;">87</span>     _bodyRect.on('contextmenu', <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">88</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 停止实时画线</span>
+<span style="color: #008080;">89</span> <span style="color: #000000;">      exitDrawing();
+</span><span style="color: #008080;">90</span> <span style="color: #000000;">      d3.event.preventDefault();
+</span><span style="color: #008080;">91</span> <span style="color: #000000;">    });
+</span><span style="color: #008080;">92</span> <span style="color: #000000;">   });
+</span><span style="color: #008080;">93</span>   }</pre>
+</div>
+<p>在此只贴出部分代码，如果大家有任何建议和问题，还请留言，谢谢。</p>
+<p>原文地址：<a href="https://www.cnblogs.com/eagle1098/p/11431679.html">https://www.cnblogs.com/eagle1098/p/11431679.html</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

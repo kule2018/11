@@ -1,0 +1,220 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修一个手写的Vue放大镜，复制即可使用' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>一个手写的Vue放大镜，复制即可使用</center></div><div class='banquan'>原文出处:本文由博客园博主埃尔本提供。<br/>
+原文连接:https://www.cnblogs.com/hhyf/p/11326389.html</div><br>
+    <h1 id="一个手写的vue放大镜">一个手写的vue放大镜</h1>
+<p>组件使用less，请确保已安装loader<br />
+本组件为放大镜组件，传参列表为:</p>
+<ul>
+<li>width: 必传，设置放大镜的宽高(正方形)，放大区域等同，放大倍数为2倍</li>
+<li><p>picList:必传，传入图片列表</p>
+<h3 id="使用示例">使用示例:</h3>
+<p>script:</p>
+<pre><code><code>  import mirror from &#39;xx/mirror&#39;
+  export default {
+    components:{
+      mirror
+    },
+    data(){
+      return {
+        width:300,
+        picList:[
+            xxxxxx,
+            xxxxxx
+        ],
+      }
+    }
+  }</code></pre>
+<p>html:</p>
+<pre><code><code>  &lt;mirror :width=&quot;width&quot;  :picList=&quot;picList&quot; /&gt;    </code></pre></li>
+</ul>
+<h2 id="详细代码">详细代码:</h2>
+<p>HTML:</p>
+<pre><code><code>&lt;template&gt;
+  &lt;div class=&quot;mirror&quot;&gt;
+      &lt;div class=&quot;wrap&quot;  :style=&quot;{width:width+&#39;px&#39;,height:width+&#39;px&#39;}&quot; &gt;
+        &lt;div ref=&quot;truth&quot; :style=&quot;{width:&#39;100%&#39;,height:&#39;100%&#39;}&quot; @mousemove=&quot;move&quot; @mouseenter=&quot;showMagnify&quot; @mouseleave=&quot;hideMagnify&quot;&gt;
+        &lt;div class=&quot;mask&quot; ref=&quot;mask&quot; v-show = &quot;showMask&quot; :style=&quot;{width:width/2+&#39;px&#39;,height:width/2+&#39;px&#39;,left:maskPosition.x+&#39;px&#39;,top:maskPosition.y+&#39;px&#39;}&quot;&gt;&lt;/div&gt;
+        &lt;img :src=&quot;picList[picIndex]&quot; draggable=&quot;false&quot;/&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;virtual&quot; ref=&quot;virtual&quot; v-if = &quot;isShowVirtual&quot; :style=&quot;{width:width+&#39;px&#39;,height:width+&#39;px&#39;}&quot; &gt;
+            &lt;div class=&quot;big&quot; ref = &quot;bigPic&quot; :style=&quot;{position:&#39;absolute&#39;,width:2*width+&#39;px&#39;,height:2*width+&#39;px&#39;,backgroundSize:&#39;100% 100%&#39;,backgroundImage:`url(${picList[picIndex]})`,left:percent.x, top:percent.y}&quot; &gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+
+      &lt;/div&gt;
+
+      &lt;ul class=&quot;picList&quot; :style=&quot;{width:width+&#39;px&#39;}&quot;&gt;
+          &lt;li v-for = &quot;(item,index) in picList&quot; :class=&quot;{now:index==picIndex}&quot; :data-index=&quot;index&quot; :key =&quot;item&quot; @mouseenter=&quot;changeIndex&quot;&gt;
+            &lt;img :src =&quot;item&quot; /&gt;
+          &lt;/li&gt;
+      &lt;/ul&gt;
+  &lt;/div&gt;
+&lt;/template&gt;</code></pre>
+<p>JS:</p>
+<pre><code><code>    export default {
+      props:[&#39;width&#39;,&#39;picList&#39;],//宽度是用来给放大镜的
+      data(){
+        return {
+
+          picIndex:0,
+          isShowVirtual:false,
+          showMask:false,
+          maskPosition:{},
+          percent:{},
+        }
+      },
+      methods:{
+
+        computedOffset(obj,prop){ //计算元素到body的绝对位置
+        if(obj==document.body || obj.offsetParent == document.body){
+          return parseInt(obj[prop])
+        }
+        return parseInt(obj[prop])+this.computedOffset(obj.offsetParent,prop)
+    },
+        changeIndex(e){
+          this.picIndex = e.target.dataset.index
+        },
+        showMagnify(e){
+          this.showMask=true;
+          this.isShowVirtual = true;
+
+        },
+        hideMagnify(){
+          this.isShowVirtual=false;
+          this.showMask=false
+        },
+
+
+        computePosition(e){
+            let x = e.pageX,y = e.pageY;
+            let mask = this.$refs.mask;
+            let truth = this.$refs.truth;
+            let virtual = this.$refs.virtual;
+            let bigPic = this.$refs.bigPic;
+            x = x-this.computedOffset(truth,&#39;offsetLeft&#39;) -mask.offsetWidth/2;
+            y = y-this.computedOffset(truth,&#39;offsetTop&#39;)- mask.offsetHeight/2;
+
+          if(x&lt;=0) {
+              x=0
+            }else if(x&gt;truth.offsetWidth - mask.offsetWidth){
+              x = truth.offsetWidth/2
+            }
+
+            if(y&lt;=0){
+              y=0;
+            }
+            else if(y&gt;truth.offsetHeight - mask.offsetHeight){
+              y = truth.offsetHeight/2
+            }
+
+
+
+
+
+            this.maskPosition = {
+              x,y
+            }
+
+            //计算比例
+
+            this.percent={
+              x:-x/(truth.offsetWidth-mask.offsetWidth)*(bigPic.offsetWidth - virtual.offsetWidth)+&#39;px&#39;,
+              y:-y/(truth.offsetHeight-mask.offsetHeight)*(bigPic.offsetHeight - virtual.offsetHeight)+&#39;px&#39;
+            }
+        },
+        move(e){
+
+          this.computePosition(e)
+
+        }
+    }
+    }</code></pre>
+<p>CSS:</p>
+<pre><code><code>&lt;style lang=&quot;less&quot; scoped&gt;
+.now{
+  border-color: cyan !important;
+
+}
+  .mirror{
+    width:100%;
+    .wrap{
+      user-select: none;
+      margin-bottom: 20px;
+      position: relative;
+      background-color: #fff;
+      border:1px solid gray;
+      box-sizing:border-box;
+          cursor: pointer;
+
+        img{
+          width:100%;
+          height:100%;
+        }
+        .virtual{
+          overflow:hidden;
+
+          width:100%;
+          height:100%;
+          position:absolute;
+          left:calc(100% + 10px);
+          top:0;
+          background-repeat:no-repeat
+        }
+        .mask{
+          position: absolute;
+          background-image: url(&#39;https://img-tmdetail.alicdn.com/tps/i4/T12pdtXaldXXXXXXXX-2-2.png&#39;);
+          background-repeat:repeat;
+          cursor: move;
+        }
+    }
+
+    .picList{
+
+      width:100%;
+      display: flex;
+      justify-content: space-between;
+      flex-wrap:wrap;
+      li{
+        width:50px;
+        height:50px;
+        margin:5px;
+        border:1px solid transparent;
+        box-sizing: border-box;
+        img{
+          width:100%;
+          height:100%
+        }
+      }
+    }
+    .picList:after{
+      content:&quot;&quot;;
+      flex:auto;
+    }
+  }
+&lt;/style&gt;</code></pre>
+<p>可直接复制文件内容至项目使用，文件地址：https://blog-static.cnblogs.com/files/hhyf/mirror.vue.js</p>
+<h2 id="效果">效果</h2>
+<p><img src="./images/一个手写的Vue放大镜，复制即可使用0.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

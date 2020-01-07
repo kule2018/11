@@ -1,0 +1,210 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修this解惑' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>this解惑</center></div><div class='banquan'>原文出处:本文由博客园博主Raion提供。<br/>
+原文连接:https://www.cnblogs.com/raion/p/10887691.html</div><br>
+    <h3 id="前言">前言</h3>
+<p>要正确理解this，首先得理解执行上下文，这里推荐汤姆大叔的<a href="http://www.cnblogs.com/TomXu/archive/2012/01/13/2308101.html">执行上下文</a>，因为<code>this</code>是在运行代码时确认具体指向谁，箭头函数除外。</p>
+<h4 id="全局作用域中的this">全局作用域中的this</h4>
+<p><strong><code>node</code></strong>: 每个<code>javaScript</code>文件都是一个模块，<code>this</code>指向空对象（<code>module.exports</code>）</p>
+<pre><code><code>this.a = 1;
+console.log(this, module.exports);
+// { a: 1 } { a: 1 }</code></pre>
+<p>当然也有些意外，比如下面这种情况:</p>
+<pre><code><code>this.a = 1;
+module.exports = {}
+console.log(this, module.exports);
+// { a: 1 } {}</code></pre>
+<p><strong>浏览器端</strong>: <code>this</code>指向<code>window</code>。</p>
+<h4 id="函数作用域中的this">函数作用域中的this</h4>
+<p>这里分为两种，一种是全局作用域下直接执行函数，另外一种是被当作某个对象的属性的时候执行。eval的情况这里不作讨论。</p>
+<h5 id="全局环境下执行">全局环境下执行</h5>
+<pre><code><code>function foo() {
+  console.log(this); // 此时的执行上下文为全局对象
+}
+foo();
+// node global, 浏览器 window</code></pre>
+<p>当然严格模式下有不同，具体区别如下：</p>
+<blockquote>
+<p>严格模式</p>
+</blockquote>
+<p><code>this</code>指向<code>undefined</code>(<code>node</code> and 浏览器端)</p>
+<blockquote>
+<p>非严格模式</p>
+</blockquote>
+<p><strong>浏览器端</strong>: <code>this</code>指向全局变量<code>window</code></p>
+<p><strong><code>node</code></strong>: <code>this</code>指向<code>global</code></p>
+<h5 id="被当作属性调用">被当作属性调用</h5>
+<p>当函数作为一个对象的属性时，<code>node</code>和浏览器端一致，指向调用该属性的对象</p>
+<pre><code><code>var obj = {
+  name: &#39;foo&#39;,
+  foo: function foo() {
+    console.log(this);
+  }
+}
+
+obj.foo();
+// { name: &#39;foo&#39;, foo: [Function: foo] }</code></pre>
+<p>接下来，做一些升级。</p>
+<pre><code><code>var obj = {
+  name: &#39;foo&#39;,
+  foo: function foo() {
+    console.log(this);
+  }
+}
+
+var objA = obj.foo;
+
+objA();
+// node环境指向global，浏览器端指向window，严格模式下均指向undefined
+--------------------------------------------------------------
+var obj = {
+  name: &#39;foo&#39;,
+  foo: function foo() {
+    console.log(this);
+  }
+}
+
+var objA = {
+  name: &#39;objA&#39;,
+  foo: obj.foo
+};
+
+objA.foo();
+// { name: &#39;objA&#39;, foo: [Function: foo] }</code></pre>
+<h5 id="callapplybind">call、apply、bind</h5>
+<p>如果想手动更改函数里的<code>this</code>指向，可通过上述3个方法。<code>call</code>和<code>apply</code>会立即执行，<code>bind</code>则返回一个绑定好<code>this</code>指向的函数。</p>
+<pre><code><code>var obj = {
+  name: &#39;foo&#39;,
+  foo: function foo() {
+    console.log(this);
+  }
+}
+
+var objA = {
+  name: &#39;objA&#39;,
+  foo: obj.foo
+};
+
+obj.foo.call(objA); // 将this指向objA
+obj.foo.apply(objA);
+obj.foo.bind(objA)(); // bind函数会返回一个绑定好this的函数，可供以后调用
+/**
+{ name: &#39;objA&#39;, foo: [Function: foo] }
+{ name: &#39;objA&#39;, foo: [Function: foo] }
+{ name: &#39;objA&#39;, foo: [Function: foo] }
+*/</code></pre>
+<p>这里对上述3个方法进行更细的说明，方便更好的理解之间的差异。</p>
+<pre><code><code>var obj = {
+  name: &#39;foo&#39;,
+  foo: function foo() {
+    console.log(this, arguments); // 通过arguments对象访问函数传入的参数列表，类似数组但不是数组，可通过arguments[0]访问到传入的Tom
+  }
+}
+
+var objA = {
+  name: &#39;objA&#39;,
+  foo: obj.foo
+};
+
+obj.foo.call(objA, &#39;Tom&#39;, &#39;Jerry&#39;);
+obj.foo.apply(objA, [&#39;Tom&#39;, &#39;Jerry&#39;]);
+obj.foo.bind(objA, &#39;Tom&#39;, &#39;Jerry&#39;)(1);
+/**
+{ name: &#39;objA&#39;, foo: [Function: foo] } [Arguments] { &#39;0&#39;: &#39;Tom&#39;, &#39;1&#39;: &#39;Jerry&#39; }
+{ name: &#39;objA&#39;, foo: [Function: foo] } [Arguments] { &#39;0&#39;: &#39;Tom&#39;, &#39;1&#39;: &#39;Jerry&#39; }
+{ name: &#39;objA&#39;, foo: [Function: foo] } [Arguments] { &#39;0&#39;: &#39;Tom&#39;, &#39;1&#39;: &#39;Jerry&#39;, &#39;2&#39;: 1 }
+
+可以看到call和bind是按序列传参，而apply是按数组传参，bind不会更改传参的顺序
+*/</code></pre>
+<h5 id="new构造">new构造</h5>
+<p>当函数被当作构造函数调用时，<code>this</code>指向构造的那个对象。</p>
+<p>注：<code>new</code>调用中的<code>this</code>不会被<code>call</code>、<code>apply</code>、<code>bind</code>改变。</p>
+<p>接下来，简单验证一下，由于<code>call</code>和<code>apply</code>会立即执行，无法被当作构造函数，只能选择<code>bind</code>。</p>
+<pre><code><code>function Foo() {
+  console.log(this);
+}
+var foo = Foo.bind({ name: &#39;Tom&#39; });
+foo();
+// { name: &#39;Tom&#39; }
+new foo();
+// Foo {}</code></pre>
+<h4 id="箭头函数中的this">箭头函数中的this</h4>
+<p><code>this</code>在定义时，就已经知道其具体指向，因为在运行到声明的箭头函数时，会将<code>this</code>进行强绑定到外部作用域中的<code>this</code>，且无法更改。可以理解为继承了外部作用域中的<code>this</code>。由于箭头函数的<code>this</code>是确定的，无法更改，因此也无法被当作构造函数调用。</p>
+<p>外部作用域为全局作用域：</p>
+<pre><code><code>var foo = () =&gt; {
+  console.log(this);
+}
+this.a = 1;
+foo();
+// 或者下面代码
+var obj = {
+  name: &#39;obj&#39;,
+  foo: () =&gt; {
+    console.log(this);
+  }
+}
+var foo = obj.foo;
+obj.foo();
+foo();
+foo.call({ name: &#39;Tom&#39; });
+/**
+因为obj是在全局作用域下被定义，所以外部作用域为全局对象
+node: 指向module.exports
+浏览器：指向window
+*/</code></pre>
+<p>外部作用域为函数作用域：</p>
+<pre><code><code>function foo() {
+  var a = () =&gt; {
+    console.log(this); // 继承外部作用域foo函数的this
+  };
+  a();
+}
+foo();
+foo.call({ name: &#39;foo&#39; });
+new foo();
+/**
+这里foo函数中的this并不确定，由于调用方式不同，其this指向也不同
+*/</code></pre>
+<p>相信写ES6类的情况很多，本人经常写<code>React</code>类组件，刚开始初学者会好奇为什么在类组件里写方法时要用<code>bind</code>或者箭头函数来强绑定<code>this</code>。因为一般类组件里的方法，都会设计到<code>this</code>的处理。比如事件处理函数，当触发相应事件时，调用事件对应的处理函数，此时访问到的<code>this</code>为<code>undefined</code>(ES6默认类与模块内就是严格模式)，这就导致不能正确处理该组件的状态，甚至出错(处理函数内可能调用<code>this.setState</code>方法)。所以在类组件内部声明方法时会需要我们进行强绑定。</p>
+<p>接下来我们看看<code>React</code>组件渲染流程：<code>new</code>构造一个组件实例<code>instance</code>，然后调用其<code>render</code>方法进行渲染和事件绑定。<code>new</code>构造的过程，<code>this</code>已经确定指向构造的组件实例，所以你可以在<code>constructor</code>进行<code>bind</code>或直接使用箭头函数，这样函数内部<code>this</code>就绑定到了<code>instance</code>。<code>render</code>函数里之所以能正常访问<code>this</code>，是因为以<code>instance.render()</code>进行渲染。</p>
+<p>当然这里不特指<code>React</code>类组件，只要是ES6类，只能用<code>new</code>构造调用，否则会报错，所以ES6类里<code>this</code>指向是确定的，可以放心使用箭头函数。</p>
+<h4 id="迷惑的代码">迷惑的代码</h4>
+<p>还有一个比较迷惑的地方，遇到的机会很少，代码如下：</p>
+<pre><code><code>(function(){
+    console.log(this); // 运行结果和全局作用域下执行结果一致
+})();
+// 由于没有以对象属性的方式调用，则被认为是全局环境下调用
+--------------------------------------------------------
+(function(){
+  console.log(this);
+}).call({ name: &#39;Hello World&#39; });
+// { name: &#39;Hello World&#39; }，this指向可以被改变
+--------------------------------------------------------
+new (function(name){
+  this.name = name;
+  console.log(this);
+})(&#39;Tom&#39;);
+// { name: &#39;Tom&#39; }，this指向新创建的对象</code></pre>
+<p>更好的阅读体验在我的<a href="https://github.com/cy6121/front-notes">github</a>，欢迎👏提issue。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,98 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修react中PureComponent浅对比策略' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>react中PureComponent浅对比策略</center></div><div class='banquan'>原文出处:本文由博客园博主迪迪的博客提供。<br/>
+原文连接:https://www.cnblogs.com/yadiblogs/p/10732745.html</div><br>
+    <h3>PureComponent实现了Component中没有实现的shouComponentUpdata()方法，会对state和props进行一次浅对比，本文介绍一下浅对比策略</h3>
+<p>源码中，实现浅对比的函数是：shallowEqual()，源码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">shouldComponentUpdate 源码: 判断是不是PureReactComponent，是的话，返回shallowEqual（）</span>
+<span style="color: #0000ff;">if</span> (ctor.prototype &amp;&amp;<span style="color: #000000;"> ctor.prototype.isPureReactComponent) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> (
+      </span>!shallowEqual(oldProps, newProps) || !<span style="color: #000000;">shallowEqual(oldState, newState)
+    );
+  }</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> shallowEqual方法源码：</span>
+const hasOwnProperty =<span style="color: #000000;"> Object.prototype.hasOwnProperty;
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 这个is函数，处理了基本类型对比。</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> is(x, y) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> SameValue algorithm</span>
+  <span style="color: #0000ff;">if</span> (x ===<span style="color: #000000;"> y) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Steps 1-5, 7-10</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Steps 6.b-6.e: +0 != -0</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> Added the nonzero y check to make Flow happy, but it is redundant</span>
+    <span style="color: #0000ff;">return</span> x !== 0 || y !== 0 || 1 / x === 1 /<span style="color: #000000;"> y;
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Step 6.a: NaN == NaN</span>
+    <span style="color: #0000ff;">return</span> x !== x &amp;&amp; y !==<span style="color: #000000;"> y;
+  }
+}
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * Performs equality by iterating through keys on an object and returning false
+ * when any key has values which are not strictly equal between the arguments.
+ * Returns true when the values of all keys are strictly equal.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">function</span> shallowEqual(objA: mixed, objB: mixed): <span style="color: #0000ff;">boolean</span><span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (is(objA, objB)) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+  }
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 由于Obejct.is()可以对基本数据类型做一个精确的比较， 所以如果不等</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 只有一种情况是误判的，那就是object,所以在判断两个对象都不是object</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 之后，就可以返回false了</span>
+  <span style="color: #0000ff;">if</span><span style="color: #000000;"> (
+    </span><span style="color: #0000ff;">typeof</span> objA !== 'object' ||<span style="color: #000000;">
+    objA </span>=== <span style="color: #0000ff;">null</span> ||
+    <span style="color: #0000ff;">typeof</span> objB !== 'object' ||<span style="color: #000000;">
+    objB </span>=== <span style="color: #0000ff;">null</span><span style="color: #000000;">
+  ) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+  }
+ </span><span style="color: #008000;">//</span><span style="color: #008000;"> 过滤掉基本数据类型之后，就是对对象的比较了</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 首先拿出key值，对key的长度进行对比</span>
+  const keysA =<span style="color: #000000;"> Object.keys(objA);
+  const keysB </span>=<span style="color: #000000;"> Object.keys(objB);
+  </span><span style="color: #0000ff;">if</span> (keysA.length !==<span style="color: #000000;"> keysB.length) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;">/ key值相等的时候</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 借用原型链上真正的 hasOwnProperty 方法，判断ObjB里面是否有A的key的key值</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 属性的顺序不影响结果也就是{name:'daisy', age:'24'} 跟{age:'24'，name:'daisy' }是一样的</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 最后，对对象的value进行一个基本数据类型的比较，返回结果</span>
+  <span style="color: #0000ff;">for</span> (let i = 0; i &lt; keysA.length; i++<span style="color: #000000;">) {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (
+      </span>!hasOwnProperty.call(objB, keysA[i]) ||
+      !<span style="color: #000000;">is(objA[keysA[i]], objB[keysA[i]])
+    ) {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    }
+  }
+
+  </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+}
+
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> shallowEqual;
+     </span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

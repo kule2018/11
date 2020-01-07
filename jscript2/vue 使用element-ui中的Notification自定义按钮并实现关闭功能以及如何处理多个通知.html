@@ -1,0 +1,148 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue 使用element-ui中的Notification自定义按钮并实现关闭功能以及如何处理多个通知' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue 使用element-ui中的Notification自定义按钮并实现关闭功能以及如何处理多个通知</center></div><div class='banquan'>原文出处:本文由博客园博主会飞的joy提供。<br/>
+原文连接:https://www.cnblogs.com/zxb1996/p/notification_question1.html</div><br>
+    <p>使用element-ui中的Notification，只有一个message属性是有很大的操作空间，其余的都是写死的，无法进行扩展，达不到想要的效果。所以只能在message上下功夫。</p>
+<p>在element-ui官方文档中可以看到Notification中的message属性是可以处理VNode的所以我们可以使用VNode来达到我们需要的效果。</p>
+<p>如何关闭通知呢？</p>
+<p>当创建通知的时候，会返回该通知的实例，通过该实例的close方法可以将通知关闭。</p>
+<p>那么当有多个通知显示在屏幕上时，如何关闭特定弹窗的呢？</p>
+<p>创建一个字典，字典的key是message的Id，value是显示该消息的通知的实例。从而可以关闭特定的通知。代码如下。</p>
+<div class="cnblogs_code">
+<pre><code>import mainTable from './mixin/mainTable'<span style="color: #000000;">;
+import systemMenu from </span>'./template/system-menu'<span style="color: #000000;">;
+import headerRow from </span>'./template/header'<span style="color: #000000;">;
+
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+    name: </span>'xxxxx'<span style="color: #000000;">,
+    data() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">使用messageId作为弹窗的key，用来获取弹窗的实例，以对对应弹窗进行操作</span>
+<span style="color: #000000;">            notifications: {}
+        };
+    },
+    mounted() {
+        </span><span style="color: #0000ff;">this</span>.$messageWebsocket.websocketApi.initWebSocket(<span style="color: #0000ff;">this</span>.$store.state.login.userInfo.userInfo.id, <span style="color: #0000ff;">this</span><span style="color: #000000;">.openMessageTips);
+    },
+    methods: {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">关闭单个通知</span>
+<span style="color: #000000;">        closeNotification(id, operateCode, message){
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.notifications[message.messageId].close();
+            </span><span style="color: #0000ff;">delete</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.notifications[message.messageId];
+        },
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">关闭所有通知</span>
+<span style="color: #000000;">        closeAllNotification(){
+            let _this </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">for</span> (let key <span style="color: #0000ff;">in</span><span style="color: #000000;"> _this.notifications) {
+                _this.notifications[key].close();
+                </span><span style="color: #0000ff;">delete</span><span style="color: #000000;"> _this.notifications[key];
+            }
+        },
+        
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">打开一个新的通知</span>
+<span style="color: #000000;">        openMessageTips(message){
+            let _this </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+            </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.closeAllNotification();
+            let notify </span>= <span style="color: #0000ff;">this</span><span style="color: #000000;">.$notify({
+                title: </span>'消息'<span style="color: #000000;">,
+                position: </span>'bottom-right'<span style="color: #000000;">,
+                showClose: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+                dangerouslyUseHTMLString: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+                message: </span><span style="color: #0000ff;">this</span>.$createElement('div', <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+                    [
+                        </span><span style="color: #0000ff;">this</span>.$createElement('div', <span style="color: #0000ff;">null</span>, [<span style="color: #0000ff;">this</span>.$createElement('span', <span style="color: #0000ff;">null</span><span style="color: #000000;">, message.content)]),
+                        </span><span style="color: #0000ff;">this</span>.$createElement('div', <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+                            [
+                                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.$createElement(
+                                    </span>'button'<span style="color: #000000;">,
+                                    {
+                                        style: {
+                                            padding: </span>'10px 18px'<span style="color: #000000;">,
+                                            margin: </span>'10px 12px 0px 2px'<span style="color: #000000;">,
+                                            textAlign: </span>'center'<span style="color: #000000;">,
+                                            textDecoration: </span>'none'<span style="color: #000000;">,
+                                            display: </span>'inline-block'<span style="color: #000000;">,
+                                            webkitTransitionDuration: </span>'0.4s'<span style="color: #000000;">,
+                                            transitionDuration: </span>'0.4s'<span style="color: #000000;">,
+                                            cursor: </span>'pointer'<span style="color: #000000;">,
+                                            backgroundColor: </span>'white'<span style="color: #000000;">,
+                                            color: </span>'black'<span style="color: #000000;">,
+                                            border: </span>'2px solid #e7e7e7'<span style="color: #000000;">,
+                                        },
+                                        on: {
+                                            mouseout: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+                                                e.target.style.backgroundColor </span>= 'white'<span style="color: #000000;">;
+                                            },
+                                            mouseover: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+                                                e.target.style.backgroundColor </span>=  '#e7e7e7'<span style="color: #000000;">
+                                            },
+                                            click: _this.closeNotification.bind(_this, </span>1, 1<span style="color: #000000;">, message)
+                                        }
+                                    },
+                                    </span>"查看"<span style="color: #000000;">
+                                ),
+                                </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.$createElement(
+                                    </span>'button'<span style="color: #000000;">,
+                                    {
+                                        style: {
+                                            padding: </span>'10px 18px'<span style="color: #000000;">,
+                                            margin: </span>'10px 2px 0px 12px'<span style="color: #000000;">,
+                                            textAlign: </span>'center'<span style="color: #000000;">,
+                                            textDecoration: </span>'none'<span style="color: #000000;">,
+                                            display: </span>'inline-block'<span style="color: #000000;">,
+                                            webkitTransitionDuration: </span>'0.4s'<span style="color: #000000;">,
+                                            transitionDuration: </span>'0.4s'<span style="color: #000000;">,
+                                            cursor: </span>'pointer'<span style="color: #000000;">,
+                                            backgroundColor: </span>'white'<span style="color: #000000;">,
+                                            color: </span>'black'<span style="color: #000000;">,
+                                            border: </span>'2px solid #e7e7e7'<span style="color: #000000;">,
+                                        },
+                                        on: {
+                                            </span><span style="color: #008000;">//</span><span style="color: #008000;">鼠标移出的回调</span>
+                                            mouseout: <span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+                                                e.target.style.backgroundColor </span>= 'white'<span style="color: #000000;">;
+                                            },
+                                            </span><span style="color: #008000;">//</span><span style="color: #008000;">鼠标移入的回调</span>
+                                            mouseover: <span style="color: #0000ff;">function</span><span style="color: #000000;">(e){
+                                                e.target.style.backgroundColor </span>=  '#e7e7e7'<span style="color: #000000;">
+                                            },
+                                            click: _this.closeNotification.bind(_this, </span>1, 2<span style="color: #000000;">, message)
+                                        }
+                                    },
+                                    </span>"稍后提醒（五分钟后）"<span style="color: #000000;">
+                                )
+                            ]
+                        )
+                    ]
+                ),
+                duration: </span>0<span style="color: #000000;">,
+            });
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">将messageId和通知实例放入字典中</span>
+            <span style="color: #0000ff;">this</span>.notifications[message.messageId] =<span style="color: #000000;"> notify;
+        }
+    }
+};</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

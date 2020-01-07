@@ -1,0 +1,203 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-初始化默认Platform' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-初始化默认Platform</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10964223.html</div><br>
+    <p>　　本来寻思着写一篇"'Hello' + ', World'"是怎么从JS代码编译然后输出的，然而compile过程的复杂性远超我的想象，强上怕会走火入魔，还是老老实实先回家种田，找点咸鱼方法先写着。虽然说是咸鱼方法，但是V8任何一块拿出来都不简单，之前讲的Time模块说实话大概是属于源码里面幼儿园级别的，这次试试难一点的。</p>
+<p>　　V8的源码在本地编译完成后，会提供一个<a href="https://github.com/v8/v8/blob/master/samples/hello-world.cc" target="_blank">hello-world.cc</a>的sample，里面有新手用户标准的初始化流程，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span> main(<span style="color: #0000ff;">int</span> argc, <span style="color: #0000ff;">char</span>*<span style="color: #000000;"> argv[]) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Initialize V8.
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这个方法在mac不作为</span>
+  v8::V8::InitializeICUDefaultLocation(argv[<span style="color: #800080;">0</span><span style="color: #000000;">]);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 读取指定名称的配置文件 也不用鸟</span>
+  v8::V8::InitializeExternalStartupData(argv[<span style="color: #800080;">0</span><span style="color: #000000;">]);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 生成一个默认的platform对象</span>
+  std::unique_ptr&lt;v8::Platform&gt; platform =<span style="color: #000000;"> v8::platform::NewDefaultPlatform();
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化刚才的platform</span>
+  v8::V8::InitializePlatform(platform.<span style="color: #0000ff;">get</span><span style="color: #000000;">());
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> V8的初始化</span>
+<span style="color: #000000;">  v8::V8::Initialize();
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+}</pre>
+</div>
+<p>　　前两步不用去管，在入门阶段用不上。</p>
+<p>　　第三步是主要内容，探究生成的默认platform对象(当然也可以选择自己定制一个platform对象)，这个类主要负责管理线程池、调用栈、事件队列等一些杂活。</p>
+<p>　　这一篇不会去深入方法一步一步走，里面内容太过于杂乱，跳来跳去的，先整体介绍一下所有涉及的类，有一个初步的印象(建议深入阅读所有基类的英文注释，解释的很明白)。</p>
+<p>&nbsp;</p>
+<p><strong>Platform</strong></p>
+<p>　　首先当然是核心类Platform，但这是一个基类，里面的大部分方法都是虚函数。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * V8 Platform abstraction layer.
+ *
+ * The embedder has to provide an implementation of this interface before
+ * initializing the rest of V8.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span> Platform {};</pre>
+</div>
+<p>　　如果需要定制platform来初始化V8，需要继承这个类并实现那些方法。一般情况下当然可以V8默认提供的类，即DefaultPlatform。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span> DefaultPlatform : <span style="color: #0000ff;">public</span><span style="color: #000000;"> Platform {
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 接受一个枚举值、一个TracingController类的构造函数</span>
+    <span style="color: #0000ff;">explicit</span><span style="color: #000000;"> DefaultPlatform(
+      IdleTaskSupport idle_task_support </span>=<span style="color: #000000;"> IdleTaskSupport::kDisabled,
+      std::unique_ptr</span>&lt;v8::TracingController&gt; tracing_controller =<span style="color: #000000;"> {});
+    </span>~DefaultPlatform() <span style="color: #0000ff;">override</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 设置线程池大小</span>
+    <span style="color: #0000ff;">void</span> SetThreadPoolSize(<span style="color: #0000ff;">int</span><span style="color: #000000;"> thread_pool_size);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 初始化线程池、管理线程任务相关的方法</span>
+    <span style="color: #0000ff;">void</span><span style="color: #000000;"> EnsureBackgroundTaskRunnerInitialized();
+  </span><span style="color: #0000ff;">private</span><span style="color: #000000;">:
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 最大线程池数量 默认为8</span>
+    <span style="color: #0000ff;">static</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span><span style="color: #000000;"> kMaxThreadPoolSize;
+
+    </span><span style="color: #0000ff;">int</span><span style="color: #000000;"> thread_pool_size_;
+    IdleTaskSupport idle_task_support_;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 线程任务启动器</span>
+    std::shared_ptr&lt;DefaultWorkerThreadsTaskRunner&gt;<span style="color: #000000;"> worker_threads_task_runner_;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 工具类</span>
+    std::unique_ptr&lt;TracingController&gt;<span style="color: #000000;"> tracing_controller_;
+    std::unique_ptr</span>&lt;PageAllocator&gt;<span style="color: #000000;"> page_allocator_;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 计数方法 用的是之前介绍的Time模块</span>
+<span style="color: #000000;">    TimeFunction time_function_for_testing_;
+};
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * V8 Tracing controller.
+ *
+ * Can be implemented by an embedder to record trace events from V8.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> TracingController {};
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * A V8 memory page allocator.
+ *
+ * Can be implemented by an embedder to manage large host OS allocations.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span> PageAllocator {};</pre>
+</div>
+<p>　　只选了一些初始化相关的方法，其实内容远比这个要多。其中还定义了两个类似于Platform的基类变量，一个负责调用栈追踪，一个负责内存管理。</p>
+<p>&nbsp;</p>
+<p><strong>TaskRunner/Thread</strong></p>
+<p>　　接下来是任务执行者、线程，因为这两者基本上成对出现，所以放一起来看。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> Thread
+</span><span style="color: #008000;">//</span>
+<span style="color: #008000;">//</span><span style="color: #008000;"> Thread objects are used for creating and running threads. When the start()
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> method is called the new thread starts running the run() method in the new
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> thread. The Thread object should not be deallocated before the thread has
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> terminated.</span>
+
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> V8_BASE_EXPORT Thread {
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> Start new thread by calling the Run() method on the new thread.</span>
+    <span style="color: #0000ff;">void</span><span style="color: #000000;"> Start();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+};</pre>
+</div>
+<p>　　这是最基础的Thread，其中定义并实现了Start等常规方法，也有一些虚函数需要继承去重新实现，除此之外还有一些静态方法。默认情况下，V8实现了一个类继承于Thread，位置十分的隐蔽，在默认TaskRunner的private里面。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * A TaskRunner allows scheduling of tasks. The TaskRunner may still be used to
+ * post tasks after the isolate gets destructed, but these tasks may not get
+ * executed anymore. All tasks posted to a given TaskRunner will be invoked in
+ * sequence. Tasks can be posted from any thread.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> TaskRunner {};
+
+</span><span style="color: #0000ff;">class</span> DefaultWorkerThreadsTaskRunner : <span style="color: #0000ff;">public</span><span style="color: #000000;"> TaskRunner {
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+    </span><span style="color: #0000ff;">using</span> TimeFunction = <span style="color: #0000ff;">double</span> (*<span style="color: #000000;">)();
+    DefaultWorkerThreadsTaskRunner(uint32_t thread_pool_size, TimeFunction time_function);
+  </span><span style="color: #0000ff;">private</span><span style="color: #000000;">:
+    </span><span style="color: #0000ff;">class</span> WorkerThread : <span style="color: #0000ff;">public</span><span style="color: #000000;"> Thread {
+    </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+      </span><span style="color: #0000ff;">explicit</span> WorkerThread(DefaultWorkerThreadsTaskRunner*<span style="color: #000000;"> runner);
+      </span>~WorkerThread() <span style="color: #0000ff;">override</span><span style="color: #000000;">;
+
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> This thread attempts to get tasks in a loop from |runner_| and run them.</span>
+      <span style="color: #0000ff;">void</span> Run() <span style="color: #0000ff;">override</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">private</span><span style="color: #000000;">:
+      DefaultWorkerThreadsTaskRunner</span>*<span style="color: #000000;"> runner_;
+    };
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取下一个task</span>
+    std::unique_ptr&lt;Task&gt;<span style="color: #000000;"> GetNext();
+
+    </span><span style="color: #0000ff;">bool</span> terminated_ = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> task队列</span>
+<span style="color: #000000;">    DelayedTaskQueue queue_;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 线程池</span>
+    std::vector&lt;std::unique_ptr&lt;WorkerThread&gt;&gt;<span style="color: #000000;"> thread_pool_;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 计数方法</span>
+<span style="color: #000000;">    TimeFunction time_function_;
+    std::atomic_int single_worker_thread_id_{</span><span style="color: #800080;">0</span><span style="color: #000000;">};
+    uint32_t thread_pool_size_;
+};</span></pre>
+</div>
+<p>　　这里顺便把TaskRunner相关的内容也一并放出来，大部分内容可以看命名。内部类的初始化参数类型是外部类，V8完全把Thread、TaskRunner两个类绑起来了。</p>
+<p>&nbsp;</p>
+<p><strong>Task</strong></p>
+<p>　　这个只是一个简单基类，用来继承实现任务的。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * A Task represents a unit of work.
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> Task {
+ </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+  </span><span style="color: #0000ff;">virtual</span> ~Task() = <span style="color: #0000ff;">default</span><span style="color: #000000;">;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 所有的task需要继承这个类并实现Run方法</span>
+  <span style="color: #0000ff;">virtual</span> <span style="color: #0000ff;">void</span> Run() = <span style="color: #800080;">0</span><span style="color: #000000;">;
+};</span></pre>
+</div>
+<p>　　由于HelloWorld的sample并没有用到多线程，所以不存在Task类的实现，这里只能先关注概念。使用时，大概方法如下，写个伪代码演示下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span> userTask : <span style="color: #0000ff;">public</span><span style="color: #000000;"> Task {
+  </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+    </span><span style="color: #0000ff;">void</span><span style="color: #000000;"> Run() {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> do something...</span>
+<span style="color: #000000;">    };
+};
+
+</span><span style="color: #0000ff;">void</span><span style="color: #000000;"> handleTask() {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 新建一个task</span>
+  auto task = <span style="color: #0000ff;">new</span><span style="color: #000000;"> userTask();
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 加入队列</span>
+<span style="color: #000000;">  queue_.push_back(task);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 唤醒线程</span>
+<span style="color: #000000;">  thread_.signal();
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 线程处理task</span>
+  <span style="color: #0000ff;">while</span>(<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+    </span><span style="color: #0000ff;">if</span>(queue_.empty()) <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    auto task </span>=<span style="color: #000000;"> queue_pop_back();
+    task</span>-&gt;<span style="color: #000000;">Run();
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 线程等待唤醒</span>
+<span style="color: #000000;">  thread_.wait();
+}</span></pre>
+</div>
+<p>　　过程跟其实libuv的异步操作差不多，感觉编程的套路也就那样，看多了源码或者有实际开发经验的都熟悉。</p>
+<p>　　</p>
+<p>　　这一篇就先介绍一些类(调用栈和内存管理先放着)，了解后基本上V8中关于Platform的内容就差不多了。关于Thread、TaskRunner、Task三者的联系与运作，因为C++是速成的，没去了解这些东西的实际运用，所以暂时不在这里班门弄斧了。之前学Java的时候了解过线程，感觉无论是API的名字还是概念都差不多，有兴趣的可以自己去看看。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

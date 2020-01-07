@@ -1,0 +1,402 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修浅谈javascript中的递归和闭包' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>浅谈javascript中的递归和闭包</center></div><div class='banquan'>原文出处:本文由博客园博主SaberInoryKiss提供。<br/>
+原文连接:https://www.cnblogs.com/SaberInoryKiss/p/11777808.html</div><br>
+    <p>递归和闭包作为js中很重要的一环，几乎在前端的面试中都会涉及，特别闭包。今天前端组的组长冷不丁的问了我一下，粗略的回答了一下，感觉不太满足，于是重新学习了一下，写下本篇。</p>
+<p>在说这个两个概念之前，我们先回顾一下<strong>函数表达式</strong>。</p>
+<p>function实际上是一种引用对象，和其他引用类型一样，都有属性和方法。定义函数有函数声明、函数表达式、以及构造函数</p>
+<p>这里说一下前两种。</p>
+<h4>函数声明</h4>
+<p>函数声明语法如下</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> functionName(arg1,arg2,arg3){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">函数体</span>
+}</pre>
+</div>
+<p>&nbsp;</p>
+<p>其中有一个很重要的特征：<strong>函数声明提升</strong></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">saber();
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> saber() {
+    console.log(</span>"excalibar!")<span style="color: #008000;">//</span><span style="color: #008000;">excalibar!</span>
+}</pre>
+</div>
+<p>&nbsp;</p>
+<p>很奇怪吧，没有报错！这是因为在执行这个函数之前，会读取函数声明。</p>
+<h4>函数表达式</h4>
+<p>函数表达式语法如下：</p>
+<p>这种情况下的函数也叫作匿名函数。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> functionName = <span style="color: #0000ff;">function</span><span style="color: #000000;">(arg1,arg2,arg3) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">函数体</span>
+}</pre>
+</div>
+<p>&nbsp;</p>
+<p>但是有一点，同比上面的函数声明，在使用函数表达式之前得先赋值，不然会报错</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">saber();
+</span><span style="color: #0000ff;">var</span> saber = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    console.log(</span>"excalibar!")<span style="color: #008000;">//</span><span style="color: #008000;">saber is not a function</span>
+}</pre>
+</div>
+<p>&nbsp;</p>
+<p>因此，在使用函数表达式之前，必须var saber（）</p>
+<h2>递归</h2>
+<p>好了，哆嗦了一大堆，开始说主题</p>
+<p><strong>定义：</strong>一个函数通过名字调用自身</p>
+<p>很简单，撸个代码看看：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">阶乘递归</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> saber(num) {
+    </span><span style="color: #0000ff;">if</span>(num &lt;= 1<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">return</span> 1<span style="color: #000000;">;
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">return</span> num*saber(num-1)<span style="color: #008000;">//</span><span style="color: #008000;">saber可以换成arguments.callee，这种方式能确保函数怎么样都不会出现问题</span>
+<span style="color: #000000;">    }
+}
+saber(</span>3<span style="color: #000000;">)
+console.log(saber(</span>3))<span style="color: #008000;">//</span><span style="color: #008000;">6</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>这是一个阶乘递归，但是通过函数名调用自身，可能存在一些弊端，假如，我在外部定义了saber为空的话，就会报错，因此使用arguments.callee，能确保函数不会出错。但是也有缺点，在严格模式下arguments.callee无法被访问到。</p>
+<p>因此我们可以使用命名函数表达式来解决这个问题</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> saber = (<span style="color: #0000ff;">function</span><span style="color: #000000;"> f(num) {
+    </span><span style="color: #0000ff;">if</span>(num &lt;= 1<span style="color: #000000;">){
+        </span><span style="color: #0000ff;">return</span> 1<span style="color: #000000;">;
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        </span><span style="color: #0000ff;">return</span> num * f(num-1<span style="color: #000000;">)
+    }
+})
+saber(</span>3<span style="color: #000000;">)
+console.log(saber(</span>3))<span style="color: #008000;">//</span><span style="color: #008000;">6</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>这样，即便把函数赋值给另一个变量，f()依然有效，而且不受严格模式影响</p>
+<h2>闭包</h2>
+<p>js很恶心难懂的地方来了</p>
+<p>要理解闭包，最重要的一点就是搞清楚作用域链，这玩意对理解闭包有很大的作用，作用域链可以看我之前的一篇博客<a title="樱花" href="https://www.cnblogs.com/SaberInoryKiss/p/11770974.html" target="_blank">https://www.cnblogs.com/SaberInoryKiss/p/11770974.html</a></p>
+<p><strong>定义:指有权访问另一个函数作用域中的变量的函数</strong></p>
+<p><strong>创建闭包：在A函数内部创建另一个函数B</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> createSavant(propertyName) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(object1,object2) {
+        </span><span style="color: #0000ff;">var</span> value1 =<span style="color: #000000;"> object1[propertyName];
+        console.log(value1)</span><span style="color: #008000;">//</span><span style="color: #008000;">saber</span>
+        <span style="color: #0000ff;">var</span> value2 =<span style="color: #000000;"> object2[propertyName];
+        </span><span style="color: #0000ff;">if</span> (value1 &lt;<span style="color: #000000;"> value2){
+            </span><span style="color: #0000ff;">return</span> -1<span style="color: #000000;">;
+        }</span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(value1 &gt;<span style="color: #000000;">value2){
+            </span><span style="color: #0000ff;">return</span> 1<span style="color: #000000;">;
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            </span><span style="color: #0000ff;">return</span> 0<span style="color: #000000;">;
+        }
+    };
+}
+</span><span style="color: #0000ff;">var</span> savant = createSavant("name"<span style="color: #000000;">)
+</span><span style="color: #0000ff;">var</span> result = savant({name:"saber"},{name:"archer"<span style="color: #000000;">});<br /></span></pre>
+<div>
+<div>　savant&nbsp;=&nbsp;null;//解除对匿名函数的引用（以便释放内存）</div>
+</div>
+<pre><code><span style="color: #000000;">console.log(result)</span><span style="color: #008000;">//</span><span style="color: #008000;">0因为字符串不能比较大小，所以返回0，如果设为数字的话，比如var result = savant（{name：&ldquo;1&rdquo;}，{name： &ldquo;2&rdquo;}），会返回-1</span></pre>
+<pre><code></pre>
+</div>
+<p>&nbsp;</p>
+<p>上面的代码就是一串闭包，我们在函数creatSavant里面创建了一个返回函数。我这里用简单的大白话解释一下：</p>
+<p>首先，在函数creatSavant里创建的函数会包含外部函数的作用域链，也就是说return function（）这玩意的作用域链中会包含外部creatSavant的活动对象</p>
+<p>因此，return function（）能够访问外部createSavant里面定义的所有变量，比如上面例子中的value1的值就是访问外部定义的变量得来的</p>
+<p>然后，当函数creatSavant执行完了之后，由于return function（）这家伙的作用域链还在引用外部creatSavant的活动对象，因此即使creatSavant的执行环境的作用域链被销毁了，creatSavant的对象还是会保存在内存中，供内部函数return function()来引用</p>
+<p>最后，直到匿名函数结束了罪恶的一生，被销毁了。外部环境creatSavant的活动对象才会被销毁。</p>
+<p>可能说的话比较直白，有些地方不专业，大家可以指出错误，我会虚心学习的。</p>
+<p>下面来说说闭包的优缺点把：</p>
+<h3><strong>闭包的缺点</strong></h3>
+<p><strong>（1）占用过多内存</strong></p>
+<p>首当其冲的，由于闭包会携带包含它的函数的作用域，因此会比其他正常的函数占用更多的内存。mmp，比如相同体型的人，我比别人多一个啤酒肚，重量不重才怪。所以慎重使用闭包。</p>
+<p><strong>（2）闭包只能取到包含任何变量的最后一个值（重要）</strong></p>
+<p>这个缺点在很多笔试题面试题中都会出，举个例子：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> creatFunction() {
+    </span><span style="color: #0000ff;">var</span> result = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Array();
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; 10; i++<span style="color: #000000;">){//var的变量提升机制，导致了最后i只有10这一次
+        result[i] </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+        };
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+}
+</span><span style="color: #0000ff;">var</span> saber =<span style="color: #000000;"> creatFunction();
+</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; saber.length; i++<span style="color: #000000;">) {
+    console.log(saber[i]())</span><span style="color: #008000;">//</span><span style="color: #008000;">10 10 10 10 10 10 10 10 10 10</span>
+}</pre>
+</div>
+<p>&nbsp;</p>
+<p>上面的代码看上去，循环的每个函数都应该返回自己的索引值，即0 1 2 3 4 5 6 7 8 9。但实际上确返回了十个10。原因如下：</p>
+<p>每个函数的作用域链中都保存了creatFunction（）函数的活动对象，所以，其实他们都引用了同一个变量 i，结果当creatFuction（）返回后，i的值为10，10被保存了下来，于是每个函数都引用着这个值为10的变量i，结果就如上面代码所示了。</p>
+<p>那么如何解决这个问题呢：</p>
+<p>方法一、创建另一个匿名函数，强制达到预期效果：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> creatFunction() {
+    </span><span style="color: #0000ff;">var</span> result = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Array();
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; 10; i++<span style="color: #000000;">){
+        result[i] </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(<span style="background-color: #ffff00;"><strong>num</strong></span>) {
+            </span><span style="background-color: #ffff00;"><strong><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+                </span><span style="color: #0000ff;">return</span></strong></span><span style="color: #000000;"><span style="background-color: #ffff00;"><strong> num;</strong></span>
+            };
+        }<span style="background-color: #ffff00;">(i)</span>;</span><span style="color: #008000;">//</span><span style="color: #008000;">会生成很多作用域</span>
+<span style="color: #000000;">    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+}
+</span><span style="color: #0000ff;">var</span> saber =<span style="color: #000000;"> creatFunction();
+</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; saber.length; i++<span style="color: #000000;">) {
+    console.log(saber[i]())</span><span style="color: #008000;">//</span><span style="color: #008000;">0 1 2 3 4 5 6 7 8 9</span>
+}</pre>
+</div>
+<p>&nbsp;</p>
+<p>如上面添加的代码，这里没有将闭包直接赋值给数组，而是定义了一个匿名函数，并将匿名函数的结果传给数组，在调用匿名函数的时候传入了i，由于函数是按值传递的，循环的每一个i的当前值都会复制给参数num，然后在匿名函数function（num）的内部，又创建并返回了一个访问num的闭包</p>
+<p>。最终，result数组中的每一个函数都有一个对应的num的副本，就可以返回各自不同的值了。。。。</p>
+<p>这种说法好像不好理解，说直白一点，就是把每个i的值都赋给num，然后把所有的num的值放到数组中返回。避免了闭包只取到i的最后一个值得情况的发生。</p>
+<p>方法二、使用let</p>
+<p>因为es5没有块级作用域这一说法，在es6中加入了let来定义变量，使得函数拥有了块级作用域</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> creatFunction() {
+    </span><span style="color: #0000ff;">var</span> result = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Array();
+    </span><span style="color: #0000ff;">for</span>(<span style="background-color: #ff0000;">let</span> i = 0; i &lt; 10; i++){<span style="color: #008000;">//</span><span style="color: #008000;">let不存在变量提升，每一次循环都会执行一次，for的每一次循环都是不同的块级作用域，let声明的变量都有块级作用域，所以不存在重复声明</span>
+        result[i] = <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> i;
+        };
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+}
+</span><span style="color: #0000ff;">var</span> saber =<span style="color: #000000;"> creatFunction();
+</span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; saber.length; i++<span style="color: #000000;">) {
+    console.log(saber[i]())</span><span style="color: #008000;">//</span><span style="color: #008000;">1 2 3 4 5 6 7 8 9</span>
+}</pre>
+</div>
+<p>&nbsp;</p>
+<p><strong>（3）闭包导致this对象通常指向windows</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> name = "I am windows"
+
+<span style="color: #0000ff;">var</span> object =<span style="color: #000000;"> {
+    name: </span>"saber"<span style="color: #000000;">,
+    getName : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.name
+        }
+    }
+}
+console.log(object.getName()())</span><span style="color: #008000;">//</span><span style="color: #008000;">I am windows</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>this是基于函数的执行环境绑定的，而匿名函数的执行环境具有全局性，因此this对象指向windows</p>
+<p>解决办法，把外部作用域中的this对象保存在一个闭包也能访问到的变量里：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> name = "I am windows"
+
+<span style="color: #0000ff;">var</span> object =<span style="color: #000000;"> {
+    name: </span>"saber"<span style="color: #000000;">,
+    getName : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+        </span><span style="background-color: #ffff00;"><span style="color: #0000ff;">var</span> that = <span style="color: #0000ff;">this</span></span>
+        <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"><span style="background-color: #ffff00;"> that</span>.name
+        }
+    }
+}
+console.log(object.getName()())</span><span style="color: #008000;">//</span><span style="color: #008000;">saber</span></pre>
+</div>
+<p>&nbsp;</p>
+<h4>（4）内存泄漏</h4>
+<p>由于匿名函数的存在，导致外部环境的对象会被保存，因此所占用的内存不会被垃圾回收机制回收。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> Savant(){
+    </span><span style="color: #0000ff;">this</span>.age = "18"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">this</span>.name = ["saber","archer"<span style="color: #000000;">];
+}
+Savant.prototype.sayName </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">var</span> outer = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> outer.name
+    };
+};
+
+</span><span style="color: #0000ff;">var</span> count = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Savant();
+console.log(count.sayName()())</span><span style="color: #008000;">//</span><span style="color: #008000;">[ 'saber', 'archer' ]</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>我们可以保存变量到一个副本中，然后引用该副本，最后设置为空来释放内存</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> Savant(){
+    </span><span style="color: #0000ff;">this</span>.age = "18"<span style="color: #000000;">;
+    </span><span style="color: #0000ff;">this</span>.name = ["saber","archer"<span style="color: #000000;">];
+}
+Savant.prototype.sayName </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="background-color: #ffff00;"><span style="color: #0000ff;">var</span> outerName = <span style="color: #0000ff;">this</span></span><span style="color: #000000;"><span style="background-color: #ffff00;">.name</span>;
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"><span style="background-color: #ffff00;"> outerName</span>
+    };
+    <span style="background-color: #ffff00;">outerName </span></span><span style="background-color: #ffff00;">= <span style="color: #0000ff;">null</span></span><span style="color: #000000;">;
+};
+
+</span><span style="color: #0000ff;">var</span> count = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Savant();
+console.log(count.sayName()())</span><span style="color: #008000;">//</span><span style="color: #008000;">[ 'saber', 'archer' ]</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>注意一点：即使这样还是不能解决内存泄漏的问题，但是我们能解除其引用，确保正常回收其占用的内存</p>
+<p>说完了缺点，我们来说一下，闭包的优点把</p>
+<h3>闭包的优点</h3>
+<p><strong>（1）模仿块级作用域</strong></p>
+<p><strong>语法：</strong></p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">在这里是块级作用域</span>
+})();</pre>
+</div>
+<p>&nbsp;</p>
+<p>举个例子来说明吧：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> saber(num){
+    </span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; num; i++<span style="color: #000000;">){
+        console.log(i)</span><span style="color: #008000;">//</span><span style="color: #008000;">0 1 2 3 4</span>
+<span style="color: #000000;">    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log(i)//5</span>
+<span style="color: #000000;">}
+saber(</span>5)</pre>
+</div>
+<p>&nbsp;</p>
+<p>可以看到在for循环外还是能访问到i的，那么，如何装for循环外无法访问到里面的i呢</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> saber(num){
+    <span style="background-color: #ffff00;">(</span></span><span style="background-color: #ffff00;"><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        </span></span><span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; num; i++<span style="color: #000000;">){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> console.log(i)//0 1 2 3 4</span>
+<span style="color: #000000;">        }
+    <span style="background-color: #ffff00;">})();</span>
+    console.log(i)</span><span style="color: #008000;">//</span><span style="color: #008000;">i is not defined</span>
+<span style="color: #000000;">}
+saber(</span>5)</pre>
+</div>
+<p>&nbsp;</p>
+<p>这种方式能减少闭包占用的内存问题。</p>
+<p><strong>（2）在构造函数中定义特权方法</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> savant(name){
+    </span><span style="color: #0000ff;">var</span> name=<span style="color: #000000;">name;
+    </span><span style="color: #0000ff;">this</span>.sayName=<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        console.log(name);    
+    }
+};
+</span><span style="color: #0000ff;">var</span> savant1=<span style="color: #0000ff;">new</span> savant("saber"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> savant2=<span style="color: #0000ff;">new</span> savant("archer"<span style="color: #000000;">);
+savant1.sayName();    </span><span style="color: #008000;">//</span><span style="color: #008000;">saber</span>
+savant2.sayName();    <span style="color: #008000;">//</span><span style="color: #008000;">archer</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>该例子中的sayName（）就是一个特权方法，可以理解为可以用来访问私有变量的公有方法。</p>
+<p><strong>（3）静态私有变量</strong></p>
+<p>在私有作用域中同样可以使用特权方法</p>
+<div class="cnblogs_code">
+<pre><code>(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (){
+    </span><span style="color: #0000ff;">var</span> name = ""<span style="color: #000000;">;
+    Savant </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+        name </span>=<span style="color: #000000;"> value;
+    }
+    Savant.prototype.getName </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> name;
+    }
+    Savant.prototype.setName </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+        name </span>=<span style="color: #000000;"> value;
+    }
+})();
+
+</span><span style="color: #0000ff;">var</span> Savant1 = <span style="color: #0000ff;">new</span> Savant("saber"<span style="color: #000000;">)
+console.log(Savant1.getName())</span><span style="color: #008000;">//</span><span style="color: #008000;">saber</span>
+<span style="color: #000000;">
+Savant1.setName(</span>"archer"<span style="color: #000000;">);
+console.log(Savant1.getName())</span><span style="color: #008000;">//</span><span style="color: #008000;">archer</span>
+
+<span style="color: #0000ff;">var</span> Savant2 = <span style="color: #0000ff;">new</span> Savant("lancer"<span style="color: #000000;">)
+console.log(Savant1.getName())</span><span style="color: #008000;">//</span><span style="color: #008000;">lancer</span>
+console.log(Savant2.getName())<span style="color: #008000;">//</span><span style="color: #008000;">lancer</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>但是在私有作用域里面的特权方法和构造函数中不同的是，私有作用域中的特权方法是在原型上定义的，因此所有的实例都使用同一个函数，只要新建一个Savant实例或者调用setName（）就会在原型上赋予name一个新值。导致的结果就是所有的实例都会返回相同的值</p>
+<p><strong>（4）模块模式</strong></p>
+<p><strong>单例模式添加私有属性和私有方法，减少全局变量的使用</strong></p>
+<p><strong>语法：</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> singleleton = (<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建私有变量</span>
+    <span style="color: #0000ff;">var</span> privateNum = 10<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建私有函数</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> privateFunc(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 业务逻辑代码</span>
+<span style="color: #000000;">    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回一个对象包含公有方法和属性</span>
+    <span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+        publicProperty: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+        publicMethod: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">共有方法代码</span>
+<span style="color: #000000;">        }
+    };
+})();</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>该模式在需要对单例进行某些初始化，同时又需要维护其私有变量时是很有用的</p>
+<p><strong>增强的模块模式</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> Savant() {
+    </span><span style="color: #0000ff;">this</span>.name = "saber"<span style="color: #000000;">;
+};
+
+</span><span style="color: #0000ff;">var</span> application = (<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 定义私有</span>
+    <span style="color: #0000ff;">var</span> privateA = "privateA"<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 定义私有函数</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> privateMethodA(){};
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实例化一个对象后，返回该实例，然后为该实例增加一些公有属性和方法</span>
+    <span style="color: #0000ff;">var</span> object = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Savant();
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 添加公有属性</span>
+    object.publicA = "publicA"<span style="color: #000000;">;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 添加公有方法</span>
+    object.publicB = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> privateA;
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回该对象</span>
+    <span style="color: #0000ff;">return</span><span style="color: #000000;"> object;
+})();
+
+Savant.prototype.getName </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.name;
+}
+
+
+console.log(application.publicA);</span><span style="color: #008000;">//</span><span style="color: #008000;"> publicA</span>
+console.log(application.publicB()); <span style="color: #008000;">//</span><span style="color: #008000;"> privateA</span>
+console.log(application.name); <span style="color: #008000;">//</span><span style="color: #008000;"> saber</span>
+console.log(application.getName());<span style="color: #008000;">//</span><span style="color: #008000;"> saber</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

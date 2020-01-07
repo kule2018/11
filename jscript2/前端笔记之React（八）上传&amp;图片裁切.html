@@ -1,0 +1,319 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修前端笔记之React（八）上传&amp;图片裁切' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>前端笔记之React（八）上传&amp;图片裁切</center></div><div class='banquan'>原文出处:本文由博客园博主RopeHuo提供。<br/>
+原文连接:https://www.cnblogs.com/rope/p/10744147.html</div><br>
+    <h1><strong>一</strong><strong><span style="font-family: 宋体;">、</span></strong><strong>上传</strong></h1>
+<p>formidable<span style="font-family: 宋体;">天生可以处理上传的文件，非常简单就能持久上传的文件。</span></p>
+<p>今天主要讲解的是，前后端的配合套路。</p>
+<p>上传分为同步、异步。同步公司使用非常多，异步我们也会讲解。</p>
+<h2><strong>1.1 <span style="font-family: 宋体;">先看一下</span><span style="font-family: 华文中宋;">antd</span><span style="font-family: 宋体;">中的</span><span style="font-family: 华文中宋;">Form</span><span style="font-family: 宋体;">和代码校验</span></strong></h2>
+<p>我们看antd<span style="font-family: 宋体;">中的</span><span style="font-family: Consolas;">Form</span><span style="font-family: 宋体;">组件，</span><span style="font-family: Consolas;">https://ant.design/components/form-cn/</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">所谓的装饰器指的是将一个组件作为一个函数的参数。</span></p>
+<p>MyForm<span style="font-family: 宋体;">是一个标准的组件，要用</span><span style="font-family: Consolas;">Form.create()()</span><span style="font-family: 宋体;">装饰一下。</span></p>
+<div class="cnblogs_code">
+<pre><code>const WrappedRegistrationForm = Form.create()(MyForm);</pre>
+</div>
+<p>装饰器，就是函数后面有两个圈比如，<span style="color: #ff0000;">getFieldDecorator</span>()()<span style="font-family: 宋体;">。第一个圈里写如何装饰，第二个圈里写被装饰的组件。</span><img src="./images/前端笔记之React（八）上传&amp;图片裁切0.png" alt="" /></p>
+<p>慢慢去分析人家的API<span style="font-family: 宋体;">，慢慢看，慢慢琢磨。</span></p>
+<hr />
+<h2><strong>1.2 <span style="font-family: 宋体;">上传前端套路和</span><span style="font-family: 华文中宋;">formidable</span><span style="font-family: 宋体;">的实现&nbsp;</span></strong></h2>
+<div class="cnblogs_code">
+<pre><code> &lt;input type="file"/&gt;</pre>
+</div>
+<p><img src="./images/前端笔记之React（八）上传&amp;图片裁切1.png" alt="" /></p>
+<p><img src="./images/前端笔记之React（八）上传&amp;图片裁切2.png" alt="" /></p>
+<p>我们现在要制作提交，前端界面必须满足几点：</p>
+<p>1<span style="font-family: 宋体;">）必须要用</span><span style="font-family: Consolas;">form</span><span style="font-family: 宋体;">标签嵌套，这是一个表单，不是一个</span><span style="font-family: Consolas;">ajax</span><span style="font-family: 宋体;">程序；</span></p>
+<p>2<span style="font-family: 宋体;">）表单的</span><span style="font-family: Consolas;">method</span><span style="font-family: 宋体;">属性必须是</span><span style="font-family: Consolas;">POST</span></p>
+<p>3<span style="font-family: 宋体;">）必须有</span><span style="font-family: Consolas;">enttype</span><span style="font-family: 宋体;">，值是&ldquo;</span><span style="font-family: Consolas;">multipart/form-data</span><span style="font-family: 宋体;">&rdquo;，什么意思？下面有图片讲解</span></p>
+<p>4) file<span style="font-family: 宋体;">控件必须有</span><span style="font-family: Consolas;">name</span><span style="font-family: 宋体;">属性</span></p>
+<p>5<span style="font-family: 宋体;">）必须有提交按钮</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">form </span><span style="color: #ff0000;">action</span><span style="color: #0000ff;">="/uploadAvatar"</span><span style="color: #ff0000;"> method</span><span style="color: #ff0000;">="POST"</span><span style="color: #ff0000;"> enctype</span> <span style="color: #ff0000;">="multipart/form-data"</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="file"</span><span style="color: #ff0000;"> name</span><span style="color: #ff0000;">="avatar"</span> <span style="color: #0000ff;">/&gt;</span>
+      <span style="color: #ff0000;"> &lt;input type="submit" name="上传"/&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><img src="./images/前端笔记之React（八）上传&amp;图片裁切3.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>后端实现上传非常简单（当然工作实现上传肯定不是你的事情）：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">上传图片的路由</span>
+app.post("/uploadAvatar" , <span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    </span><span style="color: #0000ff;">var</span> form = <span style="color: #0000ff;">new</span><span style="color: #000000;"> formidable.IncomingForm();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">定义上传的文件夹名字</span>
+    <span style="color: #ff0000;">form.uploadDir = path.resolve(__dirname , "./www/uploads");
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">保留文件拓展名</span>
+    <span style="color: #ff0000;">form.keepExtensions = true</span><span style="color: #000000;"><span style="color: #ff0000;">;</span>
+    
+    form.parse(req , </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(err , fileds , files){
+        res.send(</span>"成功"<span style="color: #000000;">);
+    });
+});</span></pre>
+</div>
+<p><img src="./images/前端笔记之React（八）上传&amp;图片裁切4.png" alt="" /></p>
+<p>文件名会被随机改名。</p>
+<p>&nbsp;</p>
+<p>如何得到上传之后的随机名字？</p>
+<div class="cnblogs_code">
+<pre><code>form.parse(req , <span style="color: #0000ff;">function</span><span style="color: #000000;">(err , fileds , files){
+    console.log(<span style="color: #ff0000;">files.<strong>avatar</strong>.path</span>);
+     res.send(</span>"成功"<span style="color: #000000;">);
+});</span></pre>
+</div>
+<p><img src="./images/前端笔记之React（八）上传&amp;图片裁切5.png" alt="" /></p>
+<p>提炼真正的文件名，而不包括完整路径：</p>
+<div class="cnblogs_code">
+<pre><code> <span style="color: #0000ff;">var</span> base = <span style="color: #ff0000;">path.parse(</span>files.avatar.path<span style="color: #ff0000;">).base</span>;</pre>
+</div>
+<hr />
+<h2><strong>1.3 <span style="font-family: 宋体;">抑制页面跳转</span></strong></h2>
+<p><span style="font-family: 宋体;">当点击</span>submit<span style="font-family: 宋体;">按钮的时候，浏览器的默认逻辑就是跳转到</span><span style="font-family: Consolas;">action</span><span style="font-family: 宋体;">的页面。</span></p>
+<p><span style="font-family: 宋体;">除非你用异步。但是，异步</span>Ajax<span style="font-family: 宋体;">浏览器很少支持，</span><span style="font-family: Consolas;">IE10</span><span style="font-family: 宋体;">开始支持。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">form </span><span style="color: #ff0000;">action</span><span style="color: #0000ff;">="/uploadAvatar"</span><span style="color: #ff0000;"> method</span><span style="color: #0000ff;">="POST"</span><span style="color: #ff0000;"> enctype</span><span style="color: #0000ff;">="multipart/form-data"</span><span style="color: #0000ff;">&gt;</span>
+       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="file"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="avatar"</span> <span style="color: #0000ff;">/&gt;</span>
+       <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="submit"</span><span style="color: #ff0000;"> name</span><span style="color: #0000ff;">="上传"</span><span style="color: #0000ff;">/&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>在同步的时候，我们就要使用奇淫技巧。</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">使用</span>iframe<span style="font-family: 宋体;">，框架，内嵌小电视。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">iframe </span><span style="color: #ff0000;">src</span><span style="color: #0000ff;">="http://www.baidu.com"</span><span style="color: #ff0000;"> frameborder</span><span style="color: #0000ff;">="1"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">iframe</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><img src="./images/前端笔记之React（八）上传&amp;图片裁切6.png" alt="" /></p>
+<p>在小电视中的所有跳转，都是关闭到小电视中的。</p>
+<p><span style="font-family: 宋体;">我们的表单就可以被内签到小电视中，此时即使</span>submit<span style="font-family: 宋体;">发生了跳转，也是在小电视中的跳转。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">直接使用静态页面，在</span>www<span style="font-family: 宋体;">里面创建</span><span style="font-family: Consolas;">pages</span><span style="font-family: 宋体;">文件夹：</span></p>
+<p>&nbsp;<img src="./images/前端笔记之React（八）上传&amp;图片裁切7.png" alt="" width="516" height="178" /></p>
+<p>一切都将发生在小电视中，页面跳转被抑制了。</p>
+<p>&nbsp;<img src="./images/前端笔记之React（八）上传&amp;图片裁切8.png" alt="" /></p>
+<hr />
+<h2><strong>1.4 <span style="font-family: 宋体;">上传按钮</span></strong></h2>
+<p>并且我们希望用户选择完图片之后，就能立即上传，而不用多一次提交的点击。</p>
+<p>用模拟事件就行了</p>
+<p>&nbsp;<img src="./images/前端笔记之React（八）上传&amp;图片裁切9.png" alt="" /></p>
+<p><span style="font-family: 宋体;">所有的内嵌页面，将不能天生拥有外部的</span>window<span style="font-family: 宋体;">的作用域。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">alert($)
+
+alert(window.parent.$)</span></pre>
+</div>
+<p>jQuery<span style="font-family: 宋体;">有问题，只能得到引包的</span><span style="font-family: Consolas;">window</span><span style="font-family: 宋体;">域中的</span><span style="font-family: Consolas;">dom</span><span style="font-family: 宋体;">。</span></p>
+<p>&nbsp;</p>
+<p>模拟事件：</p>
+<div class="cnblogs_code">
+<pre><code>  &lt;script&gt;<span style="color: #000000;">
+        $(</span>"#pencile").click(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            $(</span>"#file_btn").trigger("click"<span style="color: #000000;">);
+        });
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">一旦file被改变，就上传</span>
+        $("#file_btn").bind("change" , <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            $(</span>"form")[0<span style="color: #000000;">].submit();
+        });
+    </span>&lt;/script&gt;</pre>
+</div>
+<hr />
+<h2><strong>1.5 <span style="font-family: 宋体;">回调函数</span></strong></h2>
+<p><span style="font-family: 宋体;">上传成功之后调用父</span>window<span style="font-family: 宋体;">中的</span><span style="font-family: Consolas;">js</span><span style="font-family: 宋体;">。</span></p>
+<div class="cnblogs_code">
+<pre><code>form.parse(req , <span style="color: #0000ff;">function</span><span style="color: #000000;">(err , fileds , files){
+     </span><span style="color: #0000ff;">var</span> base =<span style="color: #000000;"> path.parse(files.avatar.path).base;
+     res.send(</span>"&lt;script&gt;window.parent.success_upload_avatar(" + base + ");&lt;/script &gt;"<span style="color: #000000;">)
+ });</span></pre>
+</div>
+<hr />
+<h1><strong>二、图片的裁切</strong></h1>
+<h2><strong>2.1 gm<span style="font-family: 宋体;">的安装</span></strong></h2>
+<p><span style="font-family: 宋体;">我们要安装</span>gm<span style="font-family: 宋体;">这个东西，它是</span><span style="font-family: Consolas;">C++</span><span style="font-family: 宋体;">写出来的一个软件，不是</span><span style="font-family: Consolas;">npm</span><span style="font-family: 宋体;">包。</span></p>
+<p>http://www.graphicsmagick.org/</p>
+<p>&nbsp;<img src="./images/前端笔记之React（八）上传&amp;图片裁切10.png" alt="" /></p>
+<p>GraphicsMagick is the swiss army knife of image processing.</p>
+<p>小而功能多</p>
+<p>&nbsp;</p>
+<p><span style="font-family: 宋体;">下载：</span>ftp://ftp.graphicsmagick.org/pub/GraphicsMagick/windows/</p>
+<p>按自己的位数进行安装：</p>
+<p>&nbsp;<img src="./images/前端笔记之React（八）上传&amp;图片裁切11.png" alt="" /></p>
+<p><img src="./images/前端笔记之React（八）上传&amp;图片裁切12.png" alt="" /></p>
+<p>将安装路径，上图所示的这个文件夹的路径，添加到系统的环境变量中</p>
+<p>为了检查环境变量是否设置正确，要输入</p>
+<div class="cnblogs_code">
+<pre><code>gm -version</pre>
+</div>
+<p><img src="./images/前端笔记之React（八）上传&amp;图片裁切13.png" alt="" /></p>
+<hr />
+<h2><strong>2.2 <span style="font-family: 宋体;">让</span><span style="font-family: 华文中宋;">gm</span><span style="font-family: 宋体;">为</span><span style="font-family: 华文中宋;">nodejs</span><span style="font-family: 宋体;">工作</span></strong></h2>
+<p>https://www.npmjs.com/package/gm</p>
+<p><span style="font-family: 宋体;">此时要安装</span>gm<span style="font-family: 宋体;">这个</span><span style="font-family: Consolas;">npm</span><span style="font-family: 宋体;">包</span></p>
+<div class="cnblogs_code">
+<pre><code>npm install --save gm</pre>
+</div>
+<p>nodejs<span style="font-family: 宋体;">就能够剪裁图片、编辑图片、美化图片等等操作。</span></p>
+<p>&nbsp;</p>
+<p>nodejs<span style="font-family: 宋体;">程序</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> gm = require("gm"<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;">上传图片的路由</span>
+app.post("/uploadAvatar" , <span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    </span><span style="color: #0000ff;">var</span> form = <span style="color: #0000ff;">new</span><span style="color: #000000;"> formidable.IncomingForm();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">定义上传的文件夹名字</span>
+    form.uploadDir = path.resolve(__dirname , "./www/uploads"<span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">保留文件拓展名</span>
+    form.keepExtensions = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+
+    form.parse(req , </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(err , fileds , files){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">图片的物理路径，指的是c:\node_study&hellip;&hellip;</span>
+        <span style="color: #0000ff;">var</span> pathwuli =<span style="color: #000000;"> files.avatar.path;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">图片的文件名</span>
+        <span style="color: #0000ff;">var</span> base =<span style="color: #000000;"> path.parse(pathwuli).base;
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">查看上传的文件的宽度、高度</span>
+        <span style="color: #ff0000;">gm(pathwuli).size(function</span><span style="color: #000000;"><span style="color: #ff0000;">(err, size){
+            console.log(size.width , size.height);</span>
+            res.send(</span>"&lt;script&gt;window.parent.success_upload_avatar('" + base + "');&lt;/script &gt;"<span style="color: #000000;">)
+        <span style="color: #ff0000;">});</span>
+
+       
+    });
+});</span></pre>
+</div>
+<p>formidable<span style="font-family: 宋体;">是用来上传图片的</span></p>
+<p>gm<span style="font-family: 宋体;">是用来处理图片。这里使用了语法</span></p>
+<div class="cnblogs_code">
+<pre><code>gm().size(<span style="color: #0000ff;">function</span><span style="color: #000000;">(err,size){
+
+})</span></pre>
+</div>
+<p>可以得到图片的尺寸。</p>
+<p>后台要给你图片尺寸，因为你不能耍无赖：让图片撑出盒子，又让图片被盒子约束。</p>
+<p>&nbsp;</p>
+<p>上传图片，已经是先上传图片，然后在页面上显示具有URL<span style="font-family: 宋体;">服务器地址的图片。</span></p>
+<p><span style="font-family: 宋体;">然后我们要有一个思维，就是用</span>px<span style="font-family: 宋体;">来精确控制弹出层的样子，这样好看。</span></p>
+<p>&nbsp;<img src="./images/前端笔记之React（八）上传&amp;图片裁切14.png" alt="" /></p>
+<hr />
+<h2><strong>2.3 <span style="font-family: 宋体;">图片的裁切逻辑</span></strong></h2>
+<p>&nbsp;<img src="./images/前端笔记之React（八）上传&amp;图片裁切15.png" alt="" /></p>
+<p><span style="font-family: 宋体;">新瓶装旧酒，</span>jQuery<span style="font-family: 宋体;">的</span><span style="font-family: Consolas;">DOM</span><span style="font-family: 宋体;">逻辑还是非常丰富，</span><span style="font-family: Consolas;">React</span><span style="font-family: 宋体;">在这里只是一个壳子。</span></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('91cd56dc-4754-4278-9be6-3b3d6a155c88')"><img id="code_img_closed_91cd56dc-4754-4278-9be6-3b3d6a155c88" class="code_img_closed" src="./images/前端笔记之React（八）上传&amp;图片裁切16.png" alt="" /><img id="code_img_opened_91cd56dc-4754-4278-9be6-3b3d6a155c88" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('91cd56dc-4754-4278-9be6-3b3d6a155c88',event)" src="./images/前端笔记之React（八）上传&amp;图片裁切17.png" alt="" />
+<div id="cnblogs_code_open_91cd56dc-4754-4278-9be6-3b3d6a155c88" class="cnblogs_code_hide">
+<pre><code><span style="color: #000000;">  componentDidMount(){
+        </span><span style="color: #0000ff;">var</span> self = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">四个信号量</span>
+        <span style="color: #0000ff;">var</span> cutX = 0 , cutY = 0, cutW = 100 , cutH = 100<span style="color: #000000;">;
+ 
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">cut里面的猫腻图片，为了让cut亮</span>
+        <span style="color: #0000ff;">var</span> $cut_img = $(<span style="color: #0000ff;">this</span><span style="color: #000000;">.refs.cut_img);
+
+        $(</span><span style="color: #0000ff;">this</span><span style="color: #000000;">.refs.cut).draggable({
+            containment : </span>"parent"<span style="color: #000000;">,
+            drag : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(event , ui){
+                cutY </span>=<span style="color: #000000;"> ui.position.top;
+                cutX </span>=<span style="color: #000000;"> ui.position.left;
+
+                $cut_img.css({
+                    </span>"left": -<span style="color: #000000;">cutX,
+                    </span>"top": -<span style="color: #000000;">cutY
+                });
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">调用设置预览图的函数</span>
+<span style="color: #000000;">                setPreviews();
+            }
+        });
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">改变尺寸</span>
+        $(<span style="color: #0000ff;">this</span><span style="color: #000000;">.refs.cut).resizable({
+            aspectRatio : </span>1<span style="color: #000000;"> ,
+            containment : </span>"parent"<span style="color: #000000;">,
+            resize : </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(evnet , ui){
+                cutW </span>=<span style="color: #000000;"> ui.size.width;
+                cutH </span>=<span style="color: #000000;"> ui.size.height;
+
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">调用设置预览图的函数</span>
+<span style="color: #000000;">                setPreviews();
+            }
+        });
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">设置预览路</span>
+        <span style="color: #0000ff;">function</span><span style="color: #000000;"> setPreviews(){
+            </span><span style="color: #0000ff;">var</span> bigimgW =<span style="color: #000000;"> $(self.refs.bigimg).width();
+            </span><span style="color: #0000ff;">var</span> bigimgH =<span style="color: #000000;"> $(self.refs.bigimg).height();
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">批量设置</span>
+            $(self.refs.priewBox).find(".pb").each(<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+                </span><span style="color: #0000ff;">var</span> w = $(<span style="color: #0000ff;">this</span>).data("w"<span style="color: #000000;">);
+
+                $(</span><span style="color: #0000ff;">this</span>).find("img"<span style="color: #000000;">).css({
+                    </span>"width": w * bigimgW /<span style="color: #000000;"> cutW,
+                    </span>"left": -cutX / cutW *<span style="color: #000000;"> w,
+                    </span>"top": -cutY / cutH *<span style="color: #000000;"> w
+                })
+            });
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">裁切按钮的事件监听</span>
+        self.cutBtnHandler = <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">图片原宽和当前宽度的比</span>
+            <span style="color: #0000ff;">var</span> rate = self.props.realw /<span style="color: #000000;"> $(self.refs.bigimg).width();
+
+            $.post(</span>"/docut"<span style="color: #000000;"> , {
+                x: cutX </span>*<span style="color: #000000;"> rate,
+                y: cutY </span>*<span style="color: #000000;"> rate,
+                w: cutW </span>*<span style="color: #000000;"> rate,
+                h: cutH </span>*<span style="color: #000000;"> rate,
+                picurl: self.props.tanchucengPicUrl
+            });
+        }    
+    }</span></pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<p>&nbsp;</p>
+<p>后端接口</p>
+<div class="cnblogs_code" onclick="cnblogs_code_show('34ba8f33-0339-47fc-81a7-f4857423072c')"><img id="code_img_closed_34ba8f33-0339-47fc-81a7-f4857423072c" class="code_img_closed" src="./images/前端笔记之React（八）上传&amp;图片裁切16.png" alt="" /><img id="code_img_opened_34ba8f33-0339-47fc-81a7-f4857423072c" class="code_img_opened" style="display: none;" onclick="cnblogs_code_hide('34ba8f33-0339-47fc-81a7-f4857423072c',event)" src="./images/前端笔记之React（八）上传&amp;图片裁切17.png" alt="" />
+<div id="cnblogs_code_open_34ba8f33-0339-47fc-81a7-f4857423072c" class="cnblogs_code_hide">
+<pre><code>app.post("/docut" , <span style="color: #0000ff;">function</span><span style="color: #000000;">(req,res){
+    </span><span style="color: #0000ff;">var</span> form = <span style="color: #0000ff;">new</span><span style="color: #000000;"> formidable.IncomingForm();
+    form.parse(req, </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (err, fileds, files) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">得到前端发来的各种数据</span>
+        const {x, y,w,h,picurl} =<span style="color: #000000;"> fileds;
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">完整路径</span>
+        <span style="color: #0000ff;">var</span> fullurl = path.resolve(__dirname , "./www/" +<span style="color: #000000;"> picurl);
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">裁切图片</span>
+<span style="color: #000000;">        gm(fullurl)
+            .crop(w,h,x,y)      </span><span style="color: #008000;">//</span><span style="color: #008000;">注意这里的坑：参数的顺序是宽、高、x、y。</span>
+            .resize(180,180<span style="color: #000000;">)
+            .write(fullurl , </span><span style="color: #0000ff;">function</span>(err){     <span style="color: #008000;">//</span><span style="color: #008000;">覆盖原图即可</span>
+<span style="color: #000000;">                console.log(err)
+                console.log(</span>"done"<span style="color: #000000;">);
+            })
+    });
+})</span></pre>
+</div>
+<span class="cnblogs_code_collapse">示例代码</span></div>
+<hr />
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

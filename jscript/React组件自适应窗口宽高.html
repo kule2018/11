@@ -1,0 +1,123 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修React组件自适应窗口宽高' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>React组件自适应窗口宽高</center></div><div class='banquan'>原文出处:本文由博客园博主杰瑞鼠小D提供。<br/>
+原文连接:https://www.cnblogs.com/JerryD/p/11052741.html</div><br>
+    <p>很多时候我们需要组件能够根据窗口变化改变宽高，有时候可以使用css,有时候需要随数据调整则使用js计算。</p>
+<p>比如说，当我们在页面中放置一个iframe时，我们希望它的宽高随着其父元素or窗口的变化而变化；</p>
+<p>再比如说，当我们引用一个ant Table组件，并且动态传入columns及dataSource时，由于需要控制sroll值我们需要获得动态的width和height；</p>
+<p>......</p>
+<p>下面我们举几个栗子</p>
+<p><strong>&nbsp;例1：使用antd layout布局，如下图，content宽高会随着窗口变化，我们希望iframe-component组件也随之变化，以至于iframe高度超出时iframe显示滚动条，该怎么写呢？</strong></p>
+<p><img src="./images/React组件自适应窗口宽高0.png" alt="" /></p>
+<p>我们知道layout是flex布局，所以即使我们用下面的css也不能实现需求，因为content没有宽高，他的子元素使用height:100%起不到作用。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>.iframe-component{
+  width:100%;
+  height:100%;  
+}
+
+.iframe{
+  width:100%;
+  height:calc(100% - 30px);  
+}</pre>
+</div>
+<p>怎么办呢？我们可以使用vh单位给iframe-component设置宽高。这样iframe-component的高度就永远等于窗口的高度减去header的高度了</p>
+<div class="cnblogs_Highlighter">
+<pre><code>.iframe-component{
+  width:100%;
+  height:calc(100vh - 64px);  
+}
+
+.iframe{
+  width:100%;
+  height:calc(100% - 30px);  
+}</pre>
+</div>
+<blockquote>
+<p><strong>解释：</strong></p>
+<p>单位vh :1vh等于视口高度的1%</p>
+</blockquote>
+<p>&nbsp;</p>
+<p><strong>例2：antd Table组件的scroll属性用来设置横向或纵向滚动，也可用于指定滚动区域的宽高，可以设置为像素值，百分比，true和&lsquo;max-content&rsquo;。</strong></p>
+<p><strong>现在需要实现一个Table，<strong>希望它布满整个父div，父div随窗口变化大小；</strong></strong><strong><strong>当父div高度小于Table总高度时Table显示纵滚动条；</strong></strong><strong>当<strong>父div</strong>宽度小于Table总宽度时Table显示横滚动条，<strong><strong>另外</strong>他的列是动态生成，即列数及宽度不定</strong>。</strong></p>
+<div class="cnblogs_code">
+<pre><code><span>import {Table} from 'antd';<br />class MyTable extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state =<span> {
+      width: 0<span>,
+      height: 1000<span>,
+    }
+    this.myRef=<span>React.createRef();
+  }
+　　
+  componentWillMount() {
+    this.widthReset(this<span>.props.columns)
+  }
+
+  componentDidMount() {
+    this<span>.handleResize();
+    window.addEventListener('resize', this<span>.handleResize);
+  }
+
+  componentWillUnmount() {
+    window.removeEventListener('resize', this<span>.handleResize);
+  }
+　　<br />　//取父div的height
+  handleResize() {
+    const divHeight = this<span>.myRef.current.clientHeight;
+    divHeight!=null &amp;&amp; this<span>.setState({height:divHeight})
+  }<br />　　
+   componentWillReceiveProps(props){
+      this<span>.widthReset(props.columns)  
+   }
+  
+   widthReset=(columns)=&gt;<span>{
+     let width=0<span>;
+     columns.forEach((record)=&gt;<span>{<span>
+        width+=<span>record.width;
+     });<br />　　　this.setState({width})
+   }
+
+  render() {
+    return<span> (
+      &lt;div className="table-div" &gt;<span><span>
+        &lt;Table <br />　　　　　　　columns={this.props.columns}<br />　　　　　　　dataSource={this.props.dataSource}<br />　　　　　　　style={{height:this.state.height}}<br />　　　　　　　scroll={ { x: this.state.width, y: (this.state.height-this.columnHeight) } }<br />　　　　　/&gt;
+      &lt;/div&gt;
+<span>    );
+  }
+}
+
+ReactDOM.render(
+  &lt;MyTable columns={columns} dataSource={dataSource}/&gt;,
+  document.getElementById('root'<span>)
+);        </span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></pre>
+</div>
+<blockquote>
+<p><strong>相关解释：</strong></p>
+<p>React的ref ：可以将ref绑定到 render() 输出的任何组件上，来获取相应的支撑实例。</p>
+<p>Element.clientHeight ：这个属性是只读属性，对于没有定义CSS或者内联布局盒子的元素为0，否则，它是元素内部的高度(单位像素)，包含内边距，但不包括水平滚动条、边框和外边距。</p>
+<p><strong><a href="https://www.cnblogs.com/qiaojie/p/6135180.html" target="_blank">React生命周期</a></strong></p>
+</blockquote>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

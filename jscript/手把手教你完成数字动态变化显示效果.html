@@ -1,0 +1,144 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修手把手教你完成数字动态变化显示效果' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>手把手教你完成数字动态变化显示效果</center></div><div class='banquan'>原文出处:本文由博客园博主三人行工作室提供。<br/>
+原文连接:https://www.cnblogs.com/timeddd/p/11204774.html</div><br>
+    <h2 id="目标">1.目标</h2>
+<blockquote>
+<p>以液晶电子表样式，<strong>动态变化</strong>的在<strong>指定元素</strong>内显示<strong>数字</strong>。</p>
+</blockquote>
+<p><strong>目标关键词</strong>：动态变化（定时器），指定元素（DOM元素ID），数字（number）<br />
+<strong>效果</strong>：多个页面元素中，均以动态效果显示不同的数字，可正可负。并动态改变至少一个元素内的数据。</p>
+<h2 id="基本原理">2.基本原理</h2>
+<p>（1） <strong>液晶电子表样式</strong>，找一种<strong>液晶电子表字体</strong>即可，无须使用别的绘制技巧。<br />
+（2） <strong>动态变化</strong>则通过使用定时器任务来完成，动态显示要确保变化足够的时长，因此，步长需要根据变化量来进行计算，本文默认变化频率为 50 毫秒一次，动态过程 2 秒（即 2000 毫秒），则变化次数为 40 次，因此步长为变化量除以 40 得到。</p>
+<p><img src="./images/手把手教你完成数字动态变化显示效果0.png" /></p>
+<p>其余则均为规则约束与控制，如支持多元素隔离，动态变化的结束条件，步长计算的方向与时长控制等。</p>
+<h2 id="步步实现">3.步步实现</h2>
+<h3 id="下载字体定义字体名称">3.1下载字体定义字体名称</h3>
+<p>最后提供的源码会包含字体文件。在css中定义字体名称以便样式引用。</p>
+<pre><code><code>@font-face {
+    font-family: LEDFont;
+    src: url(&quot;./UnidreamLED.ttf&quot;);  
+}</code></pre>
+<p>接下来定义显示数字的元素样式，其中便使用到刚定义的字体名称 LEDFont。</p>
+<pre><code><code>.dynanum{
+    font-family: LEDFont;
+    font-size: 48px;
+    color:red;
+    padding:10px;
+    margin:10px;
+    display:inline-block;
+    width:200px;
+    text-align:right;
+    border:1px solid #bbbbff;
+}</code></pre>
+<h3 id="接口定义">3.2接口定义</h3>
+<p>使用者能提供的就是有显示的 <strong>DOM元素ID</strong>，和要显示的<strong>数值</strong>，那这里向外提供的接口方法就出来了，形如：<code>function (elementId, number)</code>。</p>
+<h3 id="支持多元素操作">3.3支持多元素操作</h3>
+<p>为了支持多元素的简易操作，这里定义DOM元素ID与对象的映射变量。</p>
+<pre><code><code>var DynamicNumber = {};
+DynamicNumber.NumberList = {};</code></pre>
+<h3 id="绘制的实现">3.4绘制的实现</h3>
+<p>直接代码说话。嗯，这里说明一下重点。对于实际绘制的对象，接口中以匿名函数的方式创建，在首次涉及到某DOM元素ID时进行创建。如果已经创建，则直接调用 render 方法，调用之前，除了设置新的目标数值，还会清除步长 step，表示需要重新计算步长，当然这些都是封装在接口内部，调用者不需要关心。</p>
+<p>对于绘制方法 render，它所完成的是一步变化的绘制，期间进行结束条件的判断，并在 step 为 0 时进行步长的首次计算工作，最后再使用 setTimeout 启动下一步的定时任务。</p>
+<p>详细代码及注释如下，欢迎留言交流。</p>
+<pre><code><code>/**
+    * 在指定的 DOM 元素中动态显示数值
+    * 作者：triplestudio@sina.com
+    *
+    * @param elementId  :      DOM 元素ID
+    * @param number     :      数值
+    */
+DynamicNumber.show = function (elementId, number) {
+    // 1. 已建立过对象直接调用
+    var dynaNum = this.NumberList[elementId];
+    if (dynaNum) {
+        dynaNum.step = 0;
+        dynaNum.desNumber = number;
+        dynaNum.render();
+        return;
+    }
+
+    // 2. 创建动态数字绘制对象
+    dynaNum = new function (_elementId) {
+        this.elementId = _elementId;
+        this.preNumber = 0; // 变化过程值
+        this.desNumber = 0; // 目标数值，最终显示值
+
+        this.step = 0;      // 变化步长，支持正向反向
+        // 绘制过程
+        this.render = function () {
+            // （1）结束条件
+            if (this.preNumber == this.desNumber) {
+                this.step = 0;
+                return;
+            }
+
+            // （2）步长设置（计划 2 秒完成 40*50=2000）
+            if (this.step == 0) {
+                this.step = Math.round((this.desNumber - this.preNumber) / 40);
+                if (this.step == 0) this.step = (this.desNumber - this.preNumber &gt; 0) ? 1 : -1;
+            }
+
+            // （3）走一步
+            this.preNumber += this.step;
+            if (this.step &lt; 0) {
+                if (this.preNumber &lt; this.desNumber) this.preNumber = this.desNumber;
+            } else {
+                if (this.preNumber &gt; this.desNumber) this.preNumber = this.desNumber;
+            }
+
+            // （4）显示
+            document.getElementById(this.elementId).innerHTML = this.preNumber;
+
+            // （5）每秒绘制 20 次（非精确值）
+            var _this = this;
+            setTimeout(function () { _this.render(); }, 50);
+        };
+    } (elementId);
+
+    // 3. 登记绑定元素ID 
+    DynamicNumber.NumberList[elementId] = dynaNum;
+
+    // 4. 调用绘制
+    dynaNum.step = 0;
+    dynaNum.desNumber = number;
+    dynaNum.render();
+};</code></pre>
+<h2 id="使用方式">4.使用方式</h2>
+<p>如接口所定义，使用者只需要关心DOM元素ID与数值即可。这里，我们再用一个定时器，每5秒钟改变一个数值来看看值变化时的动态效果。</p>
+<pre><code><code>DynamicNumber.show(&quot;num1&quot;, 128);
+DynamicNumber.show(&quot;num2&quot;, 12345);
+DynamicNumber.show(&quot;num3&quot;, -8769);
+DynamicNumber.show(&quot;num4&quot;, 987102);
+DynamicNumber.show(&quot;num5&quot;, -30);
+// 每 5 秒把 num1 中的数值改变
+setInterval(function () { 
+    DynamicNumber.show(&quot;num1&quot;, DynamicNumber.NumberList[&quot;num1&quot;].desNumber + 300);
+}, 5000);</code></pre>
+<p>效果如下：<br />
+<img src="./images/手把手教你完成数字动态变化显示效果1.png" /></p>
+<h2 id="源码下载">5.源码下载：</h2>
+<p>关注时间维度公众号，回复&quot;动态数字&quot;即可获得。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

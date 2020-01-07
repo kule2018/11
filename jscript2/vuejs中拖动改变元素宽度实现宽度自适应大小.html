@@ -1,0 +1,176 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vuejs中拖动改变元素宽度实现宽度自适应大小' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vuejs中拖动改变元素宽度实现宽度自适应大小</center></div><div class='banquan'>原文出处:本文由博客园博主可可西里的骄傲提供。<br/>
+原文连接:https://www.cnblogs.com/layaling/p/11009570.html</div><br>
+    <p>需求效果：</p>
+<p><img src="./images/vuejs中拖动改变元素宽度实现宽度自适应大小0.png" alt="" /></p>
+<p>原理：拖动效果的实现基本都是dom操作来实现的，通过拖动分隔线，计算分隔线与浏览器边框的距离(left)，来实现拖动之后的不同宽度的计算；当拖动分隔线1时，计算元素框left和mid；当拖动分隔线2时，计算元素框mid和right；同时设置元素框最小值以防止元素框拖没了（其实是被遮住了）。使用SetCapture() 和 ReleaseCapture()的函数功能指定窗口里设置鼠标捕获。</p>
+<p>在vuejs中使用，methods设置方法，mounted钩子挂载：</p>
+<p>html部分代码：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;template&gt;
+&lt;div&gt;
+  &lt;ul class="box" ref="box"&gt;
+    &lt;li class="left" ref="left"&gt;西瓜&lt;/li&gt;
+    &lt;li class="resize" ref="resize"&gt;&lt;/li&gt;
+    &lt;li class="mid" ref="mid"&gt;备注2&lt;/li&gt;
+    &lt;li class="resize2" ref="resize2"&gt;&lt;/li&gt;
+     &lt;li class="right" ref="right"&gt;test&lt;/li&gt;
+  &lt;/ul&gt;
+  &lt;ul class="box" ref="box"&gt;
+    &lt;li class="left" ref="left"&gt;芒果&lt;/li&gt;
+    &lt;li class="resize" ref="resize"&gt;&lt;/li&gt;
+    &lt;li class="mid" ref="mid"&gt;备注&lt;/li&gt;
+    &lt;li class="resize2" ref="resize2"&gt;&lt;/li&gt;
+    &lt;li class="right" ref="right"&gt;test&lt;/li&gt;
+  &lt;/ul&gt;
+&lt;/div&gt;
+&lt;/template&gt;</pre>
+</div>
+<p>js部分代码</p>
+<div class="cnblogs_code">
+<pre><code>&lt;script&gt;<span style="color: #000000;">
+export </span><span style="color: #0000ff;">default</span><span style="color: #000000;"> {
+  mounted () {
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.dragControllerDiv();
+  },
+  methods: {
+    dragControllerDiv: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+      </span><span style="color: #0000ff;">var</span> resize = document.getElementsByClassName('resize'<span style="color: #000000;">);
+      </span><span style="color: #0000ff;">var</span> resize2 = document.getElementsByClassName('resize2'<span style="color: #000000;">);
+      </span><span style="color: #0000ff;">var</span> left = document.getElementsByClassName('left'<span style="color: #000000;">);
+      </span><span style="color: #0000ff;">var</span> right = document.getElementsByClassName('right'<span style="color: #000000;">);
+      </span><span style="color: #0000ff;">var</span> mid = document.getElementsByClassName('mid'<span style="color: #000000;">);
+      </span><span style="color: #0000ff;">var</span> box = document.getElementsByClassName('box'<span style="color: #000000;">);
+      </span><span style="color: #0000ff;">for</span> (let i = 0; i &lt; resize.length; i++<span style="color: #000000;">) {
+        resize[i].onmousedown </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+          </span><span style="color: #0000ff;">var</span> startX =<span style="color: #000000;"> e.clientX;
+          resize[i].left </span>=<span style="color: #000000;"> resize[i].offsetLeft;
+          document.onmousemove </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+            </span><span style="color: #0000ff;">var</span> endX =<span style="color: #000000;"> e.clientX;
+            </span><span style="color: #0000ff;">var</span> rightW =<span style="color: #000000;"> right[i].offsetWidth;
+            </span><span style="color: #0000ff;">var</span> moveLen = resize[i].left + (endX -<span style="color: #000000;"> startX);
+            </span><span style="color: #0000ff;">var</span> maxT = box[i].clientWidth -<span style="color: #000000;"> resize[i].offsetWidth;
+            </span><span style="color: #0000ff;">if</span> (moveLen &lt; 150) moveLen = 150<span style="color: #000000;">; 
+            </span><span style="color: #0000ff;">if</span> (moveLen &gt; maxT - rightW - 150) moveLen = maxT - rightW - 150<span style="color: #000000;">;
+
+            resize[i].style.left </span>=<span style="color: #000000;"> moveLen;
+
+            </span><span style="color: #0000ff;">for</span> (let j = 0; j &lt; left.length; j++<span style="color: #000000;">) {
+              left[j].style.width </span>= moveLen + 'px'<span style="color: #000000;">;
+              mid[j].style.width </span>= (box[i].clientWidth - moveLen - rightW - 10) + 'px'<span style="color: #000000;">;
+            }
+          }
+          document.onmouseup </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (evt) {
+            document.onmousemove </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            document.onmouseup </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">; 
+            resize[i].releaseCapture </span>&amp;&amp;<span style="color: #000000;"> resize[i].releaseCapture();
+          }
+          resize[i].setCapture </span>&amp;&amp;<span style="color: #000000;"> resize[i].setCapture();
+          </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+      }
+      </span><span style="color: #0000ff;">for</span> (let i = 0; i &lt; resize2.length; i++<span style="color: #000000;">) {
+        resize2[i].onmousedown </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+          </span><span style="color: #0000ff;">var</span> startX =<span style="color: #000000;"> e.clientX;
+          resize2[i].left </span>=<span style="color: #000000;"> resize2[i].offsetLeft;
+          document.onmousemove </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+            </span><span style="color: #0000ff;">var</span> endX =<span style="color: #000000;"> e.clientX;
+            </span><span style="color: #0000ff;">var</span> leftW =<span style="color: #000000;"> left[i].offsetWidth;
+            </span><span style="color: #0000ff;">var</span> moveLen = resize2[i].left + (endX - startX) -<span style="color: #000000;"> leftW;
+            </span><span style="color: #0000ff;">var</span> maxT = box[i].clientWidth - resize2[i].offsetWidth - 5<span style="color: #000000;">;
+            </span><span style="color: #0000ff;">if</span> (moveLen &lt; 150) moveLen = 150<span style="color: #000000;">; 
+            </span><span style="color: #0000ff;">if</span> (moveLen &gt; maxT - leftW - 150) moveLen = maxT - leftW - 150<span style="color: #000000;">;
+
+            resize2[i].style.left </span>=<span style="color: #000000;"> moveLen;
+            </span><span style="color: #0000ff;">for</span> (let j = 0; j &lt; right.length; j++<span style="color: #000000;">) {
+              mid[j].style.width </span>= moveLen + 'px'<span style="color: #000000;">;
+              right[j].style.width </span>= (box[i].clientWidth - moveLen - leftW - 10) + 'px'<span style="color: #000000;">;
+            }
+          }
+          document.onmouseup </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (evt) {
+            document.onmousemove </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+            document.onmouseup </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">; 
+            resize2[i].releaseCapture </span>&amp;&amp;<span style="color: #000000;"> resize2[i].releaseCapture();
+          }
+          resize2[i].setCapture </span>&amp;&amp;<span style="color: #000000;"> resize2[i].setCapture();
+          </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+        }
+      }
+    }
+  }
+}
+</span>&lt;/script&gt;</pre>
+</div>
+<p>style部分</p>
+<div class="cnblogs_code">
+<pre><code>&lt;style scoped&gt;<span style="color: #000000;">
+ul,li{
+  list</span>-<span style="color: #000000;">style: none;
+  display: block;
+  margin:</span>0<span style="color: #000000;">;
+  padding:</span>0<span style="color: #000000;">;
+}
+.box{
+  width:800px;
+  height:32px;
+  overflow:hidden;
+}
+.left{
+  width:calc(</span>30% -<span style="color: #000000;"> 10px);
+  height:</span>100%<span style="color: #000000;">;  
+  background:skyblue;
+  </span><span style="color: #0000ff;">float</span><span style="color: #000000;">:left;
+}
+
+.resize{
+  width:5px;
+  height:</span>100%<span style="color: #000000;">;
+  cursor: w</span>-<span style="color: #000000;">resize;
+  </span><span style="color: #0000ff;">float</span><span style="color: #000000;">:left;
+}
+
+.resize2{
+  width:5px;
+  height:</span>100%<span style="color: #000000;">;
+  cursor: w</span>-<span style="color: #000000;">resize;
+  </span><span style="color: #0000ff;">float</span><span style="color: #000000;">:left;
+}
+
+.right{
+  </span><span style="color: #0000ff;">float</span><span style="color: #000000;">:left;
+  width:</span>35%<span style="color: #000000;">;
+  height:</span>100%<span style="color: #000000;">;  
+  background:tomato;
+}
+.mid{
+  </span><span style="color: #0000ff;">float</span><span style="color: #000000;">:left;
+  width:</span>35%<span style="color: #000000;">;
+  height:</span>100%<span style="color: #000000;">;  
+  background:#f00;
+}
+</span>&lt;/style&gt;</pre>
+</div>
+<p>&nbsp;</p>
+<p class="title-article"><span style="font-family: 'times new roman', times; font-size: 14px;">&nbsp;</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

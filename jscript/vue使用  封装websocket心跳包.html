@@ -1,0 +1,134 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue使用  封装websocket心跳包' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue使用  封装websocket心跳包</center></div><div class='banquan'>原文出处:本文由博客园博主_阿雨提供。<br/>
+原文连接:https://www.cnblogs.com/Zhushaoyu/p/11739630.html</div><br>
+    <p>这套代码可以拿过去直接用 一些注意我会在下面代码中加上注释:</p>
+<p>谢谢支持</p>
+<p><strong>核心代码</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;">这里需要引入vuex</span>
+<span style="color: #008080;"> 2</span> import store from './store'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> let wsConnection =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 5</span>   $ws: <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span>   lockReturn: <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 7</span>   timeout: 60 * 1000 * 5<span style="color: #000000;">,
+</span><span style="color: #008080;"> 8</span>   timeoutObj: <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 9</span>   timeoutNum: <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+</span><span style="color: #008080;">10</span>   serverTimeoutObj: <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+</span><span style="color: #008080;">11</span>   <span style="color: #008000;">//</span><span style="color: #008000;">初始化webSocket长连接</span>
+<span style="color: #008080;">12</span>   initWebSocket: <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">13</span>     let corpId = localStorage.getItem('corpId'<span style="color: #000000;">);
+</span><span style="color: #008080;">14</span>     let name = localStorage.getItem('username'<span style="color: #000000;">);
+</span><span style="color: #008080;">15</span>     <span style="color: #0000ff;">this</span>.$ws = <span style="color: #0000ff;">new</span> WebSocket(wsurl);<span style="color: #008000;">//</span><span style="color: #008000;">写入地址 这里的地址可以在initWebSocket方法加入参数</span>
+<span style="color: #008080;">16</span>     <span style="color: #0000ff;">this</span>.$ws.onopen = <span style="color: #0000ff;">this</span><span style="color: #000000;">.wsOpen;
+</span><span style="color: #008080;">17</span>     <span style="color: #0000ff;">this</span>.$ws.onclose = <span style="color: #0000ff;">this</span><span style="color: #000000;">.wsClose;
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">this</span>.$ws.onmessage = <span style="color: #0000ff;">this</span><span style="color: #000000;">.wsMsg;
+</span><span style="color: #008080;">19</span>     <span style="color: #0000ff;">this</span>.$ws.onerror = <span style="color: #0000ff;">this</span><span style="color: #000000;">.wsError;
+</span><span style="color: #008080;">20</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">21</span>   <span style="color: #008000;">//</span><span style="color: #008000;">打开websocket</span>
+<span style="color: #008080;">22</span>   wsOpen: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+</span><span style="color: #008080;">23</span>     <span style="color: #008000;">//</span><span style="color: #008000;">开始websocket心跳</span>
+<span style="color: #008080;">24</span> <span style="color: #000000;">    wsConnection.startWsHeartbeat();
+</span><span style="color: #008080;">25</span>     console.log('ws success'<span style="color: #000000;">)
+</span><span style="color: #008080;">26</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">27</span>   wsClose: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (e) {
+</span><span style="color: #008080;">28</span>     console.log(e, 'ws close'<span style="color: #000000;">)
+</span><span style="color: #008080;">29</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">30</span>   wsMsg: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (msg) {
+</span><span style="color: #008080;">31</span>     <span style="color: #008000;">//</span><span style="color: #008000;">每次接收到服务端消息后 重置websocket心跳</span>
+<span style="color: #008080;">32</span> <span style="color: #000000;">    wsConnection.resetHeartbeat();
+</span><span style="color: #008080;">33</span>     <span style="color: #008000;">//</span><span style="color: #008000;">服务端发送来的消息存到vuex</span>
+<span style="color: #008080;">34</span>     store.commit('web_socket_msg'<span style="color: #000000;">, msg)
+</span><span style="color: #008080;">35</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">36</span>   wsError: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (err) {
+</span><span style="color: #008080;">37</span>     console.log(err, 'ws error'<span style="color: #000000;">);
+</span><span style="color: #008080;">38</span> <span style="color: #000000;">    wsConnection.reconnect()
+</span><span style="color: #008080;">39</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">40</span>   <span style="color: #008000;">//</span><span style="color: #008000;">重启websocket</span>
+<span style="color: #008080;">41</span>   reconnect: <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">42</span>     let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">43</span>     <span style="color: #0000ff;">if</span><span style="color: #000000;"> (_this.lockReturn) {
+</span><span style="color: #008080;">44</span>       <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+</span><span style="color: #008080;">45</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">46</span>     _this.lockReturn = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">47</span>     _this.timeoutNum &amp;&amp;<span style="color: #000000;"> clearTimeout(_this.timeoutNum);
+</span><span style="color: #008080;">48</span>     _this.timeoutNum = setTimeout(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">49</span> <span style="color: #000000;">      _this.initWebSocket();
+</span><span style="color: #008080;">50</span>       _this.lockReturn = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">51</span>     }, 3000<span style="color: #000000;">);
+</span><span style="color: #008080;">52</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">53</span>   startWsHeartbeat: <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">54</span>     let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">55</span>     _this.timeoutObj &amp;&amp;<span style="color: #000000;"> clearTimeout(_this.timeoutObj);
+</span><span style="color: #008080;">56</span>     _this.serverTimeoutObj &amp;&amp;<span style="color: #000000;"> clearTimeout(_this.serverTimeoutObj);
+</span><span style="color: #008080;">57</span>     _this.timeoutObj = setInterval(<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">58</span>       <span style="color: #008000;">//</span><span style="color: #008000;">判断websocket当前状态</span>
+<span style="color: #008080;">59</span>       <span style="color: #0000ff;">if</span> (_this.$ws.readyState != 1<span style="color: #000000;">) {
+</span><span style="color: #008080;">60</span> <span style="color: #000000;">        _this.reconnect()
+</span><span style="color: #008080;">61</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">62</span> <span style="color: #000000;">    }, _this.timeout);
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">  },
+</span><span style="color: #008080;">64</span>   <span style="color: #008000;">//</span><span style="color: #008000;">重置websocket心跳</span>
+<span style="color: #008080;">65</span>   resetHeartbeat: <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;">66</span>     let _this = <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">    clearTimeout(_this.timeoutObj);
+</span><span style="color: #008080;">68</span> <span style="color: #000000;">    clearTimeout(_this.serverTimeoutObj);
+</span><span style="color: #008080;">69</span> <span style="color: #000000;">    _this.startWsHeartbeat()
+</span><span style="color: #008080;">70</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">71</span> <span style="color: #000000;">};
+</span><span style="color: #008080;">72</span> 
+<span style="color: #008080;">73</span> <span style="color: #008000;">//</span><span style="color: #008000;">抛出websocket对象</span>
+<span style="color: #008080;">74</span> export <span style="color: #0000ff;">default</span> wsConnection</pre>
+</div>
+<p><strong>websocket方法调用</strong></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;">在main.js引入</span>
+<span style="color: #008080;"> 2</span> import wsConnection from './vuex/wsStore'
+<span style="color: #008080;"> 3</span> <span style="color: #008000;">//</span><span style="color: #008000;">挂载vue原型链</span>
+<span style="color: #008080;"> 4</span> Vue.prototype.$setWs =<span style="color: #000000;"> wsConnection;
+</span><span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;">在使用地方调用</span>
+<span style="color: #008080;"> 7</span>  $<span style="color: #0000ff;">this</span><span style="color: #000000;">.$setWs.initWebSocket();
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #008000;">//</span><span style="color: #008000;">在需要使用服务端推送过来的消息时</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;">//</span><span style="color: #008000;">在computed方法声明</span>
+<span style="color: #008080;">11</span> <span style="color: #000000;">getWsMsg() {
+</span><span style="color: #008080;">12</span>    <span style="color: #008000;">//</span><span style="color: #008000;">在核心代码接收到的服务端信息存储到vuex的属性</span>
+<span style="color: #008080;">13</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span><span style="color: #000000;">.$store.state.webSocketMsg
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">15</span> <span style="color: #008000;">//</span><span style="color: #008000;">在watch方法   监听  getWsMsg  </span>
+<span style="color: #008080;">16</span>  getWsMsg: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (data, val) {
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">   console.log(data);
+</span><span style="color: #008080;">18</span>    <span style="color: #008000;">//</span><span style="color: #008000;">.......</span>
+<span style="color: #008080;">19</span> }      </pre>
+</div>
+<p><span style="color: #993300;"><strong>此代码为本博主原创,转载请注明出处(支持原创! 谢谢~)</strong></span></p>
+<p>&nbsp;</p>
+<p><br />凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~</p>
+<p>凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~</p>
+<p>凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~</p>
+<p>凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~</p>
+<p>凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~凑字数~</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

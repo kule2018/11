@@ -1,0 +1,234 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修闭包的理解' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>闭包的理解</center></div><div class='banquan'>原文出处:本文由博客园博主给时光以生命提供。<br/>
+原文连接:https://www.cnblogs.com/jing-tian/p/11829268.html</div><br>
+    <p>闭包是Javascript语言特有的&quot;链式作用域&quot;结构（chain scope）变量的作用域有三种：全局作用域和局部作用域以及块作用域(ES6)。，子对象会一级一级地向上寻找所有父对象的变量。所以，父对象的所有变量，对子对象都是可见的，反之则不成立。</p>
+<p>闭包：JavaScript高级程序设计里写闭包是有权访问另一个函数作用域中的变量的函数，使作用域得到了延长。我们有时候在函数外部需要得到函数内的局部变量。而闭包就是将函数内部和函数外部连接起来的一座桥梁。</p>
+<p><strong>闭包的优点：</strong></p>
+<ul>
+<li>是闭包封住了变量作用域，有效地防止了全局污染</li>
+<li>可以读取其他函数内部的变量,让这些变量的值始终保持在内存中,不会随着函数的结束而自动销毁。</li>
+<li>可以很巧妙地实现静态私有变量、私有函数方法等</li>
+</ul>
+<p><strong>闭包的缺点：</strong> 由于闭包会使得函数中的变量都被保存在内存中,所以存在内存泄漏的风险</p>
+<ul>
+<li>在浏览器端可以通过强制刷新解决，对用户体验影响不大</li>
+<li>在服务端，由于 node 的内存限制和累积效应，可能会造成进程退出甚至服务器沓机</li>
+</ul>
+<p><strong>使用场景</strong> :函数内部变量只初始化一次</p>
+<p>解决方法是显式对外暴露一个接口，专门用以清理变量：</p>
+<pre><code><code>/*1.清除失败,因为每次先执行mockData()后才会执行闭包方法,所以每次都会在局部作用域创建常量mem*/
+function mockData() {
+  const mem = {name:&quot;lucas&quot;,age:22};
+
+  return {
+    clear: () =&gt; {
+        for(let i in mem){
+            delete mem[i];
+        }
+    }, // 显式暴露清理接口
+    get: page =&gt; {
+      if (page in mem) {
+        return mem[page];
+      }
+      mem[page] = Math.random();
+    }
+  };
+}
+
+console.log(mockData().get(&#39;name&#39;)); //lucas
+mockData().clear(); //清理变量
+console.log(mockData().get(&#39;name&#39;)); //lucas
+/* 输出结果
+    这里执行多次
+    lucas
+    这里执行多次
+    这里执行多次
+    lucas
+*/
+
+
+/*2.成功清除但代码不复用*/
+const mem = {name:&quot;lucas&quot;,age:22};  //卸载外面
+function mockData() {
+  console.log(&quot;这里执行多次&quot;)
+  return {
+    clear: () =&gt; {
+        for(let i in mem){
+            delete mem[i];
+        }
+    }, // 显式暴露清理接口
+    get: (page) =&gt; {
+      if (page in mem) {
+        return mem[page];
+      }
+      mem[page] = &quot;dwdwd&quot;;
+    }
+  };
+}
+
+console.log(mockData().get(&#39;name&#39;)); //lucas
+mockData().clear(); //清理变量
+console.log(mockData().get(&#39;name&#39;)); //undefined
+
+/*
+    这里执行多次
+    lucas
+    这里执行多次
+    这里执行多次
+    undefined
+*/
+
+/*3.最好写法*/
+function mockData() {
+  const mem = {name:&quot;lucas&quot;,age:22};
+  console.log(&quot;执行一次&quot;)
+  return {
+    clear: () =&gt; {
+        for(let i in mem){
+            delete mem[i];
+        }
+    }, // 显式暴露清理接口
+    get: (page) =&gt; {
+      if (page in mem) {
+        return mem[page];
+      }
+      mem[page] = &quot;dwdwd&quot;;
+    }
+  };
+}
+
+var result = mockData(); //实例化函数使之只会设置一次变量值mem
+
+console.log(result.get(&#39;name&#39;)); //lucas
+result.clear(); //清理常量对象
+console.log(result.get(&#39;name&#39;)); //undefined
+
+/*
+    执行一次
+    lucas
+    undefined
+*/</code></pre>
+<p>例如&quot;变量只初始化一次&quot;这样的需求可以使用下面的例子</p>
+<p><strong>销毁闭包产生的变量，实现递增例子1</strong></p>
+<pre><code><code>//通过匿名函数可以实现闭包,简称匿名闭包函数
+
+var foo = (function(varr) {
+    var n = varr||0;
+    return {
+        add: function () {
+            return ++n;
+        },
+        clearVariable: function () {
+            n = null;
+        }
+    }
+})(20); //由于匿名立即执行函数只会执行一次,所以这里实参数只能传一次(若需要传多次请参考例子2)
+foo.add()  //21
+foo.add()  //22
+foo.add()  //23
+foo.clearVariable()  //n变量被销毁
+foo.add()  //1</code></pre>
+<p><strong>销毁闭包产生的变量，实现递增例子2</strong></p>
+<pre><code><code>/*写法1*/
+function create_counter(initial) {
+    var x = initial || 0;  //变量只会初始化一次
+    return {
+        inc: ()=&gt; {
+            return x++;
+        },
+        clear: ()=&gt;{
+            x=null;
+        }
+    }
+}
+
+var c2 = create_counter(10);
+c2.inc(); // 11
+c2.inc(); // 12
+c2.inc(); // 13
+c2.clear() //x变量被销毁
+c2.inc(); // 1
+
+/*写法2:这样写不方便销毁变量*/
+function create_counter(initial) {
+    var x = initial || 0;  //变量只会初始化一次
+    function add(){
+        return x++;
+    }
+    return add;
+}
+
+var c2 = create_counter(10);
+c2();  //11
+c2();  //12
+c2();  //13
+c2() = null; //清除函数也清除了变量
+c2()   //报错不存在函数
+var c2 = create_counter(20);
+c2();  //21</code></pre>
+<p><strong>销毁闭包产生的变量，实现递增例子3</strong></p>
+<pre><code><code>function Class(){
+ 
+ this.n = 0;
+ this.func = ()=&gt;{
+  this.n ++;
+  return this.n;   //闭包产生的变量需手动清除
+ }
+ 
+ this.clear = ()=&gt;{
+    return this.n=null; //销毁函数内部的变量,避免内存泄漏
+ }
+}
+var obj = new Class();
+obj.func()      //1
+obj.func()      //2
+obj.func()      //3
+obj.clear()     //n变量被销毁
+obj.func()      //1</code></pre>
+<p>后者的可扩展性更好. 当需要实现对一个变量的不同操作时, 后一种可以只需要再定义一个不同的函数(也就是简单线性扩展), 而前一种(闭包)则需要完全重写。</p>
+<p>如果仅仅是做一个简单的计数器，大可不用这样麻烦。下面这简短的代码就能轻松实现。</p>
+<pre><code><code>var a = 0;
+function myFunction(){
+    a++;
+    document.getElementById(&quot;demo&quot;).innerHTML = a;
+}</code></pre>
+<p><strong>匿名闭包函数</strong></p>
+<pre><code><code> var a = 1;
+    (function test (){
+        alert(a);
+    })()</code></pre>
+<p>上面的function都可以称之为闭包（匿名闭包函数）。</p>
+<p>闭包其实还有很多实用场景,比如,我们想在页面上添加一些可以调整字号的按钮</p>
+<pre><code><code>function makeSizer(size) {
+  return function() {
+    document.body.style.fontSize = size + &#39;px&#39;;
+  };
+}
+
+var size12 = makeSizer(12);
+var size14 = makeSizer(14);
+var size16 = makeSizer(16);</code></pre>
+<p>推荐一篇好文https://juejin.im/post/5dc6449ae51d452bd321252c</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

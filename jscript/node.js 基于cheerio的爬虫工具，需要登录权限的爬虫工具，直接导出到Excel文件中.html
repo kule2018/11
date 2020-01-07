@@ -1,0 +1,144 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修node.js 基于cheerio的爬虫工具，需要登录权限的爬虫工具，直接导出到Excel文件中' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>node.js 基于cheerio的爬虫工具，需要登录权限的爬虫工具，直接导出到Excel文件中</center></div><div class='banquan'>原文出处:本文由博客园博主runRole提供。<br/>
+原文连接:https://www.cnblogs.com/RunisRun/p/10676879.html</div><br>
+    <p>公司有过一个需求,需要拿一个网页的的表格数据，数据量达到30w左右；为了提高工作效率。</p>
+<p>结合自身经验和网上资料。写了一套符合自己需求的nodejs爬虫工具。也许也会适合你的。</p>
+<p>先上代码。在做讲解</p>
+<div class="cnblogs_code">
+<pre><code>'use strict'<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 引入模块</span>
+const superagent = require('superagent'<span style="color: #000000;">);
+const cheerio </span>= require('cheerio'<span style="color: #000000;">);
+const Excel </span>= require('exceljs'<span style="color: #000000;">);
+
+
+</span><span style="color: #0000ff;">var</span> baseUrl = ''<span style="color: #000000;">;
+</span><span style="color: #0000ff;">var</span> Cookies = 'PHPSESSID=1c948cafb361cb5dce87122846e649cd'; <span style="color: #008000;">//</span><span style="color: #008000;">伪装的cookie</span>
+let pageDatas =<span style="color: #000000;"> [];
+let count </span>= 1<span style="color: #000000;">;
+let limit </span>= 3<span style="color: #000000;">;
+
+</span><span style="color: #0000ff;">for</span> (count; count &lt; limit; count++<span style="color: #000000;">) { 
+    baseUrl </span>= `http:<span style="color: #008000;">//</span><span style="color: #008000;">bxjd.henoo.com/policy/policyList?page=${count}`;</span>
+<span style="color: #000000;">    loadPage(baseUrl); 
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> loadPage(baseUrl) { 
+     getPageLoad(baseUrl);
+} 
+async </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> getPageLoad(baseUrl) {
+    </span><span style="color: #0000ff;">try</span><span style="color: #000000;"> {
+        let body </span>=<span style="color: #000000;"> await superagent.get(baseUrl)
+            .set(</span>"Cookie"<span style="color: #000000;">, Cookies)
+        </span><span style="color: #0000ff;">var</span> $ =<span style="color: #000000;"> cheerio.load(body.text);
+        </span><span style="color: #0000ff;">var</span> trList = $("#tableList").children("tr"<span style="color: #000000;">);   
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; trList.length; i++<span style="color: #000000;">) { 
+                let item </span>=<span style="color: #000000;"> {};
+                </span><span style="color: #0000ff;">var</span> tdArr = trList.eq(i).find("td"<span style="color: #000000;">);
+                </span><span style="color: #0000ff;">var</span> id = tdArr.eq(0<span style="color: #000000;">).text();
+                item.sortId </span>=<span style="color: #000000;"> id;
+                </span><span style="color: #0000ff;">var</span> detailUrl = `http:<span style="color: #008000;">//</span><span style="color: #008000;">bxjd.henoo.com/policy/view?id=${id}`;</span>
+                item.policyId = tdArr.eq(1<span style="color: #000000;">).text();
+                item.policyProductName </span>= tdArr.eq(2<span style="color: #000000;">).text();
+                item.policyName </span>= tdArr.eq(3<span style="color: #000000;">).text();
+                item.policyMoney </span>= tdArr.eq(4<span style="color: #000000;">).text();
+                let detailBody </span>=<span style="color: #000000;"> await superagent.get(detailUrl)
+                    .set(</span>"Cookie"<span style="color: #000000;">, Cookies);
+                </span><span style="color: #0000ff;">var</span> $$ =<span style="color: #000000;"> cheerio.load(detailBody.text);
+                </span><span style="color: #0000ff;">var</span> detailT = $$(".table-view"<span style="color: #000000;">);          
+                
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">投保人证件号</span>
+                item.policyIdNum = detailT.find("tr").eq(11).find("td").eq(1<span style="color: #000000;">).text();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">投保人手机号</span>
+                item.policyPhone = detailT.find("tr").eq(10).find("td").eq(1<span style="color: #000000;">).text();
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">被保人手机号</span>
+                item.bePoliciedPhone = detailT.find("tr").eq(16).find("td").eq(1<span style="color: #000000;">).text();           
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">被保人姓名</span>
+                item.bePoliciedName = detailT.find("tr").eq(13).find("td").eq(1<span style="color: #000000;">).text();
+                console.log(item.bePoliciedName)
+                </span><span style="color: #008000;">//</span><span style="color: #008000;">被保人证件号</span>
+                item.bePoliciedIdNum = detailT.find("tr").eq(17).find("td").eq(1<span style="color: #000000;">).text();
+                pageDatas </span>=<span style="color: #000000;"> [...pageDatas,item];
+            }
+        </span><span style="color: #0000ff;">if</span> (pageDatas.length / 15 == (count - 1<span style="color: #000000;">)) { 
+            writeXLS(pageDatas)
+        }
+    } </span><span style="color: #0000ff;">catch</span><span style="color: #000000;"> (error) {
+        
+    }
+    
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> writeXLS(pageDatas) {
+    const workbook </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Excel.Workbook();
+    const sheet </span>= workbook.addWorksheet('My Sheet'<span style="color: #000000;">);
+
+    const reColumns</span>=<span style="color: #000000;">[
+        {header:</span>'序号',key:'sortId'<span style="color: #000000;">},
+        {header:</span>'投保单号',key:'policyId'<span style="color: #000000;">},
+        {header: </span>'产品名称', key: 'policyProductName'<span style="color: #000000;">},
+        {header: </span>'投保人姓名', key: 'policyName'<span style="color: #000000;"> },
+        {header: </span>'投保人手机号', key: 'policyPhone'<span style="color: #000000;"> },
+        {header: </span>'投保人证件号', key: 'policyIdNum'<span style="color: #000000;">},
+        {header: </span>'被保人姓名', key: 'bePoliciedName'<span style="color: #000000;"> },
+        {header: </span>'被保人手机号', key: 'bePoliciedPhone'<span style="color: #000000;"> },
+        {header: </span>'被保人证件号', key: 'bePoliciedIdNum'<span style="color: #000000;"> },
+        {header:</span>'保费',key:'policyMoney'<span style="color: #000000;">},
+    ];
+    sheet.columns </span>=<span style="color: #000000;"> reColumns;
+    </span><span style="color: #0000ff;">for</span><span style="color: #000000;">(let trData of pageDatas){
+        sheet.addRow(trData);
+    }
+    const filename </span>= './projects.xlsx'<span style="color: #000000;">;
+    workbook.xlsx.writeFile(filename)
+    .then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+      console.log(</span>'ok'<span style="color: #000000;">);
+    }).</span><span style="color: #0000ff;">catch</span>(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (error) { 
+          console.error(error); 
+    });
+  }</span></pre>
+</div>
+<p>代码使用方式</p>
+<h4>一、npm install 相关的依赖</h4>
+<h4>二、代码修改</h4>
+<p>1、修改为自己的baseUrl&nbsp;</p>
+<p>2、如果不需要携带cookie时将&nbsp;set("Cookie", Cookies)代码去掉</p>
+<p>3、修改自己的业务代码</p>
+<h4>三、运行 node index&nbsp;</h4>
+<h4>四、部分代码说明</h4>
+<p>所有代码不过90行不到,操作了表格数据获取和单条数据详情的获取</p>
+<p><img src="./images/node.js 基于cheerio的爬虫工具，需要登录权限的爬虫工具，直接导出到Excel文件中0.png" alt="" width="562" height="445" /></p>
+<p>接口请求的框架使用superagent的原因是拼接伪装的cookie的操作比较简单。因为有的时候我们需要获取登录后的页面数据。</p>
+<p>这个时候可能需要请求是携带登录cookie信息。返回后的body对象通过cheerio.load之后就能拿到一个类似jquery的文档对象。</p>
+<p>后面就可以很方便的使用jquery的dom操作方式去拿到页面内自己想要的数据了。</p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/node.js 基于cheerio的爬虫工具，需要登录权限的爬虫工具，直接导出到Excel文件中1.png" alt="" width="551" height="590" /></p>
+<p>数据写入到excel中。</p>
+<h4>五、结果</h4>
+<p><img src="./images/node.js 基于cheerio的爬虫工具，需要登录权限的爬虫工具，直接导出到Excel文件中2.png" alt="" width="565" height="297" /></p>
+<p>&nbsp;</p>
+<p><img src="./images/node.js 基于cheerio的爬虫工具，需要登录权限的爬虫工具，直接导出到Excel文件中3.png" alt="" width="578" height="497" /></p>
+<p>&nbsp;</p>
+<p>如果任何问题请给我留言。接受批评也愿意提供技术帮助</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

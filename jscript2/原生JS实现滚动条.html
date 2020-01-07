@@ -1,0 +1,232 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修原生JS实现滚动条' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>原生JS实现滚动条</center></div><div class='banquan'>原文出处:本文由博客园博主前端小学生OvO提供。<br/>
+原文连接:https://www.cnblogs.com/fanzhikang/p/11406983.html</div><br>
+    <h1 id="原生js模拟滚动条">原生JS模拟滚动条</h1>
+<ul>
+<li><h2 id="求滚动条的高度">求滚动条的高度</h2>
+<h4 id="可视内容区的高度-内容区的实际高度-滚动条的高度-滑道的高度">  可视内容区的高度 / 内容区的实际高度 = 滚动条的高度 / 滑道的高度</h4></li>
+<li><h2 id="求内容区top的值">求内容区top的值</h2>
+<h4 id="内容区距离顶部的距离-内容区的实际高度---可视内容区域的高度-滚动条距离顶部的距离-滑道的高度---滚动条的高度">  内容区距离顶部的距离 / (内容区的实际高度 - 可视内容区域的高度 ) = 滚动条距离顶部的距离 / ( 滑道的高度 - 滚动条的高度)</h4></li>
+<li><h2 id="使用onmousewheel做好兼容处理">使用onmousewheel做好兼容处理</h2>
+<pre><code><code> document.onmousewheel = function (e){
+    //    e.wheelDelta &lt; 0 //(-120)  向下
+    //    e.wheelDelta &gt; 0 //(120)  向上
+    }
+//兼容  Firefox 
+document.addEventListener(&#39;DOMMouseScroll&#39;,function (e) {
+        // e.detail &gt; 0  //(3)  滑轮向下滚动
+        // e.detail &lt; 0  //(-3)  滑轮向上滚动
+    },false)</code></pre></li>
+<li><h2 id="滚动条的运动方向跟内容区的运动方向相反">滚动条的运动方向跟内容区的运动方向相反</h2>
+<ul>
+<li><h4 id="当滚轮向上运动时----内容区向下运动">当滚轮向上运动时 --&gt; 内容区向下运动</h4></li>
+<li><h4 id="当滚轮向下运动时----内容区向上运动">当滚轮向下运动时 --&gt; 内容区向上运动</h4></li>
+</ul></li>
+<li><h2 id="举个例子">举个例子</h2></li>
+</ul>
+<pre class="html"><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+    &lt;meta charset=&quot;UTF-8&quot;&gt;
+    &lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1.0&quot;&gt;
+    &lt;meta http-equiv=&quot;X-UA-Compatible&quot; content=&quot;ie=edge&quot;&gt;
+    &lt;title&gt;滚动条&lt;/title&gt;
+    &lt;style&gt;
+    *{
+        padding: 0;
+        margin: 0;
+    }
+    html,body{
+        width: 100%;
+        height: 100%;
+    }
+    .wrapper{
+        position: absolute;
+        left: 50%;
+        top:50%;
+        transform: translate(-50%,-50%);
+        width: 800px;
+        height: 700px;
+        border: 1px solid #000;
+    }
+    .view_box{
+        position: absolute;
+        left: 100px;
+        top:50%;
+        transform: translateY(-50%);
+        width:600px;
+        height: 500px;
+        background-color: rgba(25, 25, 25,.7);
+        overflow: hidden;
+    }
+    .content{
+        position: absolute;
+        top: 0;
+        width: 100%;
+        background-color: #abcdef;
+        transition: all 0.016s linear;
+
+    }
+    .content div{
+        height: 100px;
+        background-color: #f40;
+    }
+    .bar_box{
+        position: absolute;
+        right: 90px;
+        top:50%;
+        transform: translateY(-50%);
+        height: 500px;
+        width: 4px;
+        border-radius: 2px;
+        background-color: rgba(25, 25, 25,.7);
+        overflow: hidden;
+    }
+    .bar{
+        position: absolute;
+        top:0;
+        height: 20px;
+        width: 100%;
+        border-radius:2px; 
+        background-color: rgb(197, 179, 179);
+        transition: all 0.016s linear;
+    }
+    &lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;div class=&quot;wrapper&quot;&gt;
+        &lt;div class=&quot;view_box&quot;&gt;
+            &lt;div class=&quot;content&quot;&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+               &lt;div&gt;这是内容&lt;/div&gt;
+            &lt;/div&gt;
+        &lt;/div&gt;
+        &lt;div class=&quot;bar_box&quot;&gt;
+            &lt;div class=&quot;bar&quot;&gt;&lt;/div&gt;
+        &lt;/div&gt;
+    &lt;/div&gt;
+
+    &lt;script&gt;
+        
+        var wrapper = document.getElementsByClassName(&#39;wrapper&#39;)[0];
+        //获取展示内容区的区域
+        var view_box = document.getElementsByClassName(&#39;view_box&#39;)[0];
+        //获取展示内容区的区域的大小
+        var view_box_height = view_box.offsetHeight;
+        //获取内容区
+        var content = document.getElementsByClassName(&#39;content&#39;)[0];
+        //获取内容区的实际高度
+        var content_height = content.offsetHeight;
+        //获取滑道
+        var bar_box = document.getElementsByClassName(&#39;bar_box&#39;)[0];
+        //获取滑道的高度
+        var bar_box_height = bar_box.offsetHeight;
+        //获取滚动条
+        var bar = document.getElementsByClassName(&#39;bar&#39;)[0];
+        
+        //求 滚动条的高度
+
+        //当展示的内容区的大小刚好展示内容区域时，滚动条的高度就是滑道的高度
+        if(view_box_height / content_height &lt; 1) {
+            bar.style.height = (view_box_height / content_height) * bar_box_height + &#39;px&#39;;
+        } else {
+            bar.style.height = bar_box_height + &#39;px&#39;;
+        }
+
+        //绑定事件(做兼容处理)
+        wrapper.onmousewheel = function (e){
+        //    e.wheelDelta &lt; 0 //(-120)  向下
+        //    e.wheelDelta &gt; 0 //(120)  向上
+        scrollRoll(e);
+        }
+        //兼容  Firefox 
+        wrapper.addEventListener(&#39;DOMMouseScroll&#39;,function (e) {
+            // e.detail &gt; 0  //(3)  滑轮向下滚动
+            // e.detail &lt; 0  //(-3)  滑轮向上滚动
+            scrollRoll(e);
+        },false)
+
+
+        function scrollRoll (e) {
+            e = e || window.event;
+            if (e.detail &gt; 0) {
+                down();
+            } else if (e.detail &lt; 0) {
+                up();
+            }
+
+            if (e.wheelDelta &gt; 0) {
+                up();
+            } else if (e.wheelDelta &lt; 0) {
+                down();
+            }
+        }
+        //滑轮向下滚动
+        function down () {
+            var speed = 8;
+            if (bar.offsetTop &gt;= bar_box_height - bar.offsetHeight) {
+                bar.style.top = bar_box_height - bar.offsetHeight + &#39;px&#39;;
+                //注意：内容区应该向上移动
+                content.style.top = - (content_height - view_box_height) + &#39;px&#39;;
+            } else {
+                bar.style.top = bar.offsetTop + speed + &#39;px&#39;;
+                content.style.top = - bar.offsetTop / (bar_box_height - bar.offsetHeight) * (content_height - view_box_height) + &#39;px&#39;;
+            }
+        }
+        //滑轮向上滚动
+        function up () {
+            var speed = 8;
+            if (bar.offsetTop &lt;= 0) {
+                bar.style.top = 0 + &#39;px&#39;;
+                content.style.top = 0 + &#39;px&#39;;
+            } else {
+                bar.style.top = bar.offsetTop - speed + &#39;px&#39;;
+                content.style.top = - bar.offsetTop / (bar_box_height - bar.offsetHeight) * (content_height - view_box_height) + &#39;px&#39;;
+            }
+        }
+   &lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+
+</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

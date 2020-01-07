@@ -1,0 +1,240 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-Time核心方法之win篇(2)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-Time核心方法之win篇(2)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10940840.html</div><br>
+    <p>　　这一篇讲windows系统下TimeTicks的实现。</p>
+<p>　　对于tick，V8写了相当长的一段discussion来讨论windows系统上计数的三种实现方法以及各自的优劣，注释在time.cc的572行，这里直接简单翻译一下，不贴出来了。</p>
+<p><strong>CPU cycle counter.(Retrieved via RDTSC)</strong></p>
+<p>　　CPU计数器拥有最高的分辨率，消耗也是最小的。然而，在一些老的CPU上会有问题；1、每个处理器独立唯一各自的tick，并且处理器之间不会同步数据。2、计数器会因为温度、功率等原因频繁变化，有些情况甚至会停止。</p>
+<p><strong>QueryPerformanceCounter (QPC)</strong></p>
+<p>　　QPC计数法就是之前libuv用的API，分辨率也相当的高。比起CPU计数器，优点就是不存在多处理器有多个tick，保证数据的唯一。但是在老的CPU上，也会因为BIOS、HAL而出现一些问题。</p>
+<p><strong>System Time</strong></p>
+<p>　　通过别的windowsAPI返回的系统时间来计数。</p>
+<p>&nbsp;</p>
+<p>　　上一篇Clock类的构造函数中，对TimeTicks属性的初始化也只是调用了老TimeTicks的Now方法，所以直接上Now的代码。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">TimeTicks InitialTimeTicksNowFunction();
+
+</span><span style="color: #0000ff;">using</span> TimeTicksNowFunction = decltype(&amp;<span style="color: #000000;">TimeTicks::Now);
+TimeTicksNowFunction g_time_ticks_now_function </span>= &amp;<span style="color: #000000;">InitialTimeTicksNowFunction;
+
+TimeTicks TimeTicks::Now() {
+  TimeTicks ticks(g_time_ticks_now_function());
+  DCHECK(</span>!<span style="color: #000000;">ticks.IsNull());
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ticks;
+}</span></pre>
+</div>
+<p>　　windows系统下，会预先一个初始化方法，这里的语法不用去理解，只需要知道调用InitialTimeTicksNowFunction方法后，将其返回作为参数构造一个TimeTicks对象，返回的就是硬件时间戳。</p>
+<p>　　这个方法比较简单，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">TimeTicks InitialTimeTicksNowFunction() {
+  InitializeTimeTicksNowFunctionPointer();
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> g_time_ticks_now_function();
+}<br /></span></pre>
+</div>
+<p>　　可以看到，那个g_time_ticks_now_function又被调用了一次，但是作为一个函数指针，第二次调用的时候指向的就不是同一个方法。至于为什么特意弄一个函数指针，后面会具体解释。</p>
+<p>　　看这里的第一个方法。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">void</span><span style="color: #000000;"> InitializeTimeTicksNowFunctionPointer() {
+  LARGE_INTEGER ticks_per_sec </span>=<span style="color: #000000;"> {};
+  </span><span style="color: #0000ff;">if</span> (!QueryPerformanceFrequency(&amp;ticks_per_sec)) ticks_per_sec.QuadPart = <span style="color: #800080;">0</span><span style="color: #000000;">;
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果windows不支持QPC或者该方法不可靠 会降级去使用低分辨率的lowB方法</span>
+<span style="color: #000000;">  TimeTicksNowFunction now_function;
+  CPU cpu;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> QPC不好使的情况</span>
+  <span style="color: #0000ff;">if</span> (ticks_per_sec.QuadPart &lt;= <span style="color: #800080;">0</span> || !cpu.has_non_stop_time_stamp_counter() ||<span style="color: #000000;">
+      IsBuggyAthlon(cpu)) {
+    now_function </span>= &amp;<span style="color: #000000;">RolloverProtectedNow;
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 好使的情况 </span>
+  <span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    now_function </span>= &amp;<span style="color: #000000;">QPCNow;
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里不需要担心多线程问题 因为更改的都是同一个全局变量</span>
+  g_qpc_ticks_per_second =<span style="color: #000000;"> ticks_per_sec.QuadPart;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 先不管这个 不然讲不完</span>
+<span style="color: #000000;">  ATOMIC_THREAD_FENCE(memory_order_release);
+  g_time_ticks_now_function </span>=<span style="color: #000000;"> now_function;
+}</span></pre>
+</div>
+<p>　　从几个赋值可以看到，整个函数都是围绕着函数指针now_function的指向，其实也就是g_time_ticks_now_function，根据系统对QPC的支持，来选择不同的方法实现TimeTicks。</p>
+<p>　　所以，特意用一个函数指针来控制Now方法的目的也明显了，理论上只有第一次调用会进到这个特殊函数，检测当前操作系统的QPC是否适用，然后选择对应的方法。后面再次调用的时候，就直接进入选好的方法(具体思想可以参考《JavaScript高级程序设计》高级技巧章节的惰性载入函数)。这个情况有一点像我在<a href="https://www.cnblogs.com/QH-Jimmy/p/10846097.html" target="_blank">解析node事件轮询</a>时提到的线程池初始化情形，不同的是，这里V8没有特意去加一个锁来防止多线程竞态。原因也很简单，因为此处只是对一个全局的函数指针做赋值，就算多赋值几次对后续的线程并没有任何影响，没有必要特意做锁。</p>
+<p>　　关于QueryPerformanceFrequency方法(这些函数名都好TM长)的具体用法，可以参考我<a href="https://www.cnblogs.com/QH-Jimmy/p/10080857.html" target="_blank">别的博客</a>，啥都解释写不完啦。</p>
+<p>　　存在两种情况的实现，先看支持QPC的，删掉了合法性检测宏，这些宏无处不在，太碍眼了。</p>
+<div class="cnblogs_code">
+<pre><code>TimeTicks QPCNow() { <span style="color: #0000ff;">return</span> TimeTicks() +<span style="color: #000000;"> QPCValueToTimeDelta(QPCNowRaw()); }
+
+V8_INLINE uint64_t QPCNowRaw() {
+  LARGE_INTEGER perf_counter_now </span>=<span style="color: #000000;"> {};
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> According to the MSDN documentation for QueryPerformanceCounter(), this
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> will never fail on systems that run XP or later.
+  </span><span style="color: #008000;">//</span> <span style="color: #008000; text-decoration: underline;">https://msdn.microsoft.com/library/windows/desktop/ms644904.aspx</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 这里说理论上XP以后的系统都支持QPC</span>
+  BOOL result = ::QueryPerformanceCounter(&amp;<span style="color: #000000;">perf_counter_now);
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> perf_counter_now.QuadPart;
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> To avoid overflow in QPC to Microseconds calculations, since we multiply
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> by kMicrosecondsPerSecond, then the QPC value should not exceed
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> (2^63 - 1) / 1E6. If it exceeds that threshold, we divide then multiply.</span>
+<span style="color: #0000ff;">static</span> constexpr int64_t kQPCOverflowThreshold = INT64_C(<span style="color: #800080;">0x8637BD05AF7</span><span style="color: #000000;">);
+
+TimeDelta QPCValueToTimeDelta(LONGLONG qpc_value) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里的if/else逻辑见上面静态变量的注释 也可以看我下面翻译的
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 理论上的计算公式是 (qpc_count * 1e6) / qpc_count_per_second 得到微秒单位的硬件时间戳
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 但是int64类型最大只能处理2^63 - 1 而这个windowsAPI返回的数字(换算乘以1e6后)可能超过这个范围
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果数字过大 就用先除再乘的方式计算避免溢出
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 正常情况</span>
+  <span style="color: #0000ff;">if</span> (qpc_value &lt;<span style="color: #000000;"> TimeTicks::kQPCOverflowThreshold) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> TimeDelta::FromMicroseconds(
+        qpc_value </span>* TimeTicks::kMicrosecondsPerSecond /<span style="color: #000000;"> g_qpc_ticks_per_second);
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 溢出情况
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 先除得到一个秒单位的时间戳</span>
+  int64_t whole_seconds = qpc_value /<span style="color: #000000;"> g_qpc_ticks_per_second;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 计算余数</span>
+  int64_t leftover_ticks = qpc_value - (whole_seconds *<span style="color: #000000;"> g_qpc_ticks_per_second);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 用整除数+余数得到最终的微秒单位时间戳</span>
+  <span style="color: #0000ff;">return</span><span style="color: #000000;"> TimeDelta::FromMicroseconds(
+      (whole_seconds </span>* TimeTicks::kMicrosecondsPerSecond) +<span style="color: #000000;">
+      ((leftover_ticks </span>* TimeTicks::kMicrosecondsPerSecond) /<span style="color: #000000;">
+       g_qpc_ticks_per_second));
+}</span></pre>
+</div>
+<p>　　直接看注释就好了，不过我有一些问题，先记录下来，后面对C++深入研究后再来解释。</p>
+<ol>
+<li>按照英文注释，qpc乘以1e6后过大，再除以一个数时会溢出。但是下面的那个方法用的是1个溢出数加上1个小整数，为啥这样就不会出问题。难道加减不存在threshold？</li>
+<li><span style="text-decoration: line-through;">那个计算误差是我理解的，实际上如果上过小学，把上面的变量代入第二个算式，会得到leftover_ticks为0，这里的逻辑暂时没理清。</span></li>
+</ol>
+<p><strong>补充</strong></p>
+<p>1、第一个问题我真不知道答案，在我电脑上qpc_value已经是大于那个临界值了，但是测试了一下也感觉溢出跟加减没啥区别，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span> constexpr int64_t kQPCOverflowThreshold = INT64_C(<span style="color: #800080;">0x8637BD05AF7</span><span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">int</span><span style="color: #000000;"> main()
+{
+    LARGE_INTEGER a,b;
+    QueryPerformanceCounter(</span>&amp;<span style="color: #000000;">a);
+    QueryPerformanceFrequency(</span>&amp;<span style="color: #000000;">b);
+    LONGLONG qpc </span>=<span style="color: #000000;"> a.QuadPart;
+    INT64 qpc_per </span>=<span style="color: #000000;"> b.QuadPart;
+    </span><span style="color: #0000ff;">bool</span> bl = qpc &lt;<span style="color: #000000;"> kQPCOverflowThreshold;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 0</span>
+    cout &lt;&lt; bl &lt;&lt;<span style="color: #000000;"> endl;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 927641572774</span>
+    cout &lt;&lt; int64_t(a.QuadPart * 1e6 / b.QuadPart) &lt;&lt;<span style="color: #000000;"> endl;
+
+    int64_t w </span>= qpc /<span style="color: #000000;"> qpc_per;
+    int64_t l </span>= qpc - (w *<span style="color: #000000;"> qpc_per);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 927641572774</span>
+    cout &lt;&lt; int64_t(w * 1e6 + (l * 1e6) / qpc_per) &lt;&lt;<span style="color: #000000;"> endl;
+}</span></pre>
+</div>
+<p>2、我太蠢了，那个计算是为了取余数。如果qpc、qpc_per分别是111和10，那么这个leftover算式相当于111 - (111 / 10 * 10)，得到的是余数1，然后用整除后的整数、余数分别进行换算后相加。</p>
+<p>　　总之，最后还是利用了QPC的两个API得到硬件时间戳，跟libuv的套路差不多。</p>
+<p>　　下面来看不支持QPC的情况，不过先过一下那个if。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">CPU cpu;
+</span><span style="color: #0000ff;">if</span> (ticks_per_sec.QuadPart &lt;= <span style="color: #800080;">0</span> || !cpu.has_non_stop_time_stamp_counter() ||<span style="color: #000000;">
+    IsBuggyAthlon(cpu)) {
+  now_function </span>= &amp;RolloverProtectedNow;</pre>
+</div>
+<p>　　有三个条件表明QPC不适用。</p>
+<p>　　第一个很直白，API在当前操作系统不支持。</p>
+<p>　　第二个是通过CPU判断QPC是否可靠，具体原理十分麻烦，有兴趣单独开一篇解释吧。</p>
+<p>　　第三个就比较简单，有些牌子的CPU就是垃圾，直接根据内置API返回的参数判断是不是不支持的类型，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">bool</span> IsBuggyAthlon(<span style="color: #0000ff;">const</span> CPU&amp;<span style="color: #000000;"> cpu) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> On Athlon X2 CPUs (e.g. model 15) QueryPerformanceCounter is unreliable.</span>
+  <span style="color: #0000ff;">return</span> strcmp(cpu.vendor(), <span style="color: #800000;">"</span><span style="color: #800000;">AuthenticAMD</span><span style="color: #800000;">"</span>) == <span style="color: #800080;">0</span> &amp;&amp; cpu.family() == <span style="color: #800080;">15</span><span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　</p>
+<p>　　正式进入QPC不支持分支。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">union LastTimeAndRolloversState {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 完整的32位时间</span>
+<span style="color: #000000;">  int32_t as_opaque_32;
+
+  </span><span style="color: #0000ff;">struct</span><span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 时间头8位</span>
+<span style="color: #000000;">    uint8_t last_8;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 时间重置次数</span>
+<span style="color: #000000;">    uint16_t rollovers;
+  } as_values;
+};
+
+TimeTicks RolloverProtectedNow() {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 见上面的解释</span>
+<span style="color: #000000;">  LastTimeAndRolloversState state;
+  DWORD now;  </span><span style="color: #008000;">//</span><span style="color: #008000;"> DWORD is always unsigned 32 bits.
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这是一个原子操作数 线程安全</span>
+  int32_t original =<span style="color: #000000;"> g_last_time_and_rollovers.load(std::memory_order_acquire);
+  </span><span style="color: #0000ff;">while</span> (<span style="color: #0000ff;">true</span><span style="color: #000000;">) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 类型为int32位整数</span>
+    state.as_opaque_32 =<span style="color: #000000;"> original;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 定义如下 实际上就是windowsAPI的timeGetTime
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> DWORD timeGetTimeWrapper() { return timeGetTime(); }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> DWORD (*g_tick_function)(void) = &amp;timeGetTimeWrapper;</span>
+    now =<span style="color: #000000;"> g_tick_function();
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 移位后只获取头8位</span>
+    uint8_t now_8 = static_cast&lt;uint8_t&gt;(now &gt;&gt; <span style="color: #800080;">24</span><span style="color: #000000;">);
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当头8位的时间比保存的要小时 说明返回值重置了</span>
+    <span style="color: #0000ff;">if</span> (now_8 &lt; state.as_values.last_8) ++<span style="color: #000000;">state.as_values.rollovers;
+    state.as_values.last_8 </span>=<span style="color: #000000;"> now_8;
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当两次相同时 代表当前的值是稳定可信的 直接返回</span>
+    <span style="color: #0000ff;">if</span> (state.as_opaque_32 == original) <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (g_last_time_and_rollovers.compare_exchange_weak(
+            original, state.as_opaque_32, std::memory_order_acq_rel)) {
+      </span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+    }
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回次数 * 2^32 加上 当前时间</span>
+  <span style="color: #0000ff;">return</span> TimeTicks() +<span style="color: #000000;">
+         TimeDelta::FromMilliseconds(
+             now </span>+ (static_cast&lt;uint64_t&gt;(state.as_values.rollovers) &lt;&lt; <span style="color: #800080;">32</span><span style="color: #000000;">));
+}</span></pre>
+</div>
+<p>　　这块的内容相当多，首先需要解释一下上面的核心方法timeGetTime，官网的解释如下。</p>
+<blockquote>
+<p>The timeGetTime function retrieves the system time, in milliseconds. The system time is the time elapsed since Windows was started.(检测系统启动后所经过的毫秒数)</p>
+<p>The return value wraps around to 0 every 2^32 milliseconds, which is about 49.71 days.(返回值会从0一直涨到2^32，然后又从0开始无限循环)</p>
+</blockquote>
+<p>　　上面的第二段表明了为什么要用那么复杂的处理，因为这个返回值不是无限变大，而是会重置为0。而且union这个东西也很有意思，JS里面找不到对比的数据类型，类似于struct结构体，但不同点是内存共用。拿源码中的union举例子，内存结构如下所示。</p>
+<p><img src="./images/深入V8引擎-Time核心方法之win篇(2)0.png" alt="" /></p>
+<p>　　整个过程大概是这样的。</p>
+<ol>
+<li>每次获取timeGetTime的值，只获取头8位的值now_8。</li>
+<li>判断now_8是否小于union里面保存的last_8，如果小了(从1111...1111变成000...1)，说明时间重置了，将重置次数+1。</li>
+<li>替换last_8为新获取的now_8。</li>
+<li>判断当前整个整数是否与上一次获取时相同(涉及多线程操作)，相同的话直接返回输出结果。</li>
+</ol>
+<p>　　最后返回值的计算也很简单了，就是重置次数rollovers乘以重置一次的时间2^32，加上当前获取的now，得到总的硬件时间戳。</p>
+<p>&nbsp;</p>
+<p>　　完事了。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

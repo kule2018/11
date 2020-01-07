@@ -1,0 +1,116 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修每天学点node系列-zlib' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>每天学点node系列-zlib</center></div><div class='banquan'>原文出处:本文由博客园博主一半水一半冰提供。<br/>
+原文连接:https://www.cnblogs.com/jingh/p/11172711.html</div><br>
+    <blockquote>
+<p>永不放弃，永不放弃又有两个原则，第一个原则是永不放弃，第二个原则就是：当你想放弃时回头看第一个原则。</p>
+</blockquote>
+<h2 id="概览">概览</h2>
+<p>做过web性能优化的同学，对性能优化大杀器gzip应该不陌生。浏览器向服务器发起资源请求，比如下载一个js文件，服务器先对资源进行压缩，再返回给浏览器，以此节省流量，加快访问速度。</p>
+<p>浏览器通过HTTP请求头部里加上Accept-Encoding，告诉服务器，“你可以用gzip，或者defalte算法压缩资源”。</p>
+<p><img src="./images/每天学点node系列-zlib0.png" /></p>
+<p>那么，在nodejs里，是如何对资源进行压缩的呢？答案就是Zlib模块。</p>
+<h2 id="zlib">Zlib</h2>
+<p>zlib模块提供 Gzip 和 Deflate/Inflate 来实现压缩功能.</p>
+<h3 id="压缩">压缩</h3>
+<pre><code><code>const zlib = require(&#39;zlib&#39;)
+const fs = require(&#39;fs&#39;)
+const gzip = zlib.createGzip()
+const inp = fs.createReadStream(&#39;1.txt&#39;)
+const out = fs.createWriteStream(&#39;1.txt.gz&#39;)
+inp.pipe(gzip).pipe(out)</code></pre>
+<h3 id="解压">解压</h3>
+<pre><code><code>const zlib = require(&#39;zlib&#39;)
+var fs = require(&#39;fs&#39;)
+
+var gunzip = zlib.createGunzip()
+var inFile = fs.createReadStream(&#39;./1.txt.gz&#39;)
+var outFile = fs.createWriteStream(&#39;./2.txt&#39;)
+inFile.pipe(gunzip).pipe(outFile)</code></pre>
+<h2 id="解压缩http请求和响应">解/压缩HTTP请求和响应</h2>
+<p>zlib 可以用来实现对 HTTP 中定义的 gzip 和 deflate 内容编码机制的支持。</p>
+<p>HTTP 的 Accept-Encoding 头字段用来标记客户端接受的压缩编码。</p>
+<h3 id="压缩服务端响应">压缩服务端响应</h3>
+<pre><code><code>// 服务端示例
+// 对每一个请求运行 gzip 操作的成本是十分高昂的.
+// 缓存压缩缓冲区是更加高效的方式.
+const zlib = require(&#39;zlib&#39;)
+const http = require(&#39;http&#39;)
+const fs = require(&#39;fs&#39;)
+http.createServer((req, res) =&gt; {
+    const raw = fs.createReadStream(&#39;index.html&#39;)
+    let acceptEncoding = req.headers[&#39;accept-encoding&#39;]
+    if (!acceptEncoding) {
+        acceptEncoding = &#39;&#39;
+    }
+    if (/\bdeflate\b/.test(acceptEncoding)) {
+        res.writeHead(200, { &#39;Content-Encoding&#39;: &#39;deflate&#39; })
+        raw.pipe(zlib.createDeflate()).pipe(res)
+    } else if (/\bgzip\b/.test(acceptEncoding)) {
+        res.writeHead(200, { &#39;Content-Encoding&#39;: &#39;gzip&#39; })
+        raw.pipe(zlib.createGzip()).pipe(res)
+    } else {
+        res.writeHead(200, {})
+        raw.pipe(res)
+    }
+}).listen(3000)</code></pre>
+<h3 id="解压客户端请求">解压客户端请求</h3>
+<pre><code><code>
+// 客户端请求示例
+const zlib = require(&#39;zlib&#39;)
+const http = require(&#39;http&#39;)
+const fs = require(&#39;fs&#39;)
+const request = http.get({
+    host: &#39;localhost.com&#39;,
+    path: &#39;/&#39;,
+    port: 3000,
+    headers: { &#39;Accept-Encoding&#39;: &#39;gzip,deflate&#39; } })
+request.on(&#39;response&#39;, (response) =&gt; {
+    const output = fs.createWriteStream(&#39;index.html&#39;)
+    switch (response.headers[&#39;content-encoding&#39;]) {
+    // 或者, 只是使用 zlib.createUnzip() 方法去处理这两种情况
+        case &#39;gzip&#39;:
+            response.pipe(zlib.createGunzip()).pipe(output)
+        break
+        case &#39;deflate&#39;:
+            response.pipe(zlib.createInflate()).pipe(output)
+        break
+        default:
+            response.pipe(output)
+        break
+    }
+})</code></pre>
+<p>默认情况下, 当解压不完整的数据时 zlib 方法会抛出一个错误. 然而, 如果它已经知道数据是不完整的, 或者仅仅是为了检查已压缩文件的开头, 可以通过改变用来解压最后一个的输入数据块的刷新方法来避免默认的错误处理.</p>
+<pre><code><code>const zlib = require(&#39;zlib&#39;)
+const buffer = Buffer.from(&#39;eJzT0yMA&#39;, &#39;base64&#39;);
+zlib.unzip(buffer, { finishFlush: zlib.constants.Z_SYNC_FLUSH }, (err, buffer) =&gt; {
+    if (!err) {
+        console.log(buffer.toString());
+    } else {
+        // 错误处理
+     }
+})</code></pre>
+<h3 id="相关链接">相关链接</h3>
+<p><a href="http://nodejs.cn/api/zlib.html" class="uri">http://nodejs.cn/api/zlib.html</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

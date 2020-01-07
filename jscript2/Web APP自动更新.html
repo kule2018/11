@@ -1,0 +1,156 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Web APP自动更新' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Web APP自动更新</center></div><div class='banquan'>原文出处:本文由博客园博主相信神话提供。<br/>
+原文连接:https://www.cnblogs.com/agoodlife/p/10806327.html</div><br>
+    <p><span style="font-size: 16px;">我们的手机软件每天都要经营，经常需要更新，比如程序的Bug，好的功能，好的洁面... ... 这就需要我们的用户打开web app时候自动更新客户端程序，而不是再去应用程序商店从新下载。今天的笔记就是完成这项工作。</span></p>
+<h2><span style="font-size: 18pt;">一、服务器端</span></h2>
+<p><span style="font-size: 16px;">服务器很简单，只存放一个json文档，这个文档你可以用服务器端语言生成，也可以直接建立一个.json文件就可了，数据格式如下。[{"VisonID":"1.0.0","downURI":"http://yuanziyu.com/down/yzsc.apk"}]</span><br /><span style="font-size: 16px;">VisonID表示web APP版本号，downURI表示安装文件url</span></p>
+<h2><span style="font-size: 18pt;">二、客户端</span></h2>
+<p><span style="font-size: 16px;">为了提高用户使用感受，首先提示进行更新检查。</span><br /><span style="font-size: 16px;">var showLoading = plus.nativeUI.showWaiting("检查更新...");</span><br /><span style="font-size: 16px;">获取当前web APP版本号：plus.runtime.getProperty(plus.runtime.appid, function(inf) {inf.version}。其中inf.version表示web APP版本号。</span><br /><span style="font-size: 16px;">版本版本笔记如果，服务器端版本号高于客户端版本号，对web APP 进行更新，版本号等于或小于不进行更新。</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">版本比较o表示客户端版本号，n表示服务器端版本号。</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> checkvison(o, n) {
+</span><span style="color: #0000ff;">var</span> tempo = o.split('.'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> tempn = n.split('.'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">if</span> ((tempo[0] * 100 + tempo[1] * 10 + tempo[2] * 1) &lt; (tempn[0] * 100 + tempn[1] * 10 + tempn[2] * 1<span style="color: #000000;">)) {
+</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+} </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+}
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3><span style="font-size: 18px;">（一）获取服务端数据。</span></h3>
+<p><span style="font-size: 16px;">通过mui.ajax获取服务器端JSON文件。其中参数 Date.parse( new Date())是获取时间戳，防止服务器端缓存，目地主要是为了调试用，如果正式发布可以删除，因为我们跟新速度没有那么快。mui.ajax方法介绍：</span></p>
+<div class="cnblogs_code">
+<pre><code>mui.ajax(url,{<span style="color: #008000;">//</span><span style="color: #008000;">url表示服务地址</span>
+<span style="color: #000000;">    data:{},表示向服务器提交的数据
+    dataType:</span>'json',<span style="color: #008000;">//</span><span style="color: #008000;">服务器返回json格式数据</span>
+    type:'post',<span style="color: #008000;">//</span><span style="color: #008000;">HTTP请求类型</span>
+    async: <span style="color: #0000ff;">false</span>,<span style="color: #008000;">//</span><span style="color: #008000;">表示是否异步</span>
+    timeout:10000,<span style="color: #008000;">//</span><span style="color: #008000;">超时时间设置为10秒；</span>
+    success:<span style="color: #0000ff;">function</span><span style="color: #000000;">(json){
+    },
+    error:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(xhr,type,errorThrown){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">异常处理；</span>
+        mui.alert('网络延时,请重新加载!', '系统提示'<span style="color: #000000;">);
+    }
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3><span style="font-size: 16px;"><span style="font-size: 18px;">（二）下载网络文件。</span></span></h3>
+<p><span style="font-size: 16px;">我们更新文件或者是APP我们必须先从网络下载文件，然后更新APP软件。下载网络文件我们主要用到的是这个方法html5+中Downloader对象。Downloader对象是模块管理文件下载，用于从网络下载各种文件，可支持跨域访问操作。我们主要用到以下几个方法</span><br /><strong><span style="font-size: 14pt;">1.createDownload方法，表示新建下载任务。</span></strong><br /><span style="font-size: 16px;">Download plus.downloader.createDownload( url, option, completedCB );</span><br /><span style="font-size: 16px;">说明：表示请求下载管理创建新的下载任务，创建成功则返回Download对象，用于管理下载任务的各种状态。</span><br /><span style="font-size: 16px;">参数：url&nbsp;(DOMString) 可选&nbsp;要下载文件的url地址，仅支持网络资源地址。必须是http或https协议；option&nbsp;(DownloadOption) 可选&nbsp;可通过此参数设置自定义任务属性，自定义属性值仅支持字符串类型；completedCB&nbsp;(DownloadCompletedCallback) 可选&nbsp;下载任务完成后的回调。</span><br /><strong><span style="font-size: 14pt;">2.start 表示开始下载任务</span></strong><br /><span style="font-size: 16px;">void download.start();</span><br /><span style="font-size: 16px;">说明：</span><br /><span style="font-size: 16px;">开始下载任务，如果任务已经处于开始状态则无任何响应。 通常在创建任务或暂停任务后重新开始。</span><br /><strong><span style="font-size: 14pt;">3.Downloader中的DownloadStateChangedCallback回调，表示下载任务完成时的回调</span></strong><br /><span style="font-size: 16px;">vaoid onCompleted( Download download, Number status ) {</span><br /><span style="font-size: 16px;">	// Download file complete code</span><br /><span style="font-size: 16px;">}</span><br /><span style="font-size: 16px;">说明：下载任务完成时的回调函数，在下载任务完成时调用。 下载任务失败也将触发此回调。</span><br /><span style="font-size: 16px;">参数：download&nbsp;(Download) 可选&nbsp;下载任务对象，这里面我们经常用到的一个属性filename，DOMString，只读属性，下载任务在本地保存的文件路径，在DownloadCompleteCallback事件和DownloadStateChangedCallback事件触发时更新。还有很多其它属性我就不记录了，用到的时候在翻手册吧。status&nbsp;(Number) 可选&nbsp;Http传输协议状态码，如果未获取传输状态则其值则为0，如下载成功其值通常为200</span><br /><strong><span style="font-size: 14pt;">4.Downloader中的DownloadStateChangedCallback回调，表示下载任务状态变化回调，我们主要用于显示下载进度。</span></strong><br /><span style="font-size: 16px;">void onStateChanged( Download download, status ) {</span><br /><span style="font-size: 16px;">	// Download state changed code.</span><br /><span style="font-size: 16px;">}</span><br /><span style="font-size: 16px;">说明：下载任务状态变化回调。<br /></span><span style="font-size: 16px;">参数：同DownloadStateChangedCallback。</span></p>
+<p><em id="__mceDel"><span style="font-size: 16px;">Ok，我们用到的主要对象和方法基本介绍完了，然后我们看一下完整代码：</span><br /></em></p>
+<p>&nbsp;</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> UpdateVison() {
+</span><span style="color: #0000ff;">var</span> showLoading = plus.nativeUI.showWaiting("检查更新..."<span style="color: #000000;">);
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取本地应用资源版本号</span>
+plus.runtime.getProperty(plus.runtime.appid, <span style="color: #0000ff;">function</span><span style="color: #000000;">(inf) {
+mui.ajax(</span>'http://123.58.4.202:8010/vison.json?r='+ Date.parse( <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date()), {
+data: {},
+</span><span style="color: #008000;">//</span><span style="color: #008000;">dataType:'json',//服务器返回json格式数据</span>
+type: 'get', <span style="color: #008000;">//</span><span style="color: #008000;">HTTP请求类型</span>
+timeout: 10000, <span style="color: #008000;">//</span><span style="color: #008000;">超时时间设置为10秒；</span>
+<span style="color: #000000;">headers: {
+</span>'Content-Type': 'application/json'<span style="color: #000000;">
+},
+success: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(jsondata) {
+</span><span style="color: #0000ff;">var</span> data2 =<span style="color: #000000;"> JSON.parse(jsondata);
+
+</span><span style="color: #0000ff;">if</span> (checkvison(inf.version, data2[0<span style="color: #000000;">].VisonID)) {
+wgtUrl </span>= data2[0<span style="color: #000000;">].downURI;
+</span><span style="color: #0000ff;">var</span> downToaknew =<span style="color: #000000;"> plus.downloader.createDownload(wgtUrl, {
+filename: </span>"_doc/update/"<span style="color: #000000;">
+}, </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(d, status) {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">alert(d)</span>
+<span style="color: #0000ff;">if</span> (status == 200<span style="color: #000000;">) {
+installApp(d.filename);
+} </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+showLoading.setTitle(</span>"下载失败"<span style="color: #000000;">)
+}
+
+});
+downToaknew.start(); </span><span style="color: #008000;">//</span><span style="color: #008000;"> 开启下载的任务</span>
+<span style="color: #0000ff;">var</span> prg = 0<span style="color: #000000;">;
+downToaknew.addEventListener(</span>"statechanged", <span style="color: #0000ff;">function</span><span style="color: #000000;">(task, status) {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">给下载任务设置一个监听 并根据状态  做操作</span>
+<span style="color: #0000ff;">switch</span><span style="color: #000000;"> (task.state) {
+</span><span style="color: #0000ff;">case</span> 1<span style="color: #000000;">:
+showLoading.setTitle(</span>"正在下载"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">case</span> 2<span style="color: #000000;">:
+showLoading.setTitle(</span>"已连接到服务器"<span style="color: #000000;">);
+</span><span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">case</span> 3<span style="color: #000000;">:
+prg </span>= parseInt(parseFloat(task.downloadedSize) / parseFloat(task.totalSize) * 100<span style="color: #000000;">);
+</span><span style="color: #0000ff;">if</span> (prg % 1 == 0<span style="color: #000000;">) {
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 让百分比 10% 增长，如果这里不这么处理  出现 堆栈内存溢出的问题，有知道原因的大神指导一下哈</span>
+showLoading.setTitle("已下载" + prg + "%"<span style="color: #000000;">);
+}
+}
+});
+}
+</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+plus.nativeUI.closeWaiting();
+}
+
+},
+error: </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(xhr, type, errorThrown) {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">异常处理；</span>
+<span style="color: #000000;">console.log(type);
+}
+});
+});
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> checkvison(o, n) {
+</span><span style="color: #0000ff;">var</span> tempo = o.split('.'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">var</span> tempn = n.split('.'<span style="color: #000000;">);
+</span><span style="color: #0000ff;">if</span> ((tempo[0] * 100 + tempo[1] * 10 + tempo[2] * 1) &lt; (tempn[0] * 100 + tempn[1] * 10 + tempn[2] * 1<span style="color: #000000;">)) {
+</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+} </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+</span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+}
+}
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> installApp(path) {
+plus.nativeUI.showWaiting(</span>"安装文件..."<span style="color: #000000;">);
+plus.runtime.install(path, {
+force: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">
+}, </span><span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+plus.nativeUI.closeWaiting();
+console.log(</span>"安装文件成功！"<span style="color: #000000;">);
+plus.nativeUI.alert(</span>"应用资源更新完成！", <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+plus.runtime.restart();
+});
+}, </span><span style="color: #0000ff;">function</span><span style="color: #000000;">(e) {
+plus.nativeUI.closeWaiting();
+console.log(</span>"安装文件失败[" + e.code + "]：" +<span style="color: #000000;"> e.message);
+plus.nativeUI.alert(</span>"安装文件失败[" + e.code + "]：" +<span style="color: #000000;"> e.message);
+});
+}</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">好了，我们的Web APP自动更新代码就大功告成了，留作备用。</span></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

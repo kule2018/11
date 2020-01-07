@@ -1,0 +1,171 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用 node.js 模仿 Apache 的部分功能' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用 node.js 模仿 Apache 的部分功能</center></div><div class='banquan'>原文出处:本文由博客园博主小方哥&#183;提供。<br/>
+原文连接:https://www.cnblogs.com/duxiu-fang/p/11140144.html</div><br>
+    <p>　　首先，这个例子用到了服务端渲染的技术。服务端渲染，说白了就是在服务端使用模板引擎，这里我先简单的介绍一下服务端渲染与客户端渲染之间的区别。</p>
+<h1>服务端渲染与客户端渲染之间的区别:</h1>
+<ul>
+<li>客户端渲染不利于搜索引擎优化</li>
+<li>服务端渲染可以被爬虫抓取到，而客户端异步渲染很难被爬虫抓取到（例如：AJAX）</li>
+<li>大部分的网站既不是纯异步（客户端），也不是纯服务端渲染出来的，而是两者结合的</li>
+<li>例如：京东的商品列表采用的就是服务端渲染，目的是为了SEO搜索引擎优化，说白了就是为了能够被搜索到，且能被爬虫抓取（搜索引擎本身也是一种爬虫）。</li>
+<li>而京东的商品评论列表为了用户体验，而且也不需要SEO优化，所以才用的是客户端渲染</li>
+</ul>
+<h1>简单的判断内容为服务端渲染还是客户端渲染</h1>
+<p>　　最简单的方法就是：</p>
+<ol>
+<li>点击访问一个页面（我们这里以京东为例）</li>
+<li>随便访问一个商品页，然后复制商品标题</li>
+<li>然后鼠标右击点击查看网页源代码</li>
+<li>在源代码页按 Ctrl + f ，接着把复制的内容粘贴进去</li>
+<li>能搜到就是 服务端渲染，否则的话，就是客户端渲染。</li>
+</ol>
+<h1>利用 art-template 模板引擎</h1>
+<ol>
+<li>安装： 在想要安装的目录下打开命令行工具&nbsp; 输入 npm install art-template, 然后它会自动生成 node_modules 目录（前提，系统已经安装了 Node.js 环境）</li>
+<li>在需要使用的文件模块中加载 art-template:
+<div class="cnblogs_code">
+<pre><code>const template = require('art-template');</pre>
+</div>
+</li>
+<li>就可以使用了 , 官方文档地址：<a href="https://aui.github.io/art-template/zh-cn/docs/index.html">https://aui.github.io/art-template/zh-cn/docs/index.html</a></li>
+</ol>
+<h1>Apache 部分功能实现</h1>
+<h2>Node.js 相关API(本例中使用):</h2>
+<h3>基于http</h3>
+<ul>
+<li>createServer() : 创建一个服务器</li>
+<li>on():&nbsp; 提供服务：对数据的服务，发请求，接收请求，处理请求，发送响应，等等</li>
+<li>listen(): 绑定端口号，启动服务器</li>
+</ul>
+<h3>基于fs(文件系统)</h3>
+<ul>
+<li>readFile(): 读取文件（参数一为 文件路径，参数二为回调函数）</li>
+<li>readdir(): 读取目录（参数一位目录路径，参数二为回调函数）</li>
+</ul>
+<h3>基于path(路径)</h3>
+<ul>
+<li>extname(): 获取文件后缀名</li>
+</ul>
+<ol>
+<li>随便在一个位置建立 www 文件夹（文件名可以自己随意）:</li>
+<li><img src="./images/用 node.js 模仿 Apache 的部分功能0.png" alt="" /></li>
+<li>写HTML：
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html </span><span style="color: #ff0000;">lang</span><span style="color: #0000ff;">="en"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="utf-8"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>Index of / {{title}}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>Index of / {{title}}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">h1</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="/"</span><span style="color: #0000ff;">&gt;</span> Parent Directory<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+        {{each files}}
+        </span><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;&lt;</span><span style="color: #800000;">a </span><span style="color: #ff0000;">href</span><span style="color: #0000ff;">="/{{ $value }}"</span><span style="color: #0000ff;">&gt;</span>{{ $value }}/<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">a</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">li</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+        {{/each}}
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;</p>
+</li>
+<li>node.js:
+<div class="cnblogs_code">
+<pre><code>const http = require('http'<span style="color: #000000;">);
+const fs </span>= require('fs'<span style="color: #000000;">);
+const template </span>= require('art-template'<span style="color: #000000;">);
+const path </span>= require('path'<span style="color: #000000;">);
+
+const port </span>= 5000<span style="color: #000000;">;
+
+const server </span>=<span style="color: #000000;"> http.createServer();
+
+server.on(</span>'request', (request, response) =&gt;<span style="color: #000000;"> {
+    let url </span>=<span style="color: #000000;"> request.url;
+    let wwwDir </span>= 'D:/www'<span style="color: #000000;">;
+    fs.readFile(</span>'./template.html', (error, data) =&gt;<span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (error) {
+            </span><span style="color: #0000ff;">return</span> response.end('404 Not Found'<span style="color: #000000;">);
+        }
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1.如何得到 wwwDir 目录列表中的文件名和目录名</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">      fs.readdir</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> 2.如何将得到的文件名和目录名替换到 template.html 中</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">      2.1 在 template.html 中需要替换的位置预留一个特殊的标记</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">      2.2 根据 files 生成需要的 HTML 内容</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">      模板引擎</span>
+        <span style="color: #0000ff;">if</span> (url !== '/'<span style="color: #000000;">) {
+            wwwDir </span>+=<span style="color: #000000;"> url;
+        }
+
+        let fileEnd </span>=<span style="color: #000000;"> path.extname(wwwDir);
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+         * 如果是文件，则访问该文件
+         * 如果是文件夹，则访问里面的内容
+         </span><span style="color: #008000;">*/</span>
+        <span style="color: #0000ff;">if</span> (fileEnd !== ''<span style="color: #000000;">) {
+            fs.readFile(wwwDir, (error, data) </span>=&gt;<span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (error) {
+                    </span><span style="color: #0000ff;">return</span> response.end('404 Not Found'<span style="color: #000000;">);
+                }
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取文件后缀名(具体问题具体分析，这里我只设置 .txt 文件的 编码类型)</span>
+                <span style="color: #0000ff;">if</span> (fileEnd === '.txt'<span style="color: #000000;">) {
+                    response.setHeader(</span>'Content-Type', 'text/plain; charset=utf-8'<span style="color: #000000;">);
+                }
+                </span><span style="color: #0000ff;">if</span> (fileEnd === '.jpg'<span style="color: #000000;">) {
+                    response.setHeader(</span>'Content-Type', 'image/jpeg'<span style="color: #000000;">);
+                }
+                </span><span style="color: #0000ff;">if</span> (fileEnd === '.mp4'<span style="color: #000000;">) {
+                    response.setHeader(</span>'Content-Type', 'video/mpeg4'<span style="color: #000000;">);
+                }
+                response.end(data);
+            });
+        } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            console.log(wwwDir);
+            fs.readdir(wwwDir, (error, files) </span>=&gt;<span style="color: #000000;"> {
+                </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (error) {
+                    </span><span style="color: #0000ff;">return</span> response.end('Can not find this dir'<span style="color: #000000;">);
+                }
+                console.log(files);
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> files: [ 'a.txt', 'apple', 'images', 'index.html', 'static', 'videos' ]</span>
+                let htmlStr =<span style="color: #000000;"> template.render(data.toString(), {
+                    title: wwwDir,
+                    files: files,
+                });
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> 3.发送响应数据</span>
+<span style="color: #000000;">                response.end(htmlStr);
+            });
+        }
+    });
+});
+
+
+server.listen(port, () </span>=&gt;<span style="color: #000000;"> {
+    console.log(`服务器已经开启，您可以通过 http:</span><span style="color: #008000;">//</span><span style="color: #008000;">127.0.0.1:${port} 访问....`);</span>
+});</pre>
+</div>
+<p>&nbsp;</p>
+</li>
+</ol>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

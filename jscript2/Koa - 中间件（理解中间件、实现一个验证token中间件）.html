@@ -1,0 +1,371 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Koa - 中间件（理解中间件、实现一个验证token中间件）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Koa - 中间件（理解中间件、实现一个验证token中间件）</center></div><div class='banquan'>原文出处:本文由博客园博主WahFung提供。<br/>
+原文连接:https://www.cnblogs.com/chanwahfung/p/11427205.html</div><br>
+    <h2>前言</h2>
+<p><span style="font-size: 16px;"><strong>Koa 应用程序是一个包含一组中间件函数的对象，它是按照类似堆栈的方式组织和执行的。</strong></span></p>
+<p><span style="font-size: 16px;"><strong>当一个中间件调用&nbsp;<code>next()</code>&nbsp;则该函数暂停并将控制传递给定义的下一个中间件。当在下游没有更多的中间件执行后，堆栈将展开并且每个中间件恢复执行其上游行为。</strong></span></p>
+<p><span style="font-size: 16px;">以上两句话，是我在官方文档中找到其对 Koa 中间件的描述。</span></p>
+<p><span style="font-size: 16px;">在Koa中，中间件是一个很有意思的设计，它处于request和response中间，被用来实现某种功能。像上篇文章所使用的 koa-router 、koa-bodyparser 等都是中间件。</span></p>
+<p><span style="font-size: 16px;">可能有些人喜欢把中间件理解为插件，但我觉得它们两者并不是同一种概念的东西。插件像是一个独立的工具，而中间件更像是流水线，将加工好的材料继续传递下一个流水线。所以中间件给我的感觉更灵活，可以像零件一样自由组合。</span></p>
+<p><span style="font-size: 16px;">单看中间件有堆栈执行顺序的特点，两者就出现质的区别。</span></p>
+<h2>中间件的概念</h2>
+<p><span style="font-size: 16px;">这张图是 Koa 中间件执行顺序的图示，被称为&ldquo;洋葱模型&rdquo;。</span></p>
+<p><span style="font-size: 16px;">中间件按照栈结构的方式来执行，有&ldquo;先进后出&ldquo;的特点。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><img src="./images/Koa - 中间件（理解中间件、实现一个验证token中间件）0.png" alt="" /></span></p>
+<p><span style="font-size: 16px;">一段简单的代码来理解上图：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;">app.use(async (ctx, next)=<span style="color: #000000;">
+   console.log(</span>'--&gt; 1'<span style="color: #000000;">)
+   next()
+   console.log(</span>'&lt;-- 1'<span style="color: #000000;">)
+})
+
+app.use(async (ctx, next)</span>=&gt;<span style="color: #000000;">{
+   console.log(</span>'--&gt; 2'<span style="color: #000000;">)
+   </span><span style="color: #008000;">//</span><span style="color: #008000;">这里有一段异步操作</span>
+   await  <span style="color: #0000ff;">new</span> Promise((resolve)=&gt;<span style="color: #000000;">{
+       ....
+   })
+   await  next()
+   console.log(</span>'&lt;-- 2'<span style="color: #000000;">)
+})
+
+app.use(async (ctx, next)</span>=&gt;<span style="color: #000000;">{
+   console.log(</span>'--&gt; 3'<span style="color: #000000;">)
+   next()
+   console.log(</span>'&lt;-- 3'<span style="color: #000000;">)
+})  <br /></span></span></pre>
+<pre><code><span><span style="font-size: 16px;">app.use(async (ctx, next)=&gt;</span><span><span style="font-size: 16px;">{
+   console.log('--&gt; 4'</span><span><span style="font-size: 16px;">)</span><span><span style="font-size: 16px;">
+})</span> </span></span></span></span></pre>
+</div>
+<p><span style="font-size: 16px;">当我们运行这段代码时，得到以下结果</span></p>
+<blockquote>
+<p><span style="font-size: 16px;">--&gt; 1</span></p>
+<p><span style="font-size: 16px;">--&gt; 2</span></p>
+<p><span style="font-size: 16px;">--&gt; 3</span></p>
+<p><span style="font-size: 16px;">--&gt; 4</span></p>
+<p><span style="font-size: 16px;">&lt;-- 3</span></p>
+<p><span style="font-size: 16px;">&lt;-- 2</span></p>
+<p><span style="font-size: 16px;">&lt;-- 1</span></p>
+</blockquote>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">&nbsp;中间件通过调用 next 一层层执行下去，直到没有执行权可以继续传递后，在以冒泡的形式原路返回，并执行 next 函数之后的行为。可以看到 1 第一个进去，却是最后一个出来，也体现出中间件栈执行顺序的特点。</span></p>
+<p><span style="font-size: 16px;">在第二个中间件有一段异步操作，所以要加上await，让执行顺序按照预期去进行，否则可能会出现一些小问题。</span></p>
+<p>&nbsp;</p>
+<h2>中间件的使用方式</h2>
+<p><span style="font-size: 16px;"><strong>1.应用中间件</strong></span></p>
+<div class="cnblogs_code">
+<pre><code>const Koa = require('koa'<span style="color: #000000;">);
+const Router </span>= require('koa-router'<span style="color: #000000;">);
+
+const app </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Koa();
+const router </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Router();
+app.use(async (ctx,next)</span>=&gt;<span style="color: #000000;">{
+    console.log(</span><span style="color: #0000ff;">new</span><span style="color: #000000;"> Date());
+    await next();
+})
+router.get(</span>'/', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (ctx, next) {
+    ctx.body</span>="Hello koa"<span style="color: #000000;">;
+})
+router.get(</span>'/news',(ctx,next)=&gt;<span style="color: #000000;">{
+    ctx.body</span>="新闻页面"<span style="color: #000000;">
+});
+app.use(router.routes()); </span><span style="color: #008000;">//</span><span style="color: #008000;">作用：启动路由</span>
+app.use(router.allowedMethods()); <span style="color: #008000;">//</span><span style="color: #008000;">作用： 当请求出错时的处理逻辑</span>
+app.listen(3000,()=&gt;<span style="color: #000000;">{
+    console.log(</span>'starting at port 3000'<span style="color: #000000;">);
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 16px;">2.路由中间件</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>router.get('/', async(ctx, next)=&gt;<span style="color: #000000;">{
+    console.log(</span>1<span style="color: #000000;">)
+    next()
+})
+router.get(</span>'/', <span style="color: #0000ff;">function</span><span style="color: #000000;"> (ctx) {
+    ctx.body</span>="Hello koa"<span style="color: #000000;">;
+})</span></pre>
+</div>
+<p>&nbsp;</p>
+<p><strong><span style="font-size: 16px;">3.错误处理中间件</span></strong></p>
+<div class="cnblogs_code">
+<pre><code>app.use(async (ctx,next)=&gt;<span style="color: #000000;"> {
+    next();
+    </span><span style="color: #0000ff;">if</span>(ctx.status==404<span style="color: #000000;">){
+        ctx.status </span>= 404<span style="color: #000000;">;
+        ctx.body</span>="这是一个404页面"<span style="color: #000000;">
+    }
+});</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2><span style="font-size: 16px;">4.第三方中间件</span></h2>
+<div class="cnblogs_code">
+<pre><code>const bodyParser = require('koa-bodyparser'<span style="color: #000000;">);
+app.use(bodyParser());</span></pre>
+</div>
+<h2>&nbsp;</h2>
+<h2>实现验证token中间件</h2>
+<p><span style="font-size: 16px;">实现一个基于 jsonwebtoken 验证token的中间件，这个中间件由两个文件组成&nbsp;extractors.js 、index.js，并放到check-jwt文件夹下。</span></p>
+<p><strong><span style="font-size: 16px;">生成token</span></strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;">const Router = require('koa-router'<span style="color: #000000;">)
+const route </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Router()
+const jwt </span>= require('jsonwebtoken'<span style="color: #000000;">)
+
+route.get(</span>'/getToken', async (ctx)=&gt;<span style="color: #000000;">{
+    let {name,id} </span>=<span style="color: #000000;"> ctx.query
+    </span><span style="color: #0000ff;">if</span>(!name &amp;&amp; !<span style="color: #000000;">id){
+        ctx.body </span>=<span style="color: #000000;"> {
+            msg:</span>'不合法'<span style="color: #000000;">,
+            code:</span>0<span style="color: #000000;">
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">生成token</span>
+    let token = jwt.sign({name,id},'secret',{ expiresIn: '1h'<span style="color: #000000;"> })
+    ctx.body </span>=<span style="color: #000000;"> {
+        token: token,
+        code:</span>1<span style="color: #000000;">
+    }
+})
+
+module.exports </span>= route</span></pre>
+</div>
+<p><span style="font-size: 16px;">使用 jwt.sign 生成token：</span></p>
+<p><span style="font-size: 16px;">第一个参数为token中携带的信息；</span></p>
+<p><span style="font-size: 16px;">第二个参数为key标识（解密时需要传入该标识）；</span></p>
+<p><span style="font-size: 16px;">第三个为可选配置选项，这里我设置过期时间为一小时；</span></p>
+<p><span style="font-size: 16px;">详细用法可以到npm上查看。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>使用中间件</strong></span></p>
+<p><span style="font-size: 16px;">app.js:</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;">const {checkJwt,extractors} = require('./check-jwt'<span style="color: #000000;">)
+
+app.use(checkJwt({
+  jwtFromRequest: extractors.fromBodyField(</span>'token'<span style="color: #000000;">),<br />　secretOrKeyL: 'secret',
+  safetyRoutes: [</span>'/user/getToken'<span style="color: #000000;">]</span><span style="color: #000000;">
+}))</span></span></pre>
+</div>
+<table style="border-color: #000000; border-width: 0px; background-color: #f5f5f5; height: 271px; width: 1017px;" border="0" align="left">
+<tbody>
+<tr>
+<td>&nbsp;</td>
+<td><span style="font-size: 16px;">是否必选</span></td>
+<td><span style="font-size: 16px;">接收类型</span></td>
+<td><span style="font-size: 16px;">备注</span></td>
+</tr>
+<tr>
+<td><span style="font-size: 16px;">jwtFromRequest</span></td>
+<td><span style="font-size: 16px;">否</span></td>
+<td><span style="font-size: 16px;">函数</span></td>
+<td>
+<div><span style="font-size: 16px;"><span style="font-size: 16px;">默认验证 header 的&nbsp;</span></span><span style="font-size: 16px;">authorization</span></div>
+<div><span style="font-size: 16px;">extractors提供的提取函数，支持get、post、header方式提取</span></div>
+<div><span style="font-size: 16px;">这些函数都接收一个字符串参数（需要提取的key）</span></div>
+<div><span style="font-size: 16px;">对应函数：</span>
+<div><span style="font-size: 16px;">fromUrlQueryParameter、</span></div>
+<div>
+<div><span style="font-size: 16px;">fromBodyField、</span></div>
+<div>
+<div><span style="font-size: 16px;">fromHeader</span></div>
+<div>&nbsp;</div>
+</div>
+</div>
+</div>
+</td>
+</tr>
+<tr>
+<td><span style="font-size: 16px;">secretOrKey</span></td>
+<td><span style="font-size: 16px;">是</span></td>
+<td><span style="font-size: 16px;">字符串</span></td>
+<td><span style="font-size: 16px;">与生成token时传入的标识保持一致</span></td>
+</tr>
+<tr>
+<td><span style="font-size: 16px;">safetyRoutes</span></td>
+<td><span style="font-size: 16px;">否</span></td>
+<td><span style="font-size: 16px;">数组</span></td>
+<td><span style="font-size: 16px;">不需要验证的路由</span></td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>&nbsp;</div>
+<div>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">使用该中间件后，会对每个路由都进行验证</span></p>
+</div>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>路由中获取token解密的信息</strong></span></p>
+<div class="cnblogs_code">
+<pre><code>route.get('/getUser', async ctx=&gt;<span style="color: #000000;">{
+    let {name, id} </span>=<span style="color: #000000;"> ctx.payload 
+    ctx.body </span>=<span style="color: #000000;"> {
+        id,
+        name,
+        code:</span>1<span style="color: #000000;">
+    }
+})</span></pre>
+</div>
+<p><span style="font-size: 16px;">通过ctx.payload来获取解密的信息</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>实现代码</strong></span></p>
+<p><span style="font-size: 16px;">extractors.js 工具函数（用于提取token）</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;">let extractors =<span style="color: #000000;"> {}
+
+extractors.fromHeader </span>= <span style="color: #0000ff;">function</span>(header_name='authorization'<span style="color: #000000;">){
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(ctx){
+        let token   </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+            request </span>=<span style="color: #000000;"> ctx.request;
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (request.header[header_name]) {
+            token </span>= header_name === 'authorization' ?<span style="color: #000000;"> 
+            request.header[header_name].replace(</span>'Bearer ', ''<span style="color: #000000;">) :
+            request.header[header_name];
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            ctx.body </span>=<span style="color: #000000;"> {
+                msg: `${header_name} 不合法`,
+                code: </span>0<span style="color: #000000;">
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+    }
+}
+
+extractors.fromUrlQueryParameter </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(param_name){
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(ctx){
+        let token   </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+            request </span>=<span style="color: #000000;"> ctx.request;
+        </span><span style="color: #0000ff;">if</span> (request.query[param_name] &amp;&amp;<span style="color: #000000;"> Object.prototype.hasOwnProperty.call(request.query, param_name)) {
+            token </span>=<span style="color: #000000;"> request.query[param_name];
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            ctx.body </span>=<span style="color: #000000;"> {
+                msg: `${param_name} 不合法`,
+                code: </span>0<span style="color: #000000;">
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+    }
+}
+
+extractors.fromBodyField </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(field_name){
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(ctx){
+        let token   </span>= <span style="color: #0000ff;">null</span><span style="color: #000000;">,
+            request </span>=<span style="color: #000000;"> ctx.request;
+        </span><span style="color: #0000ff;">if</span> (request.body[field_name] &amp;&amp;<span style="color: #000000;"> Object.prototype.hasOwnProperty.call(request.body, field_name)) {
+            token </span>=<span style="color: #000000;"> request.body[field_name];
+        }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+            ctx.body </span>=<span style="color: #000000;"> {
+                msg: `${field_name} 不合法`,
+                code: </span>0<span style="color: #000000;">
+            }
+        }
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+    }
+}
+
+module.exports </span>= extractors</span></pre>
+</div>
+<p><span style="font-size: 16px;">index.js&nbsp; 验证token</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;">const jwt = require('jsonwebtoken'<span style="color: #000000;">)
+const extractors </span>= require('./extractors'<span style="color: #000000;">)
+
+</span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 
+ * @param {object} options 
+ *    @param {function} jwtFromRequest
+ *    @param {array} safetyRoutes
+ *    @param {string} secretOrKey 
+ </span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">function</span> checkJwt({jwtFromRequest,safetyRoutes,secretOrKey}=<span style="color: #000000;">{}){
+    </span><span style="color: #0000ff;">return</span> async <span style="color: #0000ff;">function</span><span style="color: #000000;">(ctx,next){
+        </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> safetyRoutes !== 'undefined'<span style="color: #000000;">){
+            let url </span>=<span style="color: #000000;"> ctx.request.url
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">对安全的路由 不验证token</span>
+            <span style="color: #0000ff;">if</span><span style="color: #000000;">(Array.isArray(safetyRoutes)){
+                </span><span style="color: #0000ff;">for</span> (let i = 0, len = safetyRoutes.length; i &lt; len; i++<span style="color: #000000;">) {
+                    let route </span>=<span style="color: #000000;"> safetyRoutes[i],
+                        reg </span>= <span style="color: #0000ff;">new</span> RegExp(`^<span style="color: #000000;">${route}`);<br />   
+</span><span style="color: #008000;">                    //若匹配到当前路由 则直接跳过  不开启验证</span>                
+                    <span style="color: #0000ff;">if</span><span style="color: #000000;">(reg.test(url)){
+                        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> await next()
+                    }
+                }
+            }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+                </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> TypeError('safetyRoute 接收类型为数组'<span style="color: #000000;">)
+            }
+        }
+        </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> secretOrKey === 'undefined'<span style="color: #000000;">){
+            </span><span style="color: #0000ff;">throw</span> <span style="color: #0000ff;">new</span> Error('secretOrKey 为空'<span style="color: #000000;">)
+        }
+        </span><span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> jwtFromRequest === 'undefined'<span style="color: #000000;">){
+            jwtFromRequest </span>=<span style="color: #000000;"> extractors.fromHeader()
+        }
+        let token </span>=<span style="color: #000000;"> jwtFromRequest(ctx)
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(token){
+            </span><span style="color: #008000;">//</span><span style="color: #008000;">token验证</span>
+            let err = await <span style="color: #0000ff;">new</span> Promise(resolve=&gt;<span style="color: #000000;">{
+                jwt.verify(token, secretOrKey,</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(err,payload){
+                    </span><span style="color: #0000ff;">if</span>(!<span style="color: #000000;">err){
+                        </span><span style="color: #008000;">//</span><span style="color: #008000;">将token解码后的内容 添加到上下文</span>
+                        ctx.payload =<span style="color: #000000;"> payload
+                    }
+                    resolve(err)
+                })
+            })
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(err){
+                ctx.body </span>=<span style="color: #000000;"> {
+                    msg: err.message </span>=== 'jwt expired' ? 'token 过期' : 'token 出错'<span style="color: #000000;">,
+                    err,
+                    code:</span>0<span style="color: #000000;">
+                }
+                </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+            }
+            await next()
+        }
+    }
+}
+
+module.exports </span>=<span style="color: #000000;"> {
+    checkJwt,
+    extractors
+}</span></span></pre>
+</div>
+<p><span style="font-size: 16px;">&nbsp;Demo：&nbsp;<a href="https://gitee.com/ChanWahFung/koa-demo">https://gitee.com/ChanWahFung/koa-demo</a></span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

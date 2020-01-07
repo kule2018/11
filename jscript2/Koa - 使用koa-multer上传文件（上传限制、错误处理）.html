@@ -1,0 +1,211 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Koa - 使用koa-multer上传文件（上传限制、错误处理）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Koa - 使用koa-multer上传文件（上传限制、错误处理）</center></div><div class='banquan'>原文出处:本文由博客园博主WahFung提供。<br/>
+原文连接:https://www.cnblogs.com/chanwahfung/p/11443089.html</div><br>
+    <h2>前言</h2>
+<p><span style="font-size: 16px;">上传文件在开发中是很常见的操作，今天我选择使用koa-multer中间件来实现这一功能，除了上传文件外，我还会对文件上传进行限制，以及发生上传错误时的处理。</span></p>
+<p><span style="font-size: 16px;">由于原来的 koa-multer 已经停止维护，我们要使用最新的 @koa/multer 。这个模块是 koa-multer 的一个分支，它被分叉到官方的Koa组织中，并以@koa/multer包名提供。</span></p>
+<p><span style="font-size: 16px;">@koa/multer 依赖于 multer，安装时要将 multer 一并安装上，安装命令如下</span></p>
+<p><span style="font-size: 16px;">&nbsp;<strong>npm&nbsp;install&nbsp;--save @koa/multer&nbsp;multer</strong></span></p>
+<p>&nbsp;</p>
+<h2>上传文件</h2>
+<p><span style="font-size: 16px;">前端代码：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;">&lt;!DOCTYPE html&gt;
+&lt;html lang="zh-CN"&gt;
+&lt;head&gt;
+    &lt;meta charset="UTF-8"&gt;
+    &lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;
+    &lt;meta http-equiv="X-UA-Compatible" content="ie=edge"&gt;
+    &lt;title&gt;Document&lt;/title&gt;
+&lt;/head&gt;
+&lt;body&gt;
+    &lt;input type="file" id="file" accept="image/*"/&gt;
+    &lt;button id="submit"&gt;提交&lt;/button&gt;
+&lt;/body&gt;
+&lt;script src="https://cdn.bootcss.com/jquery/3.4.1/jquery.min.js"&gt;&lt;/script&gt;
+&lt;script&gt;<span style="color: #000000;">
+    $(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        $(</span>'#submit').click(()=&gt;<span style="color: #000000;">{
+            let file </span>= $('#file')[0].files[0<span style="color: #000000;">]
+            let formData </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> FormData()
+            formData.set(</span>'file'<span style="color: #000000;">,file)
+            formData.set(</span>'name'<span style="color: #000000;">,file.name)
+            formData.set(</span>'timestamp'<span style="color: #000000;">,Date.now())
+            $.ajax({
+                url:</span>'http://localhost:3000/user/file'<span style="color: #000000;">,
+                type:</span>'post'<span style="color: #000000;">,
+                data: formData,
+                cache: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+                contentType: </span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+                processData:</span><span style="color: #0000ff;">false</span><span style="color: #000000;">,
+                success(res){
+                    console.log(res)
+                }
+            })
+        })
+    })
+</span>&lt;/script&gt;
+&lt;/html&gt;</span></pre>
+</div>
+<p><span style="font-size: 16px;">node代码：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;">const Koa = require('koa'<span style="color: #000000;">)
+const Router </span>= require('koa-router'<span style="color: #000000;">)
+const route </span>= <span style="color: #0000ff;">new</span><span style="color: #000000;"> Router()
+const multer </span>= require('@koa/multer'<span style="color: #000000;">)
+const path </span>= require('path'<span style="color: #000000;">)
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">上传文件存放路径、及文件命名</span>
+const storage =<span style="color: #000000;"> multer.diskStorage({
+    destination: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (req, file, cb) {
+        cb(</span><span style="color: #0000ff;">null</span>, path.join(__dirname ,'/public'<span style="color: #000000;">))
+    },
+    filename: </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> (req, file, cb) {
+        let type </span>= file.originalname.split('.')[1<span style="color: #000000;">]
+        cb(</span><span style="color: #0000ff;">null</span>, `${file.fieldname}-${Date.now().toString(16<span style="color: #000000;">)}.${type}`)
+    }
+})
+</span><span style="color: #008000;">//</span><span style="color: #008000;">文件上传限制</span>
+const limits =<span style="color: #000000;"> {
+    fields: </span>10,<span style="color: #008000;">//</span><span style="color: #008000;">非文件字段的数量</span>
+    fileSize: 500 * 1024,<span style="color: #008000;">//</span><span style="color: #008000;">文件大小 单位 b</span>
+    files: 1<span style="color: #008000;">//</span><span style="color: #008000;">文件数量</span>
+<span style="color: #000000;">}
+const upload </span>=<span style="color: #000000;"> multer({storage,limits})
+
+route.post(</span>'/user/file', upload.single('file'), async (ctx,next)=&gt;<span style="color: #000000;">{
+    ctx.body </span>=<span style="color: #000000;"> {
+        code: </span>1<span style="color: #000000;">,
+        data: ctx.file
+    }
+})
+
+app.use(router.routes()).use(router.allowedMethods())
+
+app.listen(</span>3000)</span></pre>
+</div>
+<p><span style="font-size: 16px;">上面的代码做了哪些事情：</span></p>
+<p><span style="font-size: 16px;">1. 存放上传文件的文件夹需要已经存在的，这里我创建的是public文件夹用于保存文件</span></p>
+<p><span style="font-size: 16px;">2.&nbsp;上传的文件默认没有后缀名，需要手动加上后缀名；为了命名不重复，我使用时间戳转为16进制作为文件命名</span></p>
+<p><span style="font-size: 16px;">3. 对文件上传做限制处理，指定限制可以帮助保护您的站点免受拒绝服务(DoS)攻击。</span></p>
+<p><span style="font-size: 16px;">4. 在上传文件的路由上使用中间件，由于我这里只上传一个文件，所以使用 single 方法，single方法接受一个字符串，这个字符串为上传文件的字段名，另外上传多文件可以使用 array、fileds</span></p>
+<p><span style="font-size: 16px;">5. 在路由中，可通过 ctx.file 获取上传完毕的文件信息，多文件上传可通过 ctx.files 获取</span></p>
+<p><span style="font-size: 16px;">上传成功后可以在文件夹下，看到上传的文件</span></p>
+<p><img src="./images/Koa - 使用koa-multer上传文件（上传限制、错误处理）0.png" alt="" /></p>
+<p><span style="font-size: 16px;">更多配置和方法的使用，请参考：<a href="https://github.com/expressjs/multer/blob/master/doc/README-zh-cn.md">https://github.com/expressjs/multer/blob/master/doc/README-zh-cn.md</a></span></p>
+<p>&nbsp;</p>
+<h2>上传错误处理</h2>
+<p><span style="font-size: 16px;">假如前端上传文件的字段和后端配置的字段不一致时，会导致报错，node.js直接奔溃。为了处理一些上传文件时发生的意外错误，我们需要做出一些错误处理。</span></p>
+<p><span style="font-size: 16px;">@koa/multer 是基于 multer 封装的 koa 版，所以 multer 的错误处理在 koa 中不适用，multer 错误处理的文档描述：</span></p>
+<p><img src="./images/Koa - 使用koa-multer上传文件（上传限制、错误处理）1.png" alt="" width="784" height="409" /></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">&nbsp;我也尝试过使用这种方法，确实无法捕获错误。</span></p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;">在经过网上搜索和官方文档中都没发现有类似的错误处理方法，后来只能通过看 @koa/multer 源码来找到一些解决的思路。</span></p>
+<p><span style="font-size: 16px;">可以看到 @koa/multer 对 multer 封装的代码大概60行左右，以下是封装的代码：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;">const originalMulter = require('multer'<span style="color: #000000;">);
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> multer(options) {
+  const m </span>=<span style="color: #000000;"> originalMulter(options);
+
+  makePromise(m, </span>'any'<span style="color: #000000;">);
+  makePromise(m, </span>'array'<span style="color: #000000;">);
+  makePromise(m, </span>'fields'<span style="color: #000000;">);
+  makePromise(m, </span>'none'<span style="color: #000000;">);
+  makePromise(m, </span>'single'<span style="color: #000000;">);
+
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> m;
+}
+
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> makePromise(multer, name) {
+  </span><span style="color: #0000ff;">if</span> (!multer[name]) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+
+  const fn </span>=<span style="color: #000000;"> multer[name];
+
+  multer[name] </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+    const middleware </span>= fn.apply(<span style="color: #0000ff;">this</span><span style="color: #000000;">, arguments);
+
+    </span><span style="color: #0000ff;">return</span> (ctx, next) =&gt;<span style="color: #000000;"> {
+      </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((resolve, reject) =&gt;<span style="color: #000000;"> {
+        middleware(ctx.req, ctx.res, err </span>=&gt;<span style="color: #000000;"> {
+          </span><span style="color: #0000ff;">if</span> (err) <span style="color: #0000ff;">return</span><span style="color: #000000;"> reject(err);
+          </span><span style="color: #0000ff;">if</span> ('request' <span style="color: #0000ff;">in</span><span style="color: #000000;"> ctx) {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ctx.req.body) {
+              ctx.request.body </span>=<span style="color: #000000;"> ctx.req.body;
+              </span><span style="color: #0000ff;">delete</span><span style="color: #000000;"> ctx.req.body;
+            }
+
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ctx.req.file) {
+              ctx.request.file </span>=<span style="color: #000000;"> ctx.req.file;
+              ctx.file </span>=<span style="color: #000000;"> ctx.req.file;
+              </span><span style="color: #0000ff;">delete</span><span style="color: #000000;"> ctx.req.file;
+            }
+
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (ctx.req.files) {
+              ctx.request.files </span>=<span style="color: #000000;"> ctx.req.files;
+              ctx.files </span>=<span style="color: #000000;"> ctx.req.files;
+              </span><span style="color: #0000ff;">delete</span><span style="color: #000000;"> ctx.req.files;
+            }
+          }
+
+          resolve(ctx);
+        });
+      }).then(next);
+    };
+  };
+}
+
+multer.diskStorage </span>=<span style="color: #000000;"> originalMulter.diskStorage;
+multer.memoryStorage </span>=<span style="color: #000000;"> originalMulter.memoryStorage;
+
+module.exports </span>= multer;</span></pre>
+</div>
+<p><span style="font-size: 16px;">因为koa语法是使用 async/await，封装就是把原来使用回调的方式改为使用Promise，然后我看到一段代码，让我找到点头绪。</span></p>
+<p><img src="./images/Koa - 使用koa-multer上传文件（上传限制、错误处理）2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<span style="font-size: 16px;">这段封装的错误处理是不是很像原来版本的错误处理，当发生错误被 reject 出去，那么我是不是可以通过 catch 来对错误进行捕获？经过几次尝试后，终于成功捕获错误。将路由代码改为以下形式：</span></p>
+<div class="cnblogs_code">
+<pre><code><span style="font-size: 16px;">route.post('/user/file', async (ctx,next)=&gt;<span style="color: #000000;">{
+    let err </span>= await upload.single('file'<span style="color: #000000;">)(ctx, next)
+                .then(res</span>=&gt;<span style="color: #000000;">res)
+                .</span><span style="color: #0000ff;">catch</span>(err=&gt;<span style="color: #000000;">err)
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(err){
+        ctx.body </span>=<span style="color: #000000;"> {
+            code:</span>0<span style="color: #000000;">,
+            msg : err.message
+        }
+    }</span><span style="color: #0000ff;">else</span><span style="color: #000000;">{
+        ctx.body </span>=<span style="color: #000000;"> {
+            code:</span>1<span style="color: #000000;">,
+            data:ctx.file
+        }
+    }
+})</span></span></pre>
+</div>
+<p><span style="font-size: 16px;">我做了哪些改变：</span></p>
+<p><span style="font-size: 16px;">1. 将使用中间件的方式改成手动方法调用，single方法返回的是一个函数，这个函数对应的就是上面截图的函数，所以需要传入 ctx 和 next 来执行，执行后返回的是 Promise，通过catch来捕获错误。</span></p>
+<p><span style="font-size: 16px;">2. 用err变量来接受的结果，只有上传错误，err才会被赋值为一个错误信息对象，否则为undefined。通过判断err是否存在就可以知道有没有发生错误了。</span></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

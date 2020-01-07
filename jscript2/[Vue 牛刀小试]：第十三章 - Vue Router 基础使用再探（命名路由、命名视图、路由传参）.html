@@ -1,0 +1,568 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修[Vue 牛刀小试]：第十三章 - Vue Router 基础使用再探（命名路由、命名视图、路由传参）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>[Vue 牛刀小试]：第十三章 - Vue Router 基础使用再探（命名路由、命名视图、路由传参）</center></div><div class='banquan'>原文出处:本文由博客园博主墨墨墨墨小宇提供。<br/>
+原文连接:https://www.cnblogs.com/danvic712/p/11033589.html</div><br>
+    <h3 style="background-color: #169fe6; height: 38px; width: 100%; line-height: 2.2; color: #faffff;">&nbsp;一、前言</h3>
+<p>　　在上一章的学习中，我们简单介绍了前端路由的概念，以及如何在 Vue 中通过使用 Vue Router 来实现我们的前端路由。但是在实际使用中，我们经常会遇到路由传参、或者一个页面是由多个组件组成的情况。本章，我们就来介绍下在这两种情况下 Vue Router 的使用方法以及一些可能涉及到的概念。</p>
+<p>　　学习系列目录地址：<a href="https://www.cnblogs.com/danvic712/p/9549100.html" target="_black">https://www.cnblogs.com/danvic712/p/9549100.html</a></p>
+<p>　　仓储地址：<a href="https://github.com/Lanesra712/VueTrial/tree/master/chapter02-bronze/router/pass" target="_blank">https://github.com/Lanesra712/VueTrial/tree/master/chapter02-bronze/router/pass</a></p>
+<h3 style="background-color: #169fe6; height: 38px; width: 100%; line-height: 2.2; color: #faffff;">&nbsp;二、干货合集</h3>
+<h4><strong>　　1、命名路由</strong></h4>
+<p>　　在某些时候，我们期望生成的路由 URL 地址可能会很长，在使用中可能会显得有些不便。这时候通过一个名称来标识一个路会更方便一些，因此在 Vue Router 中，我们可以在创建 Router 实例的时候，通过在 routes 配置中给某个路由设置名称，从而方便的调用路由。</p>
+<div class="cnblogs_code">
+<pre><code>const router = <span style="color: #0000ff;">new</span><span style="color: #000000;"> VueRouter({
+  routes: [
+    {
+      path: </span>'/form'<span style="color: #000000;">,
+      name: </span>'form'<span style="color: #000000;">,
+      component: </span>'&lt;div&gt;form 组件&lt;/div&gt;'<span style="color: #000000;">
+    }
+  ]
+})</span></pre>
+</div>
+<p>　　当我们使用命名路由之后，当需要使用 router-link 标签进行跳转时，就可以采取给 router-link 的 to 属性传一个对象的方式，跳转到指定的路由地址上。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-link </span><span style="color: #ff0000;">:to</span><span style="color: #0000ff;">="{ name: 'form'}"</span><span style="color: #0000ff;">&gt;</span>User<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">router-link</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<h4><strong>　　2、命名视图</strong></h4>
+<p>　　当我们打开一个页面时，整个页面可能是由多个 Vue 组件所构成的，例如，我们的后台管理首页可能是由 sidebar (侧导航) 、header（顶部导航）和 main (主内容）这三个 Vue 组件构成的。此时，当我们通过 Vue Router 构建路由信息时，如果一个 URL 只能对应一个 Vue 组件，整个页面肯定是无法正确显示的。</p>
+<p>　　在上一章的学习中，我们在构建路由信息的时候有使用到两个特殊的标签：router-view 和 router-link。通过 router-view 标签，我们就可以指定组件渲染显示到什么位置。因此，当我们需要在一个页面上显示多个组件的时候，就需要在页面中添加多个的 router-view 标签。</p>
+<p>　　那么，是不是可以通过一个路由对应多个组件，然后按需渲染在不同的 router-view 标签上呢？按照上一章中介绍的关于 Vue Router 的使用方法，我们可以很容易的实现下面的代码。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="app"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+        sidebar
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 1、定义路由跳转的组件模板</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const header </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;div class="header"&gt; header &lt;/div&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const sidebar </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#sidebar</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+    }
+
+    const main </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;div class="main"&gt; main &lt;/div&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 2、定义路由信息</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const routes </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> [{
+        path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        component: header
+    }, {
+        path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        component: sidebar
+    }, {
+        path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        component: main
+    }]
+
+    const router </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> VueRouter({
+        routes
+    })
+
+    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 3、挂载到当前 Vue 实例上</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const vm </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> Vue({
+        el: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#app</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        data: {},
+        methods: {},
+        router: router
+    });
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><img src="./images/[Vue 牛刀小试]：第十三章 - Vue Router 基础使用再探（命名路由、命名视图、路由传参）0.png" alt="" /></p>
+<p>　　可以看到，并没有实现我们想要实现的效果，当我们将一个路由信息对应到多个组件时，不管有多少个的 router-view 标签，程序都会将第一个组件渲染到所有的 router-view 标签上。</p>
+<p>　　因此，在这种情况下，我们需要实现的是一个路由信息可以按照我们的需要去渲染到页面中指定的 router-view 标签上，而在 Vue Router 中，我们则可以通过命名视图的方式实现我们的需求。</p>
+<p>　　命名视图，从名称上看可能无法阐述的很清楚，与命名路由的实现方式相似，命名视图通过在 router-view 标签上设定 name 属性，之后，在构建路由与组件的对应关系时，以一种 name:component 的形式构造出一个组件对象，从而指明是在哪个 router-view 标签上加载什么组件。</p>
+<p>　　注意，这里在指定路由对应的组件时，使用的是 components（包含 s）属性进行配置组件。实现命名视图的代码如下所示。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="app"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="main"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 2、定义路由信息</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const routes </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> [{
+        path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        components: {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;">: header,
+            sidebar: sidebar,
+            main: main
+        }
+    }]
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>　　在 router-view 中，默认的 name 属性值为 default，所以这里的 header 组件对应的 router-view 标签就可以不设定 name 属性值。完整的示例代码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="app"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="container"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="main"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+        sidebar
+    </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 1、定义路由跳转的组件模板</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const header </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;div class="header"&gt; header &lt;/div&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const sidebar </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#sidebar</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const main </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;div class="main"&gt; main &lt;/div&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 2、定义路由信息</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const routes </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> [{
+        path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        components: {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;">: header,
+            sidebar: sidebar,
+            main: main
+        }
+    }]
+
+    const router </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> VueRouter({
+        routes
+    })
+
+    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 3、挂载到当前 Vue 实例上</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const vm </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> Vue({
+        el: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#app</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        data: {},
+        methods: {},
+        router: router
+    });
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><img src="./images/[Vue 牛刀小试]：第十三章 - Vue Router 基础使用再探（命名路由、命名视图、路由传参）1.png" alt="" /></p>
+<h4><strong>　　3、路由传参</strong></h4>
+<p>　　在很多的情况下，例如表单提交，组件跳转之类的操作，我们需要使用到上一个表单、组件的一些数据，这时我们就需要将需要的参数通过参数传参的方式在路由间进行传递。</p>
+<p>　　例如，在下面的示例中，我们想要实现通过点击 main 组件中的子组件 form 组件上的按钮，将表单的内容传递到 info 子组件中进行显示，功能示意图如下所示。</p>
+<p><img src="./images/[Vue 牛刀小试]：第十三章 - Vue Router 基础使用再探（命名路由、命名视图、路由传参）2.png" alt="" /></p>
+<p><strong>　　3.1、query 传参</strong></p>
+<p>　　query 查询参数传参，就是将我们需要的参数以 key=value 的方式放在 url 地址中。例如这里的需求，我们需要在 info 组件中显示上一个页面的数据，所以我们的 info 页面显示的 URL 地址应该为 /info?email=xxx&amp;password=xxx，这里的 email 和 password 参数值则是 form 组件上用户输入的值。之后，我们通过获取这两个参数值即可实现我们的需求。</p>
+<p>　　当我们将实例化的 VueRouter 对象挂载到 Vue 实例后，Vue Router 在我们的 Vue 实例上创建了两个属性对象 this.$router(router 实例) 和 this.$route(当前页面的路由信息)。从下图可以看到，我们可以通过 vm.$route 获取到当前页面的路由信息，而这里的 query 对象则是我们需要的。</p>
+<p><img src="./images/[Vue 牛刀小试]：第十三章 - Vue Router 基础使用再探（命名路由、命名视图、路由传参）3.png" alt="" /></p>
+<p>　　可以看到，这时我们就可以直接通过 $route.query.参数名 的方式获取到对应的参数值。同时可以发现，fullPath 属性可以获取到当前页面的地址和 query 查询参数，而 path 属性则只是获取到当前的路由信息。</p>
+<p><img src="./images/[Vue 牛刀小试]：第十三章 - Vue Router 基础使用再探（命名路由、命名视图、路由传参）4.png" alt="" /></p>
+<p>　　同时，因为在使用 Vue Router 时已经将 VueRouter 实例挂载到 Vue 实例上，因此就可以直接通过调用 $router.push 方法来导航到另一个页面，所以这里 form 组件中的按钮事件，我们就可以使用这种方式完成路由地址的跳转，完整的代码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="app"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-2 sidebar"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-10 main"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="main"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-link </span><span style="color: #ff0000;">v-for</span><span style="color: #0000ff;">="(item,index) in menu"</span><span style="color: #ff0000;"> :key</span><span style="color: #0000ff;">="index"</span><span style="color: #ff0000;"> :to</span><span style="color: #0000ff;">="item.url"</span><span style="color: #ff0000;"> tag</span><span style="color: #0000ff;">="li"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">{{item.name}}
+            </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">router-link</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="main"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="form"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="form-group"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">for</span><span style="color: #0000ff;">="exampleInputEmail1"</span><span style="color: #0000ff;">&gt;</span>Email address<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="email"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="exampleInputEmail1"</span><span style="color: #ff0000;"> aria-describedby</span><span style="color: #0000ff;">="emailHelp"</span><span style="color: #ff0000;">
+                    placeholder</span><span style="color: #0000ff;">="Enter email"</span><span style="color: #ff0000;"> v-model</span><span style="color: #0000ff;">="email"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">small </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="emailHelp"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-text text-muted"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">We'll never share your email with anyone
+                    else.</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">small</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="form-group"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">for</span><span style="color: #0000ff;">="exampleInputPassword1"</span><span style="color: #0000ff;">&gt;</span>Password<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="password"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="exampleInputPassword1"</span><span style="color: #ff0000;"> placeholder</span><span style="color: #0000ff;">="Password"</span><span style="color: #ff0000;">
+                    v-model</span><span style="color: #0000ff;">="password"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="submit"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-primary"</span><span style="color: #ff0000;"> @click</span><span style="color: #0000ff;">="submit"</span><span style="color: #0000ff;">&gt;</span>Submit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="info"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="card"</span><span style="color: #ff0000;"> style</span><span style="color: #0000ff;">="margin-top: 5px;"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="card-header"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+            输入的信息
+        </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="card-body"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">blockquote </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="blockquote mb-0"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>Email Address：{{ $route.query.email }} <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>Password：{{ $route.query.password }}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">footer </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="blockquote-footer"</span><span style="color: #0000ff;">&gt;</span>Someone famous in <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">cite </span><span style="color: #ff0000;">title</span><span style="color: #0000ff;">="Source Title"</span><span style="color: #0000ff;">&gt;</span>Source Title<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">cite</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">footer</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">blockquote</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 1、定义路由跳转的组件模板</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const header </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;div class="header"&gt; header &lt;/div&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const sidebar </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#sidebar</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        data() {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;"> {
+                menu: [{
+                    name: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">Form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+                    url: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+                }, {
+                    name: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">Info</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+                    url: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/info</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+                }]
+            }
+        },
+    }
+
+    const main </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#main</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const form </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        data() {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;"> {
+                email: </span><span style="background-color: #f5f5f5; color: #000000;">''</span><span style="background-color: #f5f5f5; color: #000000;">,
+                password: </span><span style="background-color: #f5f5f5; color: #000000;">''</span><span style="background-color: #f5f5f5; color: #000000;">
+            }
+        },
+        methods: {
+            submit() {
+                </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$router.push({
+                    path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/info?email=</span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.email </span><span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&amp;password=</span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.password
+                })
+            }
+        },
+    }
+
+    const info </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#info</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 2、定义路由信息</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const routes </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> [{
+        path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        components: {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;">: header,
+            sidebar: sidebar,
+            main: main
+        },
+        children: [{
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">''</span><span style="background-color: #f5f5f5; color: #000000;">,
+            redirect: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+        }, {
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            component: form
+        }, {
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">info</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            component: info
+        }]
+    }]
+
+    const router </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> VueRouter({
+        routes
+    })
+
+    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 3、挂载到当前 Vue 实例上</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const vm </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> Vue({
+        el: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#app</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        data: {},
+        methods: {},
+        router: router
+    });
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><img src="./images/[Vue 牛刀小试]：第十三章 - Vue Router 基础使用再探（命名路由、命名视图、路由传参）5.png" alt="" /></p>
+<p><strong>　　3.2、param 传参</strong></p>
+<p>　　与获取 query 参数的方式相同，我们同样可以通过 vm.$route 获取到当前路由信息，从而在 param 对象中通过 $route.params.参数名 的方式获取到通过 param 的方式进行参数传递的值。</p>
+<p>　　不过，与 query 查询参数传参不同的是，在定义路由信息时，我们需要以占位符（:参数名）的方式将需要传递的参数指定到路由地址中，实现代码如下。</p>
+<div class="cnblogs_code">
+<pre><code>const routes =<span style="color: #000000;"> [{
+    path: </span>'/'<span style="color: #000000;">,
+    components: {
+        </span><span style="color: #0000ff;">default</span><span style="color: #000000;">: header,
+        sidebar: sidebar,
+        main: main
+    },
+    children: [{
+        path: </span>''<span style="color: #000000;">,
+        redirect: </span>'form'<span style="color: #000000;">
+    }, {
+        path: </span>'form'<span style="color: #000000;">,
+        name: </span>'form'<span style="color: #000000;">,
+        component: form
+    }, {
+        path: </span>'info/:email/:password'<span style="color: #000000;">,
+        name: </span>'info'<span style="color: #000000;">,
+        component: info
+    }]
+}]</span></pre>
+</div>
+<p>　　因为在使用 $route.push 进行路由跳转时，如果提供了 path 属性，则对象中的 params 属性会被忽略，所以这里我们可以采用命名路由的方式进行跳转或者直接将参数值传递到路由 path 路径中。同时，与使用 query 查询参数传递参数不同，这里的参数如果不进行赋值的话，就无法与我们的匹配规则对应，也就无法跳转到指定的路由地址中。</p>
+<div class="cnblogs_code">
+<pre><code>const form =<span style="color: #000000;"> {
+    template: </span>'#form'<span style="color: #000000;">,
+    data() {
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+            email: </span>''<span style="color: #000000;">,
+            password: </span>''<span style="color: #000000;">
+        }
+    },
+    methods: {
+        submit() {
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 方式1</span>
+            <span style="color: #0000ff;">this</span><span style="color: #000000;">.$router.push({
+                name: </span>'info'<span style="color: #000000;">,
+                params: {
+                    email: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.email,
+                    password: </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.password
+                }
+            })
+
+            </span><span style="color: #008000;">//</span><span style="color: #008000;"> 方式2</span>
+            <span style="color: #0000ff;">this</span><span style="color: #000000;">.$router.push({
+                path: `</span>/info/${<span style="color: #0000ff;">this</span>.email}/${this.password}`,
+<span style="color: #000000;">            })
+        }
+    },
+}</span></pre>
+</div>
+<p>　　其余的部分与使用 query 查询参数传参的方式相同，这里我就直接给出实现代码了，实现的示意图如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="app"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="row"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-2 sidebar"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="col-sm-10 main"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view </span><span style="color: #ff0000;">name</span><span style="color: #0000ff;">="main"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="sidebar"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-link </span><span style="color: #ff0000;">v-for</span><span style="color: #0000ff;">="(item,index) in menu"</span><span style="color: #ff0000;"> :key</span><span style="color: #0000ff;">="index"</span><span style="color: #ff0000;"> :to</span><span style="color: #0000ff;">="{name:item.routeName}"</span><span style="color: #ff0000;"> tag</span><span style="color: #0000ff;">="li"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+                {{item.displayName}}
+            </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">router-link</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">ul</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="main"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span> <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">router-view</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="form"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="form-group"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">for</span><span style="color: #0000ff;">="exampleInputEmail1"</span><span style="color: #0000ff;">&gt;</span>Email address<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="email"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="exampleInputEmail1"</span><span style="color: #ff0000;"> aria-describedby</span><span style="color: #0000ff;">="emailHelp"</span><span style="color: #ff0000;">
+                    placeholder</span><span style="color: #0000ff;">="Enter email"</span><span style="color: #ff0000;"> v-model</span><span style="color: #0000ff;">="email"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">small </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="emailHelp"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-text text-muted"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">We'll never share your email with anyone
+                    else.</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">small</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="form-group"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">label </span><span style="color: #ff0000;">for</span><span style="color: #0000ff;">="exampleInputPassword1"</span><span style="color: #0000ff;">&gt;</span>Password<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">label</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">input </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="password"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="form-control"</span><span style="color: #ff0000;"> id</span><span style="color: #0000ff;">="exampleInputPassword1"</span><span style="color: #ff0000;"> placeholder</span><span style="color: #0000ff;">="Password"</span><span style="color: #ff0000;">
+                    v-model</span><span style="color: #0000ff;">="password"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="submit"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="btn btn-primary"</span><span style="color: #ff0000;"> @click</span><span style="color: #0000ff;">="submit"</span><span style="color: #0000ff;">&gt;</span>Submit<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">form</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="info"</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="card"</span><span style="color: #ff0000;"> style</span><span style="color: #0000ff;">="margin-top: 5px;"</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="card-header"</span><span style="color: #0000ff;">&gt;</span><span style="color: #000000;">
+            输入的信息
+        </span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="card-body"</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">blockquote </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="blockquote mb-0"</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>Email Address：{{ $route.params.email }} <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>Password：{{ $route.params.password }}<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">p</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">footer </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="blockquote-footer"</span><span style="color: #0000ff;">&gt;</span>Someone famous in <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">cite </span><span style="color: #ff0000;">title</span><span style="color: #0000ff;">="Source Title"</span><span style="color: #0000ff;">&gt;</span>Source Title<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">cite</span><span style="color: #0000ff;">&gt;</span>
+                <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">footer</span><span style="color: #0000ff;">&gt;</span>
+            <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">blockquote</span><span style="color: #0000ff;">&gt;</span>
+        <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+    <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 1、定义路由跳转的组件模板</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const header </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;div class="header"&gt; header &lt;/div&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const sidebar </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#sidebar</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        data() {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;"> {
+                menu: [{
+                    displayName: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">Form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+                    routeName: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+                }, {
+                    displayName: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">Info</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+                    routeName: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">info</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+                }]
+            }
+        },
+    }
+
+    const main </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#main</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    const form </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        data() {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">return</span><span style="background-color: #f5f5f5; color: #000000;"> {
+                email: </span><span style="background-color: #f5f5f5; color: #000000;">''</span><span style="background-color: #f5f5f5; color: #000000;">,
+                password: </span><span style="background-color: #f5f5f5; color: #000000;">''</span><span style="background-color: #f5f5f5; color: #000000;">
+            }
+        },
+        methods: {
+            submit() {
+                </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 方式1</span>
+                <span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.$router.push({
+                    name: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">info</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+                    params: {
+                        email: </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.email,
+                        password: </span><span style="background-color: #f5f5f5; color: #0000ff;">this</span><span style="background-color: #f5f5f5; color: #000000;">.password
+                    }
+                })
+
+                </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 方式2</span>
+                <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> this.$router.push({</span>
+                <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;">     path: `/info/${this.email}/${this.password}`,</span>
+                <span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> })</span>
+<span style="background-color: #f5f5f5; color: #000000;">            }
+        },
+    }
+
+    const info </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> {
+        template: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#info</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+    }
+
+    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 2、定义路由信息</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const routes </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> [{
+        path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">/</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        components: {
+            </span><span style="background-color: #f5f5f5; color: #0000ff;">default</span><span style="background-color: #f5f5f5; color: #000000;">: header,
+            sidebar: sidebar,
+            main: main
+        },
+        children: [{
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">''</span><span style="background-color: #f5f5f5; color: #000000;">,
+            redirect: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">
+        }, {
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            name: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">form</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            component: form
+        }, {
+            path: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">info/:email/:password</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            name: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">info</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+            component: info
+        }]
+    }]
+
+    const router </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> VueRouter({
+        routes
+    })
+
+    </span><span style="background-color: #f5f5f5; color: #008000;">//</span><span style="background-color: #f5f5f5; color: #008000;"> 3、挂载到当前 Vue 实例上</span>
+<span style="background-color: #f5f5f5; color: #000000;">    const vm </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> Vue({
+        el: </span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#app</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">,
+        data: {},
+        methods: {},
+        router: router
+    });
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p><img src="./images/[Vue 牛刀小试]：第十三章 - Vue Router 基础使用再探（命名路由、命名视图、路由传参）6.png" alt="" /></p>
+<h3 style="background-color: #169fe6; height: 38px; width: 100%; line-height: 2.2; color: #faffff;">&nbsp;三、总结</h3>
+<p>　　这一章主要是介绍了命名路由，以及如何通过使用命名视图在 Vue Router 中将多个组件对应到同一个路由。同时，针对实际使用中我们经常会遇到的路由传参，我们则可以通过 query 或者是 param 的方式进行参数传递。不过，不知道你有没有注意到，不管是 query 传参还是 param 传参，最终我们都是通过 vm.$route 属性获取到参数信息，这无疑意味着组件和路由耦合到了一块，所有需要获取参数值的地方都需要加载 Vue Router，这其实是很不应该的，因此如何实现组件与路由间的解耦，我将在下一章中进行说明。</p>
+<h3 style="background-color: #169fe6; height: 38px; width: 100%; line-height: 2.2; color: #faffff;">&nbsp;四、参考</h3>
+<p>　　1、<a href="https://juejin.im/post/5b0281b851882542845257e7" target="_blank">从头开始学习vue-router</a></p>
+<p>　　2、<a href="https://www.cnblogs.com/zhuzhenwei918/p/7421430.html" target="_blank">单页面应用路由的两种实现方式</a></p>
+<p>　　3、<a href="https://juejin.im/post/5ae95896f265da0b84553bd7" target="_blank">你需要知道的单页面路由实现原理</a></p>
+<p>　　4、<a href="https://juejin.im/post/5ac61da66fb9a028c71eae1b" target="_blank">面试官: 你了解前端路由吗?</a></p>
+<p>　　5、<a href="https://juejin.im/post/5b40c1ede51d4518f140f84b" target="_blank">前端路由实现原理（history）</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

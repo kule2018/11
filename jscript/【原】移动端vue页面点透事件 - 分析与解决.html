@@ -1,0 +1,197 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【原】移动端vue页面点透事件 - 分析与解决' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【原】移动端vue页面点透事件 - 分析与解决</center></div><div class='banquan'>原文出处:本文由博客园博主白树提供。<br/>
+原文连接:https://www.cnblogs.com/PeunZhang/p/12016926.html</div><br>
+    <p>近期项目遇到了vue页面事件被带到下一个页面的问题，也就是我们常说的点透事件，主要表现在android机器上，花了不少时间折腾，简单做下总结~</p>
+<p>&nbsp;<img src="./images/【原】移动端vue页面点透事件 - 分析与解决0.png" alt="" /></p>
+<ul>
+<li>vue页面之间的切换通过<a href="https://router.vuejs.org/zh/guide/" target="_blank">Vue Router</a>的router.push方法</li>
+<li>b.vue之前已经访问过，数据通过vuex管理，从a.vue进入到b.vue不再请求数据，直接拿到b.vue数据展示页面；</li>
+<li>a.vue页面上点击最底部的账单后，不到100ms就打开b.vue页面，此时最底部的账单的触摸事件并没有消失，a.vue的触摸事件直接平移到b.vue最底部位置，刚好最底部有个按钮，导致直接打开c.vue。</li>
+</ul>
+<h2>验证是否因为300ms延迟导致的问题</h2>
+<p>早在2013做移动端页面时候就听说过点透事件，由click事件引起的300ms的延迟导致：</p>
+<blockquote>
+<p>移动设备上的web网页是有300ms延迟的，往往会造成按钮点击延迟，引起页面点透或是点击失效。</p>
+<p>2007年苹果发布首款iphone上IOS系统搭载的safari为了将适用于PC端上大屏幕的网页能比较好的展示在手机端上，使用了双击缩放(double tap to zoom)的方案，比如你在手机上用浏览器打开一个PC上的网页，你可能在看到页面内容虽然可以撑满整个屏幕，但是字体、图片都很小看不清，此时可以快速双击屏幕上的某一部分，你就能看清该部分放大后的内容，再次双击后能回到原始状态。</p>
+<p>双击缩放是指用手指在屏幕上快速点击两次，iOS 自带的 Safari 浏览器会将网页缩放至原始比例。</p>
+<p>原因就出在浏览器需要如何判断快速点击上，当用户在屏幕上单击某一个元素时候，例如跳转链接&lt;a href="#"&gt;&lt;/a&gt;，此处浏览器会先捕获该次单击，但浏览器不能决定用户是单纯要点击链接还是要双击该部分区域进行缩放操作，所以，捕获第一次单击后，浏览器会先Hold一段时间t，如果在t时间区间里用户未进行下一次点击，则浏览器会做单击跳转链接的处理，如果t时间里用户进行了第二次单击操作，则浏览器会禁止跳转，转而进行对该部分区域页面的缩放操作。那么这个时间区间t有多少呢？</p>
+<p>在IOS safari下，大概为300毫秒。这就是延迟的由来。造成的后果用户纯粹单击页面，页面需要过一段时间才响应，给用户慢体验感觉，对于web开发者来说是，页面js捕获click事件的回调函数处理，需要300ms后才生效，也就间接导致影响其他业务逻辑的处理。</p>
+</blockquote>
+<p>事隔7年，浏览器厂商还没修复这个问题么？楼主使用iPhone X、华为、vivo、小米等主流的手机来测试。</p>
+<p>首先我们在移动端网页使用双击缩放模式（不设置viewport）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;!</span><span style="color: #ff00ff;">DOCTYPE html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">meta </span><span style="color: #ff0000;">charset</span><span style="color: #0000ff;">="utf-8"</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>测试<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">title</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #ff0000;"> class</span><span style="color: #0000ff;">="library"</span><span style="color: #ff0000;"> src</span><span style="color: #0000ff;">="https://cdn.bootcss.com/zepto/1.1.7/zepto.js"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">style </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/css"</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #800000;">
+    #btn</span><span style="background-color: #f5f5f5; color: #000000;">{</span><span style="background-color: #f5f5f5; color: #ff0000;">
+        margin</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 50px 0</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+        width</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 200px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+        height</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 40px</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+        text-align</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> center</span><span style="background-color: #f5f5f5; color: #000000;">;</span><span style="background-color: #f5f5f5; color: #ff0000;">
+        font-size</span><span style="background-color: #f5f5f5; color: #000000;">:</span><span style="background-color: #f5f5f5; color: #0000ff;"> 16px</span><span style="background-color: #f5f5f5; color: #000000;">;</span>
+    <span style="background-color: #f5f5f5; color: #000000;">}</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">style</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">head</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">body</span><span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">button </span><span style="color: #ff0000;">id</span><span style="color: #0000ff;">="btn"</span><span style="color: #0000ff;">&gt;</span>点我查看事件响应时间<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">button</span><span style="color: #0000ff;">&gt;</span>
+
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">script </span><span style="color: #ff0000;">type</span><span style="color: #0000ff;">="text/javascript"</span><span style="color: #0000ff;">&gt;</span><span style="background-color: #f5f5f5; color: #000000;">
+    let startTime;
+    let log </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> (msg) {
+        let div </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">&lt;div&gt;&lt;/div&gt;</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+        div.html((</span><span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> Date().getTime()) </span><span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">: </span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> (</span><span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> Date().getTime() </span><span style="background-color: #f5f5f5; color: #000000;">-</span><span style="background-color: #f5f5f5; color: #000000;"> startTime) </span><span style="background-color: #f5f5f5; color: #000000;">+</span> <span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">: </span><span style="background-color: #f5f5f5; color: #000000;">'</span> <span style="background-color: #f5f5f5; color: #000000;">+</span><span style="background-color: #f5f5f5; color: #000000;"> msg)
+        $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">body</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">).append(div);
+    };
+    let touchStart </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> () {
+        startTime </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">new</span><span style="background-color: #f5f5f5; color: #000000;"> Date().getTime();
+        log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">touchStart</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+    };
+    let touchEnd </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> () {
+        log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">touchEnd</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+
+    };
+
+    let click </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> () {
+        log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">click</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+    };
+    let mouseUp </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> () {
+        log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">mouseUp</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+
+    };
+    let mouseDown </span><span style="background-color: #f5f5f5; color: #000000;">=</span> <span style="background-color: #f5f5f5; color: #0000ff;">function</span><span style="background-color: #f5f5f5; color: #000000;"> () {
+        log(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">mouseDown</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+    };
+    
+    let btn </span><span style="background-color: #f5f5f5; color: #000000;">=</span><span style="background-color: #f5f5f5; color: #000000;"> $(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">#btn</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">);
+    
+    btn.bind(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">touchstart</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, touchStart);
+    btn.bind(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">touchend</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, touchEnd);
+    btn.bind(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">mousedown</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, mouseDown);
+    btn.bind(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">mouseup</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, mouseUp);
+    btn.bind(</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">click</span><span style="background-color: #f5f5f5; color: #000000;">'</span><span style="background-color: #f5f5f5; color: #000000;">, click);
+</span><span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">script</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">html</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>对应日志如下，可以看到没有添加viewport的情况，ios可以看到click事件300ms的延迟问题还是存在，Android表现正常。</p>
+<p><img src="./images/【原】移动端vue页面点透事件 - 分析与解决1.png" alt="" /></p>
+<p>接着，页面添加viewport：&lt;meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" name="viewport"&gt;的情况，ios和android触发事件后打印的日志并没有300ms延迟。</p>
+<p><img src="./images/【原】移动端vue页面点透事件 - 分析与解决2.png" alt="" /></p>
+<p>从上面结果看出300ms的延迟主要表现在没有设置viewport的ios手机上，H5页面我们一般会设置viewport：&lt;meta content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" name="viewport"&gt;</p>
+<p>所以楼主认为<strong>我们正常的H5页面中click事件是不存在300ms延迟的情况</strong></p>
+<p>&nbsp;</p>
+<p>那Android手机上点透事件到底怎么回事呢？</p>
+<p>为了进一步验证不是300ms延迟引起的问题，采用互联网常见的防点透方案来解决问题：</p>
+<p>比较流行的解决方案有<a href="https://www.npmjs.com/package/v-tap" target="_blank">v-tap</a>或<a href="https://www.npmjs.com/search?q=vue2-touch-events" target="_blank">vue2-touch-events</a>自定义的tap事件，原理是把三个基础触摸事件：touchstart、touchmove、touchend组合起来叫tap事件，不使用click。</p>
+<p>然而，经过反复测试后不能解决问题，所以楼主猜想本次点透并不是300ms引起的。</p>
+<p>&nbsp;</p>
+<blockquote>
+<p>还有一种解决点透的方案是添加透明遮罩层，通常在跳转的下一个页面上，有一个透明遮罩层置于最顶层，从上一个页面平移的事件不能触发当前页面的事件，然后过300ms后再隐藏该遮罩层，以此来阻止点透，可以暴力解决点透问题。</p>
+</blockquote>
+<p>&nbsp;</p>
+<p>检查了这次项目中代码的HTML结构，其中包含touchstart、touchmove、touchend 、click 4个事件，测试发现click事件的代码并没有起作用，</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div
+    </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="item"</span><span style="color: #ff0000;">
+    @touchstart</span><span style="color: #0000ff;">="touchStart"</span><span style="color: #ff0000;">
+    @touchmove</span><span style="color: #0000ff;">="touchMove"</span><span style="color: #ff0000;">
+    @touchend</span><span style="color: #0000ff;">="touchEnd"</span><span style="color: #ff0000;">
+    @click</span><span style="color: #0000ff;">="clickItem"</span>
+<span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">slot </span><span style="color: #ff0000;">:data</span><span style="color: #0000ff;">="item"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">slot</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<p>&nbsp;因为touchend触发后有个路由的方法router.push让页面跳转了，click事件并没有生效，也就是touchend后页面A把事件带到了页面B上，又刚好命中页面B上的按钮，从而导致页面C被打开的点透效果！</p>
+<div class="cnblogs_code">
+<pre><code>touchEnd: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (event) {
+    </span><span style="color: #0000ff;">this</span>.$emit('goToDetail')<span style="color: #008000;">//</span><span style="color: #008000;">跳转detail页面</span>
+}</pre>
+</div>
+<h2><span style="color: #ff0000;"><strong>发现原因：元素touchend之后触发浏览器默认行为导致点透</strong></span></h2>
+<p>猜测给div标签绑定touchend事件后，元素有了浏览器默认的行为，具体的默认行为是什么呢，但它非常像click事件被带到B页面。为了验证猜测，在touchEnd方法中最后一行前添加 event.preventDefault()&nbsp;</p>
+<blockquote>
+<p>preventDefault是事件对象(Event)的一个方法，作用是取消浏览器事件的默认行为；</p>
+<p>cancelable也是事件对象(Event)的一个方法，&nbsp;表明该事件是否可以被取消默认行为，如果该事件可以用 preventDefault() 可以阻止与事件关联的默认行为，则返回 true，否则为 false</p>
+</blockquote>
+<div class="cnblogs_code">
+<pre><code>touchEnd: <span style="color: #0000ff;">function</span><span style="color: #000000;"> (event) {
+    </span><span style="color: #0000ff;">this</span>.$emit('goToDetail'<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;">(event.cancelable) {
+        event.preventDefault()
+    }
+}</span></pre>
+</div>
+<h2>解决方案：使用preventDefault()来阻止点透</h2>
+<p><strong><span style="color: #ff0000;">测试发现&nbsp;event.preventDefault()&nbsp;能成功阻止了androids手机上vue页面切换导致事件点透的问题</span></strong>(目前ios并没有发现事件点透问题，可能在多个版本前修复了这个体验)，也验证了猜想：<span style="color: #ff0000;"><strong>div标签绑定touchend事件后，元素有了浏览器默认的行为</strong></span></p>
+<p>vue页面开发，在HTML结构上添加事件修饰符.prevent，即<strong><span style="color: #ff0000;">@touchend.prevent</span></strong>同样可以调用&nbsp;event.preventDefault()来阻止默认行为</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div
+    </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="item"</span><span style="color: #ff0000;">
+    @touchstart</span><span style="color: #0000ff;">="touchStart"</span><span style="color: #ff0000;">
+    @touchmove</span><span style="color: #0000ff;">="touchMove"</span><span style="color: #ff0000;">
+    @touchend.prevent</span><span style="color: #0000ff;">="touchEnd"</span>
+<span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">slot </span><span style="color: #ff0000;">:data</span><span style="color: #0000ff;">="item"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">slot</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<h2>使用click作为最终事件也可以防止点透</h2>
+<p>div标签绑定touchend事件后，元素有了浏览器默认的行为，这个所谓的默认行为又触发click事件，从而引起点透的问题。</p>
+<p>那么，如果把this.$emit('goToDetail')的方法绑定到click上，是否可以解决点透问题？</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">&lt;</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;</span><span style="color: #800000;">div
+    </span><span style="color: #ff0000;">class</span><span style="color: #0000ff;">="item"</span><span style="color: #ff0000;">
+    @touchstart</span><span style="color: #0000ff;">="touchStart"</span><span style="color: #ff0000;">
+    @touchmove</span><span style="color: #0000ff;">="touchMove"</span><span style="color: #ff0000;">
+    @touchend</span><span style="color: #0000ff;">="touchEnd"</span><span style="color: #ff0000;">
+    @click</span><span style="color: #0000ff;">="click"</span>
+<span style="color: #0000ff;">&gt;</span>
+    <span style="color: #0000ff;">&lt;</span><span style="color: #800000;">slot </span><span style="color: #ff0000;">:data</span><span style="color: #0000ff;">="item"</span><span style="color: #0000ff;">&gt;&lt;/</span><span style="color: #800000;">slot</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">div</span><span style="color: #0000ff;">&gt;</span>
+<span style="color: #0000ff;">&lt;/</span><span style="color: #800000;">template</span><span style="color: #0000ff;">&gt;</span></pre>
+</div>
+<div class="cnblogs_code">
+<pre><code>click: <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+    </span><span style="color: #0000ff;">this</span>.$emit('goToDetail'<span style="color: #000000;">)
+}</span></pre>
+</div>
+<p>&nbsp;经过测试，在click事件触发this.$emit('goToDetail')方法，页面跳转成功后并不会引起点透的问题。</p>
+<p>&nbsp;</p>
+<h3>总结：</h3>
+<ul>
+<li>Android设备中，div等标签绑定touchend事件后，元素有了浏览器默认的行为，比如触发click</li>
+<li>移动端vue页面点透事件可以使用事件修饰符.prevent或event.preventDefault()&nbsp;来阻止浏览器默认行为</li>
+</ul>
+<p>&nbsp;</p>
+<p>最后晒上家里2只猫，祝大家圣诞快乐~ 喵</p>
+<p><img src="./images/【原】移动端vue页面点透事件 - 分析与解决3.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

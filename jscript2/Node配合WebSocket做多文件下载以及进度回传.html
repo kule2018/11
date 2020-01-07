@@ -1,0 +1,203 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Node配合WebSocket做多文件下载以及进度回传' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Node配合WebSocket做多文件下载以及进度回传</center></div><div class='banquan'>原文出处:本文由博客园博主糊糊糊糊糊了提供。<br/>
+原文连接:https://www.cnblogs.com/rynxiao/p/11811353.html</div><br>
+    <h2 id="起因">起因</h2>
+<p>为什么做这个东西，是突然间听一后端同事说起<a href="https://github.com/iawia002/annie">Annie</a>这个东西，发现这个东西下载视频挺方便的，会自动爬取网页中的视频，然后整理成列表。发现用命令执行之后是下面的样子：</p>
+<p><img src="./images/Node配合WebSocket做多文件下载以及进度回传0.png" alt="list" /></p>
+<p>心里琢磨了下，整一个界面玩一下吧。然后就做成下面这个样子了。</p>
+<h3 id="列表">列表</h3>
+<p><img src="./images/Node配合WebSocket做多文件下载以及进度回传1.png" alt="videolist" /></p>
+<h3 id="下载列表">下载列表</h3>
+<p><img src="./images/Node配合WebSocket做多文件下载以及进度回传2.png" alt="downloadlist" /></p>
+<p>本文地址仓库：<a href="https://github.com/Rynxiao/yh-tools" class="uri">https://github.com/Rynxiao/yh-tools</a>，如果喜欢，欢迎star.</p>
+<h2 id="涉及技术">涉及技术</h2>
+<ul>
+<li>Express 后端服务</li>
+<li>Webpack 模块化编译工具</li>
+<li>Nginx 主要做文件gzip压缩<strong>（发现Express添加gzip有点问题，才弃坑nginx）</strong></li>
+<li>Ant-design 前端UI库</li>
+<li>React + React Router</li>
+<li>WebSocket 进度回传服务</li>
+</ul>
+<p>其中还有点小插曲，最开始是使用<code>docker</code>起了一个<code>nginx</code>服务，但是发现内部转发一直有问题，同时获取宿主主机IP也出现了点问题，然后折磨了好久放弃了。（<code>docker</code>研究不深，敬请谅解^_^）</p>
+<h2 id="下载部分细节">下载部分细节</h2>
+<p><img src="./images/Node配合WebSocket做多文件下载以及进度回传3.png" alt="flow" /></p>
+<p>首先浏览器会连接<code>WebSocket</code>服务器，同时在<code>WebSocket</code>服务器上存在一个所有客户端的Map，浏览器端生成一个<code>uuid</code>作为浏览器客户端<code>id</code>，然后将这个链接作为值存进Map中。</p>
+<p>客户端：</p>
+<pre><code><code>// list.jsx
+await WebSocketClient.connect((event) =&gt; {
+  const data = JSON.parse(event.data);
+  if (data.event === &#39;close&#39;) {
+    this.updateCloseStatusOfProgressBar(list, data);
+  } else {
+    this.generateProgressBarList(list, data);
+  }
+});
+
+// src/utils/websocket.client.js
+async connect(onmessage, onerror) {
+  const socket = this.getSocket();
+  return new Promise((resolve) =&gt; {
+    // ...
+  });
+}
+
+getSocket() {
+  if (!this.socket) {
+    this.socket = new WebSocket(
+      `ws://localhost:${CONFIG.PORT}?from=client&amp;id=${clientId}`,
+      &#39;echo-protocol&#39;,
+    );
+  }
+  return this.socket;
+}</code></pre>
+<p>服务端：</p>
+<pre><code><code>// public/javascript/websocket/websocket.server.js
+connectToServer(httpServer) {
+  initWsServer(httpServer);
+  wsServer.on(&#39;request&#39;, (request) =&gt; {
+    // uri: ws://localhost:8888?from=client&amp;id=xxxx-xxxx-xxxx-xxxx
+    logger.info(&#39;[ws server] request&#39;);
+    const connection = request.accept(&#39;echo-protocol&#39;, request.origin);
+    const queryStrings = querystring.parse(request.resource.replace(/(^\/|\?)/g, &#39;&#39;));
+    
+    // 每有连接连到websocket服务器，就将当前连接保存到map中
+    setConnectionToMap(connection, queryStrings);
+    connection.on(&#39;message&#39;, onMessage);
+    connection.on(&#39;close&#39;, (reasonCode, description) =&gt; {
+      logger.info(`[ws server] connection closed ${reasonCode} ${description}`);
+    });
+  });
+
+  wsServer.on(&#39;close&#39;, (connection, reason, description) =&gt; {
+    logger.info(&#39;[ws server] some connection disconnect.&#39;);
+    logger.info(reason, description);
+  });
+}</code></pre>
+<p>然后在浏览器端点击下载的时候，会传递两个主要的字段<code>resourceId</code>(在代码中由<code>parentId</code>和<code>childId</code>组成)和客户端生成的<code>bClientId</code>。这两个<code>id</code>有什么用呢？</p>
+<ul>
+<li>每次点击下载，都会在<code>Web</code>服务器中生成一个<code>WebSocket</code>的客户端，那么这个<code>resouceId</code>就是作为在服务器中生成的<code>WebSocket</code>服务器的<code>key</code>值。</li>
+<li><code>bClientId</code>主要是为了区分浏览器的客户端，因为考虑到同时可能会有多个浏览器接入，这样在<code>WebSocket</code>服务器中产生消息的时候，就可以用这个<code>id</code>来区分应该发送给哪个浏览器客户端</li>
+</ul>
+<p>客户端：</p>
+<pre><code><code>// list.jsx
+http.get(
+  &#39;download&#39;,
+  {
+    code,
+    filename,
+    parent_id: row.id,
+    child_id: childId,
+    download_url: url,
+    client_id: clientId,
+  },
+);
+
+// routes/api.js
+router.get(&#39;/download&#39;, async (req, res) =&gt; {
+  const { code, filename } = req.query;
+  const url = req.query.download_url;
+  const clientId = req.query.client_id;
+  const parentId = req.query.parent_id;
+  const childId = req.query.child_id;
+  const connectionId = `${parentId}-${childId}`;
+
+  const params = {
+    code,
+    url,
+    filename,
+    parent_id: parentId,
+    child_id: childId,
+    client_id: clientId,
+  };
+
+  const flag = await AnnieDownloader.download(connectionId, params);
+  if (flag) {
+    await res.json({ code: 200 });
+  } else {
+    await res.json({ code: 500, msg: &#39;download error&#39; });
+  }
+});
+
+// public/javascript/annie.js
+async download(connectionId, params) {
+    //...
+  // 当annie下载时，会进行数据监听，这里会用到节流，防止进度回传太快，websocket服务器无法反应
+  downloadProcess.stdout.on(&#39;data&#39;, throttle((chunk) =&gt; {
+    try {
+      if (!chunk) {
+        isDownloading = false;
+      }
+      // 这里主要做的是解析数据，然后发送进度和速度等信息给websocket服务器
+      getDownloadInfo(chunk, ws, params);
+    } catch (e) {
+      downloadSuccess = false;
+      WsClient.close(params.client_id, connectionId, &#39;download error&#39;);
+      this.stop(connectionId);
+      logger.error(`[server annie download] error: ${e}`);
+    }
+  }, 500, 300));
+}</code></pre>
+<p>服务端收到进度以及速度的消息后，回传给客户端，如果进度达到了100%，那么就删除掉存在<code>server</code>中的服务器中起的<code>websocket</code>的客户端，并且发送一个客户端被关闭的通知，通知浏览器已经下载完成。</p>
+<pre><code><code>// public/javascript/websocket/websocket.server.js
+function onMessage(message) {
+  const data = JSON.parse(message.utf8Data);
+  const id = data.client_id;
+
+  if (data.event === &#39;close&#39;) {
+    logger.info(&#39;[ws server] close event&#39;);
+    closeConnection(id, data);
+  } else {
+    getConnectionAndSendProgressToClient(data, id);
+  }
+}
+
+function getConnectionAndSendProgressToClient(data, clientId) {
+  const browserClient = clientsMap.get(clientId);
+  // logger.info(`[ws server] send ${JSON.stringify(data)} to client ${clientId}`);
+
+  if (browserClient) {
+    const serverClientId = `${data.parent_id}-${data.child_id}`;
+    const serverClient = clientsMap.get(serverClientId);
+
+    // 发送从web服务器中传过来的进度、速度给浏览器
+    browserClient.send(JSON.stringify(data));
+    // 如果进度已经达到了100%
+    if (data.progress &gt;= 100) {
+      logger.info(`[ws server] file has been download successfully, progress is ${data.progress}`);
+      logger.info(`[ws server] server client ${serverClientId} ready to disconnect`);
+      // 从clientsMap将当前的这个由web服务器创建的websocket客户端移除
+      // 然后关闭当前连接
+      // 同时发送下载完成的消息给浏览器
+      clientsMap.delete(serverClientId);
+      serverClient.send(JSON.stringify({ connectionId: serverClientId, event: &#39;complete&#39; }));
+      serverClient.close(&#39;download completed&#39;);
+    }
+  }
+}</code></pre>
+<p>整体来说就这么多，有一点需要指出，<code>annie</code>在解析的时候有时候可能消息处理不是很稳定，导致我数据解析的时候出现了一些问题，但是我用<code>mock</code>的数据以及<code>mock</code>的进度条回传是不会出现问题的。</p>
+<h2 id="最后总结">最后总结</h2>
+<p>多读书，多看报，少吃零食，多睡觉😪😪💤</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

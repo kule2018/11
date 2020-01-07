@@ -1,0 +1,136 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修electron——dialog（实现导出excel）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>electron——dialog（实现导出excel）</center></div><div class='banquan'>原文出处:本文由博客园博主妖色调提供。<br/>
+原文连接:https://www.cnblogs.com/loveyt/p/11935064.html</div><br>
+    <h3 id="背景">背景</h3>
+<p>前端点击导出excel按钮后，请求完需要导出的数据后发送给主进程electron，由主进程保存到本地</p>
+<h2 id="dialog">dialog</h2>
+<blockquote>
+<p>显示用于打开和保存文件、警报等的本机系统对话框。</p>
+</blockquote>
+<p><code>dialog</code> 模块提供了api来展示原生的系统对话框，例如打开文件框，alert框，所以web应用可以给用户带来跟系统应用相同的体验.</p>
+<pre><code><code>let win = ...;  // BrowserWindow in which to show the dialog
+const dialog = require(&#39;electron&#39;).dialog;
+console.log(dialog.showOpenDialog({ properties: [ &#39;openFile&#39;, &#39;openDirectory&#39;, &#39;multiSelections&#39; ]}));</code></pre>
+<h2 id="前端代码渲染进程">前端代码（渲染进程）</h2>
+<pre><code><code>// 引入ipcRenderer模块
+const { ipcRenderer } = require(&#39;electron&#39;)
+// 表格数据拟定为 data
+let excelModel = new Blob([data], { type: &quot;application/octet-stream&quot; })</code></pre>
+<p><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/Blob">不知道 Blob 是什么的点击这里</a></p>
+<pre><code><code>// 创建一个FileReader的实例
+let reader  = new FileReader()
+// 开始读取指定的Blob中的内容。一旦完成，result属性中将包含一个data: URL格式的Base64字符串以表示所读取文件的内容。
+reader.readAsDataURL(excelModel)
+// 处理 load 事件。该事件在读取操作完成时触发
+reader.addEventListener(&quot;loadend&quot;, function() {
+  // reader.result 包含被转化为类型数组 typed array 的 blob
+  // 向主进程发送下载excel消息
+  ipcRenderer.send(&quot;saveDialog&quot;, {
+    baseCode: reader.result,
+    fileType: &#39;excel&#39;,
+    fileName: &#39;封神榜&#39;
+  })
+  // 接收主进程发送回来的下载成功回调
+  ipcRenderer.once(&#39;succeedDialog&#39;, event =&gt; {
+    // 成功回调
+  })
+  // 接收主进程发送回来的下载失败回调
+  ipcRenderer.once(&#39;defeatedDialog&#39;, event =&gt; {
+   // 失败回调
+  })
+
+})</code></pre>
+<p><a href="https://developer.mozilla.org/zh-CN/docs/Web/API/FileReader">不知道 FileReader 是什么的点击这里</a></p>
+<h2 id="electron代码主进程">electron代码（主进程）</h2>
+<pre><code><code>// 创建BrowserWindow实例
+let win = new BrowserWindow(browser)
+// 引入dialog、ipcMain、fs模块
+const { dialog, ipcMain } = require(&#39;electron&#39;)
+const fs = require(&#39;fs&#39;)
+// 定义文件下载扩展名选择
+const extensionType = {
+  // 图片
+  images: [
+    { name: &#39;.jpg&#39;, extensions: [&#39;jpg&#39;] },
+    { name: &#39;.png&#39;, extensions: [&#39;png&#39;] },
+    { name: &#39;.gif&#39;, extensions: [&#39;gif&#39;] },
+  ],
+  // Excel
+  excel: [
+    { name: &#39;.xlsx&#39;, extensions: [&#39;xlsx&#39;] },
+    { name: &#39;.xls&#39;, extensions: [&#39;xls&#39;] },
+  ]
+}
+//在主线程下，通过ipcMain对象监听渲染线程传过来的saveDialog事件
+ipcMain.on(&#39;saveDialog&#39;, (event, arg) =&gt; {
+  // 打开弹窗
+  dialog.showSaveDialog(win, {
+   // 在 Windows 和 Linux 上, 打开对话框不能同时是文件选择器和目录选择器, 因此如果在这些平台上将 properties 设置为[&quot;openFile&quot;、&quot;openDirectory&quot;], 则将显示为目录选择器。
+    properties: [&#39;openFile&#39;, &#39;openDirectory&#39;],
+    // 默认情况下使用的绝对目录路径、绝对文件路径、文件名
+    defaultPath: arg.fileName,
+    // 文件下载扩展名
+    filters: [
+      ...extensionType[arg.fileType]
+    ],
+   // 点击保存回调
+  }, filePath  =&gt;{
+    // filePath存在则为保存路径 否为undefined
+    // 去掉头部无用字段并将base64转码成buffer
+    let dataBuffer = Buffer.from(arg.baseCode.split(&#39;base64,&#39;)[1], &#39;base64&#39;)
+    // 检测文件扩展名是否正确
+    let typeFlag = extensionType[arg.fileType].some(item =&gt; {
+      if(filePath) {
+        return item.extensions[0] === filePath.split(&#39;.&#39;)[1]
+      } else {
+        return false
+      }
+    })
+    if(typeFlag){
+      fs.writeFile(filePath, dataBuffer, err =&gt; {
+        // 失败
+        if (err) {
+          // 向渲染进程发送消息通知失败
+          win.webContents.send(&#39;defeatedDialog&#39;)
+        }
+      })
+      // 成功 向渲染进程发送消息通知成功
+      win.webContents.send(&#39;succeedDialog&#39;)
+      // 判断是否存在保存路径
+    } else if(filePath !== undefined){
+      dialog.showMessageBox({
+        type: &#39;error&#39;,
+        title: &#39;系统提示&#39;,
+        message: &#39;系统检测出文件类型异常，请检查并重新选择或填写&#39;
+      })
+    }
+  })
+})</code></pre>
+<p>之所以在确定后再次对文件的扩展名进行判断，是因为传入excel的文件扩展名仍然可以保存其他扩展名，如.jpg，具体原因作者也不太清楚＞﹏＜，以后知道后会更新的。。。</p>
+<p>以上仅供参考，如有问题欢迎指出，但我不一定改(～￣▽￣)～</p>
+<h2 id="参考">参考</h2>
+<p><a href="https://electronjs.org/docs/api/dialog?q=%E6%B6%88%E6%81%AF#dialogshowsavedialogsyncbrowserwindow-options">electron-dialog</a></p>
+<p><a href="https://blog.csdn.net/qq_36607860/article/details/84792252">electron中recorderJs导出blob对象，并使用node保存到本地</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

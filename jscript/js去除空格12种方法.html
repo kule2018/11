@@ -1,0 +1,265 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修js去除空格12种方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>js去除空格12种方法</center></div><div class='banquan'>原文出处:本文由博客园博主天亦玄提供。<br/>
+原文连接:https://www.cnblogs.com/jiangdd/p/12017523.html</div><br>
+    <p>注：本文非本人原著；原文作者：&nbsp;<a href="http://blog.csdn.net/huanghui8030"><span style="text-decoration: underline;"><span style="color: #0000ff;">黄卉</span></span></a>&nbsp; 《<span style="color: #0000ff;">js去除空格12种方法</span>》</p>
+<div class="cnblogs_Highlighter">
+<pre><code>//JS去除空格的方法目前共有12种:
+//实现1
+ String.prototype.trim = function() {
+   return this.replace(/^\s\s*/, '').replace(/\s\s*$/, '');
+ }
+//看起来不怎么样， 动用了两次正则替换，实际速度非常惊人，主要得益于浏览器的内部优化。一个著名的例子字符串拼接，直接相加比用Array做成的StringBuffer 还快。base2类库使用这种实现。
+// 实现2
+ String.prototype.trim = function() {
+   return this.replace(/^\s+/, '').replace(/\s+$/, '');
+ }
+//和实现1 很相似，但稍慢一点，主要原因是它最先是假设至少存在一个空白符。Prototype.js使用这种实现，过其名字为strip，因为 Prototype的方法都是力求与Ruby同名。
+ 实现3
+ String.prototype.trim = function() {
+   return  this.substring(Math.max(this.search(/\S/), 0),this.search(/\S\s*$/) + 1);
+ }
+//以截取方式取得空白部分（当然允许中间存在空白符），总共 调用了四个原生方法。设计得非常巧妙，substring以两个数字作为参数。Math.max以两个数字作参数，search则返回一个数字。速度比上 面两个慢一点，但比下面大多数都快。
+// 实现4
+ String.prototype.trim = function() {
+   return  this.replace(/^\s+|\s+$/g, '');
+ }
+//这个可以称得上实现2的简化版，就是 利用候选操作符连接两个正则。但这样做就失去了浏览器优化的机会，比不上实现3。由于看来很优雅，许多类库都使用它，如JQuery与mootools
+//实现5
+ String.prototype.trim = function() {
+   var str = this;
+   str = str.match(/\S+(?:\s+\S+)*/);
+   return str ? str[0] : '';
+ }
+// match 是返回一个数组，因此原字符串符合要求的部分就成为它的元素。为了防止字符串中间的空白符被排除，我们需要动用到非捕获性分组（?:exp）。由于数组可 能为空，我们在后面还要做进一步的判定。好像浏览器在处理分组上比较无力，一个字慢。所以不要迷信正则，虽然它基本上是万能的。
+// 实现6
+ String.prototype.trim = function() {
+   return this.replace(/^\s*(\S*(\s+\S+)*)\s*$/, '$1');
+ }
+//把符合要求的部分提供出来，放到一个空字符串中。不过效率很差，尤其是在IE6中。
+// 实现7
+ String.prototype.trim = function() {
+   return this.replace(/^\s*(\S*(?:\s+\S+)*)\s*$/, '$1');
+ }
+//和实现6很相似，但用了非捕获分组进行了优点，性能效之有一点点提升。
+
+//实现8
+ String.prototype.trim = function() {
+   return this.replace(/^\s*((?:[\S\s]*\S)?)\s*$/, '$1');
+ }
+//沿着上面两个的思路进行改进，动用了非捕获分组与字符集合，用?顶替了*，效果非常惊人。尤其在IE6中，可 以用疯狂来形容这次性能的提升，直接秒杀火狐。
+// 实现9
+ String.prototype.trim = function() {
+   return this.replace(/^\s*([\S\s]*?)\s*$/, '$1');
+ }
+//这次是用懒惰匹配 顶替非捕获分组，在火狐中得到改善，IE没有上次那么疯狂。
+ 实现10
+ String.prototype.trim = function() {
+   var str = this,
+   whitespace = ' \n\r\t\f\x0b\xa0\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u200b\u2028\u2029\u3000';
+   for (var i = 0,len = str.length; i &lt; len; i++) {
+     if (whitespace.indexOf(str.charAt(i)) === -1) {
+       str = str.substring(i);
+       break;
+     }
+   }
+   for (i = str.length - 1; i &gt;= 0; i--) {
+     if (whitespace.indexOf(str.charAt(i)) === -1) {
+       str = str.substring(0, i + 1);
+       break;
+     }
+   }
+  return whitespace.indexOf(str.charAt(0)) === -1 ? str : '';
+ }
+//我 只想说，搞出这个的人已经不是用牛来形容，已是神一样的级别。它先是把可能的空白符全部列出来，在第一次遍历中砍掉前面的空白，第二次砍掉后面的空白。全 过程只用了indexOf与substring这个专门为处理字符串而生的原生方法，没有使用到正则。速度快得惊人，估计直逼上内部的二进制实现，并且在 IE与火狐（其他浏览器当然也毫无疑问）都有良好的表现。速度都是零毫秒级别的。
+// 实现11
+String.prototype.trim = function() {
+   var str = this,
+   str = str.replace(/^\s+/, '');
+   for (var i = str.length - 1; i &gt;= 0; i--) {
+     if (/\S/.test(str.charAt(i))) {
+       str = str.substring(0, i + 1);
+       break;
+     }
+   }
+   return str;
+ }
+//实现10已经告诉我们普通的原生字符串截取方法是远胜于正则替换，虽然是复杂一点。但只要正则 不过于复杂，我们就可以利用浏览器对正则的优化，改善程序执行效率，如实现8在IE的表现。我想通常不会有人在项目中应用实现10，因为那个 whitespace 实现太长太难记了（当然如果你在打造一个类库，它绝对是首先）。实现11可谓其改进版，前面部分的空白由正则替换负责砍掉，后面用原生方法处理，效果不逊 于原版，但速度都是非常逆天。
+// 实现12
+ String.prototype.trim = function() {
+   var str = this,
+   str = str.replace(/^\s\s*/, ''),
+   ws = /\s/,
+   i = str.length;
+   while (ws.test(str.charAt(--i)));
+   return str.slice(0, i + 1);
+ }
+//实现10与实现11在写法上更好的改进版，注意说的不是性能速 度，而是易记与使用上。和它的两个前辈都是零毫秒级别的，以后就用这个来工作与吓人。
+</pre>
+</div>
+<p>　　</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">1：去字符串前后空格：changeThing.replace(/(^\s*)|(\s*$)/g,'')</span><span style="color: #008000;">
+//</span><span style="color: #008000;">2：</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;">  trm(e){
+      </span><span style="color: #0000ff;">return</span> e.replace( /^\s+/, "" ).replace( /\s+$/, "" ); <span style="color: #008000;">//</span><span style="color: #008000;">js去掉全换空格</span>
+<span style="color: #000000;">     }
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  调用：</span>
+ <span style="color: #0000ff;">var</span>  causeCheckNopass=trm(mini.get("m_zjhms"<span style="color: #000000;">).getValue());
+
+
+</span>==================================================================================================
+
+<span style="color: #008000;">//</span><span style="color: #008000;">1、  去掉字符串前后所有空格：</span><span style="color: #008000;">
+//</span><span style="color: #008000;">代码如下：</span>
+         <span style="color: #0000ff;">function</span><span style="color: #000000;"> Trim(str)
+         {   </span>16              <span style="color: #0000ff;">return</span> str.replace(/(^\s*)|(\s*$)/g, "");   17<span style="color: #000000;">      }
+</span><span style="color: #008000;">//</span><span style="color: #008000;">    说明：</span><span style="color: #008000;">
+//</span><span style="color: #008000;">    如果使用jQuery直接使用$.trim(str)方法即可，str表示要去掉前后所有空格的字符串。</span>
+   21 <span style="color: #008000;">//</span><span style="color: #008000;">2、 去掉字符串中所有空格(包括中间空格,需要设置第2个参数为:g)</span><span style="color: #008000;">
+//</span><span style="color: #008000;">代码如下：</span>
+        <span style="color: #0000ff;">function</span><span style="color: #000000;"> Trim(str,is_global)
+        {
+            </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> result;
+            result </span>= str.replace(/(^\s+)|(\s+$)/g,""<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">if</span>(is_global.toLowerCase()=="g"<span style="color: #000000;">)
+            {
+                result </span>= result.replace(/\s/g,""<span style="color: #000000;">);
+             }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+}
+
+</span>==================================================================================================
+
+<span style="color: #008000;">//</span><span style="color: #008000;">js去掉字符串前后空格的五种方法2012-04-02 </span>
+<span style="color: #000000;">
+[javascript]
+</span><span style="color: #008000;">//</span><span style="color: #008000;">供使用者调用  </span>
+<span style="color: #0000ff;">function</span> trim(s){    41 <span style="color: #0000ff;">return</span> trimRight(trimLeft(s));    42 }    43 <span style="color: #008000;">//</span><span style="color: #008000;">去掉左边的空白  </span>
+<span style="color: #0000ff;">function</span> trimLeft(s){    45 <span style="color: #0000ff;">if</span>(s == <span style="color: #0000ff;">null</span>) {    46 <span style="color: #0000ff;">return</span> "";    47 }    48 <span style="color: #0000ff;">var</span> whitespace = <span style="color: #0000ff;">new</span> String(" \t\n\r");    49 <span style="color: #0000ff;">var</span> str = <span style="color: #0000ff;">new</span> String(s);    50 <span style="color: #0000ff;">if</span> (whitespace.indexOf(str.charAt(0)) != -1) {    51 <span style="color: #0000ff;">var</span> j=0, i = str.length;    52 <span style="color: #0000ff;">while</span> (j &lt; i &amp;&amp; whitespace.indexOf(str.charAt(j)) != -1){    53 j++;    54 }    55 str = str.substring(j, i);    56 }    57 <span style="color: #0000ff;">return</span> str;    58 }    59 <span style="color: #008000;">//</span><span style="color: #008000;">去掉右边的空白 www.2cto.com   </span>
+<span style="color: #0000ff;">function</span> trimRight(s){    61 <span style="color: #0000ff;">if</span>(s == <span style="color: #0000ff;">null</span>) <span style="color: #0000ff;">return</span> "";    62 <span style="color: #0000ff;">var</span> whitespace = <span style="color: #0000ff;">new</span> String(" \t\n\r");    63 <span style="color: #0000ff;">var</span> str = <span style="color: #0000ff;">new</span> String(s);    64 <span style="color: #0000ff;">if</span> (whitespace.indexOf(str.charAt(str.length-1)) != -1){    65 <span style="color: #0000ff;">var</span> i = str.length - 1;    66 <span style="color: #0000ff;">while</span> (i &gt;= 0 &amp;&amp; whitespace.indexOf(str.charAt(i)) != -1){    67 i--;    68 }    69 str = str.substring(0, i+1);    70 }    71 <span style="color: #0000ff;">return</span> str;    72 }   73<span style="color: #000000;"> 第二种：正则替换
+[javascript]
+</span>&lt;SCRIPT LANGUAGE="JavaScript"&gt;    76 &lt;!--    77 String.prototype.Trim = <span style="color: #0000ff;">function</span>()    78 {    79 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.replace(/(^\s*)|(\s*$)/g, "");    80 }    81 String.prototype.LTrim = <span style="color: #0000ff;">function</span>()    82 {    83 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.replace(/(^\s*)/g, "");    84 }    85 String.prototype.RTrim = <span style="color: #0000ff;">function</span>()    86 {    87 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">this</span>.replace(/(\s*$)/g, "");    88 }    89 <span style="color: #008000;">//</span><span style="color: #008000;">--&gt;  </span>
+&lt;/SCRIPT&gt;   91 第三种：使用jquery
+<span style="color: #000000;">[javascript]
+$.trim(str)   </span>94<span style="color: #000000;"> jquery内部实现为：
+[javascript]
+</span><span style="color: #0000ff;">function</span> trim(str){     97     <span style="color: #0000ff;">return</span> str.replace(/^(\s|\u00A0)+/,'').replace(/(\s|\u00A0)+$/,'');     98 }     99<span style="color: #000000;"> 第四种：使用motools
+[javascript]
+</span><span style="color: #0000ff;">function</span> trim(str){    102     <span style="color: #0000ff;">return</span> str.replace(/^(\s|\xA0)+|(\s|\xA0)+$/g, '');    103 }   104<span style="color: #000000;"> 第五种：裁剪字符串方式
+[javascript]
+</span><span style="color: #0000ff;">function</span> trim(str){    107     str = str.replace(/^(\s|\u00A0)+/,'');    108     <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i=str.length-1; i&gt;=0; i--){    109         <span style="color: #0000ff;">if</span>(/\S/.test(str.charAt(i))){    110             str = str.substring(0, i+1);    111             <span style="color: #0000ff;">break</span>;    112         }    113     }    114     <span style="color: #0000ff;">return</span> str;    115 }  116<span style="color: #000000;"> }
+
+</span>==================================================================================================<span style="color: #000000;">
+
+判断空：
+ Object.prototype.toString。对于不同类型的数据，这个方法可以返回 </span>'[object Object]'、'[object Array]'、'[object String]' 这样的字符串，非常方便判断。需要注意的是，在 IE8 及其以下浏览器中，这个方法对于null、undefined、window 等都会返回 '[object Object]'<span style="color: #000000;">，不过还好，这并不影响我们使用它判断空对象
+
+</span><span style="color: #0000ff;">var</span> isEmptyValue = <span style="color: #0000ff;">function</span><span style="color: #000000;">(value) {
+            </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> type;
+            </span><span style="color: #0000ff;">if</span>(value == <span style="color: #0000ff;">null</span>) { <span style="color: #008000;">//</span><span style="color: #008000;"> 等同于 value === undefined || value === null</span>
+                <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+            }
+            type </span>= Object.prototype.toString.call(value).slice(8, -1<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">switch</span><span style="color: #000000;">(type) {
+            </span><span style="color: #0000ff;">case</span> 'String'<span style="color: #000000;">:
+                </span><span style="color: #0000ff;">return</span> !<span style="color: #000000;">$.trim(value);
+            </span><span style="color: #0000ff;">case</span> 'Array'<span style="color: #000000;">:
+                </span><span style="color: #0000ff;">return</span> !<span style="color: #000000;">value.length;
+            </span><span style="color: #0000ff;">case</span> 'Object'<span style="color: #000000;">:
+                </span><span style="color: #0000ff;">return</span> $.isEmptyObject(value); <span style="color: #008000;">//</span><span style="color: #008000;"> 普通对象使用 for...in 判断，有 key 即为 false</span>
+            <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+                </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span>; <span style="color: #008000;">//</span><span style="color: #008000;"> 其他对象均视作非空</span>
+<span style="color: #000000;">            }
+        };
+
+为何不用其他方法，因为下面的写法考虑了各种兼容性。
+判断是否为数组
+isArray </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (source) {
+    </span><span style="color: #0000ff;">return</span> '[object Array]' ==<span style="color: #000000;"> Object.prototype.toString.call(source);
+};
+判断是否为日期对象
+isDate </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(o) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> return o instanceof Date;</span>
+    <span style="color: #0000ff;">return</span> {}.toString.call(o) === "[object Date]" &amp;&amp; o.toString() !== 'Invalid Date' &amp;&amp; !<span style="color: #000000;">isNaN(o);
+};
+判断是否为Element对象
+isElement </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (source) {
+    </span><span style="color: #0000ff;">return</span> !!(source &amp;&amp; source.nodeName &amp;&amp; source.nodeType == 1<span style="color: #000000;">);
+};
+判断目标参数是否为function或Function实例
+isFunction </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (source) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> chrome下,'function' == typeof /a/ 为true.</span>
+    <span style="color: #0000ff;">return</span> '[object Function]' ==<span style="color: #000000;"> Object.prototype.toString.call(source);
+};
+判断目标参数是否number类型或Number对象
+isNumber </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (source) {
+    </span><span style="color: #0000ff;">return</span> '[object Number]' == Object.prototype.toString.call(source) &amp;&amp;<span style="color: #000000;"> isFinite(source);
+};
+ 判断目标参数是否为Object对象
+isObject </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (source) {
+    </span><span style="color: #0000ff;">return</span> 'function' == <span style="color: #0000ff;">typeof</span> source || !!(source &amp;&amp; 'object' == <span style="color: #0000ff;">typeof</span><span style="color: #000000;"> source);
+};
+判断目标参数是否string类型或String对象
+isString </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;"> (source) {
+    </span><span style="color: #0000ff;">return</span> '[object String]' ==<span style="color: #000000;"> Object.prototype.toString.call(source);
+};
+判断目标参数是否Boolean对象
+isBoolean </span>= <span style="color: #0000ff;">function</span><span style="color: #000000;">(o) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">typeof</span> o === 'boolean'<span style="color: #000000;">;
+};
+
+
+</span>1<span style="color: #000000;">、  去掉字符串前后所有空格：
+代码如下：
+         </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> Trim(str)
+         {  </span>182              <span style="color: #0000ff;">return</span> str.replace(/(^\s*)|(\s*$)/g, "");  183<span style="color: #000000;">      }
+    说明：
+    如果使用jQuery直接使用$.trim(str)方法即可，str表示要去掉前后所有空格的字符串。
+  </span>187 2<span style="color: #000000;">、 去掉字符串中所有空格(包括中间空格,需要设置第2个参数为:g)
+代码如下：
+        </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> Trim(str,is_global)
+        {
+            </span><span style="color: #0000ff;">var</span><span style="color: #000000;"> result;
+            result </span>= str.replace(/(^\s+)|(\s+$)/g,""<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">if</span>(is_global.toLowerCase()=="g"<span style="color: #000000;">)
+            {
+                result </span>= result.replace(/\s/g,""<span style="color: #000000;">);
+             }
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> result;
+}
+
+</span>==================================================================================================<span style="color: #000000;">
+js去除输入框中所有的空格和禁止输入空格的方法
+</span>&lt;span style="font-family: Arial, Helvetica, sans-serif;"&gt;
+      &lt;input type="password" name="password" id="password" onkeydown="return banInputSapce(event);" onKeyup="return inputSapceTrim(event,this);" /&gt;
+&lt;/span&gt;  205 
+<span style="color: #008000;">/*</span><span style="color: #008000;">*  207 * 是否去除所有空格  208 * @param str  209 * @param is_global 如果为g或者G去除所有的  210 * @returns  211 </span><span style="color: #008000;">*/</span>  212 <span style="color: #0000ff;">function</span> Trim(str,is_global)  213 {  214 <span style="color: #0000ff;">var</span> result;  215 result = str.replace(/(^\s+)|(\s+$)/g,"");  216 <span style="color: #0000ff;">if</span>(is_global.toLowerCase()=="g")  217 {  218 result = result.replace(/\s/g,"");  219 }  220 <span style="color: #0000ff;">return</span> result;  221 }  222 
+<span style="color: #008000;">/*</span><span style="color: #008000;">*  224 * 空格输入去除  225 * @param e  226 * @returns {Boolean}  227 </span><span style="color: #008000;">*/</span>  228 <span style="color: #0000ff;">function</span> inputSapceTrim(e,this_temp)  229 {  230 this_temp.value = Trim(this_temp.value,"g");  231 <span style="color: #0000ff;">var</span> keynum;  232 <span style="color: #0000ff;">if</span>(window.event) <span style="color: #008000;">//</span><span style="color: #008000;"> IE </span>
+{  234 keynum = e.keyCode  235 }  236 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(e.which) <span style="color: #008000;">//</span><span style="color: #008000;"> Netscape/Firefox/Opera </span>
+{  238 keynum = e.which  239 }  240 <span style="color: #0000ff;">if</span>(keynum == 32){  241 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span>;  242 }  243 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span>;  244 }  245 <span style="color: #008000;">/*</span><span style="color: #008000;">*  246 * 禁止空格输入  247 * @param e  248 * @returns {Boolean}  249 </span><span style="color: #008000;">*/</span>  250 <span style="color: #0000ff;">function</span> banInputSapce(e)  251 {  252 <span style="color: #0000ff;">var</span> keynum;  253 <span style="color: #0000ff;">if</span>(window.event) <span style="color: #008000;">//</span><span style="color: #008000;"> IE </span>
+{  255 keynum = e.keyCode  256 }  257 <span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(e.which) <span style="color: #008000;">//</span><span style="color: #008000;"> Netscape/Firefox/Opera </span>
+{  259 keynum = e.which  260 }  261 <span style="color: #0000ff;">if</span>(keynum == 32){  262 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">false</span>;  263 }  264 <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span>;  265 }  266</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

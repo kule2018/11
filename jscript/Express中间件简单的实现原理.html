@@ -1,0 +1,135 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Express中间件简单的实现原理' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Express中间件简单的实现原理</center></div><div class='banquan'>原文出处:本文由博客园博主apy提供。<br/>
+原文连接:https://www.cnblogs.com/qiqingfu/p/10893513.html</div><br>
+    <p>上一篇理解Express的使用之后, 再总结一篇Express中间件的简单实现原理。</p>
+<p>我们知道Express中间件就是一个个的函数, 那么怎么让这些函数有序的执行呢? 那就需要我们调用 <code>next</code> 函数。其实 <code>next</code>函数调用的就是下一个中间件函数。</p>
+<p>以下代码实现了简单的 <code>app.use</code> 注册中间件, 以及 <code>get</code>、<code>post</code>方式的中间件。其他请求方式的中间件实现同理</p>
+<p>核心代码:</p>
+<pre><code><code>const next = () =&gt; {
+    const stack = stacks.shift()
+    if(stack) {
+        stack(req, res, next)
+    }
+}
+next()</code></pre>
+<p>stacks就是一个数组队列, 存放所有符合规则的中间件函数。遵循<code>先进先出</code>的原则。也就是最先注册的中间件函数最先执行。</p>
+<h4 id="实现代码">实现代码</h4>
+<pre><code><code>const http = require(&#39;http&#39;)
+const slice = Array.prototype.slice
+
+ class Express {
+     constructor() {
+        this.router = {
+            all: [], // 匹配所有额中间件函数
+            get: [],
+            post: []
+        }
+     }
+
+     /**
+      * 这里整合中间件
+      * @param {string} path 
+      * @returns {object}
+      */
+     middlewareHandler(path) {
+        const info = {}
+        if (typeof path === &#39;string&#39;) {
+            info.path = path
+            info.stack = slice.call(arguments, 1)  // 中间件数组
+        } else {
+            info.path = &#39;/&#39;
+            info.stack = slice.call(arguments, 0)
+        }
+
+        return info
+     }
+
+     use() {
+        const allStack = this.middlewareHandler(...arguments)
+        this.router.all.push(allStack)
+     }
+
+     get() {
+        const getStack = this.middlewareHandler(...arguments)
+        this.router.get.push(getStack)
+     }
+
+     post() {
+        const postStack = this.middlewareHandler(...arguments)
+        this.router.post.push(postStack)
+     }
+
+      /**
+       * 
+       * @param {string} method 
+       * @param {string} url
+       * @returns {Array} 
+       */
+     accordStack(method, url) {
+        let stacks = []
+        stacks = stacks.concat(this.router.all)
+        stacks = stacks.concat(this.router[method])
+        return stacks
+        .filter(stack =&gt; {
+            return url.indexOf(stack.path) !== -1
+        }).map(item =&gt; item.stack[0])
+     }
+
+     handler(req, res, stacks) {
+         // 函数表达式
+        const next = () =&gt; {
+            const stack = stacks.shift()
+            if(stack) {
+                stack(req, res, next)
+            }
+        }
+        next()
+     }
+
+     callback() {
+        return (req, res) =&gt; {
+            res.json = data =&gt; {
+                res.setHeader(&#39;Content-Type&#39;, &#39;application/json&#39;)
+                res.end(JSON.stringify(data))
+            }
+            
+            // 拿到请求的方法和url, 对中间件函数进行筛选
+            const {method, url} = req
+            const stacks = this.accordStack(method.toLowerCase(), url)
+            this.handler(req, res, stacks)
+        } 
+     }
+
+     listen(...args) {
+         const server = http.createServer(this.callback())
+         server.listen(...args)
+     }
+ }
+
+ // 工厂模式, 导出一个实例对象
+module.exports = () =&gt; {
+    return new Express()
+}</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

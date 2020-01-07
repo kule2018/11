@@ -1,0 +1,547 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue组件初始化过程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue组件初始化过程</center></div><div class='banquan'>原文出处:本文由博客园博主Gerryli提供。<br/>
+原文连接:https://www.cnblogs.com/gerry2019/p/12051148.html</div><br>
+    <p>　　之前文章有写到<a title="Vue组件实例化过程" href="https://www.cnblogs.com/gerry2019/p/12001661.html" target="_blank">vue构造函数的实例化过程</a>，只是对vue实例做了个粗略的描述，并没有说明vue组件实例化的过程。本文主要对vue组件的实例化过程做一些简要的描述。</p>
+<p>　　组件的实例化与vue构造函数的实例化，大部分是类似的，vue的实例可以当做一个根组件，普通组件的实例化可以当做子组件。真实的DOM是一个树形结构，虚拟DOM本质只是真实DOM的抽象，也是一个树形结构。简单来说，整个vue工程的实例化过程如下：</p>
+<p>　　<img src="./images/vue组件初始化过程0.png" alt="" /></p>
+<p>&nbsp;　　如上图所示，在调用render函数时，会依次调用createElement方法，createElement方法的代码如下，主要作用就是生成vnode。</p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">function</span><span style="color: #000000;"> _createElement (
+  context: Component,
+  tag</span>?: string | Class&lt;Component&gt; | Function |<span style="color: #000000;"> Object,
+  data</span>?<span style="color: #000000;">: VNodeData,
+  children</span>?<span style="color: #000000;">: any,
+  normalizationType</span>?<span style="color: #000000;">: number
+): VNode </span>| Array&lt;VNode&gt;<span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">if</span> (isDef(data) &amp;&amp;<span style="color: #000000;"> isDef((data: any).__ob__)) {
+    process.env.NODE_ENV </span>!== 'production' &amp;&amp;<span style="color: #000000;"> warn(
+      `Avoid using observed data object as vnode data: ${JSON.stringify(data)}\n` </span>+
+      'Always create fresh vnode data objects in each render!'<span style="color: #000000;">,
+      context
+    )
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> createEmptyVNode()
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> object syntax in v-bind</span>
+  <span style="color: #0000ff;">if</span> (isDef(data) &amp;&amp;<span style="color: #000000;"> isDef(data.is)) {
+    tag </span>=<span style="color: #000000;"> data.is
+  }
+  </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">tag) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> in case of component :is set to falsy value</span>
+    <span style="color: #0000ff;">return</span><span style="color: #000000;"> createEmptyVNode()
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> warn against non-primitive key</span>
+  <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp;<span style="color: #000000;">
+    isDef(data) </span>&amp;&amp; isDef(data.key) &amp;&amp; !<span style="color: #000000;">isPrimitive(data.key)
+  ) {
+    </span><span style="color: #0000ff;">if</span> (!__WEEX__ || !('@binding' <span style="color: #0000ff;">in</span><span style="color: #000000;"> data.key)) {
+      warn(
+        </span>'Avoid using non-primitive value as key, ' +
+        'use string/number value instead.'<span style="color: #000000;">,
+        context
+      )
+    }
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> support single function children as default scoped slot</span>
+  <span style="color: #0000ff;">if</span> (Array.isArray(children) &amp;&amp;
+    <span style="color: #0000ff;">typeof</span> children[0] === 'function'<span style="color: #000000;">
+  ) {
+    data </span>= data ||<span style="color: #000000;"> {}
+    data.scopedSlots </span>= { <span style="color: #0000ff;">default</span>: children[0<span style="color: #000000;">] }
+    children.length </span>= 0<span style="color: #000000;">
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 组件格式化</span>
+  <span style="color: #0000ff;">if</span> (normalizationType ===<span style="color: #000000;"> ALWAYS_NORMALIZE) {
+    children </span>=<span style="color: #000000;"> normalizeChildren(children)
+  } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (normalizationType ===<span style="color: #000000;"> SIMPLE_NORMALIZE) {
+    children </span>=<span style="color: #000000;"> simpleNormalizeChildren(children)
+  }
+  let vnode, ns
+  </span><span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> tag === 'string'<span style="color: #000000;">) {
+    let Ctor
+    ns </span>= (context.$vnode &amp;&amp; context.$vnode.ns) ||<span style="color: #000000;"> config.getTagNamespace(tag)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 普通的HTML标签</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (config.isReservedTag(tag)) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> platform built-in elements</span>
+      <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp; isDef(data) &amp;&amp;<span style="color: #000000;"> isDef(data.nativeOn)) {
+        warn(
+          `The .native modifier </span><span style="color: #0000ff;">for</span> v-on is only valid on components but it was used on &lt;${tag}&gt;<span style="color: #000000;">.`,
+          context
+        )
+      }
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建一个普通的DOM节点</span>
+      vnode = <span style="color: #0000ff;">new</span><span style="color: #000000;"> VNode(
+        config.parsePlatformTagName(tag), data, children,
+        undefined, undefined, context
+      )
+    } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> ((!data || !data.pre) &amp;&amp; isDef(Ctor = resolveAsset(context.$options, 'components'<span style="color: #000000;">, tag))) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> component</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> 创建组件</span>
+      vnode =<span style="color: #000000;"> createComponent(Ctor, data, context, children, tag)
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> unknown or unlisted namespaced elements</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> check at runtime because it may get assigned a namespace when its</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> parent normalizes children</span>
+      vnode = <span style="color: #0000ff;">new</span><span style="color: #000000;"> VNode(
+        tag, data, children,
+        undefined, undefined, context
+      )
+    }
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> direct component options / constructor</span>
+    vnode =<span style="color: #000000;"> createComponent(tag, data, context, children)
+  }
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Array.isArray(vnode)) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> vnode
+  } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(vnode)) {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(ns)) applyNS(vnode, ns)
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(data)) registerDeepBindings(data)
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> vnode
+  } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> createEmptyVNode()
+  }
+}</span></pre>
+</div>
+<div>　　从上述代码中可以看出，如果存在tag且tag的类型为string，会走一些判断逻辑，主要就是判断两类，一类是HTML标签，通过config.isReservedTag判断是否是HTML标签，另外一类就是在当前实例作用域options中的component中查找，是否存在对该类标签的声明，存在，即使组件，详细流程图如下图所示：</div>
+<div><img src="./images/vue组件初始化过程1.png" alt="" />
+<p>&nbsp;　　如上图所示，主流程与实例化Vue类似，只是在实例化Vue的过程中，额外走了一个创建组件的分支，其中createComponent方法实现如下：</p>
+<div class="cnblogs_code">
+<pre><code>export <span style="color: #0000ff;">function</span><span style="color: #000000;"> createComponent (
+  Ctor: Class</span>&lt;Component&gt; | Function | Object | <span style="color: #0000ff;">void</span><span style="color: #000000;">,
+  data: </span>?<span style="color: #000000;">VNodeData,
+  context: Component,
+  children: </span>?Array&lt;VNode&gt;<span style="color: #000000;">,
+  tag</span>?<span style="color: #000000;">: string
+): VNode </span>| Array&lt;VNode&gt; | <span style="color: #0000ff;">void</span><span style="color: #000000;"> {
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isUndef(Ctor)) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取Vue基础构造函数，在initGlobal中，将vue基础构造方法赋值给_base属性</span>
+  const baseCtor =<span style="color: #000000;"> context.$options._base
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> plain options object: turn it into a constructor</span>
+  <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isObject(Ctor)) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将组件的配置，合并到构造方法中，extend是定义在Vue构造方法中的</span>
+    Ctor =<span style="color: #000000;"> baseCtor.extend(Ctor)
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> if at this stage it's not a constructor or an async component factory,</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> reject.</span>
+  <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">typeof</span> Ctor !== 'function'<span style="color: #000000;">) {
+    </span><span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production'<span style="color: #000000;">) {
+      warn(`Invalid Component definition: ${String(Ctor)}`, context)
+    }
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> async component</span>
+<span style="color: #000000;">  let asyncFactory
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isUndef(Ctor.cid)) {
+    asyncFactory </span>=<span style="color: #000000;"> Ctor
+    Ctor </span>=<span style="color: #000000;"> resolveAsyncComponent(asyncFactory, baseCtor)
+    </span><span style="color: #0000ff;">if</span> (Ctor ===<span style="color: #000000;"> undefined) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> return a placeholder node for async component, which is rendered</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> as a comment node but preserves all the raw information for the node.</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> the information will be used for async server-rendering and hydration.</span>
+      <span style="color: #0000ff;">return</span><span style="color: #000000;"> createAsyncPlaceholder(
+        asyncFactory,
+        data,
+        context,
+        children,
+        tag
+      )
+    }
+  }
+
+  data </span>= data ||<span style="color: #000000;"> {}
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> resolve constructor options in case global mixins are applied after</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> component constructor creation</span>
+<span style="color: #000000;">  resolveConstructorOptions(Ctor)
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> transform component v-model data into props &amp; events</span>
+  <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(data.model)) {
+    transformModel(Ctor.options, data)
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> extract props</span>
+  const propsData =<span style="color: #000000;"> extractPropsFromVNodeData(data, Ctor, tag)
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> functional component</span>
+  <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isTrue(Ctor.options.functional)) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> createFunctionalComponent(Ctor, propsData, data, context, children)
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> extract listeners, since these needs to be treated as</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> child component listeners instead of DOM listeners</span>
+  const listeners =<span style="color: #000000;"> data.on
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> replace with listeners with .native modifier</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> so it gets processed during parent component patch.</span>
+  data.on =<span style="color: #000000;"> data.nativeOn
+
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isTrue(Ctor.options.abstract)) {
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> abstract components do not keep anything</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> other than props &amp; listeners &amp; slot</span>
+
+    <span style="color: #008000;">//</span><span style="color: #008000;"> work around flow</span>
+    const slot =<span style="color: #000000;"> data.slot
+    data </span>=<span style="color: #000000;"> {}
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (slot) {
+      data.slot </span>=<span style="color: #000000;"> slot
+    }
+  }
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> install component management hooks onto the placeholder node</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 初始化组件的钩子函数</span>
+<span style="color: #000000;">  installComponentHooks(data)
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> return a placeholder vnode</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> 体现了组件名称在这里面的作用</span>
+  const name = Ctor.options.name ||<span style="color: #000000;"> tag
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建vnode</span>
+  const vnode = <span style="color: #0000ff;">new</span><span style="color: #000000;"> VNode(
+    `vue</span>-component-${Ctor.cid}${name ? `-${name}` : ''<span style="color: #000000;">}`,
+    data, undefined, undefined, undefined, context,
+    { Ctor, propsData, listeners, tag, children },
+    asyncFactory
+  )
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Weex specific: invoke recycle-list optimized @render function for</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> extracting cell-slot template.</span>
+  <span style="color: #008000;">//</span><span style="color: #008000;"> https://github.com/Hanks10100/weex-native-directive/tree/master/component</span>
+  <span style="color: #008000;">/*</span><span style="color: #008000;"> istanbul ignore if </span><span style="color: #008000;">*/</span>
+  <span style="color: #0000ff;">if</span> (__WEEX__ &amp;&amp;<span style="color: #000000;"> isRecyclableComponent(vnode)) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> renderRecyclableComponentTemplate(vnode)
+  }
+
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> vnode
+}</span></pre>
+</div>
+<p>&nbsp;　　从上述代码中可以看出，createComponent主要作用就是返回一个vnode，中间的流程主要作用有两点，一是<strong>组装组件的构造方法，用于实例化组件</strong>，另外一点就是<strong>调用installComponentHooks，初始化组件的生命周期入口</strong>。组件的声明周期钩子虽然与vue根实例一致，但是调用的位置还是有一定的差别，具体有以下几点：</p>
+<p>　　1. Vue构造方法是在src\core\instance\index.js中，而组件的构造方法是基于Vue根构造方法，在上述createComponet中调用Vue.extend方法进行组装而成，本质上都是调用Vue实例上的_init方法，但是组件的构造方法VueComponent声明了一些属于自己的自定义属性，具体实现代码如下：</p>
+<div class="cnblogs_code">
+<pre><code> Vue.extend = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (extendOptions: Object): Function {
+    extendOptions </span>= extendOptions ||<span style="color: #000000;"> {}
+    const Super </span>= <span style="color: #0000ff;">this</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 父级实例cid</span>
+    const SuperId =<span style="color: #000000;"> Super.cid
+    const cachedCtors </span>= extendOptions._Ctor || (extendOptions._Ctor =<span style="color: #000000;"> {})
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (cachedCtors[SuperId]) {
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> cachedCtors[SuperId]
+    }
+
+    const name </span>= extendOptions.name ||<span style="color: #000000;"> Super.options.name
+    </span><span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production' &amp;&amp;<span style="color: #000000;"> name) {
+      validateComponentName(name)
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 定义vue初始化方法，和实例化Vue走同一个路线</span>
+    const Sub = <span style="color: #0000ff;">function</span><span style="color: #000000;"> VueComponent (options) {
+      </span><span style="color: #0000ff;">this</span><span style="color: #000000;">._init(options)
+    }
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> super -&gt; this -&gt; Vue 继承Vue构造方法中的属性</span>
+    Sub.prototype =<span style="color: #000000;"> Object.create(Super.prototype)
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 指定子组件的构造方法为Sub -&gt; VueComponent</span>
+    Sub.prototype.constructor =<span style="color: #000000;"> Sub
+    Sub.cid </span>= cid++
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 合并组件属性</span>
+    Sub.options =<span style="color: #000000;"> mergeOptions(
+      Super.options,
+      extendOptions
+    )
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 定义父级作用域</span>
+    Sub['super'] =<span style="color: #000000;"> Super
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> For props and computed properties, we define the proxy getters on</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> the Vue instances at extension time, on the extended prototype. This</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> avoids Object.defineProperty calls for each instance created.</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (Sub.options.props) {
+      initProps(Sub)
+    }
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (Sub.options.computed) {
+      initComputed(Sub)
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> allow further extension/mixin/plugin usage</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> 子组件的实例，保持对vue构造方法的引用</span>
+    Sub.extend =<span style="color: #000000;"> Super.extend
+    Sub.mixin </span>=<span style="color: #000000;"> Super.mixin
+    Sub.use </span>=<span style="color: #000000;"> Super.use
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> create asset registers, so extended classes</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> can have their private assets too.</span>
+    ASSET_TYPES.forEach(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (type) {
+      Sub[type] </span>=<span style="color: #000000;"> Super[type]
+    })
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> enable recursive self-lookup</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (name) {
+      Sub.options.components[name] </span>=<span style="color: #000000;"> Sub
+    }
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> keep a reference to the super options at extension time.</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> later at instantiation we can check if Super's options have</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> been updated.</span>
+    Sub.superOptions =<span style="color: #000000;"> Super.options
+    Sub.extendOptions </span>=<span style="color: #000000;"> extendOptions
+    Sub.sealedOptions </span>=<span style="color: #000000;"> extend({}, Sub.options)
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> cache constructor</span>
+    cachedCtors[SuperId] =<span style="color: #000000;"> Sub
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Sub
+  }
+}</span></pre>
+</div>
+<p>　　2. Vue根实例的模板解析与DOM挂载入口不一致，在_init方法中，提供了对根实例的模板解析与DOM挂载，而组件没有。在创建组件时，调用了installComponentHooks，componet hooks主要包含init、prepatch、insert、destory，<strong>init在实例化组件时调用，insert是插入DOM时调用，destory是在销毁组件时调用，而prepatch是在更新组件时调用</strong>，具体如下：</p>
+<div class="cnblogs_code">
+<pre><code>const componentVNodeHooks =<span style="color: #000000;"> {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 组件初始化方法</span>
+  init (vnode: VNodeWithData, hydrating: <span style="color: #0000ff;">boolean</span>): ?<span style="color: #0000ff;">boolean</span><span style="color: #000000;"> {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (
+      vnode.componentInstance </span>&amp;&amp;
+      !vnode.componentInstance._isDestroyed &amp;&amp;<span style="color: #000000;">
+      vnode.data.keepAlive
+    ) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> kept-alive components, treat as a patch</span>
+      const mountedNode: any = vnode <span style="color: #008000;">//</span><span style="color: #008000;"> work around flow</span>
+<span style="color: #000000;">      componentVNodeHooks.prepatch(mountedNode, mountedNode)
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实例化组件</span>
+      const child = vnode.componentInstance =<span style="color: #000000;"> createComponentInstanceForVnode(
+        vnode,
+        activeInstance
+      )
+      </span><span style="color: #008000;">//</span><span style="color: #008000;">挂载组件</span>
+      child.$mount(hydrating ?<span style="color: #000000;"> vnode.elm : undefined, hydrating)
+    }
+  },
+
+  prepatch (oldVnode: MountedComponentVNode, vnode: MountedComponentVNode) {
+    const options </span>=<span style="color: #000000;"> vnode.componentOptions
+    const child </span>= vnode.componentInstance =<span style="color: #000000;"> oldVnode.componentInstance
+    updateChildComponent(
+      child,
+      options.propsData, </span><span style="color: #008000;">//</span><span style="color: #008000;"> updated props</span>
+      options.listeners, <span style="color: #008000;">//</span><span style="color: #008000;"> updated listeners</span>
+      vnode, <span style="color: #008000;">//</span><span style="color: #008000;"> new parent vnode</span>
+      options.children <span style="color: #008000;">//</span><span style="color: #008000;"> new children</span>
+<span style="color: #000000;">    )
+  },
+
+  insert (vnode: MountedComponentVNode) {
+    const { context, componentInstance } </span>=<span style="color: #000000;"> vnode
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">componentInstance._isMounted) {
+      componentInstance._isMounted </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">
+      callHook(componentInstance, </span>'mounted'<span style="color: #000000;">)
+    }
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (vnode.data.keepAlive) {
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (context._isMounted) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> vue-router#1212</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> During updates, a kept-alive component's child components may</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> change, so directly walking the tree here may call activated hooks</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> on incorrect children. Instead we push them into a queue which will</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> be processed after the whole patch process ended.</span>
+<span style="color: #000000;">        queueActivatedComponent(componentInstance)
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        activateChildComponent(componentInstance, </span><span style="color: #0000ff;">true</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> direct </span><span style="color: #008000;">*/</span><span style="color: #000000;">)
+      }
+    }
+  },
+
+  destroy (vnode: MountedComponentVNode) {
+    const { componentInstance } </span>=<span style="color: #000000;"> vnode
+    </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">componentInstance._isDestroyed) {
+      </span><span style="color: #0000ff;">if</span> (!<span style="color: #000000;">vnode.data.keepAlive) {
+        componentInstance.$destroy()
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        deactivateChildComponent(componentInstance, </span><span style="color: #0000ff;">true</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> direct </span><span style="color: #008000;">*/</span><span style="color: #000000;">)
+      }
+    }
+  }
+}</span></pre>
+</div>
+<p>　　如上述代码所示，实例化组件调用的是createComponentInstanceForVnode,createComponentInstanceForVnode代码如下，调用在Vue.extend中组装的组件构造方法VueComponent，初始化调用的还是Vue原型上的_init方法，大致流程与Vue初始化类似，只是解析模板有所区别，组件解析模板调用的是child.$mount。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 创建组件的作用域，执行组件的_init方法，同vue实例化过程</span>
+export <span style="color: #0000ff;">function</span><span style="color: #000000;"> createComponentInstanceForVnode (
+  vnode: any, </span><span style="color: #008000;">//</span><span style="color: #008000;"> we know it's MountedComponentVNode but flow doesn't</span>
+  parent: any, <span style="color: #008000;">//</span><span style="color: #008000;"> activeInstance in lifecycle state</span>
+<span style="color: #000000;">): Component {
+  const options: InternalComponentOptions </span>=<span style="color: #000000;"> {
+    _isComponent: </span><span style="color: #0000ff;">true</span><span style="color: #000000;">,
+    _parentVnode: vnode,
+    parent
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> check inline-template render functions</span>
+  const inlineTemplate =<span style="color: #000000;"> vnode.data.inlineTemplate
+  </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(inlineTemplate)) {
+    options.render </span>=<span style="color: #000000;"> inlineTemplate.render
+    options.staticRenderFns </span>=<span style="color: #000000;"> inlineTemplate.staticRenderFns
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 实例化组件的构造方法</span>
+  <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span><span style="color: #000000;"> vnode.componentOptions.Ctor(options)
+}</span></pre>
+</div>
+<p>　　在installComponentHooks中，在vnode的data属性中初始化了hooks,后面在_patch__中，会调用patch.js中声明的createComponent -&gt; init -&gt; 实例化组件。组件实例化完成后，会将真实DOM元素，插入到上一级元素。patch.js中的createComponent方法如下：</p>
+<div class="cnblogs_code">
+<pre><code>  <span style="color: #008000;">//</span><span style="color: #008000;"> 创建组件，如果节点类型是组件，则直接走创建组件的方法</span>
+  <span style="color: #0000ff;">function</span><span style="color: #000000;"> createComponent (vnode, insertedVnodeQueue, parentElm, refElm) {
+    let i </span>=<span style="color: #000000;"> vnode.data
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 判断是否存在组件的生命周期，存在，即需要走创建组件的流程</span>
+    <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(i)) {
+      const isReactivated </span>= isDef(vnode.componentInstance) &amp;&amp;<span style="color: #000000;"> i.keepAlive
+      </span><span style="color: #0000ff;">if</span> (isDef(i = i.hook) &amp;&amp; isDef(i =<span style="color: #000000;"> i.init)) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 执行component的init方法，获取组件的实例</span>
+        i(vnode, <span style="color: #0000ff;">false</span> <span style="color: #008000;">/*</span><span style="color: #008000;"> hydrating </span><span style="color: #008000;">*/</span><span style="color: #000000;">)
+      }
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> after calling the init hook, if the vnode is a child component</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> it should've created a child instance and mounted it. the child</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> component also has set the placeholder vnode's elm.</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> in that case we can just return the element and be done.</span>
+      <span style="color: #008000;">//</span><span style="color: #008000;"> 组件的vnode对象中存在当前组件的作用域</span>
+      <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(vnode.componentInstance)) {
+        initComponent(vnode, insertedVnodeQueue)
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将子组件插入到父节点中</span>
+<span style="color: #000000;">        insert(parentElm, vnode.elm, refElm)
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isTrue(isReactivated)) {
+          reactivateComponent(vnode, insertedVnodeQueue, parentElm, refElm)
+        }
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span><span style="color: #000000;">
+      }
+    }
+  }</span></pre>
+</div>
+<p>　　在实例化完成后，会将生成的真实DOM元素插入到上级元素中，vue在获取真实DOM时，<strong>是从低往上，一级级添加，最终将渲染的元素添加到DOM body</strong>中，__patch__主流程如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">function</span><span style="color: #000000;"> patch (oldVnode, vnode, hydrating, removeOnly) {
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isUndef(vnode)) {
+      </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(oldVnode)) invokeDestroyHook(oldVnode)
+      </span><span style="color: #0000ff;">return</span><span style="color: #000000;">
+    }
+
+    let isInitialPatch </span>= <span style="color: #0000ff;">false</span><span style="color: #000000;">
+    const insertedVnodeQueue </span>=<span style="color: #000000;"> []
+
+    </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isUndef(oldVnode)) {
+      </span><span style="color: #008000;">//</span><span style="color: #008000;"> empty mount (likely as component), create new root element</span>
+      isInitialPatch = <span style="color: #0000ff;">true</span><span style="color: #000000;">
+      createElm(vnode, insertedVnodeQueue)
+    } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+      const isRealElement </span>=<span style="color: #000000;"> isDef(oldVnode.nodeType)
+      </span><span style="color: #0000ff;">if</span> (!isRealElement &amp;&amp;<span style="color: #000000;"> sameVnode(oldVnode, vnode)) {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> patch existing root node</span>
+        patchVnode(oldVnode, vnode, insertedVnodeQueue, <span style="color: #0000ff;">null</span>, <span style="color: #0000ff;">null</span><span style="color: #000000;">, removeOnly)
+      } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+        </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isRealElement) {
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> mounting to a real element</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> check if this is server-rendered content and if we can perform</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> a successful hydration.</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> nodeType 1 元素 3 文字</span>
+          <span style="color: #0000ff;">if</span> (oldVnode.nodeType === 1 &amp;&amp;<span style="color: #000000;"> oldVnode.hasAttribute(SSR_ATTR)) {
+            oldVnode.removeAttribute(SSR_ATTR)
+            hydrating </span>= <span style="color: #0000ff;">true</span><span style="color: #000000;">
+          }
+          </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (isTrue(hydrating)) {
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (hydrate(oldVnode, vnode, insertedVnodeQueue)) {
+              invokeInsertHook(vnode, insertedVnodeQueue, </span><span style="color: #0000ff;">true</span><span style="color: #000000;">)
+              </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> oldVnode
+            } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span> (process.env.NODE_ENV !== 'production'<span style="color: #000000;">) {
+              warn(
+                </span>'The client-side rendered virtual DOM tree is not matching ' +
+                'server-rendered content. This is likely caused by incorrect ' +
+                'HTML markup, for example nesting block-level elements inside ' +
+                '&lt;p&gt;, or missing &lt;tbody&gt;. Bailing hydration and performing ' +
+                'full client-side render.'<span style="color: #000000;">
+              )
+            }
+          }
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> either not server-rendered, or hydration failed.</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> create an empty node and replace it</span>
+          oldVnode =<span style="color: #000000;"> emptyNodeAt(oldVnode)
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> replacing existing element</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> 获取老旧节点</span>
+        const oldElm =<span style="color: #000000;"> oldVnode.elm
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 获取老旧节点的父节点</span>
+        const parentElm =<span style="color: #000000;"> nodeOps.parentNode(oldElm)
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> create new node</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> 将虚拟DOM转换成真实DOM</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> 传入父级节点，一级级添加</span>
+<span style="color: #000000;">        createElm(
+          vnode,
+          insertedVnodeQueue,
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> extremely rare edge case: do not insert if old element is in a</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> leaving transition. Only happens when combining transition +</span>
+          <span style="color: #008000;">//</span><span style="color: #008000;"> keep-alive + HOCs. (#4590)</span>
+          oldElm._leaveCb ? <span style="color: #0000ff;">null</span><span style="color: #000000;"> : parentElm,
+          nodeOps.nextSibling(oldElm)
+        )
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> update parent placeholder node element, recursively</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(vnode.parent)) {
+          let ancestor </span>=<span style="color: #000000;"> vnode.parent
+          const patchable </span>=<span style="color: #000000;"> isPatchable(vnode)
+          </span><span style="color: #0000ff;">while</span><span style="color: #000000;"> (ancestor) {
+            </span><span style="color: #0000ff;">for</span> (let i = 0; i &lt; cbs.destroy.length; ++<span style="color: #000000;">i) {
+              cbs.destroy[i](ancestor)
+            }
+            ancestor.elm </span>=<span style="color: #000000;"> vnode.elm
+            </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (patchable) {
+              </span><span style="color: #0000ff;">for</span> (let i = 0; i &lt; cbs.create.length; ++<span style="color: #000000;">i) {
+                cbs.create[i](emptyNode, ancestor)
+              }
+              </span><span style="color: #008000;">//</span><span style="color: #008000;"> #6513</span>
+              <span style="color: #008000;">//</span><span style="color: #008000;"> invoke insert hooks that may have been merged by create hooks.</span>
+              <span style="color: #008000;">//</span><span style="color: #008000;"> e.g. for directives that uses the "inserted" hook.</span>
+              const insert =<span style="color: #000000;"> ancestor.data.hook.insert
+              </span><span style="color: #0000ff;">if</span><span style="color: #000000;"> (insert.merged) {
+                </span><span style="color: #008000;">//</span><span style="color: #008000;"> start at index 1 to avoid re-invoking component mounted hook</span>
+                <span style="color: #0000ff;">for</span> (let i = 1; i &lt; insert.fns.length; i++<span style="color: #000000;">) {
+                  insert.fns[i]()
+                }
+              }
+            } </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+              registerRef(ancestor)
+            }
+            ancestor </span>=<span style="color: #000000;"> ancestor.parent
+          }
+        }
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> destroy old node</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;"> 移除老旧节点</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(parentElm)) {
+          removeVnodes([oldVnode], </span>0, 0<span style="color: #000000;">)
+        } </span><span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (isDef(oldVnode.tag)) {
+          invokeDestroyHook(oldVnode)
+        }
+      }
+    }
+
+    invokeInsertHook(vnode, insertedVnodeQueue, isInitialPatch)
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> vnode.elm
+  }</span></pre>
+</div>
+<p>　　模板的解析，是先把<strong>模板解析成HTML，然后再讲老旧节点移除。</strong></p>
+</div>
+<div>&nbsp;</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

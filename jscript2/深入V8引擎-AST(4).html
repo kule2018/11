@@ -1,0 +1,144 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-AST(4)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-AST(4)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/11131749.html</div><br>
+    <p>(再声明一下，为了简单暴力的讲解AST的转换过程，这里的编译内容以"'Hello' + ' World'"作为案例)</p>
+<p>上一篇基本上花了一整篇讲完了scanner的Init方法，接下来就是Scan了，Init的方法基本上都是在Stream类下操作，但是本节回到了scanner层级。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * Scan
+ * 仅仅只涉及next_指针
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">void</span><span style="color: #000000;"> Scanner::Scan() { Scan(next_); }
+</span><span style="color: #0000ff;">void</span> Scanner::Scan(TokenDesc*<span style="color: #000000;"> next_desc) {
+  next_desc</span>-&gt;token =<span style="color: #000000;"> ScanSingleToken();
+  </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+   * 设置当前词法的结束位置
+   </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+  next_desc</span>-&gt;location.end_pos =<span style="color: #000000;"> source_pos();
+}</span></pre>
+</div>
+<p>虽然这里只有简简单单的两步(砍掉了所有的CHECK和DEBUG内容)，但这个ScanSingleToken已经够讲了。从字面意思理解，就是对单个词法的解析，源码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 这个ScanSingleToken方法可TM太长了
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+V8_INLINE Token::Value Scanner::ScanSingleToken() {
+  Token::Value token;
+  </span><span style="color: #0000ff;">do</span><span style="color: #000000;"> {
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 设置当前词法的起始位置
+     </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    next().location.beg_pos </span>=<span style="color: #000000;"> source_pos();
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * Ascii码是从0 ~ 127
+     * 简单的判断一下合法性
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #0000ff;">if</span> (V8_LIKELY(static_cast&lt;unsigned&gt;(c0_) &lt;=<span style="color: #000000;"> kMaxAscii)) {
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+       * 这是一个mapping数组
+       * 对所有的Unicode =&gt; Ascii做了映射
+       </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+      token </span>=<span style="color: #000000;"> one_char_tokens[c0_];
+      </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+       * 包含非常多的case...先不展开了
+       * 根据Token类型进行不同的处理
+       </span><span style="color: #008000;">*/</span>
+      <span style="color: #0000ff;">switch</span><span style="color: #000000;"> (token) {
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Token::LPAREN:
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Token::RPAREN:
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 其他单符号...
+          </span><span style="color: #008000;">//</span><span style="color: #008000;"> One character tokens.</span>
+          <span style="color: #0000ff;">return</span><span style="color: #000000;"> Select(token);
+        </span><span style="color: #0000ff;">case</span><span style="color: #000000;"> Token::STRING:
+          </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> ScanString();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;"> 更多...</span>
+        <span style="color: #0000ff;">default</span><span style="color: #000000;">:
+          UNREACHABLE();
+      }
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 处理结束符、空格、异常符号等特殊情况
+     </span><span style="color: #008000;">*/</span>
+    <span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+  } <span style="color: #0000ff;">while</span> (token ==<span style="color: #000000;"> Token::WHITESPACE);
+
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> token;
+}</span></pre>
+</div>
+<p>作为一个词法解析方法，长度其实还是可以接受的，已经删掉了大部分的case判断，由于本系列专注于"'Hello' + ' World'"的编译，所以留下了STRING类型。</p>
+<p>讲两个点，第一个是那个source_pos，位置的属性和方法是真的多，比较简单，看看就行了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 上一篇解析了第一个字符 所以pos移动到了1
+ * 然而记录location需要从头开始 所以这里做了一个偏移
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">static</span> <span style="color: #0000ff;">const</span> <span style="color: #0000ff;">int</span> kCharacterLookaheadBufferSize = <span style="color: #800080;">1</span><span style="color: #000000;">;
+</span><span style="color: #0000ff;">int</span><span style="color: #000000;"> source_pos() {
+  </span><span style="color: #0000ff;">return</span> static_cast&lt;<span style="color: #0000ff;">int</span>&gt;(source_-&gt;pos()) -<span style="color: #000000;"> kCharacterLookaheadBufferSize;
+}</span></pre>
+</div>
+<p>然后那个mapping数组可以稍微给一下出处，源码如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 总结起来就是GetOneCharToken(0),GetOneCharToken(1),...,GetOneCharToken(127)全部调用一遍
+ * 其中IsDecimalDigit负责判断是否是数字
+ * 而IsAsciiIdentifier负责判断是否是标识符，例如$、_、a-z等等
+ * 最后生成的one_char_tokens数组下标代表Unicode编码 值代表对应的Token类型
+ </span><span style="color: #008000;">*/</span>
+
+<span style="color: #0000ff;">#define</span> INT_0_TO_127_LIST(V)                                          \<span style="color: #000000;">
+V(</span><span style="color: #800080;">0</span>)   V(<span style="color: #800080;">1</span>)   V(<span style="color: #800080;">2</span>)   V(<span style="color: #800080;">3</span>)   V(<span style="color: #800080;">4</span>)   V(<span style="color: #800080;">5</span>)   V(<span style="color: #800080;">6</span>)   V(<span style="color: #800080;">7</span>)   V(<span style="color: #800080;">8</span>)   V(<span style="color: #800080;">9</span><span style="color: #000000;">)   \
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+V(<span style="color: #800080;">120</span>) V(<span style="color: #800080;">121</span>) V(<span style="color: #800080;">122</span>) V(<span style="color: #800080;">123</span>) V(<span style="color: #800080;">124</span>) V(<span style="color: #800080;">125</span>) V(<span style="color: #800080;">126</span>) V(<span style="color: #800080;">127</span><span style="color: #000000;">)
+
+</span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">const</span> constexpr Token::Value one_char_tokens[<span style="color: #800080;">128</span>] =<span style="color: #000000;"> {
+</span><span style="color: #0000ff;">#define</span> CALL_GET_SCAN_FLAGS(N) GetOneCharToken(N),<span style="color: #000000;">
+    INT_0_TO_127_LIST(CALL_GET_SCAN_FLAGS)
+</span><span style="color: #0000ff;">#undef</span> CALL_GET_SCAN_FLAGS<span style="color: #000000;">
+};
+
+constexpr Token::Value GetOneCharToken(</span><span style="color: #0000ff;">char</span><span style="color: #000000;"> c) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> clang-format off</span>
+  <span style="color: #0000ff;">return</span><span style="color: #000000;">
+    c </span>== <span style="color: #800000;">'</span><span style="color: #800000;">(</span><span style="color: #800000;">'</span> ?<span style="color: #000000;"> Token::LPAREN :
+    c </span>== <span style="color: #800000;">'</span><span style="color: #800000;">)</span><span style="color: #800000;">'</span> ?<span style="color: #000000;"> Token::RPAREN :
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> 其余字符...</span>
+    IsDecimalDigit(c) ?<span style="color: #000000;"> Token::NUMBER :
+    IsAsciiIdentifier(c) </span>?<span style="color: #000000;"> Token::IDENTIFIER :
+    Token::ILLEGAL;
+}</span></pre>
+</div>
+<p>之前说过，c0_代表的是当前解析字符的Unicode编码，于是这里直接通过数组索引查找其对应的类型，按照例子中，我们的字符是一个单引号，而单引号的类型如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+ * 单双引号均会被识别为字符串标记
+ * 而es6的模板字符串比较特殊 暂时不搞他
+ </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+c </span>== <span style="color: #800000;">'</span><span style="color: #800000;">"</span><span style="color: #800000;">'</span> ?<span style="color: #000000;"> Token::STRING :
+c </span>== <span style="color: #800000;">'</span><span style="color: #800000;">\'</span><span style="color: #800000;">'</span> ?<span style="color: #000000;"> Token::STRING :
+c </span>== <span style="color: #800000;">'</span><span style="color: #800000;">`</span><span style="color: #800000;">'</span> ? Token::TEMPLATE_SPAN :</pre>
+</div>
+<p>所以，当前token被赋值为Token::STRING，因此，case分支进入ScanString的方法。这个方法内容比较多，下一篇讲吧，午休时间。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,93 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何在父级下访问v-slot的值——vuejs' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何在父级下访问v-slot的值——vuejs</center></div><div class='banquan'>原文出处:本文由博客园博主孑孓子提供。<br/>
+原文连接:https://www.cnblogs.com/handboy/p/11925635.html</div><br>
+    <p><!-- wp:heading --></p>
+<h2>关于作用域插槽v-slot的用法可以先看看文档</h2>
+<p><!-- /wp:heading --> <!-- wp:paragraph --></p>
+<p><a href="https://cn.vuejs.org/v2/guide/components-slots.html#%E4%BD%9C%E7%94%A8%E5%9F%9F%E6%8F%92%E6%A7%BD">https://cn.vuejs.org/v2/guide/components-slots.html#%E4%BD%9C%E7%94%A8%E5%9F%9F%E6%8F%92%E6%A7%BD</a></p>
+<p><!-- /wp:paragraph --> <!-- wp:heading --></p>
+<h2>现在我们进入正题</h2>
+<p><!-- /wp:heading --> <!-- wp:paragraph --></p>
+<p>我们用到一个第三方组件validate，这个第三方组件的插槽传了一个属性error值给我们，我们现在想要在父级中获得这个error值, 为了简单起见，我们创建一个validate组件作为测试。</p>
+<p><!-- /wp:paragraph --> <!-- wp:paragraph --></p>
+<p>我们觉得可以在v-slot下使用一个方法，把error传到父级去，不就行了吗，的确是可以的： <a href="https://jsfiddle.net/jswenjie/pxru6y2m/5/">https://jsfiddle.net/jswenjie/pxru6y2m/5/</a></p>
+<p>&nbsp;</p>
+<p><!-- /wp:paragraph --> <!-- wp:html --> <!-- /wp:html --> <!-- wp:heading --></p>
+<h2>问题出现</h2>
+<p><!-- /wp:heading --> <!-- wp:paragraph --></p>
+<p>我们的页面有多个validate的情况下，需要搜集所有的error，那么我们可以用个数组：<a href="https://jsfiddle.net/jswenjie/pxru6y2m/7/">https://jsfiddle.net/jswenjie/pxru6y2m/7/</a></p>
+<div class="cnblogs_Highlighter">
+<pre><code>&lt;!DOCTYPE html&gt;
+&lt;html lang="en"&gt;
+  &lt;head&gt;
+    &lt;script src="https://cn.vuejs.org/js/vue.js"&gt;&lt;/script&gt;
+  &lt;/head&gt;
+  &lt;body&gt;
+    &lt;div id="app"&gt;
+      &lt;validate v-for="x in 2" :key="x" v-slot="{ error }"&gt;
+        in scope {{ error }} {{ sendToParent(error, x-1) }}
+      &lt;/validate&gt;
+      &lt;div&gt;in parent {{ error }}&lt;/div&gt;
+    &lt;/div&gt;
+    &lt;script&gt;
+      // validate为第三方组件不允许修改
+      Vue.component("validate", {
+        data() {
+          return {
+            error: ""
+          };
+        },
+        mounted: function() {
+          setInterval(() =&gt; (this.error = Date.now()), 1000);
+        },
+        template: '&lt;div&gt;&lt;slot :error="error" /&gt;&lt;/div&gt;'
+      });
+
+      new Vue({
+        el: "#app",
+        data() {
+          return {
+            error: []
+          };
+        },
+        methods: {
+          sendToParent(error, index) {
+            this.$set(this.error, index, error);
+          }
+        }
+      });
+    &lt;/script&gt;
+  &lt;/body&gt;
+&lt;/html&gt;
+</pre>
+</div>
+<p>&nbsp;</p>
+<p><!-- /wp:paragraph --> <!-- wp:paragraph --></p>
+<p>我们发现虽然结果是正确的，不过在控制台下出现了warning警告，[Vue warn]: You may have an infinite update loop in a component render function. 有死循环的问题。</p>
+<p><!-- /wp:paragraph --> <!-- wp:heading --></p>
+<h2>问题解决</h2>
+<p>&nbsp; &nbsp; &nbsp;我有一个解决方案（<a href="https://javascript.shop/2019/11/get-slot-prop-in-parent-by-v-slot" target="_blank">https://javascript.shop/2019/11/get-slot-prop-in-parent-by-v-slot</a>），希望大家不要先看我的方案，可能会影响了大家的思路，因为我感觉我的方案略显复杂。大家是否有更好的解决方案，欢迎评论中告知，多谢。。。</p>
+<p>&nbsp;</p>
+<p><!-- /wp:enlighter/codeblock --> <!-- wp:html --> <!-- /wp:html --></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

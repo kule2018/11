@@ -1,0 +1,367 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何实现Web页面录屏？' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何实现Web页面录屏？</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/how-to-implement-web-video-record.html</div><br>
+    <p><strong>摘要：</strong> 很有意思的操作...</p>
+<ul>
+<li>原文：<a href="https://juejin.im/post/5c601e2f51882562d029d583">web页面录屏实现</a></li>
+<li>译者：frontdog</li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<h3 id="写在前面的话">写在前面的话</h3>
+<p>在看到评论后，突然意识到自己没有提前说明，本文可以说是一篇调研学习文，是我自己感觉可行的一套方案，后续会去读读已经开源的一些类似的代码库，补足自己遗漏的一些细节，所以大家可以当作学习文，生产环境慎用。</p>
+<h3 id="录屏重现错误场景">录屏重现错误场景</h3>
+<p>如果你的应用有接入到web apm系统中，那么你可能就知道apm系统能帮你捕获到页面发生的未捕获错误，给出错误栈，帮助你定位到BUG。但是，有些时候，当你不知道用户的具体操作时，是没有办法重现这个错误的，这时候，如果有操作录屏，你就可以清楚地了解到用户的操作路径，从而复现这个BUG并且修复。</p>
+<h3 id="实现思路">实现思路</h3>
+<h4 id="思路一利用canvas截图">思路一：利用Canvas截图</h4>
+<p>这个思路比较简单，就是利用canvas去画网页内容，比较有名的库有：<a href="https://link.juejin.im/?target=https%3A%2F%2Fgithub.com%2Fniklasvh%2Fhtml2canvas">html2canvas</a>，这个库的简单原理是：</p>
+<ol>
+<li>收集所有的DOM，存入一个queue中；</li>
+<li>根据zIndex按照顺序将DOM一个个通过一定规则，把DOM和其CSS样式一起画到Canvas上。</li>
+</ol>
+<p>这个实现是比较复杂的，但是我们可以直接使用，所以我们可以获取到我们想要的网页截图。</p>
+<p>为了使得生成的视频较为流畅，我们一秒中需要生成大约25帧，也就是需要25张截图，思路流程图如下：</p>
+<p><img src="./images/如何实现Web页面录屏？0.png" /></p>
+<p>但是，这个思路有个最致命的不足：为了视频流畅，一秒中我们需要25张图，一张图300KB，当我们需要30秒的视频时，图的大小总共为220M，这么大的网络开销明显不行。</p>
+<h4 id="思路二记录所有操作重现">思路二：记录所有操作重现</h4>
+<p>为了降低网络开销，我们换个思路，我们在最开始的页面基础上，记录下一步步操作，在我们需要&quot;播放&quot;的时候，按照顺序应用这些操作，这样我们就能看到页面的变化了。这个思路把鼠标操作和DOM变化分开：</p>
+<p>鼠标变化：</p>
+<ol>
+<li>监听mouseover事件，记录鼠标的clientX和clientY。</li>
+<li>重放的时候使用js画出一个假的鼠标，根据坐标记录来更改&quot;鼠标&quot;的位置。</li>
+</ol>
+<p>DOM变化：</p>
+<ol>
+<li>对页面DOM进行一次全量快照。包括样式的收集、JS脚本去除，并通过一定的规则给当前的每个DOM元素标记一个id。</li>
+<li>监听所有可能对界面产生影响的事件，例如各类鼠标事件、输入事件、滚动事件、缩放事件等等，每个事件都记录参数和目标元素，目标元素可以是刚才记录的id，这样的每一次变化事件可以记录为一次增量的快照。</li>
+<li>将一定量的快照发送给后端。</li>
+<li>在后台根据快照和操作链进行播放。</li>
+</ol>
+<p>当然这个说明是比较简略的，鼠标的记录比较简单，我们不展开讲，主要说明一下DOM监控的实现思路。</p>
+<h3 id="页面首次全量快照">页面首次全量快照</h3>
+<p>首先你可能会想到，要实现页面全量快照，可以直接使用<code>outerHTML</code></p>
+<pre><code><code>const content = document.documentElement.outerHTML;</code></pre>
+<p>这样就简单记录了页面的所有DOM，你只需要首先给DOM增加标记id，然后得到outerHTML，然后去除JS脚本。</p>
+<p>但是，这里有个问题，使用<code>outerHTML</code>记录的DOM会将把临近的两个TextNode合并为一个节点，而我们后续监控DOM变化时会使用<code>MutationObserver</code>，此时你需要大量的处理来兼容这种TextNode的合并，不然你在还原操作的时候无法定位到操作的目标节点。</p>
+<p>那么，我们有办法保持页面DOM的原有结构吗？</p>
+<p>答案是肯定的，在这里我们使用Virtual DOM来记录DOM结构，把documentElement变成Virtual DOM，记录下来，后面还原的时候重新生成DOM即可。</p>
+<h3 id="dom转化为virtual-dom">DOM转化为Virtual DOM</h3>
+<p>我们在这里只需要关心两种Node类型：<code>Node.TEXT_NODE</code>和<code>Node.ELEMENT_NODE</code>。同时，要注意，SVG和SVG子元素的创建需要使用API：createElementNS，所以，我们在记录Virtual DOM的时候，需要注意namespace的记录，上代码：</p>
+<pre><code><code>const SVG_NAMESPACE = &#39;http://www.w3.org/2000/svg&#39;;
+const XML_NAMESPACES = [&#39;xmlns&#39;, &#39;xmlns:svg&#39;, &#39;xmlns:xlink&#39;];
+
+function createVirtualDom(element, isSVG = false)  {
+  switch (element.nodeType) {
+    case Node.TEXT_NODE:
+      return createVirtualText(element);
+    case Node.ELEMENT_NODE:
+      return createVirtualElement(element, isSVG || element.tagName.toLowerCase() === &#39;svg&#39;);
+    default:
+      return null;
+  }
+}
+
+function createVirtualText(element) {
+  const vText = {
+    text: element.nodeValue,
+    type: &#39;VirtualText&#39;,
+  };
+  if (typeof element.__flow !== &#39;undefined&#39;) {
+    vText.__flow = element.__flow;
+  }
+  return vText;
+}
+
+function createVirtualElement(element, isSVG = false) {
+  const tagName = element.tagName.toLowerCase();
+  const children = getNodeChildren(element, isSVG);
+  const { attr, namespace } = getNodeAttributes(element, isSVG);
+  const vElement = {
+    tagName, type: &#39;VirtualElement&#39;, children, attributes: attr, namespace,
+  };
+  if (typeof element.__flow !== &#39;undefined&#39;) {
+    vElement.__flow = element.__flow;
+  }
+  return vElement;
+}
+
+function getNodeChildren(element, isSVG = false) {
+  const childNodes = element.childNodes ? [...element.childNodes] : [];
+  const children = [];
+  childNodes.forEach((cnode) =&gt; {
+    children.push(createVirtualDom(cnode, isSVG));
+  });
+  return children.filter(c =&gt; !!c);
+}
+
+function getNodeAttributes(element, isSVG = false) {
+  const attributes = element.attributes ? [...element.attributes] : [];
+  const attr = {};
+  let namespace;
+  attributes.forEach(({ nodeName, nodeValue }) =&gt; {
+    attr[nodeName] = nodeValue;
+    if (XML_NAMESPACES.includes(nodeName)) {
+      namespace = nodeValue;
+    } else if (isSVG) {
+      namespace = SVG_NAMESPACE;
+    }
+  });
+  return { attr, namespace };
+}</code></pre>
+<p>通过以上代码，我们可以将整个documentElement转化为Virtual DOM，其中__flow用来记录一些参数，包括标记ID等，Virtual Node记录了：type、attributes、children、namespace。</p>
+<h3 id="virtual-dom还原为dom">Virtual DOM还原为DOM</h3>
+<p>将Virtual DOM还原为DOM的时候就比较简单了，只需要递归创建DOM即可，其中nodeFilter是为了过滤script元素，因为我们不需要JS脚本的执行。</p>
+<pre><code><code>function createElement(vdom, nodeFilter = () =&gt; true) {
+  let node;
+  if (vdom.type === &#39;VirtualText&#39;) {
+    node = document.createTextNode(vdom.text);
+  } else {
+    node = typeof vdom.namespace === &#39;undefined&#39;
+      ? document.createElement(vdom.tagName)
+      : document.createElementNS(vdom.namespace, vdom.tagName);
+    for (let name in vdom.attributes) {
+      node.setAttribute(name, vdom.attributes[name]);
+    }
+    vdom.children.forEach((cnode) =&gt; {
+      const childNode = createElement(cnode, nodeFilter);
+      if (childNode &amp;&amp; nodeFilter(childNode)) {
+        node.appendChild(childNode);
+      }
+    });
+  }
+  if (vdom.__flow) {
+    node.__flow = vdom.__flow;
+  }
+  return node;
+}</code></pre>
+<h3 id="dom结构变化监控">DOM结构变化监控</h3>
+<p>在这里，我们使用了API：MutationObserver，更值得高兴的是，这个API是所有浏览器都兼容的，所以我们可以大胆使用。</p>
+<p>使用MutationObserver：</p>
+<pre><code><code>const options = {
+  childList: true, // 是否观察子节点的变动
+  subtree: true, // 是否观察所有后代节点的变动
+  attributes: true, // 是否观察属性的变动
+  attributeOldValue: true, // 是否观察属性的变动的旧值
+  characterData: true, // 是否节点内容或节点文本的变动
+  characterDataOldValue: true, // 是否节点内容或节点文本的变动的旧值
+  // attributeFilter: [&#39;class&#39;, &#39;src&#39;] 不在此数组中的属性变化时将被忽略
+};
+
+const observer = new MutationObserver((mutationList) =&gt; {
+    // mutationList: array of mutation
+});
+observer.observe(document.documentElement, options);</code></pre>
+<p>使用起来很简单，你只需要指定一个根节点和需要监控的一些选项，那么当DOM变化时，在callback函数中就会有一个mutationList，这是一个DOM的变化列表，其中mutation的结构大概为：</p>
+<pre><code><code>{
+    type: &#39;childList&#39;, // or characterData、attributes
+    target: &lt;DOM&gt;,
+    // other params
+}</code></pre>
+<p>我们使用一个数组来存放mutation，具体的callback为：</p>
+<pre><code><code>const onMutationChange = (mutationsList) =&gt; {
+  const getFlowId = (node) =&gt; {
+    if (node) {
+      // 新插入的DOM没有标记，所以这里需要兼容
+      if (!node.__flow) node.__flow = { id: uuid() };
+      return node.__flow.id;
+    }
+  };
+  mutationsList.forEach((mutation) =&gt; {
+    const { target, type, attributeName } = mutation;
+    const record = { 
+      type, 
+      target: getFlowId(target), 
+    };
+    switch (type) {
+      case &#39;characterData&#39;:
+        record.value = target.nodeValue;
+        break;
+      case &#39;attributes&#39;:
+        record.attributeName = attributeName;
+        record.attributeValue = target.getAttribute(attributeName);
+        break;
+      case &#39;childList&#39;:
+        record.removedNodes = [...mutation.removedNodes].map(n =&gt; getFlowId(n));
+        record.addedNodes = [...mutation.addedNodes].map((n) =&gt; {
+          const snapshot = this.takeSnapshot(n);
+          return {
+            ...snapshot,
+            nextSibling: getFlowId(n.nextSibling),
+            previousSibling: getFlowId(n.previousSibling)
+          };
+        });
+        break;
+    }
+    this.records.push(record);
+  });
+}
+
+function takeSnapshot(node, options = {}) {
+  this.markNodes(node);
+  const snapshot = {
+    vdom: createVirtualDom(node),
+  };
+  if (options.doctype === true) {
+    snapshot.doctype = document.doctype.name;
+    snapshot.clientWidth = document.body.clientWidth;
+    snapshot.clientHeight = document.body.clientHeight;
+  }
+  return snapshot;
+}</code></pre>
+<p>这里面只需要注意，当你处理新增DOM的时候，你需要一次增量的快照，这里仍然使用Virtual DOM来记录，在后面播放的时候，仍然生成DOM，插入到父元素即可，所以这里需要参照DOM，也就是兄弟节点。</p>
+<h3 id="表单元素监控">表单元素监控</h3>
+<p>上面的MutationObserver并不能监控到input等元素的值变化，所以我们需要对表单元素的值进行特殊处理。</p>
+<h4 id="oninput事件监听">oninput事件监听</h4>
+<p>MDN文档：<a href="https://link.juejin.im/?target=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FGlobalEventHandlers%2Foninput">developer.mozilla.org/en-US/docs/…</a></p>
+<p>事件对象：select、input，textarea</p>
+<pre><code><code>window.addEventListener(&#39;input&#39;, this.onFormInput, true);
+
+onFormInput = (event) =&gt; {
+  const target = event.target;
+  if (
+    target &amp;&amp; 
+    target.__flow &amp;&amp;
+    [&#39;select&#39;, &#39;textarea&#39;, &#39;input&#39;].includes(target.tagName.toLowerCase())
+   ) {
+     this.records.push({
+       type: &#39;input&#39;, 
+       target: target.__flow.id, 
+       value: target.value, 
+     });
+   }
+}</code></pre>
+<p>在window上使用捕获来捕获事件，后面也是这样处理的，这样做的原因是我们是可能并经常在冒泡阶段阻止冒泡来实现一些功能，所以使用捕获可以减少事件丢失，另外，像scroll事件是不会冒泡的，必须使用捕获。</p>
+<h4 id="onchange事件监听">onchange事件监听</h4>
+<p>MDN文档：<a href="https://link.juejin.im/?target=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FGlobalEventHandlers%2Foninput">developer.mozilla.org/en-US/docs/…</a></p>
+<p>input事件没法满足type为checkbox和radio的监控，所以需要借助onchange事件来监控</p>
+<pre><code><code>window.addEventListener(&#39;change&#39;, this.onFormChange, true);
+
+onFormChange = (event) =&gt; {
+  const target = event.target;
+  if (target &amp;&amp; target.__flow) {
+    if (
+      target.tagName.toLowerCase() === &#39;input&#39; &amp;&amp;
+      [&#39;checkbox&#39;, &#39;radio&#39;].includes(target.getAttribute(&#39;type&#39;))
+    ) {
+      this.records.push({
+        type: &#39;checked&#39;, 
+        target: target.__flow.id, 
+        checked: target.checked,
+      });
+    }
+  }
+}</code></pre>
+<h4 id="onfocus事件监听">onfocus事件监听</h4>
+<p>MDN文档：<a href="https://link.juejin.im/?target=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FGlobalEventHandlers%2Fonfocus">developer.mozilla.org/en-US/docs/…</a></p>
+<pre><code><code>window.addEventListener(&#39;focus&#39;, this.onFormFocus, true);
+
+onFormFocus = (event) =&gt; {
+  const target = event.target;
+  if (target &amp;&amp; target.__flow) {
+    this.records.push({
+      type: &#39;focus&#39;, 
+      target: target.__flow.id,
+    });
+  }
+}</code></pre>
+<h4 id="onblur事件监听">onblur事件监听</h4>
+<p>MDN文档：<a href="https://link.juejin.im/?target=https%3A%2F%2Fdeveloper.mozilla.org%2Fen-US%2Fdocs%2FWeb%2FAPI%2FGlobalEventHandlers%2Fonblur">developer.mozilla.org/en-US/docs/…</a></p>
+<pre><code><code>window.addEventListener(&#39;blur&#39;, this.onFormBlur, true);
+
+onFormBlur = (event) =&gt; {
+  const target = event.target;
+  if (target &amp;&amp; target.__flow) {
+    this.records.push({
+      type: &#39;blur&#39;, 
+      target: target.__flow.id,
+    });
+  }
+}</code></pre>
+<h3 id="媒体元素变化监听">媒体元素变化监听</h3>
+<p>这里指audio和video，类似上面的表单元素，可以监听onplay、onpause事件、timeupdate、volumechange等等事件，然后存入records</p>
+<h3 id="canvas画布变化监听">Canvas画布变化监听</h3>
+<p>canvas内容变化没有抛出事件，所以我们可以：</p>
+<ol>
+<li>收集canvas元素，定时去更新实时内容</li>
+<li>hack一些画画的API，来抛出事件</li>
+</ol>
+<p>canvas监听研究没有很深入，需要进一步深入研究</p>
+<h3 id="播放">播放</h3>
+<p><img src="./images/如何实现Web页面录屏？1.png" /></p>
+<p>思路比较简单，就是从后端拿到一些信息：</p>
+<ul>
+<li>全量快照Virtual DOM</li>
+<li>操作链records</li>
+<li>屏幕分辨率</li>
+<li>doctype</li>
+</ul>
+<p>利用这些信息，你就可以首先生成页面DOM，其中包括过滤script标签，然后创建iframe，append到一个容器中，其中使用一个map来存储DOM</p>
+<pre><code><code>function play(options = {}) {
+  const { container, records = [], snapshot ={} } = options;
+  const { vdom, doctype, clientHeight, clientWidth } = snapshot;
+  this.nodeCache = {};
+  this.records = records;
+  this.container = container;
+  this.snapshot = snapshot;
+  this.iframe = document.createElement(&#39;iframe&#39;);
+  const documentElement = createElement(vdom, (node) =&gt; {
+    // 缓存DOM
+    const flowId = node.__flow &amp;&amp; node.__flow.id;
+    if (flowId) {
+      this.nodeCache[flowId] = node;
+    }
+    // 过滤script
+    return !(node.nodeType === Node.ELEMENT_NODE &amp;&amp; node.tagName.toLowerCase() === &#39;script&#39;); 
+  });
+    
+  this.iframe.style.width = `${clientWidth}px`;
+  this.iframe.style.height = `${clientHeight}px`;
+  container.appendChild(iframe);
+  const doc = iframe.contentDocument;
+  this.iframeDocument = doc;
+  doc.open();
+  doc.write(`&lt;!doctype ${doctype}&gt;&lt;html&gt;&lt;head&gt;&lt;/head&gt;&lt;body&gt;&lt;/body&gt;&lt;/html&gt;`);
+  doc.close();
+  doc.replaceChild(documentElement, doc.documentElement);
+  this.execRecords();
+}
+
+function execRecords(preDuration = 0) {
+  const record = this.records.shift();
+  let node;
+  if (record) {
+    setTimeout(() =&gt; {
+      switch (record.type) {
+        // &#39;childList&#39;、&#39;characterData&#39;、
+        // &#39;attributes&#39;、&#39;input&#39;、&#39;checked&#39;、
+        // &#39;focus&#39;、&#39;blur&#39;、&#39;play&#39;&#39;pause&#39;等事件的处理
+      }
+      this.execRecords(record.duration);
+    }, record.duration - preDuration)
+  }
+}</code></pre>
+<p>上面的duration在上文中省略了，这个你可以根据自己的优化来做播放的流畅度，看是多个record作为一帧还是原本呈现。</p>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了20亿+错误事件，付费客户有阳光保险、核桃编程、荔枝FM、掌门1对1、微脉、青团社等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,135 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修jqgrid three 树形结构' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>jqgrid three 树形结构</center></div><div class='banquan'>原文出处:本文由博客园博主程先生哈提供。<br/>
+原文连接:https://www.cnblogs.com/daniao11417/p/10790027.html</div><br>
+    <p>　　最近我们的表格中，需要更改数据的显示方式，就是jqgrid中以树形的方式显示。请先看图：</p>
+<p>　　<img style="display: block; margin-left: auto; margin-right: auto;" src="./images/jqgrid three 树形结构0.png" alt="" /></p>
+<p>　　就是简单的这种从属方式。但是因为这个没有找到官方的文档（后来找到了，但是发现是翻译过来的，也不是很清楚），所以做出来稍微的有点困难，好在方法总比困难多。这个问题还是解决了，在这里我记录一下。方便以后的小伙伴们运用，如果有大神的话，也欢迎指出错误。</p>
+<p>　　首先是在jqgrid中需要添加东西，请看下面的demo：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">treeGrid: true,  
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">treeGridModel: 'adjacency',  //固定写法，还有其他的一种方式，但是那种没有研究过
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">ExpandColumn : 'agent_id', //
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">ExpandColClick: true, //能不能点击 false就不能点击了，true就是能点击
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">treeReader : {  
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">          //前面的四个参数需要在json中展示
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">          level_field: "level",  //级别，主要是就是说展现出来是第几层，最高级是0，然后是1,2,3&hellip;&hellip; 
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">          parent_id_field: "parent",  //用来标识哪个是父元素<span style="color: #ff0000;">（需要时字符串格式：&ldquo;parent&rdquo;：&ldquo;123&rdquo;是可以的，但是如果是&ldquo;parent&rdquo;：123就错了）
+</span></span><span style="color: #008080;"> 9</span> <span style="color: #000000;">          leaf_field: "is_leaf",  //是不是根节点，false表示这个不是最后的节点，true表示是最后的节点。（如果这个是最后的节点，但是设置的还是false，会发生一种情况，就是点击这个又重新加载了一遍数据）
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">          expanded_field: "expanded", //是不是需要展开，false不展开，true展开
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">          loaded_field:true //
+</span><span style="color: #008080;">12</span>  },</pre>
+</div>
+<p>就是这12行代码，其实上面的写在html中，前端的任务就算是完成了。但是考虑到还需要后台数据的配合，所以下面还是需要说一下， json数据的格式。</p>
+<p>　　下面贴出来数据的格式：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">[
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;"> 3</span>         "agent_id": "2019-04-17"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 4</span>         "game_id": "134283522"<span style="color: #000000;">,
+</span><span style="color: #008080;"> 5</span>         "level": 0<span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span>         "is_leaf": <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;"> 7</span>         "players": 42<span style="color: #000000;">,
+</span><span style="color: #008080;"> 8</span>         "rounds": 42<span style="color: #000000;">,
+</span><span style="color: #008080;"> 9</span>         "bets": 13650000<span style="color: #000000;">,
+</span><span style="color: #008080;">10</span>         "effects": 26650000<span style="color: #000000;">,
+</span><span style="color: #008080;">11</span>         "total_revenue": 8850000<span style="color: #000000;">,
+</span><span style="color: #008080;">12</span>         "fees": 650000<span style="color: #000000;">,
+</span><span style="color: #008080;">13</span>         "total_win_agent": -8850000<span style="color: #000000;">,
+</span><span style="color: #008080;">14</span>         "id":"134283522"<span style="color: #000000;">,
+</span><span style="color: #008080;">15</span>         "expanded":<span style="color: #0000ff;">false</span>
+<span style="color: #008080;">16</span> <span style="color: #000000;">    }, {
+</span><span style="color: #008080;">17</span>         "game_id": "134283522"<span style="color: #000000;">,
+</span><span style="color: #008080;">18</span>         "agent_id": 96292<span style="color: #000000;">,
+</span><span style="color: #008080;">19</span>         "players": 42<span style="color: #000000;">,
+</span><span style="color: #008080;">20</span>         "rounds": 42<span style="color: #000000;">,
+</span><span style="color: #008080;">21</span>         "bets": "13650000"<span style="color: #000000;">,
+</span><span style="color: #008080;">22</span>         "effects": "26650000"<span style="color: #000000;">,
+</span><span style="color: #008080;">23</span>         "fees": "650000"<span style="color: #000000;">,
+</span><span style="color: #008080;">24</span>         "total_win_agent": "-8850000"<span style="color: #000000;">,
+</span><span style="color: #008080;">25</span>         "total_revenue": "8850000"<span style="color: #000000;">,
+</span><span style="color: #008080;">26</span>         "level": 1<span style="color: #000000;">,
+</span><span style="color: #008080;">27</span>         "is_leaf": <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;">28</span>         "parent": "134283522"<span style="color: #000000;">,
+</span><span style="color: #008080;">29</span>         "expanded":<span style="color: #0000ff;">false</span>
+<span style="color: #008080;">30</span> <span style="color: #000000;">    }, {
+</span><span style="color: #008080;">31</span>         "agent_id": "2019-04-17"<span style="color: #000000;">,
+</span><span style="color: #008080;">32</span>         "game_id": "134284035"<span style="color: #000000;">,
+</span><span style="color: #008080;">33</span>         "level": 0<span style="color: #000000;">,
+</span><span style="color: #008080;">34</span>         "is_leaf": <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;">35</span>         "players": 6<span style="color: #000000;">,
+</span><span style="color: #008080;">36</span>         "rounds": 6<span style="color: #000000;">,
+</span><span style="color: #008080;">37</span>         "bets": 1800000<span style="color: #000000;">,
+</span><span style="color: #008080;">38</span>         "effects": 950000<span style="color: #000000;">,
+</span><span style="color: #008080;">39</span>         "total_revenue": 150000<span style="color: #000000;">,
+</span><span style="color: #008080;">40</span>         "fees": 50000<span style="color: #000000;">,
+</span><span style="color: #008080;">41</span>         "total_win_agent": -150000<span style="color: #000000;">,
+</span><span style="color: #008080;">42</span>         "id":"134284035"<span style="color: #000000;">,
+</span><span style="color: #008080;">43</span>         "expanded":<span style="color: #0000ff;">false</span>
+<span style="color: #008080;">44</span> <span style="color: #000000;">    }, {
+</span><span style="color: #008080;">45</span>         "game_id": "134284035"<span style="color: #000000;">,
+</span><span style="color: #008080;">46</span>         "agent_id": 96292<span style="color: #000000;">,
+</span><span style="color: #008080;">47</span>         "players": 6<span style="color: #000000;">,
+</span><span style="color: #008080;">48</span>         "rounds": 6<span style="color: #000000;">,
+</span><span style="color: #008080;">49</span>         "bets": "1800000"<span style="color: #000000;">,
+</span><span style="color: #008080;">50</span>         "effects": "950000"<span style="color: #000000;">,
+</span><span style="color: #008080;">51</span>         "fees": "50000"<span style="color: #000000;">,
+</span><span style="color: #008080;">52</span>         "total_win_agent": "-150000"<span style="color: #000000;">,
+</span><span style="color: #008080;">53</span>         "total_revenue": "150000"<span style="color: #000000;">,
+</span><span style="color: #008080;">54</span>         "level": 1<span style="color: #000000;">,
+</span><span style="color: #008080;">55</span>         "is_leaf": <span style="color: #0000ff;">true</span><span style="color: #000000;">,
+</span><span style="color: #008080;">56</span>         "parent": "134284035"
+<span style="color: #008080;">57</span> <span style="color: #000000;">    },
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">59</span>         "game_id": "134284035"<span style="color: #000000;">,
+</span><span style="color: #008080;">60</span>         "agent_id": 96292<span style="color: #000000;">,
+</span><span style="color: #008080;">61</span>         "players": 6<span style="color: #000000;">,
+</span><span style="color: #008080;">62</span>         "rounds": 6<span style="color: #000000;">,
+</span><span style="color: #008080;">63</span>         "bets": "1800000"<span style="color: #000000;">,
+</span><span style="color: #008080;">64</span>         "effects": "950000"<span style="color: #000000;">,
+</span><span style="color: #008080;">65</span>         "fees": "50000"<span style="color: #000000;">,
+</span><span style="color: #008080;">66</span>         "total_win_agent": "-150000"<span style="color: #000000;">,
+</span><span style="color: #008080;">67</span>         "total_revenue": "150000"<span style="color: #000000;">,
+</span><span style="color: #008080;">68</span>         "level": 1<span style="color: #000000;">,
+</span><span style="color: #008080;">69</span>         "is_leaf": <span style="color: #0000ff;">false</span><span style="color: #000000;">,
+</span><span style="color: #008080;">70</span>         "parent": "134284035"<span style="color: #000000;">,
+</span><span style="color: #008080;">71</span>         "id":"123"
+<span style="color: #008080;">72</span> <span style="color: #000000;">    },
+</span><span style="color: #008080;">73</span> <span style="color: #000000;">    {
+</span><span style="color: #008080;">74</span>         "parent":"123"<span style="color: #000000;">,
+</span><span style="color: #008080;">75</span>         "game_id": "134284035"<span style="color: #000000;">,
+</span><span style="color: #008080;">76</span>         "agent_id": 96292<span style="color: #000000;">,
+</span><span style="color: #008080;">77</span>         "players": 6<span style="color: #000000;">,
+</span><span style="color: #008080;">78</span>         "rounds": 6<span style="color: #000000;">,
+</span><span style="color: #008080;">79</span>         "bets": "1800000"<span style="color: #000000;">,
+</span><span style="color: #008080;">80</span>         "effects": "950000"<span style="color: #000000;">,
+</span><span style="color: #008080;">81</span>         "fees": "50000"<span style="color: #000000;">,
+</span><span style="color: #008080;">82</span>         "total_win_agent": "-150000"<span style="color: #000000;">,
+</span><span style="color: #008080;">83</span>         "total_revenue": "150000"<span style="color: #000000;">,
+</span><span style="color: #008080;">84</span>         "level": 2<span style="color: #000000;">,
+</span><span style="color: #008080;">85</span>         "is_leaf": <span style="color: #0000ff;">true</span>
+<span style="color: #008080;">86</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">87</span> ]</pre>
+</div>
+<p>里面除了原来的数据，还需要把咱们需要的东西加进来。而且因为是个数组，所以这里面的数据是有顺序的，如果顺序不对的话，显示就有问题了。这里需要注意</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

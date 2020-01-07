@@ -1,0 +1,109 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Source Maps简介' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Source Maps简介</center></div><div class='banquan'>原文出处:本文由博客园博主Jaxu提供。<br/>
+原文连接:https://www.cnblogs.com/jaxu/p/11358129.html</div><br>
+    <p>　　提高网站性能最简单的方式之一是合并压缩JavaScript和CSS文件。但是当你需要调试这些压缩文件中的代码时，那将会是一场噩梦。不过也不用担心，souce maps将会帮你解决这一问题。</p>
+<p>　　Source map提供了一种方式，能够将压缩文件中的代码映射回源文件中对应的位置。这意味着，你可以借助一些软件很轻易地调试应用程序中那些经过优化处理过的资源。Chrome和Firefox提供的开发者工具都内置了对source maps的支持。</p>
+<p>　　本文将介绍source maps的工作原理，以及如何生成它们。我们将主要关注JavaScript代码的source maps，不过这些原理也同样适用于CSS。</p>
+<p>&nbsp;</p>
+<p>　　提示：Firefox开发者工具中的source maps默认是开启的。对于Chrome而言，你可能需要手动启用这一功能（译者：目前看来，Chrome中这一功能默认也是开启的）。在Chrome中打开开发者工具（译者：默认的快捷键是F12），然后找到&ldquo;设置&rdquo;面板（译者：开发者工具面板的右上角，点击有三个点的菜单，其中可以找到&ldquo;Settings&rdquo;菜单），在&ldquo;General&rdquo;选项卡中勾选&ldquo;Enable JS source maps&rdquo;和&ldquo;Enable CSS source maps&rdquo;（译者：我所使用的Chrome版本中，这两个设置项在&ldquo;Preferences&rdquo;选项卡中）。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Source Maps简介0.png" alt="" width="396" height="230" /></p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Source Maps简介1.png" alt="" width="842" height="569" /></p>
+<h2>&nbsp;Source Maps的工作原理</h2>
+<p>　　顾名思义，source map中包含了许多能够将压缩文件中的代码映射回源代码的信息。对于每一个压缩文件，你可以为其指定不同的source map。</p>
+<p>　　通过在经过优化的压缩文件的末尾添加一行特殊的注释，来告诉浏览器有可用的source map。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"># sourceMappingURL=/path/to/script.js.map</span></pre>
+</div>
+<p>　　该注释通常由生成source map的程序自动添加。当浏览器的开发者工具被打开时，如果source maps功能被启用，那么该文件将会被加载。</p>
+<p>　　你还可以通过在压缩的JavaScript文件的响应中发送<strong>X-SourceMap</strong> HTTP头来指定source map。</p>
+<div class="cnblogs_code">
+<pre><code>X-SourceMap: /path/to/script.js.map</pre>
+</div>
+<p>　　Source map文件包含一个JSON对象，用来描述source map文件本身以及JavaScript源文件的一些信息。下面是一个例子：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    version: </span>3<span style="color: #000000;">,
+    file: </span>"script.js.map"<span style="color: #000000;">,
+    sources: [
+        </span>"app.js"<span style="color: #000000;">,
+        </span>"content.js"<span style="color: #000000;">,
+        </span>"widget.js"<span style="color: #000000;">
+    ],
+    sourceRoot: </span>"/"<span style="color: #000000;">,
+    names: [</span>"slideUp", "slideDown", "save"<span style="color: #000000;">],
+    mappings: </span>"AAA0B,kBAAhBA,QAAOC,SACjBD,OAAOC,OAAO..."<span style="color: #000000;">
+}</span></pre>
+</div>
+<p>　　让我们来仔细看看这些属性。</p>
+<ul>
+<li><strong>version</strong> - 此属性用于说明source map文件的版本。</li>
+<li><strong>file</strong> - source map文件的名称。</li>
+<li><strong>sources</strong> - 一组包含源文件URLs的数组。</li>
+<li><strong>sourceRoot</strong> - （可选）<strong>sources</strong>属性中那些URLs相对路径的根目录。</li>
+<li><strong>names</strong> - 包含源文件中所有变量和函数名称的数组。</li>
+<li><strong>mappings</strong> - 一组包含实际代码映射的<a href="http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-base64vlq" target="_blank">Base64 VLQs</a>的字符串（这正是source map起作用的核心）。</li>
+</ul>
+<h2>使用UglifyJS生成source maps</h2>
+<p>　　<a href="https://github.com/mishoo/UglifyJS2" target="_blank">UglifyJS</a>是一个很流行的命令行工具，用来合并和压缩JavaScript文件。版本2提供了许多的命令行参数，用来帮助我们生成source maps。</p>
+<ul>
+<li><strong>--source-map</strong> - 生成的source map文件的名称。</li>
+<li><strong>--source-map-root</strong> - （可选）指定source map文件中<strong>sourceRoot</strong>属性的值。</li>
+<li><strong>--source-map-url</strong> - （可选）在经过优化的压缩文件底部的注释中指定source map文件的路径。如：//# sourceMappingURL=/path/to/script.js.map</li>
+<li><strong>--in-source-map</strong> - （可选）输入的source map。假如你正在压缩的JavaScript文件是从另一个源文件生成的。例如JavaScript库。</li>
+<li><strong>--prefix</strong>或<strong>-p</strong> - （可选） 移除source map文件中<strong>sources</strong>属性里URLs的路径层级。例如，-p 3将会移除路径中的前三级，这样&ldquo;one/two/three/file.js&rdquo;会变成&ldquo;file.js&rdquo;。使用<strong>-p relative</strong>会让UglifyJS在source map和源文件之间计算出相对路径。</li>
+</ul>
+<p>　　下面是一个使用这些命令行参数的例子。</p>
+<div class="cnblogs_code">
+<pre><code>uglifyjs [input files] -o script.min.js --source-map script.js.map --source-map-root http:<span style="color: #008000;">//</span><span style="color: #008000;">example.com/js -c -m</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>　　注意：如果在Grunt中使用<strong>grunt-contrib-uglify</strong>插件，请参考<a href="https://github.com/gruntjs/grunt-contrib-uglify#sourcemap" target="_blank">这里</a>查看如何在Gruntfile中使用这些选项。</p>
+<p>&nbsp;</p>
+<p>　　还有许多其它可用的工具能够生成source maps文件。下面列出了其中一些。</p>
+<ul>
+<li><a href="http://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-howgenerate" target="_blank">Closure</a></li>
+<li><a href="http://coffeescript.org/#source-maps" target="_blank">CoffeeScript编译器</a></li>
+<li><a href="https://github.com/twolfson/grunt-jsmin-sourcemap" target="_blank">Grunt任务中的grunt-jsmin-sourcemap</a></li>
+</ul>
+<h2>Chrome开发者工具中的source maps</h2>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Source Maps简介2.png" alt="" width="774" height="351" /></p>
+<p style="text-align: center;">Chrome开发者工具中的Sources选项卡</p>
+<p>　　如果你的source maps设置正确，那么你将在<strong>Sources</strong>选项卡中看到所有的JavaScript源文件。</p>
+<p>　　查看<a href="https://demos.mattwest.io/source-maps/" target="_blank">页面</a>的HTML代码，你会发现仅有一个压缩的JavaScript文件被引用。而开发者工具自动加载了对应的source map文件并获取了对应的源文件。</p>
+<h2>Firefox开发者工具中的source maps</h2>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/Source Maps简介3.png" alt="" width="801" height="467" /></p>
+<p style="text-align: center;">Firefox开发者工具中的调试器面板</p>
+<p>　　Firefox用户在开发者工具的调试器中能够看到source maps对应的源文件。开发者工具识别出了source map的存在并自动获取了对应的源文件。</p>
+<h2>一些感想</h2>
+<p>　　使用source map使得开发人员能够在调试环境下直观地查看并维护代码，同时网站也获得了更好的性能提升。</p>
+<p>　　本文介绍了source maps的工作原理以及如何用UglifyJS生成source maps。如果你的网站使用了压缩过的资源（推荐这样做），那么可以考虑花点时间将source map整合到其中。</p>
+<h2>有用的链接</h2>
+<ul>
+<li><a href="https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit" target="_blank">Source Maps版本3的提案</a></li>
+<li><a href="https://github.com/mishoo/UglifyJS2" target="_blank">UglifyJS</a></li>
+<li><a href="http://demos.mattwest.io/source-maps/" target="_blank">Source Mapg Demo</a></li>
+</ul>
+<p>&nbsp;</p>
+<p>原文地址：<a href="https://blog.teamtreehouse.com/introduction-source-maps" target="_blank">https://blog.teamtreehouse.com/introduction-source-maps</a></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

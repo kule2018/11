@@ -1,0 +1,169 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级</center></div><div class='banquan'>原文出处:本文由博客园博主Fundebug提供。<br/>
+原文连接:https://www.cnblogs.com/fundebug/p/10688073.html</div><br>
+    <p><strong>摘要：</strong> 理解Preload与Prefetch。</p>
+<ul>
+<li>原文：<a href="https://segmentfault.com/a/1190000018828048">Web 性能优化：Preload,Prefetch的使用及在 Chrome 中的优先级</a></li>
+<li>作者：<a href="https://segmentfault.com/u/minnanitkong">前端小智</a></li>
+</ul>
+<p><strong><a href="https://www.fundebug.com/">Fundebug</a>经授权转载，版权归原作者所有。</strong></p>
+<p>这是 Web 性能优化的第 6 篇，上一篇在下面看点击查看：</p>
+<ul>
+<li><a href="https://segmentfault.com/a/1190000018368885">Web 性能优化：使用 Webpack 分离数据的正确方法</a></li>
+<li><a href="https://segmentfault.com/a/1190000018392559">Web 性能优化：图片优化让网站大小减少 62%</a></li>
+<li><a href="https://segmentfault.com/a/1190000018423895">Web 性能优化：缓存 React 事件来提高性能</a></li>
+<li><a href="https://segmentfault.com/a/1190000018533393">Web 性能优化：21种优化CSS和加快网站速度的方法</a></li>
+<li><a href="https://segmentfault.com/a/1190000018589996">Web 性能优化：理解及使用 JavaScript 缓存</a></li>
+</ul>
+<p>今天，我们将深入研究Chrome 的网络栈，以明确 web 加载原语(如&lt;<code>link rel= preload &gt;</code> &amp; <code>&lt;link rel= prefetch &gt;</code>) 背后的工作原理，以便你能够更有效地使用它们。</p>
+<p>如其他文章所述，<a href="https://www.smashingmagazine.com/2016/02/preload-what-is-it-good-for/">preload</a> 是一个声明式 <code>fetch</code>，可以强制浏览器在不阻塞 <code>document</code> 的 <a href="https://developer.mozilla.org/en-US/docs/Web/API/GlobalEventHandlers/onload">onload</a> 事件的情况下请求资源。</p>
+<p><code>Prefetch</code> 告诉浏览器这个资源将来可能需要，但是什么时间加载这个资源是由浏览器来决定的。</p>
+<p><strong>在预加载(perload)之前，网络请求从这里开始，预加载之后，它在解析时从左向右移动</strong></p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级0.png" /></p>
+<h3 id="使用预加载perload的一些案例">使用预加载(perload)的一些案例</h3>
+<p>在详细介绍 <strong>预加载(perload)</strong> 之前，先来看看一些使用 <strong>预加载(perload)</strong> 的案例。</p>
+<p>Housing.com 在对他们的渐进式 Web 应用程序的脚本转用 proload 看到<a href="https://twitter.com/HousingEngg/status/844169796891508737">大约缩短了10%的可交互时间</a>。</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级1.png" /></p>
+<p>Shopify 使用 <a href="https://www.bramstein.com/writing/preload-hints-for-web-fo%20nts.html">preload 加载 Web字体</a>后，Chrome 桌面版)的文本绘制时间(1.2秒)提高了50%，这完全解决了他们的文字闪动问题。</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级2.png" /></p>
+<p><strong>左边：使用 preload，右边：不使用 preload</strong></p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级3.png" /></p>
+<p><strong>使用<link rel="preload"> 加载字体</strong></p>
+<p>Treebo，印度最大的旅馆网站之一，在 3G 网络下对其桌面版试验，在对其顶部图片和主要的 Webpack 打包文件使用 <code>preload</code> 之后，在首屏绘制和可交互延迟分别减少了 1s。</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级4.png" /></p>
+<p>同样的，在对自己的渐进式 Web 应用程序主要打包文件使用 preload 之后，Flipkart 在路由解析之前 节省了大量的主线程空闲时间（在 3G 网络下的低性能手机下）。</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级5.png" /></p>
+<p><strong>上面：没有使用 proload 加载，下面：使用 preload 加载</strong></p>
+<p>Chrome 数据保护程序团队发现，对于那些可以在脚本和 CSS 样式表上使用 <code>preload</code> 的页面，发现页面首次绘制时间获得<a href="https://medium.com/reloading/a-link-rel-preload-analysis-from-the-chrome-data-saver-team-5edf54b08715">平均 12%</a> 的速度提升。</p>
+<p>对于 <code>prefetch(预读取)</code>，它被广泛使用，在 Google 我们仍用它来<code>预读取</code>一些可以加快 搜索结果页面 的渲染的关键资源。</p>
+<p><code>Preload</code> 在大型网站中都有很好运用，你可以在本文后面找到更多这些安全。 在此之前，让我们深入了解网络堆栈如何实际处理 <strong>预加载(prefetch)与预读取(prefetch)</strong>。</p>
+<h3 id="何时使用-和">何时使用 <link rel="preload"> 和 <link rel="prefetch"> ？</h3>
+<blockquote>
+<p>提示：<code>preload</code> 加载资源一般是当前页面需要的，<code>prefetch</code> 一般是其它页面有可能用到的资源。</p>
+</blockquote>
+<p><code>preload</code> 是告诉浏览器预先请求当前页面需要的资源（关键的脚本，字体，主要图片等）。</p>
+<p><code>prefetch</code> 应用场景稍微又些不同 —— 用户将来可能跳转到其它页面需要使用到的资源。如果 <strong>A</strong> 页面发起一个 <strong>B</strong> 页面的 <code>prefetch</code> 请求，这个资源获取过程和导航请求可能是同步进行的，而如果我们用 <code>preload</code> 的话，页面 <strong>A</strong> 离开时它会立即停止。</p>
+<p>在 <code>preload</code> 和 <code>prefetch</code> 之间，我们对当前页面或即将跳转的页面在所需主要资源的问题有了一个解决方案。</p>
+<h3 id="和-的缓存行为"><link rel="preload"> 和 <link rel="prefetch"> 的缓存行为</h3>
+<p>当资源被 <code>preload</code> 或者 <code>prefetch</code> 后，会从网络堆栈传输到 HTTP 缓存并进入渲染器的内存缓存。 如果资源可以被缓存（例如，存在有效的 <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Cache-Control">cache-control</a> 和 max-age），它将存储在 HTTP 缓存中，可用于当前和未来的会话。 如果资源不可缓存，则不会将其存储在 HTTP 缓存中。 相反，它会被缓存到<strong>内存缓存</strong>中并保持不变直到它被使用。</p>
+<h3 id="chrome-的网络栈中是如何处理-preload-和-prefetch-的优先级">Chrome 的网络栈中是如何处理 preload 和 prefetch 的优先级？</h3>
+<p>下面是在 Blink 内核的 Chrome 46 及更高版本中不同资源的加载优先级情况著作权归作者所有。</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级6.png" /></p>
+<blockquote>
+<p>preload 用 “as” 或者用 “type” 属性来表示他们请求资源的优先级（比如说 preload 使用 as=&quot;style&quot; 属性将获得最高的优先级）。没有 “as” 属性的将被看作异步请求，“Early”意味着在所有未被预加载的图片请求之前被请求（“late”意味着之后）</p>
+</blockquote>
+<p>我们来谈一下这张表。</p>
+<p><strong>脚本根据它们在文件中的位置是否异步、延迟或阻塞获得不同的优先级：</strong></p>
+<ul>
+<li>网络在第一个图片资源之前阻塞的脚本在网络优先级中是中级</li>
+<li>网络在第一个图片资源之后阻塞的脚本在网络优先级中是低级</li>
+<li>异步/延迟/插入的脚本（无论在什么位置）在网络优先级中是很低级</li>
+</ul>
+<p>图像在可视窗口中比不在视口中的图像(具有更高的优先级，因此在某种程度上， Chrome 将会尽量懒加载这些不在视口中的图片。 较低优先级的图片出现在视口中时，该图片的优先级就会得到提升（但是注意已经在布局完成后的图片优先级不会在更改）。</p>
+<p>使用<code>“as”</code>属性预加载的资源将具有与它们请求的资源类型相同的资源优先级。 例如，<code>preload as =“style”</code>将获得最高优先级，而<code>as =“script”</code>将获得低优先级或中优先级。 这些资源也遵循相同的<strong>CSP策略</strong>（例如脚本受 <code>script-src</code> 约束）。</p>
+<p>不带 <code>“as”</code> 属性的 <code>preload</code> 的优先级将会等同于异步请求。</p>
+<p>如果你想了解各种资源加载时的优先级属性，从开发者工具的 <code>Timeline/Performance</code> 区域的 Network 区域都能看到相关信息：</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级7.png" /></p>
+<p>在 Network 面板下的 “Priority” 部分</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级8.png" /></p>
+<h3 id="当页面-preload-已经在-service-worker-缓存及-http-缓存中的资源时会发生什么">当页面 preload 已经在 Service Worker 缓存及 HTTP 缓存中的资源时会发生什么？</h3>
+<p>这各情况来说是比较少的，但通常来说，会是比较好的情况 —— 如果资源没有超出 HTTP 缓存时间或者 Service Worker 没有主动重新发起请求，那么浏览器就不会再去请求这个资源了。</p>
+<p>如果资源在 HTTP 缓存中(在SW缓存和网络之间)，那么 <code>preload</code> 会从相同的资源中获得缓存命中。</p>
+<h3 id="这种加载方式会浪费用户的带宽吗">这种加载方式会浪费用户的带宽吗</h3>
+<p><strong>使用 preload 或 prefetch，可能会浪费用户的带宽，特别是在资源没有缓存的情况下。</strong></p>
+<p>没有用到的 <code>preload</code> 资源在 Chrome 的 <code>console</code> 里会在 onload 事件 3s 后发生警告。</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级9.png" /></p>
+<p>这个警告的原因是，你可能正在使用<code>preload</code>来尝试为其他资源预加载并缓存以提高性能，但是如果这些预加载的资源没有被使用，那么你就在毫无理由地做额外的工作。在移动设备上，这相当于浪费用户的流量，所以要注意预加载的内容。</p>
+<h3 id="什么情况会导致二次获取">什么情况会导致二次获取？</h3>
+<p><code>preload</code> 和 <code>prefetch</code> 是很简单的工具，你很容易不小心二次获取。</p>
+<p>不要用 “prefetch” 作为 “preload” 的后备方案 ，它们适用于不同的场景，常常会导致不符合预期的二次获取。使用 <code>preload</code>来获取当前需要任务否则使用 <code>prefetch</code> 来获取将来的任务，不要一起用。</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级10.png" /></p>
+<p><strong>对 preload 使用 “as” 属性，不然将不会从中获益。</strong></p>
+<p>如果在指定要 <code>preload</code> 的内容（例如脚本）时未提供有效的<code>“as”</code>，则最终将获取两次。</p>
+<p><strong>preload 字体不带 crossorigin 也将会二次获取</strong>, 确保在使用 <code>preload</code> 获取字体时添加<code>crossorigin</code> 属性，否则将二次下载。 他这个请求使用匿名的跨域模式。 即使字体与页面位于同个域 下，也建议使用。也适用于其他域名的获取(比如说默认的异步获取)。</p>
+<p>最后，虽然它不会导致两次获取，但这通常是一个很好的建议：</p>
+<p>不要所有的请求资源都加 preload,用 <code>preload</code> 来告诉浏览器一些很被需要的资源，以便让它提早获取它们。</p>
+<h3 id="我应当在页面头部所有的资源都加上-preload">我应当在页面头部所有的资源都加上 <code>preload</code>？</h3>
+<p>这是工具的一个很好的例子，而不是规则。 <code>preload</code> 的文件数量取决于加载其他资源时网络内容、用户的带宽和其他网络状况。</p>
+<p>尽早 <code>preload</code> 页面中可能需要的文件，对于脚本，<code>preload</code> 你的密钥包是很好的，因为它将获取与执行分开，而仅仅使用 <code>&lt;script async&gt;</code> 不会这样做，因为它会阻止窗口的 <code>onload</code> 事件。你可以 <code>preload</code> 图像、样式、字体和媒体。最重要的是，作为一名页面作者，你可以更好地控制提前获取页面所需要的信息。</p>
+<h3 id="prefetch-是否具有你应该注意的任何魔法属性-是的">prefetch 是否具有你应该注意的任何魔法属性？ 是的，</h3>
+<p>在 Chrome 中，如果用户导航离开一个页面，而对其他页面的预取请求仍在进行中，这些请求将不会被终止。</p>
+<p>此外，无论资源的可缓存性如何，<code>prefetch</code> 请求在未指定的网络堆栈缓存中至少保存 5 分钟。</p>
+<h3 id="我在-js-中使用自定义的-preload它跟原本的-relpreload-或者-preload-头部有什么不同">我在 JS 中使用自定义的 “preload”，它跟原本的 rel=&quot;preload&quot; 或者 preload 头部有什么不同？</h3>
+<p><code>preload</code> 解耦从 JS 处理和执行中获取资源。 因此，preload 在标记中声明以被 Chrome preload 扫描器扫描。 这意味着在许多情况下，在 HTML 解析器甚至到达标签之前，将获取预加载（具有指示的优先级），这使它比自定义预加载实现更强大。</p>
+<p><strong>代码部署后可能存在的BUG没法实时知道，事后为了解决这些BUG，花了大量的时间进行log 调试，这边顺便给大家推荐一个好用的BUG监控工具 <a href="https://www.fundebug.com/?utm_source=xiaozhi">Fundebug</a>。</strong></p>
+<h3 id="不是可以用-http2-的服务器推送来代替-preload-吗">不是可以用 HTTP/2 的服务器推送来代替 preload 吗？</h3>
+<p>当你知道资源的精确加载顺序时使用推送，并让 service worker 拦截可能导致再次推送缓存资源的请求。 使用 <code>preload</code> 可以使资源的开始下载时间更接近初始请求 - 这对所有的资源获取都有用。</p>
+<p>我们假设浏览器正在加载一个页面，页面中有个 CSS 文件，CSS 文件又引用一个字体库，对于这样的场景，</p>
+<p>若使用 HTTP/2 PUSH，当服务端获取到 HTML 文件后，知道以后客户端会需要字体文件，它就立即主动地推送这个文件给客户端，如下图：</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级11.png" /></p>
+<p>而对于 preload，服务端就不会主动地推送字体文件，在浏览器获取到页面之后发现 preload 字体才会去获取，如下图：</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级12.png" /></p>
+<p>虽然推送很有效，但它不像 <code>preload</code> 那样对所有的情况都适应。</p>
+<p>推送不能用于第三方资源的内容，通过立即发送资源，它还有效地缩短浏览器自身的资源优先级情况。在你明确的知道在做什么时，这应该会提高你的应用性能，如果不是很清晰的话，你也许会损失掉部分的性能。</p>
+<h3 id="peload-请求头是什么它与-preload-标签相比如何它与-http2-服务器推送有什么关系">peload 请求头是什么？它与 preload 标签相比如何？它与 HTTP/2 服务器推送有什么关系？</h3>
+<p>与其他类型的链接一样，preload 链接即可以使用 HTML标记 或 HTTP标头。 在任何一种情况下，preload 链接都会指示浏览器开始将资源加载到内存缓存中，这表明该页面有很高可能性使用该资源，并且不希望等待预加载扫描程序或解析程序发现它。</p>
+<p>当金融时报在它们的网站使用 preload HTTP 头时，他们节约了大约 1s 的显示片头图片时间。</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级13.png" /></p>
+<p><strong>1： 没有使用 preload 2：使用了 preload</strong></p>
+<p>你可以使用任何一种形式提供 preload 链接，但是你应该知道一个重要区别：如规范所允许的，许多服务器在遇到 HTTP 头的 preload 链接时会触发 HTTP/2 服务器推送。 HTTP/2 推送的性能影响不同于普通的预加载，所以你要确保没有发起不必要的推送。</p>
+<p>你可以使用 preload 标签来代替 preload 头以避免不必要的推送，或者在你的 HTTP 头上加一个 “nopush” 属性。</p>
+<h3 id="如何判断-的支持情况">如何判断 <link rel="preload"> 的支持情况？</h3>
+<p>以下的代码段可以判断 <code>&lt;link rel=”preload”&gt;</code>支持情况：</p>
+<pre><code><code>const preloadSupported = () =&gt; {
+  const link = document.createElement(&#39;link&#39;);
+  const relList = link.relList;
+  if (!relList || !relList.supports)
+    return false;
+  return relList.supports(&#39;preload&#39;);
+};</code></pre>
+<p>FilamentGroup 也有一个 <a href="https://github.com/filamentgroup/loadCSS/blob/master/src/cssrelpreload.js#L8-L14">preload 检测器</a> ，作为他们的异步 CSS 加载库 <a href="https://github.com/filamentgroup/loadCSS">loadCSS</a> 的一部分。</p>
+<h3 id="可以使用-preload-让css样式立即生效吗">可以使用 preload 让CSS样式立即生效吗？</h3>
+<p>当然可以，preload 支持基于异步加载的标记，使用 <code>&lt;link rel=”preload”&gt;</code> 的样式表可以使用 <code>onload</code> 事件立即应用于当前文档：</p>
+<pre class="html"><code>&lt;link rel=&quot;preload&quot; href=&quot;style.css&quot; onload=&quot;this.rel=stylesheet&quot;&gt;</code></pre>
+<h3 id="preload-还被哪些网站广泛的应用">preload 还被哪些网站广泛的应用？</h3>
+<p>根据 HTTPArchive，大多数使用 <code>&lt;link rel =“preload”&gt;</code>的网站使用它来<a href="https://www.zachleat.com/web/preload/">预加载Web字体</a>，包括 <strong>Teen Vogue</strong> 和前面提到的 <strong>Shopify</strong>：</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级14.png" /></p>
+<p>而 LifeHacker 和 JCPenny 等其他热门网站使用它来异步加载CSS（通过Filament Group <a href="https://github.com/filamentgroup/loadCSS">loadCSS</a>）：</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级15.png" /></p>
+<p>然后，有越来越多的渐进式 Web 应用程序(如 Twitter.com mobile、Flipkart 和Housing)使用它来预加载当前导航所需的脚本(使用<a href="https://developers.google.com/web/fundamentals/performance/prpl-pattern/">PRPL</a>等模式)</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级16.png" /></p>
+<p>其基本思想是以高粒度维护工件（而不是整体捆绑），所以任何应用都可以按需加载依赖或者预加载资源并放在缓存中。</p>
+<h3 id="当前浏览器对-preload-和-prefetch-的支持程序如何">当前浏览器对 preload 和 Prefetch 的支持程序如何</h3>
+<p>根据 CanIUse，<code>&lt;link rel =“preload”&gt;</code>约 <a href="https://caniuse.com/#feat=link-rel-preload">50%</a> 的支持度， <code>&lt;link rel =“prefetch”&gt;</code> 约 <a href="https://caniuse.com/#search=prefetch">71%</a>。</p>
+<h3 id="相关阅读">相关阅读</h3>
+<ul>
+<li><a href="https://www.smashingmagazine.com/2016/02/preload-what-is-it-good-for/">Preload — what is it good for?</a> — Yoav Weiss</li>
+<li><a href="https://twitter.com/ChromiumDev/status/837715866078752768">A study</a> by the Chrome Data Saver team</li>
+<li><a href="https://www.youtube.com/watch?v=RWLzUnESylc">Planning for performance</a> — Sam Saccone</li>
+<li><a href="https://github.com/googlechrome/preload-webpack-plugin">Webpack plugin</a> for auto-wiring up <link rel="preload"></li>
+<li><a href="https://www.keycdn.com/blog/resource-hints/">What is preload, prefetch and preconnect?</a> — KeyCDN</li>
+<li><a href="https://www.zachleat.com/web/preload/">Web Fonts preloaded</a> by Zach Leat</li>
+<li><a href="https://www.google.com/url?q=https://developers.google.com/web/fundamentals/performance/optimizing-content-efficiency/http-caching#cache-control&amp;sa=D&amp;ust=1490641457910000&amp;usg=AFQjCNEb6fMArN_ahD7ySMICPF1Obf4rsw">HTTP Caching: cache-control</a> by Ilya Grigorik</li>
+</ul>
+<h3 id="关于fundebug">关于Fundebug</h3>
+<p><a href="https://www.fundebug.com/">Fundebug</a>专注于JavaScript、微信小程序、微信小游戏、支付宝小程序、React Native、Node.js和Java线上应用实时BUG监控。 自从2016年双十一正式上线，Fundebug累计处理了10亿+错误事件，付费客户有Google、360、金山软件、百姓网等众多品牌企业。欢迎大家<a href="https://www.fundebug.com/team/create">免费试用</a>！</p>
+<p><img src="./images/Web 性能优化：Preload与Prefetch的使用及在 Chrome 中的优先级17.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

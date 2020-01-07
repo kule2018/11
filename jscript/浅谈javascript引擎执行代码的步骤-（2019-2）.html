@@ -1,0 +1,107 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修浅谈javascript引擎执行代码的步骤-（2019-2）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>浅谈javascript引擎执行代码的步骤-（2019-2）</center></div><div class='banquan'>原文出处:本文由博客园博主不粘人的小妖精提供。<br/>
+原文连接:https://www.cnblogs.com/superior0325/p/11900990.html</div><br>
+    <p>平时面试经常会遇到类似下面的这种题，而且千变万化，让人一个头两个。示例这道题算是稍微有点难度的了，这种题考查的是JavaScript引擎执行代码的步骤。</p>
+<div class="cnblogs_code">
+<pre><code>b = 'cba'<span style="color: #000000;">;
+</span><span style="color: #0000ff;">function</span><span style="color: #000000;"> a(a, a){
+    console.log(a);
+    console.log(b);
+    </span><span style="color: #0000ff;">var</span> b = 'abc'<span style="color: #000000;">;
+    
+    a();
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> a(){
+        console.log(a);
+        console.log(b); 
+    }
+}
+a(</span>5,10);</pre>
+</div>
+<p>先上理论：</p>
+<p>（1）分析脚本的执行过程，也就是全局作用域下的代码。</p>
+<p>①创建全局对象GO(window)</p>
+<p>②加载脚本代码</p>
+<p>③预编译：依此找到var开头的变量声明，把变量加入到全局对象中；找到function开头的函数声明，也放到全局对象中，如果有相同的变量名或函数名，替换之前的；非声明的语句不予理睬；</p>
+<p>④解释执行，变量赋值，函数调用</p>
+<p>（2）分析每个函数的执行过程</p>
+<p>①创建每个函数对象AO（Active Object）</p>
+<p>②预编译：创建作用域链；初始化arguments；初始化形参，绑定arguments和形参；找到变量声明加入到AO；找到函数声明加入到AO；</p>
+<p>③解释执行</p>
+<p>-----------------------------------------------------------------------------------------------------------------------------</p>
+<p>具体分析上面的代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">全局作用域下预编译阶段：
+b </span>= 'cba';<span style="color: #008000;">//</span><span style="color: #008000;">忽略，既不是变量声明，也不是函数声明</span>
+<span style="color: #0000ff;">function</span> a(a, a){<span style="color: #008000;">//</span><span style="color: #008000;">function开头的函数声明，GO加入函数a，函数体忽略</span>
+<span style="color: #000000;">    console.log(a);
+    console.log(b);
+    </span><span style="color: #0000ff;">var</span> b = 'abc'<span style="color: #000000;">;
+    a();
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> a(){
+        console.log(a); 
+        console.log(b); 
+    }
+}
+a(</span>5,10<span style="color: #000000;">);
+
+全局作用域下解释执行：
+b </span>= 'cba';<span style="color: #008000;">//</span><span style="color: #008000;">GO中加入变量b，且赋值为'cba'</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> a(a, a){
+    console.log(a);
+    console.log(b);
+    </span><span style="color: #0000ff;">var</span> b = 'abc'<span style="color: #000000;">;
+    a();
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> a(){
+        console.log(a); 
+        console.log(b); 
+    }
+}
+a(</span>5,10);<span style="color: #008000;">//</span><span style="color: #008000;">执行函数a，然后生成a的AO</span>
+<span style="color: #000000;">
+函数a的预编译阶段：
+初始化arguments；
+初始化形参，两个形参名都为a，后赋的值会替换先赋的值，a先赋值为5，后赋值为10，所以此时变量a为10；
+console.log(a);</span><span style="color: #008000;">//</span><span style="color: #008000;">不是变量声明，忽略</span>
+console.log(b);<span style="color: #008000;">//</span><span style="color: #008000;">忽略</span>
+<span style="color: #0000ff;">var</span> b = 'abc';<span style="color: #008000;">//</span><span style="color: #008000;">是变量声明，将变量b加入到AO，值为undefined</span>
+a();<span style="color: #008000;">//</span><span style="color: #008000;">忽略</span><span style="color: #008000;">
+//</span><span style="color: #008000;">函数声明，函数a与形参a同名，替换之前的a=10，此时a为function</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> a(){
+    console.log(a); 
+    console.log(b); 
+}
+
+函数a解释执行阶段：
+console.log(a);</span><span style="color: #008000;">//</span><span style="color: #008000;">输出function</span>
+console.log(b);<span style="color: #008000;">//</span><span style="color: #008000;">输出undefined</span>
+<span style="color: #0000ff;">var</span> b = 'abc';<span style="color: #008000;">//</span><span style="color: #008000;">变量b赋值'abc'</span>
+a();<span style="color: #008000;">//</span><span style="color: #008000;">执行，此处省略分析子函数a的预编译过程</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> a(){
+    console.log(a); </span><span style="color: #008000;">//</span><span style="color: #008000;">子函数a的AO中没有变量a，向父函数a中寻找，所以输出function</span>
+    console.log(b); <span style="color: #008000;">//</span><span style="color: #008000;">子函数a的AO中没有变量b，向父函数a中寻找，所有输出'abc'</span>
+}</pre>
+</div>
+<p>有点乱哈，我写的可能也不是很清楚，不过这个真的很重要，我也是想通过这种方式能让自己加深印象，也希望有需要的人如果看到多少能提供一点帮助。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

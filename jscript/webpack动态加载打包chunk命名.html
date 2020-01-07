@@ -1,0 +1,145 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修webpack动态加载打包chunk命名' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>webpack动态加载打包chunk命名</center></div><div class='banquan'>原文出处:本文由博客园博主js-coder提供。<br/>
+原文连接:https://www.cnblogs.com/dahe1989/p/11543832.html</div><br>
+    <p id="webpack按需加载打包chunk命名" data-source-line="1"><span style="font-size: 14px;">最近，遇到复杂h5页面开发，为了优化H5首屏加载速度，想到使用按需加载的方式，减少首次加载的JavaScript文件体积，于是将处理过程在这里记录一下，涉及到的主要是以下三点：</span></p>
+<ul data-source-line="5">
+<li>使用Webpack如何做按需加载</li>
+<li>filename和chunkFilename的区别</li>
+<li>如何命名chunk的名称(webpackChunkName)</li>
+</ul>
+<h2 id="1-使用webpack如何做按需加载" data-source-line="9">1 使用Webpack如何做按需加载</h2>
+<p data-source-line="11">大家都知道Webpack是现在流行的前端打包编译工具，通过模块之间的依赖关系，将代码打包组织到一起。Webpack目前已经到v4.x，不同版本版支持按需加载的方式不同，主要有两种：</p>
+<ul data-source-line="13">
+<li>webpack1.x 中提供了 require.ensure()</li>
+<li>webpack2.x 中提供了 import()</li>
+</ul>
+<h3 id="requireensure" data-source-line="16">require.ensure()</h3>
+<div class="cnblogs_Highlighter">
+<pre><code>// 举例
+require.ensure([], function(require){
+    require('b');
+});
+</pre>
+</div>
+<p>&nbsp;</p>
+<p data-source-line="23">webpack 在编译时，会静态地解析代码中的 require.ensure()，同时将[模块b] 添加到一个分开的 chunk 当中。这个新的 chunk 会被 webpack 通过 jsonp 来按需加载。</p>
+<p data-source-line="25">为什么说到是静态分析，我们可以看到下面的require.ensure语法，第二个参数callback就是一个回调函数。其中需要注意的是，这个回调函数有一个参数require，通过这个require就可以在回调函数内按需引入其他模块。值得注意的是，虽然这个require是回调函数的参数"module"，理论上可以换其他名称，但是实际上是不能换的，否则webpack就无法静态分析的时候处理它。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>require.ensure(
+    dependencies: String[], 
+    callback: function(require){
+        require('module');
+    }, 
+    errorCallback: function(error){}, 
+    chunkName: String
+)</pre>
+</div>
+<h3 id="import" data-source-line="37">import()</h3>
+<p data-source-line="38">要注意的是import() 函数不同于import命令，import 是 ECMAScript 6 Module 的语法，import 是静态执行，这里不多说，可以去看<a href="http://es6.ruanyifeng.com/?search=System.import&amp;x=0&amp;y=0#docs/module#import-%E5%91%BD%E4%BB%A4" target="_blank">import 命令</a>。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>import(specifier)
+</pre>
+</div>
+<p>上面代码中，import函数的参数specifier，指定所要加载的模块的位置，而且specifier可以是一个方法，动态的生成模块路径。import命令能够接受什么参数，import()函数就能接受什么参数，两者区别主要是后者为动态加载。</p>
+<p data-source-line="45">import()函数是 ECMAScript Stage 3 草案阶段的语法；用于完成动态加载即运行时加载，可以用在任何地方。import()函数 返回的是一个 Promise。类似于 CommonJs 的 require() ，区别主要是前者是异步加载，后者是同步加载。</p>
+<p data-source-line="47">import的应用场景有以下三种 (参考自ECMAScript 6 入门):</p>
+<ol data-source-line="49">
+<li>按需加载。import()可以在需要的时候，再加载某个模块</li>
+<li>条件加载。import()可以放在if代码块，根据不同的情况，加载不同的模块。</li>
+<li>动态的模块路径。import()允许模块路径动态生成。</li>
+</ol>
+<p data-source-line="53">用法大致如下：</p>
+<div class="cnblogs_Highlighter">
+<pre><code>import('./myModule.js')
+    .then(myModule =&gt; {
+        console.log(myModule.default);
+    });</pre>
+</div>
+<h3 id="小结" data-source-line="61">小结</h3>
+<p data-source-line="62">目前我们用的比较多的是import来做按需加载，模块路径可以动态生成，更适合现在的应用场景。</p>
+<h2 id="filename和chunkfilename的区别" data-source-line="64">filename和chunkFilename的区别</h2>
+<p data-source-line="65">能够打包之后，我们会发现打包出来的chunk的路径和命名是极其简单的1,2,3...这样子的数字，对于我们要定制路径和名字的话，就会涉及到filename和chunkFilename。</p>
+<ul data-source-line="67">
+<li>output.filename 决定了每个入口(entry) 输出 bundle 的名称。</li>
+<li>output.chunkFilename 决定了非入口(non-entry) chunk 文件的名称。</li>
+</ul>
+<p data-source-line="70">常用的Webpack配置如下</p>
+<div class="cnblogs_Highlighter">
+<pre><code>module.exports = {
+    //...
+    output: {
+        filename: '[name].[hash].bundle.js',
+        chunkFilename: '[name].[hash].chunk.js',
+    }
+};</pre>
+</div>
+<p data-source-line="81">filename和chunkFilename对应的结果可以由以下参数拼接或者返回：</p>
+<table data-source-line="83">
+<thead>
+<tr><th>模板</th><th>描述</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>[hash]</td>
+<td>模块标识符(module identifier)的 hash</td>
+</tr>
+<tr>
+<td>[chunkhash]</td>
+<td>chunk 内容的 hash</td>
+</tr>
+<tr>
+<td>[name]</td>
+<td>模块名称</td>
+</tr>
+<tr>
+<td>[id]</td>
+<td>模块标识符(module identifier)</td>
+</tr>
+<tr>
+<td>[query]</td>
+<td>模块的 query，例如，文件名 ? 后面的字符串</td>
+</tr>
+<tr>
+<td>[function]</td>
+<td>方法，可以返回一个filename字符串</td>
+</tr>
+</tbody>
+</table>
+<p data-source-line="92">不同的是chunkFilename我们不能想filename中的name那样，可以在entry中定义。也就是说对于chunkFilename，默认[id]和[name]是一样的，那么如何自定义name呢？</p>
+<h2 id="如何命名chunk的名称" data-source-line="94">如何命名chunk的名称</h2>
+<p data-source-line="96">只能说哪里有压迫，哪里就会有反抗，chunkFileName不能灵活自定义，这谁能忍，于是便有了/* webpackChunkName: "" */，号称是Magic Comments（魔术注释法）。</p>
+<p data-source-line="98">Webpack通过增加内联注释来告诉运行时，该有怎样的行为。通过向import中添加注释，我们可以执行诸如命名chunk或选择不同模式之类的操作。</p>
+<p data-source-line="100">这里着重讲一下webpackChunkName，它其实就是对chunkFilename定义时[name]值的改写，/* webpackChunkName: "hello" */，意味着[name]等于hello。</p>
+<p data-source-line="102">于是上面的代码就会按照下面的方式来写，打包出来的chunk文件将会出现在plugins文件夹下，名字叫myModule.a2d1d5d8e7d5d4d4d4se.chunk.js。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>import(/* webpackChunkName: "plugins/myModule" */
+    './myModule.js')
+    .then(myModule =&gt; {
+        console.log(myModule.default);
+    });</pre>
+</div>
+<p data-source-line="111">更多的魔术注释，请参考<a href="https://webpack.js.org/api/module-methods/#magic-comments" target="_blank">Webpack官方文档</a>。</p>
+<h2 id="结束了" data-source-line="113">结束了</h2>
+<p data-source-line="114">到此为止，我们已经可以将代码打包到多个文件，每个chunk可以独立命名，是的就是这样。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

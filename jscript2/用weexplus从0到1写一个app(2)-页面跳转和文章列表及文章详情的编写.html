@@ -1,0 +1,317 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修用weexplus从0到1写一个app(2)-页面跳转和文章列表及文章详情的编写' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>用weexplus从0到1写一个app(2)-页面跳转和文章列表及文章详情的编写</center></div><div class='banquan'>原文出处:本文由博客园博主kung2016提供。<br/>
+原文连接:https://www.cnblogs.com/kung0806/p/10824734.html</div><br>
+    <h2 id="说明">说明</h2>
+<p>结束连续几天的加班,最近的项目终于告一段落,今天抽点时间开始继续写我这篇拖了很久的《用weexplus从0到1写一个app》系列文章。写这篇文章的时候,weexplus的作者已经把weexplus重构了一下，可以同时打包出web端和native端，我这边的ui界面和项目结构也跟着做了一点变化。这里有weexplus官方放出的一个<a href="https://github.com/farwolf2010/movie">电影APP的demo</a>，有需要的可以去下载看看，然后顺便给weexplus一个star吧！</p>
+<p><img src="./images/用weexplus从0到1写一个app(2)-页面跳转和文章列表及文章详情的编写0.png" alt="新版UI展示" /></p>
+<p>文章可能会很长，在此分几篇文章来写，先占个坑：</p>
+<ul>
+<li><a href="http://23jt.net/kun">用weexplus从0到1写一个app(1)-环境搭建和首页编写</a></li>
+<li><a href="http://23jt.net/kun">用weexplus从0到1写一个app(2)-参数跳转和文章列表及文章详情、搜索页面的编写</a></li>
+<li><a href="http://23jt.net/kun">用weexplus从0到1写一个app(3)-视频列表和视频详情的编写</a></li>
+</ul>
+<h2 id="开始写代码">开始写代码</h2>
+<h3 id="页面跳转和接收参数">页面跳转和接收参数</h3>
+<p>在第一篇的文章《环境搭建和首页编写》中已经写好了首页的代码,现在要从首页的某个文章跳转到文章详情应该怎么做呢?在vue里我们知道是用vue-router来跳转,weexplus中也给我们封装好了类似的导航控制器<code>navigator</code>。具体使用请看<a href="https://weexplus.github.io/doc/mo-kuai/notify.html">navigtor模块文档</a></p>
+<ul>
+<li>页面传参数跳转</li>
+</ul>
+<p>主要用后面这段<code>navigator.pushParam('跳转路径String','传递的参数Object')</code>，如果不需要传参数直接用<code>navigator.push('跳转路径String')</code>就好了。以下为示例代码：</p>
+<pre><code><code>//commponet/home/news.vue省略n多代码
+const navigator = weex.requireModule(&quot;navigator&quot;);//先引入navigator模块
+gotonews(item) {
+    if (item.category) {
+        if (item.category.name == &quot;专题&quot;) {
+            //navigator传参数跳转页面
+            navigator.pushParam(
+              &quot;root:/busi/news/list.js&quot;, {
+                cid: item.id,
+                from: &quot;zhuanti&quot;
+              }
+            );
+          }
+          if (item.category.name != &quot;专题&quot;) {
+            navigator.pushParam(&quot;root:/busi/news/detail.js&quot;, {
+              id: item.id
+            });
+          }
+        } else {
+          navigator.pushParam(&quot;root:/busi/news/detail.js&quot;, {
+            id: item
+        });
+    }
+},</code></pre>
+<ul>
+<li>接收参数</li>
+</ul>
+<pre><code><code>//busi/news/detail.vue省略n多代码
+const navigator = weex.requireModule(&quot;navigator&quot;);//先引入navigator模块
+created(options) {
+    const globalEvent = weex.requireModule(&quot;globalEvent&quot;);
+    globalEvent.addEventListener(&quot;onPageInit&quot;, () =&gt; {
+        const query = navigator.param();//接收上一个页面传递的参数
+        this.query = query;
+    });
+},</code></pre>
+<h3 id="文章列表和文章详情">文章列表和文章详情</h3>
+<p>先来看文章列表和文章详情的UI界面：</p>
+<p><img src="./images/用weexplus从0到1写一个app(2)-页面跳转和文章列表及文章详情的编写1.png" alt="文章列表和文章详情的UI界面" /></p>
+<p>下面拆解一下界面布局:</p>
+<p><img src="./images/用weexplus从0到1写一个app(2)-页面跳转和文章列表及文章详情的编写2.png" alt="文章列表和文章详情的UI界面" /></p>
+<h4 id="文章列表界面">文章列表界面</h4>
+<p>可以从分解图中看到文章列表大体上分为三个部分：文章标题，文章封面，文章发布时间。下面废话少说，show my coding！</p>
+<h5 id="文章列表数据结构">文章列表数据结构</h5>
+<pre><code><code>&quot;article_list&quot;: [
+    {
+        &quot;id&quot;: &quot;7019&quot;,//文章id
+        &quot;title&quot;: &quot;Super Star吉他谱_S.H.E_弹唱谱扫弦版&quot;,//文章标题
+        &quot;haslitpic&quot;: 1,
+        &quot;pic&quot;: {
+            &quot;src&quot;: &quot;/180203/21562a414_lit.jpg&quot;,
+            &quot;url&quot;: &quot;/180203/21562a414_lit.jpg&quot;
+        },//文章封面
+        &quot;description&quot;: &quot;Super Star吉他谱，扫弦版编配&quot;,//文章简介
+        &quot;pubdate&quot;: &quot;2018-02-03 21:55:23&quot;,//文章发布时间
+        &quot;category&quot;: {
+            &quot;name&quot;: &quot;图片谱&quot;//文章分类
+        },
+    }]</code></pre>
+<h4 id="列表布局代码">列表布局代码</h4>
+<p>weex默认是flex布局，css方面就很简单了，对flex不熟悉的推荐看一下<a href="http://www.ruanyifeng.com/blog/2015/07/flex-examples.html">阮一峰的flex文章</a>，在这里就不贴代码了。</p>
+<pre><code><code>//component/news-item.vue省略n多代码
+&lt;template&gt;
+  &lt;div class=&quot;news-items&quot;&gt;
+    &lt;div v-if=&quot;type==1&quot; class=&quot;item-box&quot; @click=&quot;gotonews(item.id)&quot; v-for=&quot;(item,index) in newsItems&quot; :key=&quot;index&quot;&gt;
+      &lt;div class=&quot;item-left&quot;&gt;
+        &lt;text class=&quot;left-text&quot;&gt;{{item.title}}&lt;/text&gt;
+        &lt;div class=&quot;left-line&quot;&gt;&lt;/div&gt;
+        &lt;text class=&quot;left-time&quot; v-if=&quot;item.category &amp;&amp; item.category.name &amp;&amp; item.category&quot;&gt;{{item.category.name}}&lt;/text&gt;
+        &lt;text class=&quot;left-time&quot; v-else&gt;{{item.pubdate}}&lt;/text&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;item-right&quot;&gt;
+        &lt;img :src=&quot;item.pic.src&quot; mode=&quot;aspectFill&quot; class=&quot;litpic&quot;&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+    &lt;div class=&quot;item-box2&quot; v-if=&quot;type==2&quot; @click=&quot;gotonews(item.id)&quot;&gt;
+      &lt;img :src=&quot;item.pic.src&quot; mode=&quot;aspectFill&quot; class=&quot;litpic2&quot; /&gt;
+      &lt;!-- &lt;img src=&quot;../../static/assets/nav1.png&quot; mode=&quot;aspectFill&quot; class=&quot;litpic2&quot;&gt; --&gt;
+      &lt;text class=&quot;box2-text&quot;&gt;{{item.title}}&lt;/text&gt;
+    &lt;/div&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+  const navigator = weex.requireModule(&quot;navigator&quot;);
+  
+  export default {
+    name: &#39;news-item&#39;,
+    props: {
+      item: {
+        pic: {
+          default: &#39;&#39;
+        },
+        title: {
+          default: &#39;&#39;
+        },
+        publishTime: {
+          default: &#39;&#39;
+        },
+      },
+      type: {
+        default: 1
+      },
+      newsItems: {
+        type: Array,
+        default: []
+      }
+    },
+    methods: {
+      gotonews(item) {
+        //省略代码
+      },
+    }
+  }
+&lt;/script&gt;
+
+&lt;style lang=&quot;less&quot; scoped&gt;
+&lt;/style&gt;
+</code></pre>
+<p>在这里需要注意几个点：</p>
+<ul>
+<li>一个是在weex中文字必须被<code>&lt;text&gt;&lt;/text&gt;</code>标签包住才能给到样式否则无效，并且<code>&lt;text&gt;&lt;/text&gt;</code>标签不能多层嵌套；</li>
+<li>另外图片标签<code>&lt;img/&gt;</code>有个<code>resize</code>属性默认是stretch会按照图片区域的宽高比例缩放图片可能图片会变形，这里有三个属性分别是contain（缩放图片以完全装入<image>区域，可能背景区部分空白）、cover（缩放图片以完全覆盖<image>区域，可能图片部分看不见）、stretch（默认值. 按照<image>区域的宽高比例缩放图片）。具体表现样式<a href="https://weex.apache.org/zh/docs/components/image.html#%E5%B1%9E%E6%80%A7">参见weex文档image组件</a>。</li>
+</ul>
+<h4 id="文章详情界面">文章详情界面</h4>
+<p>同样可以从分解图中看到文章详情大体上分为两个个部分：文章标题，文章内容（富文本）</p>
+<h5 id="文章列表数据结构-1">文章列表数据结构</h5>
+<pre><code><code>&quot;article&quot;: {
+    &quot;id&quot;: 7019,//文章id
+    &quot;cid&quot;: &quot;2&quot;,//分类id
+    &quot;title&quot;: &quot;Super Star吉他谱_S.H.E_弹唱谱扫弦版&quot;,//文章标题
+    &quot;author&quot;: &quot;爱尚吉他&quot;,
+    &quot;haspic&quot;: 1,
+    &quot;pic&quot;: {
+        &quot;url&quot;: &quot;/21562a414_lit.jpg&quot;//封面
+    },
+    &quot;keywords&quot;: &quot;Super,Star,吉他,S.H.E,弹唱,谱扫,弦版&quot;,//关键词
+    &quot;description&quot;: &quot;Super Star吉他谱，扫弦版编配&quot;,//描述
+    &quot;pubdate&quot;: &quot;2018-02-03 21:55:23&quot;,
+    &quot;postime&quot;: &quot;1517666123&quot;,
+    &quot;good&quot;: &quot;0&quot;,
+    &quot;bad&quot;: &quot;0&quot;,
+    &quot;favorite&quot;: &quot;0&quot;,
+    &quot;comments&quot;: 0,
+    &quot;body&quot;: &quot;Super &quot;,//文章详情（富文本）
+}</code></pre>
+<h6 id="详情布局代码">详情布局代码</h6>
+<pre><code><code>//busi/news/detail.vue省略n多代码
+&lt;template&gt;
+  &lt;div class=&quot;app&quot; style=&quot;background-color: #fff&quot;&gt;
+    &lt;my-header title=&quot;文章详情&quot; @rightClick=&quot;refresh&quot;&gt;
+      &lt;image slot=&quot;right&quot; src=&quot;root:img/assets/refresh.png&quot; style=&quot;width:40px;height:40px;position:absolute;right:30px;bottom:30px;&quot;/&gt;
+    &lt;/my-header&gt;
+    &lt;scroller&gt;
+      &lt;div class=&quot;publish&quot;&gt;
+        &lt;text class=&quot;title&quot;&gt;{{item.title==&#39;&#39;?&#39;爱尚吉他&#39;:item.title}}&lt;/text&gt;
+        &lt;div class=&quot;sub&quot;&gt;
+          &lt;text class=&quot;author theme-font&quot;&gt;{{item.author}}&lt;/text&gt;
+          &lt;text class=&quot;line&quot;&gt;|&lt;/text&gt;
+          &lt;text class=&quot;pubdate&quot;&gt;{{item.pubdate}}&lt;/text&gt;
+        &lt;/div&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;content-box&quot;&gt;
+        &lt;rich-text :content=&quot;item.body&quot;&gt;&lt;/rich-text&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;border-b-5&quot;&gt;&lt;/div&gt;
+      &lt;title-item v-if=&quot;aboutItems.length&gt;0&quot; title=&quot;相关阅读&quot;&gt;&lt;/title-item&gt;
+      &lt;news-item v-if=&quot;aboutItems.length&gt;0&quot; :newsItems=&quot;aboutItems&quot;&gt;&lt;/news-item&gt;
+      &lt;title-item title=&quot;推荐谱单&quot; url=&quot;root:busi/topic/list.js?type=2&quot;&gt;&lt;/title-item&gt;
+      &lt;topic-item showLength=&quot;4&quot; type=&quot;2&quot;&gt;&lt;/topic-item&gt;
+      &lt;homeSinger-item&gt;&lt;/homeSinger-item&gt;
+      &lt;back-item v-if=&quot;show&quot;&gt;&lt;/back-item&gt;
+    &lt;/scroller&gt;
+  &lt;/div&gt;
+&lt;/template&gt;
+
+&lt;script&gt;
+  import myHeader from &quot;../../component/header.vue&quot;;//头部组件
+  import titleItem from &quot;../../component/title-item.vue&quot;;//标题组件
+  import newsItem from &quot;../../component/news-item.vue&quot;;
+  import backItem from &quot;../../component/back-item.vue&quot;;
+  import richText from &quot;../../component/rich-text.vue&quot;;//富文本
+  import topicItem from &quot;../../component/vtopic-item.vue&quot;;
+  import homeSingerItem from &quot;../../component/home/singer.vue&quot;;//歌手列表组件
+
+  const navigator = weex.requireModule(&quot;navigator&quot;);
+  const modal = weex.requireModule(&quot;modal&quot;);
+  
+  import apis from &quot;./../util/api&quot;;
+  import {
+    htmlTOJson
+  } from &quot;./../util/util&quot;;//解析富文本
+  import request from &quot;./../util/request&quot;;//数据请求封装
+  
+  export default {
+    components: {
+      titleItem,
+      newsItem,
+      backItem,
+      richText,
+      myHeader,
+      topicItem,
+      homeSingerItem
+    },
+    data() {
+      return {
+        item: {
+          body: [{
+              type: &quot;icon&quot;,
+              src: &quot;&quot;
+            },
+            {
+              type: &quot;text&quot;,
+              value: &quot;&quot;,
+              theme: &quot;yellow&quot;
+            }
+          ],
+          title: &quot;&quot;,
+          pubdate: &quot;&quot;,
+          pic: &quot;&quot;,
+          author: &quot;&quot;,
+          normalBody: &quot;&quot;
+        },
+        show: false,
+        aboutItems: [],
+        query: {}
+      };
+    },
+    created(options) {
+      const globalEvent = weex.requireModule(&quot;globalEvent&quot;);
+      globalEvent.addEventListener(&quot;onPageInit&quot;, () =&gt; {
+        const query = navigator.param();//拿到传递的参数
+        this.query = query;
+        this.refresh();
+      });
+    },
+    methods: {
+      refresh(){
+        this.loadData(this.query.id);
+      },
+      loadData(id) {
+        //请求初始数据
+        const that = this;
+        let arr = [];
+        let data = request.get(apis.articleDetails, {
+          id: id
+        }).then(data =&gt; {
+          //数据组装
+        });
+      },
+      gotonews(id) {
+        // console.log(id);
+        navigator.pushParam(&quot;./detail.js&quot;, {
+          id: id
+        });
+        // this.loadData(id);
+      },
+      share() {}
+    }
+  };
+&lt;/script&gt;
+
+&lt;style src=&quot;../../css/style.css&quot;&gt;&lt;/style&gt;
+
+&lt;style scoped&gt;&lt;/style&gt;
+</code></pre>
+<p>在这里需要注意几个点：</p>
+<ul>
+<li>weex目前对富文本支持不太友好，官方是有个richtext组件，但是需要前端自己重新解析富文本内容为指定的格式，<a href="https://weex.apache.org/zh/docs/components/richtext.html">具体参见richtext文档</a>，对这一块目前我这边也没有完美的解决方案，这里只有几个思路：1.按照官方的按照richtext组件需要的数据结构前端自己解析；2.写一个H5页面显示富文本，任何用webview嵌入；3.接口返回数据按照richtext组件需要的数据结构处理好数据。</li>
+</ul>
+<h2 id="一点私货">一点私货</h2>
+<p>基于同一套ui开发出来的吉他自学小助手小程序版已经上线喜欢弹吉他的小伙伴可以关注一波 https://minapp.com/miniapp/8327/</p>
+<p><img src="./images/用weexplus从0到1写一个app(2)-页面跳转和文章列表及文章详情的编写3.png" alt="吉他自学小助手微信小程序二维码" /></p>
+<h2 id="更多">更多</h2>
+<p>更多前端技术分享请关注我的博客:https://hurely.github.io</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

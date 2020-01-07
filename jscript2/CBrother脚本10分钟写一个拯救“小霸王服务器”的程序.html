@@ -1,0 +1,139 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修CBrother脚本10分钟写一个拯救“小霸王服务器”的程序' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>CBrother脚本10分钟写一个拯救“小霸王服务器”的程序</center></div><div class='banquan'>原文出处:本文由博客园博主无剑胜有剑提供。<br/>
+原文连接:https://www.cnblogs.com/wjsyj/p/11887182.html</div><br>
+    <h1 class="col-article-title J-articleTitle" style="text-align: center;">CBrother脚本语言10分钟写一个拯救&ldquo;小霸王服务器&rdquo;的程序</h1>
+<p>到了一家新公司，接手了一坨c++服务器代码，到处内存泄漏，这服务器没有数据库，挂了后重启一下就好了，公司就这么凑活着用了几年了，定时重启吧，也不是天天挂，不定时重启吧，说不准哪天就挂了。。。。。。</p>
+<p>小公司，从写代码到维护就我一个人，每到下班后或者周末，电话一响，我就知道挂了，得找电脑重启一下，要是出去玩了还得找网吧，装个远程软件吧，公司说服务器之前被远程软件黑过，不准装，烦。</p>
+<p>想着弄个什么程序在手机上点一下就给重启了就好了，咱这种写C++后台十几年的人，手机APP是不会开了，那就弄个网页服吧，选了半天，python的语法把我快看晕了。PHP研究一早上环境都没搭起来。找其他的，找到了一门CBrother脚本，语法跟C++共通之处，写http接口极其简单，跟作者聊了一下，10分钟就写出了我要的东西，现在我给公司其他同事一人一个账号，谁都可以重启服务了。为了感谢CBrother作者，这里写篇文章帮他宣传一下。</p>
+<h1 id="%E4%B8%BB%E5%87%BD%E6%95%B0%EF%BC%9A"><strong>主函数：</strong></h1>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">入口函数，和c++一样，启动调用main函数，这点我喜欢</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> main(params)
+{
+    </span><span style="color: #0000ff;">var</span> httpServer = <span style="color: #0000ff;">new</span> HttpServer();    <span style="color: #008000;">//</span><span style="color: #008000;">创建一个http服务</span>
+    httpServer.addAction("hello.cb",<span style="color: #0000ff;">new</span> HelloAction());    <span style="color: #008000;">//</span><span style="color: #008000;">注册hello.cb接口响应类HelloAction</span>
+    httpServer.addAction("120120.cb",<span style="color: #0000ff;">new</span> Action120());        <span style="color: #008000;">//</span><span style="color: #008000;">注册重启接口为120120.cb</span>
+    httpServer.setNormalAction("hello.cb");                <span style="color: #008000;">//</span><span style="color: #008000;">设置默认页调用 hello.cb</span>
+    httpServer.startServer(11120);                         <span style="color: #008000;">//</span><span style="color: #008000;">设置服务端口为11120</span>
+    
+    <span style="color: #008000;">//</span><span style="color: #008000;">主线程不退出，除了语法简化外，套路和c++简直一摸一样</span>
+    <span style="color: #0000ff;">while</span> (1<span style="color: #000000;">)
+    {
+        Sleep(</span>1000<span style="color: #000000;">);
+    }    
+}</span></pre>
+</div>
+<h1 id="hello.cb%EF%BC%9A">hello.cb：</h1>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">class HelloAction
+{
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">接口的执行函数</span>
+    <span style="color: #0000ff;">function</span><span style="color: #000000;"> DoAction(request,respone)
+    {
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">写一个表单，这都是大学时候学的东西，十几年了，幸亏还记了一点点，哈哈</span>
+        respone.write("&lt;html&gt;&lt;head&gt;&lt;title&gt;抢救服务器&lt;/title&gt;&lt;meta http-equiv=\"content-type\" content=\"txt/html; charset=utf-8\" /&gt;&lt;/head&gt;&lt;body&gt;"<span style="color: #000000;">);
+        respone.write(</span>"&lt;br&gt;&lt;FORM method=\"post\" action=\"120120.cb\"&gt;"<span style="color: #000000;">);
+        respone.write(</span>"&lt;INPUT type=\"text\" name=\"username\"&gt;&lt;br&gt;"<span style="color: #000000;">);
+        respone.write(</span>"&lt;input type=\"password\" name=\"userpass\"&gt;&lt;br&gt;"<span style="color: #000000;">);
+        respone.write(</span>"&lt;input type=\"submit\" value=\"抢救\"&gt;&lt;/FORM&gt;&lt;/body&gt;&lt;html&gt;"<span style="color: #000000;">);
+        respone.flush();
+    }
+}</span></pre>
+</div>
+<h1 id="120120.cb%E9%87%8D%E5%90%AF%E6%9C%8D%E5%8A%A1%E5%99%A8%E7%9A%84%E6%93%8D%E4%BD%9C%EF%BC%9A"><strong>120120.cb</strong>重启服务器的操作：</h1>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> g_userMap = {"admin":"123.123","huangyi":"256.256","boss":".boss1boss"};<span style="color: #008000;">//</span><span style="color: #008000;">定义用户密码</span>
+<span style="color: #0000ff;">var</span> g_exepath = "D:\\work\\FVServer\\FVServer.exe";            <span style="color: #008000;">//</span><span style="color: #008000;">进程路径</span>
+<span style="color: #0000ff;">var</span> g_exeName = "FVServer.exe";    <span style="color: #008000;">//</span><span style="color: #008000;">进程名称</span>
+<span style="color: #000000;">
+class Action120
+{
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> DoAction(request,respone)
+    {
+        respone.write(</span>"&lt;html&gt;&lt;head&gt;&lt;title&gt;抢救服务器&lt;/title&gt;&lt;meta http-equiv=\"content-type\" content=\"txt/html; charset=utf-8\" /&gt;&lt;/head&gt;&lt;body&gt;"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">var</span> fromdata = request.getFormData();            <span style="color: #008000;">//</span><span style="color: #008000;">获取表单数据</span>
+        <span style="color: #0000ff;">if</span> (fromdata == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+        {
+            respone.write(</span>"我不认识你&lt;/body&gt;&lt;html&gt;"<span style="color: #000000;">);
+            respone.flush();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+
+        </span><span style="color: #0000ff;">var</span> userName = strlower(fromdata.getText("username"));    <span style="color: #008000;">//</span><span style="color: #008000;">获取用户名，转小写</span>
+        <span style="color: #0000ff;">var</span> pwd = fromdata.getText("userpass"<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">var</span> pwdlocal = g_userMap[userName];                        <span style="color: #008000;">//</span><span style="color: #008000;">判断用户是否存在</span>
+        <span style="color: #0000ff;">if</span> (pwdlocal == <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+        {
+            respone.write(</span>"我不认识你&lt;/body&gt;&lt;html&gt;"<span style="color: #000000;">);
+            respone.flush();
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;            
+        }
+
+        </span><span style="color: #0000ff;">if</span> (pwdlocal != pwd)                                        <span style="color: #008000;">//</span><span style="color: #008000;">判断密码是否正确</span>
+<span style="color: #000000;">        {
+            respone.write(</span>"密码错误&lt;/body&gt;&lt;html&gt;"<span style="color: #000000;">);
+            respone.flush();            
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;            
+        }
+
+        </span><span style="color: #0000ff;">var</span> oldid = 0<span style="color: #000000;">;
+        respone.write(</span>"抢救中..."<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">var</span> pidarr = GetProcessByName(g_exeName);                    <span style="color: #008000;">//</span><span style="color: #008000;">获取进程ID列表，应该只有一个</span>
+        <span style="color: #0000ff;">if</span> (pidarr != <span style="color: #0000ff;">null</span><span style="color: #000000;">)
+        {
+            </span><span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> i = 0; i &lt; pidarr.size() ; i++<span style="color: #000000;">)
+            {
+                print </span>"查杀进程ID：" +<span style="color: #000000;"> pidarr[i];
+                KillProcessByID(pidarr[i]);                    </span><span style="color: #008000;">//</span><span style="color: #008000;">查杀进程</span>
+<span style="color: #000000;">            }
+            Sleep(</span>2000<span style="color: #000000;">);
+        }
+
+        respone.write(</span>"&lt;br&gt;抢救中..."<span style="color: #000000;">);
+        </span><span style="color: #0000ff;">var</span> pid = CreateProcess(g_exepath);                    <span style="color: #008000;">//</span><span style="color: #008000;">重新启动一个</span>
+        respone.write("&lt;br&gt;抢救成功。进程ID:" +<span style="color: #000000;"> pid);
+        respone.flush();
+
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">把当前时间打印出来</span>
+        <span style="color: #0000ff;">var</span> t = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Time();
+        print userName </span>+ "抢救了服务器。" + oldid + "===&gt;" + pid + t.strftime(" [%Y/%m/%d %H:%M:%S]"<span style="color: #000000;">);
+    }
+}</span></pre>
+</div>
+<p>之后从官网（<a href="http://www.cbrother.net/" rel="nofollow noopener noreferrer" target="_blank" data-from="10680">http://www.cbrother.net/</a>）下载CBrother，然后再控制台输入启动命令</p>
+<p>d:\cbrother_v2.1.0_win64\cbrother.exe d:\cbrother\check.cb,服务器就启起来了。</p>
+<p>然后可以通过手机访问这个端口重启服务器了</p>
+<p><img src="./images/CBrother脚本10分钟写一个拯救“小霸王服务器”的程序0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;输入账号密码重启</p>
+<p><img src="./images/CBrother脚本10分钟写一个拯救“小霸王服务器”的程序1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>再打电话也不用急急忙忙去找电脑了，手机一点就OK，打电话的人自己页可以重启了。&nbsp;</p>
+<p>服务器界面显示</p>
+<p><img src="./images/CBrother脚本10分钟写一个拯救“小霸王服务器”的程序2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>总体来说，CBrother脚本很符合我的编程理念，而且封装的很简单，后面还要深入学习下。</p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

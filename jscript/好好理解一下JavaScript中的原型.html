@@ -1,0 +1,206 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修好好理解一下JavaScript中的原型' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>好好理解一下JavaScript中的原型</center></div><div class='banquan'>原文出处:本文由博客园博主Vexekefo提供。<br/>
+原文连接:https://www.cnblogs.com/wljqds/p/js_prototype.html</div><br>
+    <!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+<h1 id="目录">目录</h1>
+<p><strong>Table of Contents</strong> <em>generated with <a href="https://github.com/thlorenz/doctoc">DocToc</a></em></p>
+<ul>
+<li><a href="#%e7%9b%ae%e5%bd%95">目录</a>
+<ul>
+<li><a href="#%e4%b8%80%e5%8f%82%e8%80%83%e4%b9%a6%e7%b1%8d%e5%92%8c%e6%95%b0%e6%8d%ae">一、参考书籍和数据</a></li>
+<li><a href="#%e4%ba%8c%e5%8e%9f%e5%9e%8bprototype%e5%92%8cprototype%e4%bb%a5%e5%8f%8aconstructor">二、原型，[[prototype]]和.prototype以及constructor</a></li>
+<li><a href="#%e4%b8%89%e5%8e%9f%e5%9e%8b%e9%93%be">三、原型链</a>
+<ul>
+<li><a href="#forin%e5%92%8cin%e6%93%8d%e4%bd%9c%e7%ac%a6">for...in和in操作符</a></li>
+</ul></li>
+<li><a href="#%e5%9b%9b%e5%b1%9e%e6%80%a7%e8%ae%be%e7%bd%ae%e5%92%8c%e5%b1%8f%e8%94%bd">四、属性设置和屏蔽</a></li>
+<li><a href="#%e4%ba%94javascript%e5%8f%aa%e6%9c%89%e5%af%b9%e8%b1%a1">五、JavaScript只有对象</a></li>
+<li><a href="#%e5%85%ad%e6%9e%84%e9%80%a0%e5%87%bd%e6%95%b0%e5%92%8cnew%e5%85%b3%e9%94%ae%e5%ad%97">六、构造函数和new关键字</a></li>
+<li><a href="#%e4%b8%83%e6%a8%a1%e4%bb%bf%e7%b1%bb">七、模仿类</a></li>
+<li><a href="#%e5%85%ab%e5%af%b9constructor%e7%9a%84%e9%94%99%e8%af%af%e7%90%86%e8%a7%a3">八、对constructor的错误理解</a></li>
+<li><a href="#%e4%b9%9d%e5%8e%9f%e5%9e%8b%e7%bb%a7%e6%89%bf">九、原型继承</a></li>
+<li><a href="#%e5%8d%81%e7%b1%bb%e4%b9%8b%e9%97%b4%e7%9a%84%e5%85%b3%e7%b3%bb">十、类之间的关系</a></li>
+<li><a href="#%e5%8d%81%e4%b8%80%e6%80%bb%e7%bb%93">十一、总结</a></li>
+<li><a href="#%e6%9c%89%e9%97%ae%e9%a2%98%e5%b0%b1%e7%95%99%e8%a8%80%e4%ba%a4%e6%b5%81%e6%88%91%e5%be%88%e4%b9%90%e6%84%8f">有问题就留言交流我很乐意</a></li>
+</ul></li>
+</ul>
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+<h2 id="一参考书籍和数据">一、参考书籍和数据</h2>
+<p>翻看了几本JS书籍，其中主要有以下几本：<strong>《JavaScript高级程序设计第三版》、《你不知道的JavaScript卷一》、《JavaScript权威指南》</strong>以及查看了<strong>MDN文档</strong>。文章主要说了JavaScript中原型的一些概念知识，花了一点时间去总结，如任何问题的话可以提出来一起交流解决。文章中的图大多是从网络和书中截取下来，并非本人原创。</p>
+<h2 id="二原型prototype和.prototype以及constructor">二、原型，[[prototype]]和.prototype以及constructor</h2>
+<p>结合书中的概念，<strong>原型是什么</strong>这个问题，可以这样去解释：<strong>原型就是一个引用（也就是指针），指向原型对象。</strong>这并不是废话，很多人说原型，实际上没意识到它只是一个引用，指向原型对象。原型在实例对象和构造函数中有不同的名称属性，但总是指向原型对象。如图所示：<br />
+<img src="./images/好好理解一下JavaScript中的原型0.png" /><br />
+<center>[[prototype]]和.prototype以及constructor</center></p>
+<ul>
+<li>其中的constructor是原型对象的属性，引用的是对象关联的函数，不可枚举，但这个属性是可以修改的，因此不可靠。</li>
+<li>在实例对象中，原型就是对象的<code>[[prototype]]</code>内置属性（双方括号代表这是JavaScript引擎内部使用的属性/方法，正常JS代码无法访问，但可以通过<code>__proto__</code>访问到，后面会说到），在对象被创建时就包含了该属性，指向它的构造函数的原型对象。</li>
+<li>在函数中，原型就是函数的<code>.prototype</code>属性，在函数被创建时就包含该属性，指向构造函数的原型对象 。</li>
+</ul>
+<h2 id="三原型链">三、原型链</h2>
+<p>要理解原型链，首先需要明白原型对象的作用就是让所有实例对象共享它的属性和方法。根据上图，不难发现，person1和person2中的内部属性[[prototype]]都指向Person原型对象。当进行对象属性查找的时候，比如person1.name，首先会检查对象本身是否有这个属性，如果没有就继续去查找该对象[[prototype]]指向的原型对象中是否有该属性，如果还是没有就继续去找这个原型对象的[[prototype]]指向的原型对象（注意，原型对象也是有他自己的[[prototype]]属性的）！这个过程会持续找到匹配的属性名或查找完整的<code>原型链</code>。不难理解了，原型链就是：<strong>每个实例对象（ object ）都有一个私有属性（称之为[[prototype]]）指向它的构造函数的原型对象（prototype ）。该原型对象也有一个自己的原型对象( [[prototype]] ) ，层层向上直到一个对象的原型对象为<code>Object.prototype</code>(因为所有对象都是源于Object.prototype，其中包含许多通用的功能方法)</strong>。显然，如果找完这个原型链都找不到就会返回undefined。这个过程可以用一张图描述：<br />
+<img src="./images/好好理解一下JavaScript中的原型1.png" /><br />
+显然，原型和原型链的作用就是：如果对象上没有知道需要的属性和方法引用，JS引擎就会继续在[[prototype]]关联的对象上进行查找。这也是原型和原型链存在的意义。</p>
+<h3 id="for...in和in操作符">for...in和in操作符</h3>
+<p>两个跟原型链有关的操作</p>
+<ul>
+<li>for...in遍历对象时，任何可以通过原型链访问到的（并且是enumerable为true）属性都会被枚举。</li>
+<li>in操作符用于检测属性在对象中是否存在，同样是会查找整条原型链。</li>
+</ul>
+<pre><code><code>function Person(name){
+  this.name = name;
+}
+Person.prototype.sayName = function() {
+  return this.name;
+}
+let myObject = new Person(&#39;练习生&#39;);
+// 输出两个属性：name和sayName，其中sayName是原型对象中的属性
+for(let key in myObject) {
+  console.log(key);
+}
+// 输出true，表示不可枚举的constructor存在于myObject中。
+// 事实上constructor是在Person.prototype对象中
+console.log(&quot;constructor&quot; in myObject);</code></pre>
+<h2 id="四属性设置和屏蔽">四、属性设置和屏蔽</h2>
+<p>给对象设置属性并不仅仅是添加一个属性或修改已有属性。这个过程应该是这样的：</p>
+<pre><code><code>// myObject的声明在第一个代码块
+
+// 注意：sayName在Person.prototype中存在，将屏蔽原型链上的sayName方法
+myObject.sayName = function() {
+  return `my name is:${this.name}`;
+}
+// 注意：age在myObject的整个原型链都不存在，将在实例中新建age属性
+myObject.age = 23;
+
+// 完成上述对myObject属性的设置，再新建一个对象
+let myObject_1 = new Person(&#39;James&#39;);
+
+// 查找myObject的属性和方法
+myObject.age; //23
+myObject.sayName(); // my name is: Bob
+
+// 查找myObject_1的属性和方法
+myObject.age; // undefined
+myObject.sayName(); // &#39;Cat&#39;</code></pre>
+<p>直接设置实例属性，都会屏蔽原型链上的所有同名属性（前提是属性的writable为 true，并且属性没有setter），并有以下两种情况：</p>
+<ul>
+<li>当sayName属性不直接存在对象中而存在于原型链上层时，将会在myObjet中直接添加sayName属性，注意它只会阻止访问原型链上层的sayName属性，但不会修改按个属性。</li>
+<li>当原型链上找不到age，则age直接添加到myObject中。</li>
+</ul>
+<h2 id="五javascript只有对象">五、JavaScript只有对象</h2>
+<p>在面向对象语言中，类是可以被实例化多次，就像使用模具制作东西一样，对于每一个实例都会重复这个过程。但在JavaScript中，没有类，没有复制机制。只能创建多个对象，通过它们的内置[[prototype]]关联同一个原型对象。默认情况下，它们是关联的，并非复制，因为是同一个原型对象所以它们之间也不会完全失去联系。</p>
+<p>比如说，new Person()生成一个对象，同时这个新对象的内置[[prototype]]关联的是Person.prototype对象。这里得到了两个对象，它们之间仅仅互相关联，并没有初始化类，如图所示：<br />
+<img src="./images/好好理解一下JavaScript中的原型2.png" /><br />
+这种机制也就是所谓的原型继承。这种Person()函数不算是类，它只是利用了函数的prototype属性“模仿类”而已！所以说，JavaScript没有类只有对象。</p>
+<h2 id="六构造函数和new关键字">六、构造函数和new关键字</h2>
+<p>文章第一个代码块很容易让人认为Person是一个构造函数，因为使用new调用并看到他构造了一个对象。但其实Person跟其他普通函数没有什么不同，函数本身不是构造函数，所有的一切只是在函数调用前加了<code>new</code>关键字！这样就会把这个函数调用变成一个“构造函数调用”。new会劫持所有普通函数并用构造对象的形式去调用它。下面这段代码可以证明这点：</p>
+<pre><code><code>function BaseFunction() {
+  console.log(&#39;Not a constructor！&#39;);
+}
+let myObject = new BaseFunction();
+// Not a constructor.
+typeof myObject; // object</code></pre>
+<p>BaseFunction是一个普通函数并非构造函数，但通过new调用，却会构造出一个对象。因此，构造函数其实是所有带new的函数调用。</p>
+<h2 id="七模仿类">七、模仿类</h2>
+<p>前面已经明确说过，JavaScript中只有对象，没有真正的类，但JavaScript开发者通过下面两种方法可以模拟类，如下代码所示：</p>
+<pre><code><code>function Foo(name) {
+  this.name = name;
+}
+Foo.prototype.myName = function() {
+  return this.name;
+}
+let a = new Foo(&#39;a&#39;);
+let b = new Foo(&#39;b&#39;);
+
+a.myName(); // a
+b.myName(); // b</code></pre>
+<ul>
+<li>this.name = name 给每一个new调用构造出来的对象都添加了.name属性（this绑定当前对象），这有点类似面向对象中“类实例封装的数据值”。</li>
+<li>Foo.prototype.myName = ...，给原型对象添加方法，那么通过该构造函数调用创建的实例就能共享原型对象的方法和属性。因此，a.myName和b.myName都可以正常工作，这有点类似面向对象中的什么？这点我还不知道，反正就是面向对象设计模式的一种。有知道的可以留言告诉我。</li>
+</ul>
+<h2 id="八对constructor的错误理解">八、对constructor的错误理解</h2>
+<p>接上面的代码所示，如果继续运行a.constructor === Foo，返回的是true，因此有这种错误观点:<strong>对象由Foo构造</strong>。现在是时候把这个错误观点改过来了。constructor是存在于Foo.prototype中，a对象只是[[prototype]]委托找到constructor！这和构造毫无关系，下面代码可以证明这一点：</p>
+<pre><code><code>function Foo(){}
+//将Foo的原型对象指向一个空对象
+Foo.prototype = {};
+let a = new Foo();
+a.constructor === Foo; //false
+a.constructor === Object; // true</code></pre>
+<p>嗯哼？现在你还敢说constructor表示a由Foo构建吗？按照这种错误观点，a.constructor === Foo应该返回true！其实constructor在只是创建函数时一个默认属性，指向prototype属性所在的函数。constructor属性时可以被修改的，让原型对象指向新的对象的时候，为了让constructor指向之前的函数，可以手动使用defineProperty方法添加一个不可枚举constructor属性。但真的很麻烦，总而言之不要太信任constructor属性！</p>
+<h2 id="九原型继承">九、原型继承</h2>
+<p><img src="./images/好好理解一下JavaScript中的原型3.png" /><br />
+从这张图，可看出三点</p>
+<ul>
+<li>a1/a2到Foo.prototype，b1/b2到Bar.prototype的委托关联</li>
+<li>Bar.Prototype到Foo.prototype的委托关联</li>
+<li>箭头由下到上表明这是委托关联而不是复制操作，否则如果是复制操作箭头应该回事由上往下。<br />
+下面这段代码是典型的原型继承风格</li>
+</ul>
+<pre><code><code>function Foo(name){
+  this.name = name;
+}
+Foo.prototype.myName = function() {
+  return this.name;
+}
+function Bar(name, label) {
+  Foo.call(this, name);
+  this.label = label;
+}
+// 将新的Bar原型对象和Foo的原型对象进行关联
+Bar.prototype = Object.create(Foo.prototype);
+Bar.prototype.myLabel = function() {
+  return this.label;
+}
+let a = new Bar(&quot;a&quot;, &quot;obj a&quot;);
+a.myName();
+a.myLabel();</code></pre>
+<ul>
+<li>上面代码中，Bar.prototype = Object.create(Foo.prototype)表示创建新的Bar.prototype对象并关联到Foo.Prototype中。注意，这其实是把旧的Bar.prototype对象抛弃掉，再引用新的已关联到Foo.prototype的对象。</li>
+<li>ES6新增<code>Object.setPrototypeOf(obj1, obj2)</code>,表示直接将obj1的[[prototype]]关联到为obj2。</li>
+</ul>
+<p>以下两行代码都是错误的对象关联做法：</p>
+<pre><code><code>Bar.prototype = Foo.prototype;
+
+Bar.prototype = new Foo();</code></pre>
+<ul>
+<li>第一行代码只是让Bar的原型对象直接引用Foo的原型对象。如果对Bar.prototype的属性进行修改，则会影响到Foo.prototype本身。</li>
+<li>第二行代码，在《JavaScript高级程序设计第三版》的示例代码出现。一开始觉得没问题，后来在《你不知道的JavaScript》中，它指出是错误的做法，原因是Foo函数如果会有一些副作用（比如给this添加数据就很不好），会影响到Bar()的实例。</li>
+</ul>
+<h2 id="十类之间的关系">十、类之间的关系</h2>
+<p>检查一个实例和祖先通常称为反射或内省。在JavaScript中通常用到</p>
+<ul>
+<li>使用<code>a instanceof Foo</code>操作符,instanceof表示的是：在对象a的原型链上是否有指向Foo.prototype的对象。注意，instanceof的左侧是对象，右侧是函数。</li>
+<li>使用<code>a.isPrototypeOf(b)</code>，isPrototypeOf表示的是：在对象a的整条原型链上是否出现过b。</li>
+<li>使用<code>Object.getPrototypeOf(a)</code>，可以直接得到一个对象a的原型链。</li>
+</ul>
+<h2 id="十一总结">十一、总结</h2>
+<p>这里例举几点比较重要的概念：</p>
+<ol>
+<li>进行对象属性查找，首先会在当前对象查找，如果没有就会继续去查找内置[[prototype]]关联的对象，这个原型链会一直到Object.prototype，如果还是找不到就返回undefined。</li>
+<li>构造函数只是函数，没有任何区别，使用new调用函数就是构造函数调用。</li>
+<li>JavaScript没有类，默认下不会复制，对象之间通过[[prototype]]进行关联，对象关联是原型中很重要的概念！</li>
+</ol>
+<h2 id="有问题就留言交流我很乐意">有问题就留言交流我很乐意</h2>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

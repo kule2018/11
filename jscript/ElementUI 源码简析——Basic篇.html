@@ -1,0 +1,149 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修ElementUI 源码简析——Basic篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>ElementUI 源码简析——Basic篇</center></div><div class='banquan'>原文出处:本文由博客园博主格子熊提供。<br/>
+原文连接:https://www.cnblogs.com/karthuslorin/p/11195386.html</div><br>
+    <h3 id="layout-布局">Layout 布局</h3>
+<h4 id="row">row</h4>
+<p>布局组件中的父组件，用于控制子组件。很简单的一个布局标签，主要通过 justify 和 align 控制子元素的对齐方式，使用 render 函数通过传入的 tag 属性控制生成的标签。</p>
+<p>在这里推荐学习下 render 函数和 JSX 的写法，因为之后比较复杂的组件都是通过 render函数 + JSX 的方式来写的。</p>
+<pre><code><code>// 核心代码
+render(h) {
+    return h(this.tag, {
+        class: [
+            &#39;el-row&#39;,
+            this.justify !== &#39;start&#39; ? `is-justify-${this.justify}` : &#39;&#39;,
+            this.align !== &#39;top&#39; ? `is-align-${this.align}` : &#39;&#39;,
+            { &#39;el-row--flex&#39;: this.type === &#39;flex&#39; }
+        ],
+        style: this.style
+    }, this.$slots.default);
+}</code></pre>
+<h4 id="col">col</h4>
+<p>布局组件中的子组件，通过传入的props控制占据的列数、偏移、大小等，通过 forEach 对每个属性进行处理，生成包含对应样式的 classList。</p>
+<p>最后将 classList 传入 createElement 函数（h）中的第二个参数（标签选项）中，如此，就生成了所需要的布局。</p>
+<pre><code><code>// 核心代码
+render (h) {
+    // 省略，通过props计算classList
+    return h(this.tag, {
+      class: [&#39;el-col&#39;, classList],
+      style
+    }, this.$slots.default);
+}</code></pre>
+<h3 id="container-布局容器">Container 布局容器</h3>
+<h4 id="container">container</h4>
+<p>父容器组件，根据传入的direction字段，决定样式是水平还是垂直。当没有传入direction字段时，根据插槽中子组件是否含有 header 或 footer组件，如果含有则为垂直，否则为水平。</p>
+<pre><code><code>// 核心代码
+computed: {
+    isVertical() {
+        if (this.direction === &#39;vertical&#39;) {
+            return true;
+        } else if (this.direction === &#39;horizontal&#39;) {
+            return false;
+        }
+        return this.$slots &amp;&amp; this.$slots.default
+            ? this.$slots.default.some(vnode =&gt; {
+            const tag = vnode.componentOptions &amp;&amp; vnode.componentOptions.tag;
+            return tag === &#39;el-header&#39; || tag === &#39;el-footer&#39;;
+        })
+        : false;
+    }
+}</code></pre>
+<h4 id="header">header</h4>
+<p>最简单的组件之一，通过传入的 height 参数定义 style 高度。</p>
+<h4 id="aside">aside</h4>
+<p>最简单的组件之一，通过传入的 width 参数控制 style 宽度。</p>
+<h4 id="main">main</h4>
+<p>真正意义上的最简单容器组件，包含插槽的纯容器。</p>
+<h4 id="el-footer">el-footer</h4>
+<p>最简单的组件之一，通过传入的 height 参数定义 style 高度。</p>
+<h4 id="布局容器总结">布局容器总结</h4>
+<p>何为容器？在我的理解中，容器就是一个限制大小的盒子。布局容器通过属性定义 header、aside、footer 的高宽的行内样式，接下来只需要定义 main 为 flex: 1 即可实现自适应布局。</p>
+<h3 id="icon-图标">Icon 图标</h3>
+<p>感觉比较没有意义的一个组件，通过传入的 name 来组成类似于 <code>el-icon-name</code> 格式的类，然后将这个类定义在 i 标签内。不过大多数人都不会用这个组件，为什么？因为连官网推荐写法都是直接在 i 标签内添加对应图标的类。</p>
+<h3 id="button-按钮">Button 按钮</h3>
+<p>Button 组件是 Basic 里面唯一一个稍微复杂一点的组件。它与其他 Basic 组件的最大区别在于，通过 provide/inject 获取了祖先组件，然后参照祖先组件的尺寸参数，将 Button 组件的尺寸参数设为一致。</p>
+<p>Button 组件的尺寸由三个因素决定：</p>
+<ol>
+<li>直接设置组件的 size 属性，该因素具有最高优先级，类比于样式中的行内样式。</li>
+<li>当 Button 运用在 Form 组件中，可以通过配置 Form 组件的 size 属性来决定，当没有直接设置 Button 组件的 size 属性时，由该因素决定 Button 组件的尺寸，类比于样式中的样式继承。</li>
+<li>当前两种因素都不存在时，由 <code>this.$ELEMENT</code> 对象中的 size 属性决定。What？ <code>this.$ELEMENT</code> 什么鬼？它是接收初始化 ElementUI 时传入的尺寸参数的对象，包含两个属性：size 以及 zIndex，方便全局定义各种组件的尺寸。类比于样式中的 body 样式继承。</li>
+</ol>
+<pre><code><code>// 核心代码
+export default {
+    name: &#39;ElButton&#39;,
+    // 通过 inject 获取 elForm 以及 elFormItem 这两个组件
+    inject: {
+        elForm: {
+            default: &#39;&#39;
+        },
+        elFormItem: {
+            default: &#39;&#39;
+        }
+    },
+    // ...
+    computed: {
+        _elFormItemSize() {
+            return (this.elFormItem || {}).elFormItemSize;
+        },
+        buttonSize() {
+            // 三种因素决定按钮的尺寸
+            return this.size || this._elFormItemSize || (this.$ELEMENT || {}).size;
+        },
+        //...
+    },
+    // ...
+};</code></pre>
+<h3 id="link-文字链接">Link 文字链接</h3>
+<p>和一般文字链接区别不大的一个组件，主要区别在于两点：</p>
+<ol>
+<li>可以通过 disabled 属性设置禁用，原理是当 disabled 属性为 false 时，将 a 标签的 href 属性置为 null，同时阻止阻止其向上抛出 click 事件。</li>
+<li>灵活运用插槽，看似该组件只有一个插槽，实则拥有两个插槽，一个是匿名插槽，一个是名为 icon 的具名插槽，通过合理的设置可以快速实现各种需求。</li>
+</ol>
+<p>值得一提的是，该组件还使用了一个通用组件开发的小技巧：通过 <code>v-bind=&quot;$attrs&quot;</code> 进行快速属性赋值。为什么要这样做？因为 a 标签可以含有各种 html 属性，而这些属性我们不可能一一通过 props 接收然后赋值到 a 标签的属性上。</p>
+<p>因此，我们可以通过 <code>v-bind=&quot;$attrs&quot;</code> 无视传入的属性是什么，一股脑将其赋值到 a 标签上。这相当于，开发者可以直接像操作 a 标签一样操作 Link 组件，大大方便了组件的使用。</p>
+<pre class="vue"><code>&lt;template&gt;
+  &lt;a
+    :class=&quot;[
+      &#39;el-link&#39;,
+      type ? `el-link--${type}` : &#39;&#39;,
+      disabled &amp;&amp; &#39;is-disabled&#39;,
+      underline &amp;&amp; !disabled &amp;&amp; &#39;is-underline&#39;
+    ]&quot;
+    :href=&quot;disabled ? null : href&quot;
+    v-bind=&quot;$attrs&quot;
+    @click=&quot;handleClick&quot;
+  &gt;
+
+    &lt;i :class=&quot;icon&quot; v-if=&quot;icon&quot;&gt;&lt;/i&gt;
+
+    &lt;span v-if=&quot;$slots.default&quot; class=&quot;el-link--inner&quot;&gt;
+      &lt;slot&gt;&lt;/slot&gt;
+    &lt;/span&gt;
+
+    &lt;template v-if=&quot;$slots.icon&quot;&gt;&lt;slot v-if=&quot;$slots.icon&quot; name=&quot;icon&quot;&gt;&lt;/slot&gt;&lt;/template&gt;
+  &lt;/a&gt;
+&lt;/template&gt;</code></pre>
+<h3 id="总结">总结</h3>
+<p>通读了 Basic 系列的源码，可以发现，这一部分的源码其实相对比较简单，但是，却又很多的小细节点值得学习，比如：通过 <code>v-bind=$attrs</code> 定义标签属性、通过组合插槽方便组件使用、通过多种因素设定属性以及各种缺省设计等等。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

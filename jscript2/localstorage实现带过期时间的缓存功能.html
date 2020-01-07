@@ -1,0 +1,162 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修localstorage实现带过期时间的缓存功能' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>localstorage实现带过期时间的缓存功能</center></div><div class='banquan'>原文出处:本文由博客园博主冬眠的山谷提供。<br/>
+原文连接:https://www.cnblogs.com/lgjlife/p/11103154.html</div><br>
+    <p>&nbsp;</p>
+<h2>前言</h2>
+<p>一般可以使用cookie,localstorage,sessionStorage来实现浏览器端的数据缓存，减少对服务器的请求。</p>
+<p>1.cookie数据存放在本地硬盘中，只要在过期时间之前，都是有效的，即使重启浏览器。但是会在每次HTTP请求中添加到请求头中，如果数据过多，会造成性能问题。</p>
+<p>2.sessionStorage保存在浏览器内存中，当关闭页面或者浏览器之后，信息丢失。</p>
+<p>3.localstorage也是保存在本地硬盘中，除非主动清除，信息是不会消失的。但是实际使用时我们需要对缓存设置过期时间，本文便是讲解如何为localstorage添加过期时间功能。</p>
+<p>这三者仅支持同源(host+port)的数据,不同源的数据不能互相访问到。</p>
+<p>&nbsp;</p>
+<h2>localstorage</h2>
+<p>localstorage支持以下方法</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">保存数据：localStorage.setItem(key,value); 
+读取数据：localStorage.getItem(key); 
+删除单个数据：localStorage.removeItem(key); 
+删除所有数据：localStorage.clear(); 
+得到某个索引的key：localStorage.key(index); </span></pre>
+</div>
+<p>&nbsp;</p>
+<p>需要注意的是，仅支持String类型数据的读取，如果存放的是数值类型，读出来的是字符串类型的，对于存储对象类型的，需要在保存之前JSON化为String类型。</p>
+<p>对于缓存，我们一般有以下方法</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">set(key,value,expiredTime);
+get(key);
+remove(key);
+expired(key,expiredTime);
+clear();</span></pre>
+</div>
+<p>&nbsp;</p>
+<h2>实现</h2>
+<h3>设置缓存</h3>
+<p>对于过期时间的实现，除了用于存放原始值的缓存(key)，这里添加了两个缓存(key+EXPIRED:TIME)和(key+EXPIRED:START:TIME)，一个用于存放过期时间，一个用于存放缓存设置时的时间。</p>
+<p>当读取的时候比较 （过期时间+设置缓存的时间）和当前的时间做对比。如果（过期时间+设置缓存时的时间）大于当前的时间，则说明缓存没过期。</p>
+<p>注意这里使用JSON.stringify对存入的对象JSON化。读取的时候也要转回原始对象。</p>
+<div class="cnblogs_code">
+<pre><code>"key"<span style="color: #000000;">:{
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">辅助</span>
+        "expiredTime": "EXPIRED:TIME"<span style="color: #000000;">,
+        </span>"expiredStartTime": "EXPIRED:START:TIME"<span style="color: #000000;">,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">全局使用</span>
+        <span style="color: #008000;">//</span><span style="color: #008000;">用户信息</span>
+        "loginUserInfo": "USER:INFO"<span style="color: #000000;">,
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">搜索字段</span>
+        "searchString": "SEARCH:STRING"<span style="color: #000000;">,
+
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 设置缓存
+     * @param key
+     * @param value
+     * @param expiredTimeMS  过期时间，单位ms
+     </span><span style="color: #008000;">*/</span>
+    "set":<span style="color: #0000ff;">function</span><span style="color: #000000;"> (key,value,expiredTimeMS) {
+
+        </span><span style="color: #0000ff;">if</span>((expiredTimeMS == 0 )  || (expiredTimeMS == <span style="color: #0000ff;">null</span><span style="color: #000000;">)){
+            localStorage.setItem(key,value);
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            
+            localStorage.setItem(key,JSON.stringify(value));
+            localStorage.setItem(key</span>+<span style="color: #000000;">cache.key.expiredTime,expiredTimeMS);
+            localStorage.setItem(key</span>+cache.key.expiredStartTime,<span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().getTime());
+        }
+
+
+    },</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>读取缓存</h3>
+<p>由于读取出来的是时间信息是字符串，需要将其转化为数字再进行比较。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     *  获取键
+     * @param key
+     * @returns {*} key存在，返回对象；不存在，返回null
+     </span><span style="color: #008000;">*/</span>
+    "get":<span style="color: #0000ff;">function</span><span style="color: #000000;"> (key) {
+
+        </span><span style="color: #0000ff;">var</span> expiredTimeMS = localStorage.getItem(key+<span style="color: #000000;">cache.key.expiredTime);
+        </span><span style="color: #0000ff;">var</span> expiredStartTime = localStorage.getItem(key+<span style="color: #000000;">cache.key.expiredStartTime);
+        </span><span style="color: #0000ff;">var</span> curTime = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Date().getTime();
+
+        </span><span style="color: #0000ff;">var</span> sum = Number(expiredStartTime)  +<span style="color: #000000;"> Number(expiredTimeMS);
+
+        </span><span style="color: #0000ff;">if</span>((sum) &gt;<span style="color: #000000;"> curTime){
+            console.log(</span>"cache-缓存["+key+"]存在！"<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">  JSON.parse(localStorage.getItem(key));
+        }
+        </span><span style="color: #0000ff;">else</span><span style="color: #000000;"> {
+            console.log(</span>"cache-缓存["+key+"]不存在！"<span style="color: #000000;">);
+            </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+        }
+
+
+
+    },</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>移除缓存</h3>
+<p>移除缓存时需要把三个键同时移除。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     *  移除键
+     * @param key
+     </span><span style="color: #008000;">*/</span>
+    "remove":<span style="color: #0000ff;">function</span><span style="color: #000000;"> (key) {
+        localStorage.removeItem(key);
+        localStorage.removeItem(key</span>+<span style="color: #000000;">cache.key.expiredTime);
+        localStorage.removeItem(key</span>+<span style="color: #000000;">cache.key.expiredStartTime);
+    },</span></pre>
+</div>
+<p>&nbsp;</p>
+<h3>其他代码</h3>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 对键重新更新过期时间
+     * @param key
+     * @param expiredTimeMS  过期时间ms
+     </span><span style="color: #008000;">*/</span>
+    "expired":<span style="color: #0000ff;">function</span><span style="color: #000000;"> (key,expiredTimeMS) {
+
+        </span><span style="color: #0000ff;">if</span>(cache.get(key)!=<span style="color: #0000ff;">null</span><span style="color: #000000;">){
+            localStorage.setItem(key</span>+<span style="color: #000000;">cache.key.expiredTime,expiredTimeMS);
+        }
+
+    },
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;">*
+     * 清除所有缓存
+     </span><span style="color: #008000;">*/</span>
+    "clear":<span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+        localStorage.clear();
+    }</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>本文完整代码<a href="https://github.com/lgjlife/micro-blog/blob/master/FrontEnd/microblog/cache/cache.js" target="_blank"> 缓存</a></p>
+<p>====</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

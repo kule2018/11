@@ -1,0 +1,141 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修微信小程序集成腾讯云 IM SDK' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>微信小程序集成腾讯云 IM SDK</center></div><div class='banquan'>原文出处:本文由博客园博主AjuPrince提供。<br/>
+原文连接:https://www.cnblogs.com/haoxiaozhang/p/11516355.html</div><br>
+    <h1 style="text-align: center;">微信小程序集成腾讯云 IM SDK</h1>
+<h2>1、背景</h2>
+<p>　　因业务功能需求需要接入IM（即时聊天）功能，一开始想到的是使用 WebSocket 来实现这个功能，然天意捉弄（哈哈）服务器版本太低不支持 wx 协议（也就不支持 WebSocket了）不得不寻找第三方服务了，因客户端目前采用微信小程序来开发，那想到的肯定就是使用他们自家的IM功能了。至此就有了本篇文章了。</p>
+<h2>2、文档地址</h2>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;1）腾讯云即时聊天：<a href="https://cloud.tencent.com/document/product/269">https://cloud.tencent.com/document/product/269</a></p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;2）微信小程序Demo：<a href="https://github.com/tencentyun/TIMSDK/tree/master/WXMini">https://github.com/tencentyun/TIMSDK/tree/master/WXMini</a>（官方采用的是MPVUE 来开发）这点已提了建议（自家的小程序居然采用了别家的框架 哈哈 有点打脸的感觉，不得不说 MPVUE 我还没入门 哈哈，看来得学习下这个框架了，腾讯的工程师都使用它了，不得不说它是一个优秀的小程序框架了）</p>
+<p>　　 3）IM SDK ：<a href="https://imsdk-1252463788.file.myqcloud.com/IM_DOC/Web/Message.html?_ga=1.163142140.1311859679.1566291063">https://imsdk-1252463788.file.myqcloud.com/IM_DOC/Web/Message.html?_ga=1.163142140.1311859679.1566291063</a></p>
+<h2>3、IM SDK 集成</h2>
+<h3>　　3.1、导入 SDK</h3>
+<p align="left">　　　　导入SDK，也就是引入他们的js 文件，下载地址：<a href="https://github.com/tencentyun/TIMSDK/tree/master/WXMini/sdk">https://github.com/tencentyun/TIMSDK/tree/master/WXMini/sdk</a>，或者使用npm工具导入。这里就不在啰嗦了，默认大家都会哦。</p>
+<p align="left">　　　　（为了大家看的清楚，将其他不用的包抹掉）</p>
+<p align="left"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/微信小程序集成腾讯云 IM SDK0.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<h3>　　3.2、初始化　</h3>
+<div class="cnblogs_code">
+<pre><code>import TIM from 'tim-wx-sdk'<span style="color: #000000;">;
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 发送图片、文件等消息需要的 COS SDK</span>
+import COS from "cos-wx-sdk-v5"<span style="color: #000000;">;//如果聊天发送的是纯文字，这里不必要导入
+
+let options </span>=<span style="color: #000000;"> {
+  SDKAppID: </span>0 <span style="color: #008000;">//</span><span style="color: #008000;"> 接入时需要将0替换为您的即时通信应用的 SDKAppID</span>
+<span style="color: #000000;">};
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 创建 SDK 实例，TIM.create() 方法对于同一个 SDKAppID 只会返回同一份实例</span>
+let tim = TIM.create(options); <span style="color: #008000;">//</span><span style="color: #008000;"> SDK 实例通常用 tim 表示</span>
+
+<span style="color: #008000;">//</span><span style="color: #008000;"> 注册 COS SDK 插件</span>
+tim.registerPlugin({'cos-wx-sdk': COS});//如果聊天发送的是纯文字，这里不需要注册</pre>
+</div>
+<p>　　　　设置日志级别：</p>
+<div class="cnblogs_code">
+<pre><code>tim.setLogLevel(1);</pre>
+</div>
+<h3>　　3.3、登录</h3>
+<p>　　　　　　登录之前，需要了解 UserSig以及在服务器端生成UserSig，</p>
+<p>　　　　　　UserSing：UserSig 是用户登录即时通信 IM 的密码，其本质是对 UserID 等信息加密后得到的密文，本文将指导您如何生成 UserSig。</p>
+<p>　　　　　　服务端生成 UserSig：（我们的服务器采用的是C#，其他语言请查看官网：<a href="https://cloud.tencent.com/document/product/269/32688">https://cloud.tencent.com/document/product/269/32688</a>）</p>
+<p>　　　　　　因我们服务端采用的是C#，所以这里只给出C#服务端生成UserSig的代码</p>
+<p>　　　　　　</p>
+<h4>　　　　　NuGet 命令行集成　　　　</h4>
+<div class="cnblogs_code">
+<pre><code>PM&gt; Install-Package tls-sig-api-v2</pre>
+</div>
+<h4>　　　　&nbsp; 使用</h4>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">using</span><span style="color: #000000;"> tencentyun;
+
+TLSSigAPIv2 api </span>= <span style="color: #0000ff;">new</span> TLSSigAPIv2(<span style="color: #800080;">1400000000</span>, <span style="color: #800000;">"</span><span style="color: #800000;">5bd2850fff3ecb11d7c805251c51ee463a25727bddc2385f3fa8bfee1bb93b5e</span><span style="color: #800000;">"</span><span style="color: #000000;">);
+</span><span style="color: #0000ff;">string</span> sig = api.GenSig(<span style="color: #800000;">"userId</span><span style="color: #800000;">"</span><span style="color: #000000;">);//userId：应该是您的 userId
+System.Console.WriteLine(sig);</span></pre>
+</div>
+<h4>　　　　tim 登录</h4>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;"> tim.login({
+            userID: userId,
+            userSig:userSig</span><span style="color: #008000;">//</span><span style="color: #008000;">通过服务端获得</span>
+          }).then((imResponse) =&gt;<span style="color: #000000;"> {
+            console.log(imResponse.data); </span><span style="color: #008000;">//</span><span style="color: #008000;"> 登录成功</span>
+            app.globalData.isImLogin = <span style="color: #0000ff;">true</span><span style="color: #000000;">
+          }).</span><span style="color: #0000ff;">catch</span>((imError) =&gt;<span style="color: #000000;"> {
+            console.warn(</span>'login error:', imError); <span style="color: #008000;">//</span><span style="color: #008000;"> 登录失败的相关信息</span>
+          })</pre>
+</div>
+<h3>　　3.4、消息的收发</h3>
+<h4>　　　　　　发（以纯文字为例）：</h4>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 发送文本消息，Web 端与小程序端相同</span><span style="color: #008000;">
+//</span><span style="color: #008000;"> 1. 创建消息实例，接口返回的实例可以上屏</span>
+let message =<span style="color: #000000;"> tim.createTextMessage({
+  to: </span>'user1'<span style="color: #000000;">,
+  conversationType: TIM.TYPES.CONV_C2C
+  payload: {
+    text: </span>'Hello world!'<span style="color: #000000;">
+  }
+});
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 2. 发送消息</span>
+let promise =<span style="color: #000000;"> tim.sendMessage(message);
+promise.then(</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(imResponse) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 发送成功</span>
+<span style="color: #000000;">  console.log(imResponse);
+}).</span><span style="color: #0000ff;">catch</span>(<span style="color: #0000ff;">function</span><span style="color: #000000;">(imError) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 发送失败</span>
+  console.warn('sendMessage error:'<span style="color: #000000;">, imError);
+});</span></pre>
+</div>
+<h4>　　　　收：</h4>
+<div class="cnblogs_code">
+<pre><code>let onMessageReceived = <span style="color: #0000ff;">function</span><span style="color: #000000;">(event) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> event.data - 存储 Message 对象的数组 - [Message]</span>
+<span style="color: #000000;">};
+tim.on(TIM.EVENT.MESSAGE_RECEIVED, onMessageReceived);</span></pre>
+</div>
+<p>　　　　<span style="background-color: #ff0000;">*注意*：</span></p>
+<p><span>&nbsp; &nbsp; 　　　　这里的 tim.on(</span>TIM.EVENT.MESSAGE_RECEIVED,function(event){}) 这个接口是全局的，不管您写在那里，小程序首次启动的时候都会调用它，每当有新消息来是这个接口也会监听到。</p>
+<p><span>　　　　　在进入聊天界面后，调用tim.</span>getMessageList()接口获取历史聊天记录。</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/微信小程序集成腾讯云 IM SDK1.png" alt="" /></p>
+<p>　　　建议：在进入聊天界面后，请将本次的会话上报为已读，只有这样设置后（上面所说的 小程序首次启动是监听的 <span>tim.on(TIM.EVENT.MESSAGE_RECEIVED,function(event){}<span>) 才会不会收到已读的消息&nbsp;</span></span>）</p>
+<h4>　　　　已读上报：　　</h4>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> 将某会话下所有未读消息已读上报</span>
+tim.setMessageRead({conversationID: '会话ID'});</pre>
+</div>
+<h3>　　3.5、退出</h3>
+<div class="cnblogs_code">
+<pre><code>tim.logout()</pre>
+</div>
+<h2>4、完成</h2>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/微信小程序集成腾讯云 IM SDK2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><strong>说明：</strong></p>
+<p><strong>　　　　</strong>1：如有疑问，可以与我取得联系</p>
+<p>　　　　2：已官方文档为主，很有可能过些时间后文档及SDK会发生变化</p>
+<p>　　　　3：官方文档已在上文中给出</p>
+<p>　　　　4：文章首发于公众号</p>
+<p>　　　　5：服务端使用的小程序包是盛派的SDK（<a href="https://weixin.senparc.com/">https://weixin.senparc.com</a>）</p>
+<p><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/微信小程序集成腾讯云 IM SDK3.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

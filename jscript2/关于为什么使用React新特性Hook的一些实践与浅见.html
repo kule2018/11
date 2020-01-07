@@ -1,0 +1,284 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修关于为什么使用React新特性Hook的一些实践与浅见' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>关于为什么使用React新特性Hook的一些实践与浅见</center></div><div class='banquan'>原文出处:本文由博客园博主韩子卢提供。<br/>
+原文连接:https://www.cnblogs.com/vvjiang/p/12101796.html</div><br>
+    <h2 id="section">前言</h2>
+<p>关于Hook的定义官方文档是这么说的：</p>
+<pre><code><code>Hook 是 React 16.8 的新增特性。它可以让你在不编写 class 的情况下使用 state 以及其他的 React 特性。
+</code></pre>
+<p>简单来说，就是在使用函数式组件时能用上state，还有一些生命周期函数等其他的特性。</p>
+<p>如果想了解Hook怎么用，<a href="https://zh-hans.reactjs.org/docs/hooks-intro.html">官方文档</a>和阮一峰的<a href="http://www.ruanyifeng.com/blog/2019/09/react-hooks.html">React Hooks 入门教程</a>都讲得很清楚了，我建议直接看官方文档和阮大神的文章即可。</p>
+<p>本篇博客只讲为什么要用React的Hook新特性，以及它解决了什么问题。</p>
+<h2 id="hook">为什么使用Hook？</h2>
+<p>让我们先看看别人怎么说。</p>
+<p>阮大神的文章中给了一个示例代码：</p>
+<pre><code><code>import React, { Component } from &quot;react&quot;;
+
+export default class Button extends Component {
+  constructor() {
+    super();
+    this.state = { buttonText: &quot;Click me, please&quot; };
+    this.handleClick = this.handleClick.bind(this);
+  }
+  handleClick() {
+    this.setState(() =&gt; {
+      return { buttonText: &quot;Thanks, been clicked!&quot; };
+    });
+  }
+  render() {
+    const { buttonText } = this.state;
+    return &lt;button onClick={this.handleClick}&gt;{buttonText}&lt;/button&gt;;
+  }
+}
+</code></pre>
+<p>并且提出：</p>
+<pre><code><code>这个组件类仅仅是一个按钮，但可以看到，它的代码已经很&quot;重&quot;了。
+真实的 React App 由多个类按照层级，一层层构成，复杂度成倍增长。
+再加入 Redux，就变得更复杂。
+</code></pre>
+<p>实际上，上面这个代码的“重”有部分来源于写法问题，他可能并没有“重”，让我们看看下面这种class写法:</p>
+<pre><code><code>import React, { Component } from &quot;react&quot;;
+
+export default class Button extends Component {
+  state = {
+    buttonText: &quot;Click me, please&quot;
+  }
+  handleClick = () =&gt; {
+    this.setState(() =&gt; {
+      return { buttonText: &quot;Thanks, been clicked!&quot; };
+    });
+  }
+  render() {
+    const { buttonText } = this.state;
+    return &lt;button onClick={this.handleClick}&gt;{buttonText}&lt;/button&gt;;
+  }
+}
+</code></pre>
+<p>然后再对比下使用了Hook的函数式组件：</p>
+<pre><code><code>import React, { useState } from &quot;react&quot;;
+
+export default function Button() {
+  const [buttonText, setButtonText] = useState(&quot;Click me,   please&quot;);
+
+  function handleClick() {
+    return setButtonText(&quot;Thanks, been clicked!&quot;);
+  }
+
+  return &lt;button onClick={handleClick}&gt;{buttonText}&lt;/button&gt;;
+}
+</code></pre>
+<p>即使是我们简化过的class写法，比起Hook的看起来好像也确实“重”了点。</p>
+<p>Hook的语法确实简练了一些，但是这个理由并不是那么充分。</p>
+<p>阮大神同时列举了Redux 的作者 Dan Abramov 总结了组件类的几个缺点：</p>
+<ul>
+<li>大型组件很难拆分和重构，也很难测试。</li>
+<li>业务逻辑分散在组件的各个方法之中，导致重复逻辑或关联逻辑。（这里我认为阮大神写的可能有点问题，应该是是各个生命周期方法更为准确）</li>
+<li>组件类引入了复杂的编程模式，比如 render props 和高阶组件。</li>
+</ul>
+<p>这三点都是事实，于是有了函数化的组件，但之前的函数化组件没有state和生命周期，有了Hook那么就可以解决这个痛点。</p>
+<p>而且Hook并不只是这么简单，通过自定义Hook，我们可以将原有组件的逻辑提取出来实现复用。</p>
+<h2 id="useeffect">用useEffect解决生命周期导致的重复逻辑或关联逻辑</h2>
+<p>上面举的几个缺点，第一点和第三点你可能很容易理解，第二点就不容易理解了，所以我们需要深入到具体的代码中去理解这句话。</p>
+<p>我们看看下面这段代码：</p>
+<pre><code><code>import React, { Component } from &quot;react&quot;;
+
+export default class Match extends Component {
+  state={
+    matchInfo:''
+  }
+  componentDidMount() {
+    this.getMatchInfo(this.props.matchId)
+  }
+  componentDidUpdate(prevProps) {
+    if (prevProps.matchId !== this.props.matchId) {
+      this.getMatchInfo(this.props.matchId)
+    }
+  }
+  getMatchInfo = (matchId) =&gt; {
+    // 请求后台接口获取赛事信息
+    // ...
+    this.setState({
+      matchInfo:serverResult // serverResult是后台接口的返回值
+    })
+  }
+
+  render() {
+    const { matchInfo } = this.state
+    return &lt;div&gt;{matchInfo}&lt;/div&gt;;
+  }
+}
+</code></pre>
+<p>这样的代码在我们的业务中经常会出现，通过修改传入赛事组件的ID，去改变这个赛事组件的信息。</p>
+<p>在上面的代码中，受生命周期影响，我们需要在加载完毕和Id更新时都写上重复的逻辑和关联逻辑。</p>
+<p>所以现在你应该比较好理解这句话：<strong>业务逻辑分散在组件的各个生命周期方法之中，导致重复逻辑或关联逻辑</strong>。</p>
+<p>为了解决这一点，React提供了useEffect这个钩子。</p>
+<p>但是在讲这个之前，我们需要先了解到React带来的一个新的思想：同步。</p>
+<p>我们在上面的代码中所做的实际上就是在把组件内的状态和组件外的状态进行同步。</p>
+<p>所以在使用Hook之前，我们需要先摒弃生命周期的思想，而用同步的思想去思考这个问题。</p>
+<p>现在再让我们看看改造后的代码：</p>
+<pre><code><code>import React, { Component } from &quot;react&quot;;
+
+export default function Match({matchId}) {
+  const [ matchInfo, setMatchInfo ] = React.useState('')
+  React.useEffect(() =&gt; {
+    // 请求后台接口获取赛事信息
+    // ...
+    setMatchInfo(serverResult) // serverResult是后台接口的返回值
+  }, [matchId])
+  
+  return &lt;div&gt;{matchInfo}&lt;/div&gt;;
+}
+</code></pre>
+<p>看到这个代码，再对比上面的代码，你心中第一反应应该就是：简单。</p>
+<p>React.useEffect接受两个参数，第一个参数是Effect函数，第二个参数是一个数组。</p>
+<p>组件加载的时候，执行Effect函数。</p>
+<p>组件更新会去判断数组中的各个值是否变动，如果不变，那么不会执行Effect函数。</p>
+<p>而如果不传第二个参数，那么无论加载还是更新，都会执行Effect函数。</p>
+<p>顺便提一句，这里有组件加载和更新的生命周期的概念了，那么也应该是有组件卸载的概念的：</p>
+<pre><code><code>import React, { Component } from &quot;react&quot;;
+
+export default function Match({matchId}) {
+  const [ matchInfo, setMatchInfo ] = React.useState('')
+  React.useEffect(() =&gt; {
+    // 请求后台接口获取赛事信息
+    // ...
+    setMatchInfo(serverResult) // serverResult是后台接口的返回值
+
+    return ()=&gt;{
+      // 组件卸载后的执行代码
+    }
+  }, [matchId])
+  
+  return &lt;div&gt;{matchInfo}&lt;/div&gt;;
+}
+}
+</code></pre>
+<p>这个常用于事件绑定解绑之类的。</p>
+<h2 id="hook-1">用自定义Hook解决高阶组件</h2>
+<p>React的高阶组件是用来提炼重复逻辑的组件工厂，简单一点来说就是个函数，输入参数为组件A，输出的是带有某逻辑的组件A+。</p>
+<p>回想一下上面的Match组件，假如这个组件是页面A的首页头部用来展示赛事信息，然后现在页面B的侧边栏也需要展示赛事信息。</p>
+<p>问题就在于页面A的这块UI需要用div，而页面B侧边栏的这块UI需要用到span。</p>
+<p>保证今天早点下班的做法是复制A页面的代码到页面B，然后改下render的UI即可。</p>
+<p>保证以后早点下班的做法是使用高阶组件，请看下面的代码：</p>
+<pre><code><code>import React from &quot;react&quot;;
+
+function hocMatch(Component) {
+  return class Match React.Component {
+    componentDidMount() {
+      this.getMatchInfo(this.props.matchId)
+    }
+    componentDidUpdate(prevProps) {
+      if (prevProps.matchId !== this.props.matchId) {
+        this.getMatchInfo(this.props.matchId)
+      }
+    }
+    getMatchInfo = (matchId) =&gt; {
+      // 请求后台接口获取赛事信息
+    }
+    render () {
+      return (
+        &lt;Component {...this.props} /&gt;
+      )
+    }
+  }
+}
+
+const MatchDiv=hocMatch(DivUIComponent)
+const MatchSpan=hocMatch(SpanUIComponent)
+
+&lt;MatchDiv matchId={1} matchInfo={matchInfo} /&gt;
+&lt;MatchSpan matchId={1} matchInfo={matchInfo} /&gt;
+</code></pre>
+<p>但是实际上有的时候我们的高阶组件可能会更复杂，比如react-redux的connect，这就是高阶组件的复杂化使用方式。</p>
+<p>又比如：</p>
+<pre><code><code>hocPage(
+  hocMatch(
+    hocDiv(DivComponent)
+  )
+)
+</code></pre>
+<p>毫无疑问高阶组件能让我们复用很多逻辑，但是过于复杂的高阶组件会让之后的维护者望而却步。</p>
+<p>而Hook的玩法是使用自定义Hook去提炼这些逻辑，首先看看我们之前使用了Hook的函数式组件：</p>
+<pre><code><code>import React, { Component } from &quot;react&quot;;
+
+export default function Match({matchId}) {
+  const [ matchInfo, setMatchInfo ] = React.useState('')
+  React.useEffect(() =&gt; {
+    // 请求后台接口获取赛事信息
+    // ...
+    setMatchInfo(serverResult) // serverResult是后台接口的返回值
+  }, [matchId])
+  
+  return &lt;div&gt;{matchInfo}&lt;/div&gt;;
+}
+</code></pre>
+<p>然后，自定义Hook：</p>
+<pre><code><code>function useMatch(matchId){
+  const [ matchInfo, setMatchInfo ] = React.useState('')
+  React.useEffect(() =&gt; {
+    // 请求后台接口获取赛事信息
+    // ...
+    setMatchInfo(serverResult) // serverResult是后台接口的返回值
+  }, [matchId])
+  return [matchInfo]
+}
+</code></pre>
+<p>接下来，修改原来的Match组件</p>
+<pre><code><code>export default function Match({matchId}) {
+  const [matchInfo]=useMatch(matchId)
+  return &lt;div&gt;{matchInfo}&lt;/div&gt;;
+}
+</code></pre>
+<p>相比高阶组件，自定义Hook更加简单，也更加容易理解。</p>
+<p>现在我们再来处理以下这种情况：</p>
+<pre><code><code>hocPage(
+  hocMatch(
+    hocDiv(DivComponent)
+  )
+)
+</code></pre>
+<p>我们的代码将不会出现这种不断嵌套情况，而是会变成下面这种：</p>
+<pre><code><code>export default function PageA({matchId}) {
+  const [pageInfo]=usePage(pageId)
+  const [matchInfo]=useMatch(matchId)
+  const [divInfo]=useDiv(divId)
+
+  return &lt;ul&gt;
+    &lt;li&gt;{pageInfo}&lt;/li&gt;
+    &lt;li&gt;{matchInfo}&lt;/li&gt;
+    &lt;li&gt;{divInfo}&lt;/li&gt;
+  &lt;/ul&gt;
+}
+</code></pre>
+<h2 id="class">是否需要改造旧的class组件？</h2>
+<p>现在我们了解到了Hook的好，所以就需要去改造旧的class组件。</p>
+<p>官方推荐不需要专门为了hook去改造class组件，并且保证将继续更新class相关功能。</p>
+<p>实际上我们也没有必要专门去改造旧项目中的class组件，因为工作量并不小。</p>
+<p>但是我们完全可以在新的项目或者新的组件中去使用它。</p>
+<h2 id="section-1">总结</h2>
+<p>Hook是对函数式组件的一次增强，使得函数式组件可以做到class组件的state和生命周期。</p>
+<p>Hook的语法更加简练易懂，消除了class的生命周期方法导致的重复逻辑代码，解决了高阶组件难以理解和使用困难的问题。</p>
+<p>然而Hook并没有让函数式组件能做到class组件做不到的事情，它只是让很多事情变得更加简单而已。</p>
+<p>class组件并不会消失，但hook化的函数式组件将是趋势。</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

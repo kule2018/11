@@ -1,0 +1,205 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修JavaScript之深入函数（二）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>JavaScript之深入函数（二）</center></div><div class='banquan'>原文出处:本文由博客园博主任风来去匆匆提供。<br/>
+原文连接:https://www.cnblogs.com/ruhaoren/p/11474076.html</div><br>
+    <p>　　上一篇我们主要讲解了函数的执行过程和原理，本篇我们将介绍函数的另外两个特殊表现：闭包和立即执行函数。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>一 　　闭包</strong></span></p>
+<p>　　<strong>1，&nbsp; 闭包的形成</strong></p>
+<p>　　之前我们提到,函数执行完毕，马上就会销毁自己的AO对象。但是如果遇到下面这种情况：<strong>有子函数的定义，并将子函数返回</strong>。它真的就完全销毁了自己的AO对象吗？</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> fn(){
+</span><span style="color: #008080;">2</span>     <span style="color: #0000ff;">var</span> a = 1<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> son(){
+</span><span style="color: #008080;">4</span> <span style="color: #000000;">         console.log(a);
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">6</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> son;
+</span><span style="color: #008080;">7</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">8</span> <span style="color: #0000ff;">var</span> test =<span style="color: #000000;"> fn();
+</span><span style="color: #008080;">9</span> test();<span style="color: #008000;">//</span><span style="color: #008000;">error ? 1</span></pre>
+</div>
+<p>　　这将打印什么呢？表面上看，son内并没有变量的声明，consol.log()访问a应该抛出错误。</p>
+<p>　　但事实上，test()将打印1，这是为什么呢？回忆上一篇文章函数的作用域链，不难发现：</p>
+<p>　　　　当fn执行时：fn.[[scope]] --- {0:AO(fn),1:GO}；执行期间son被声明：son.[[scope]]&nbsp; --- {0:AO(fn),1:GO}；</p>
+<p>　　return son将保留该属性，这时fn已经执行完毕：</p>
+<p>　　　　fn.[[scope]] --- {0:GO}（AO(fn)被销毁？）；</p>
+<p>　　直到test()执行时，test.[[csope]]&nbsp; --- {0:AO(son),1:AO(fn),2:GO}( test是son的另一个引用,实际上他们是同一个函数)。</p>
+<p>　　这时test想要访问变量a，那么他将先在自己的AO内查找，没有，那么他将到fn的AO里去查找，刚好有，所以最终打印的是1。</p>
+<p>&nbsp; &nbsp; &nbsp; &nbsp;<strong>这里看似已经被fn销毁的AO(fn)，实际上还被son引用着，所以它并没有真正的被完全销毁，只是对于fn来说，已经丢弃了对这个对象的引用，看起来像被销毁了。这个还被son保留着的AO对象我们即称之为闭包。闭包能帮助一个函数读取另一个函数内部的变量，它起到了连接两个函数的桥梁作用。</strong></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>总结一下，在JavaScripe中形成闭包需要三个要素：</strong></p>
+<p><strong>　　　　1，&nbsp; 父函数内定义了子函数。</strong></p>
+<p><strong>　　　　2，&nbsp; 子函数内访问了父函数的变量。</strong></p>
+<p><strong>　　　　3，&nbsp; 子函数被返回。</strong></p>
+<p>&nbsp;</p>
+<p>　　<strong>2，闭包的应用</strong></p>
+<p>　　　　a) 变量私有化，但可以实现全局变量的效果</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> add(){
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">var</span> count = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> (){
+</span><span style="color: #008080;"> 4</span>         count ++<span style="color: #000000;">;
+</span><span style="color: #008080;"> 5</span>         <span style="color: #008000;">//</span><span style="color: #008000;">some code</span>
+<span style="color: #008080;"> 6</span> <span style="color: #000000;">        console.log(count);
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 9</span> <span style="color: #0000ff;">var</span> myAdd =<span style="color: #000000;"> add();
+</span><span style="color: #008080;">10</span> myAdd();<span style="color: #008000;">//</span><span style="color: #008000;">1</span>
+<span style="color: #008080;">11</span> myAdd();<span style="color: #008000;">//</span><span style="color: #008000;">2</span>
+<span style="color: #008080;">12</span> myAdd();<span style="color: #008000;">//</span><span style="color: #008000;">3</span></pre>
+</div>
+<p>　　　　b) 用作(类似)缓存</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> person(){
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">var</span> money = 0<span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">var</span> obj =<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 4</span>         pay:<span style="color: #0000ff;">function</span><span style="color: #000000;"> (){
+</span><span style="color: #008080;"> 5</span>             <span style="color: #0000ff;">if</span>(money &gt; 0<span style="color: #000000;">){
+</span><span style="color: #008080;"> 6</span>                 console.log("I spent one yuan."<span style="color: #000000;">);
+</span><span style="color: #008080;"> 7</span>                 money --<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span>             }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 9</span>                 console.log("I run out of my money."<span style="color: #000000;">);
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">12</span>         make:<span style="color: #0000ff;">function</span><span style="color: #000000;"> (){
+</span><span style="color: #008080;">13</span>             console.log("I made one yuan."<span style="color: #000000;">);
+</span><span style="color: #008080;">14</span>             money ++<span style="color: #000000;">;
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;">17</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> obj;
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">19</span> <span style="color: #0000ff;">var</span> person1 =<span style="color: #000000;"> person();
+</span><span style="color: #008080;">20</span> person1.pay();<span style="color: #008000;">//</span><span style="color: #008000;">"I run out of my money."</span>
+<span style="color: #008080;">21</span> person1.make();<span style="color: #008000;">//</span><span style="color: #008000;">"I made one yuan."</span>
+<span style="color: #008080;">22</span> person1.pay();<span style="color: #008000;">//"I spent one yuan."</span></pre>
+</div>
+<p>　　　　c) 模块化开发，防止全局变量污染</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> a = "Global"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> p0(){
+</span><span style="color: #008080;"> 3</span> <span style="color: #000000;">    console.log(a);
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 5</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> p1(){
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">var</span> a = "p1"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">        console.log(a);
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">11</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> p2(){
+</span><span style="color: #008080;">12</span>     <span style="color: #0000ff;">var</span> a = "p2"<span style="color: #000000;">;
+</span><span style="color: #008080;">13</span>     <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">        console.log(a);
+</span><span style="color: #008080;">15</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;">16</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">17</span> <span style="color: #0000ff;">var</span> myP1 =<span style="color: #000000;"> p1();
+</span><span style="color: #008080;">18</span> <span style="color: #0000ff;">var</span> myP2 =<span style="color: #000000;"> p2();
+</span><span style="color: #008080;">19</span> 
+<span style="color: #008080;">20</span> p0();<span style="color: #008000;">//</span><span style="color: #008000;">"Global"</span>
+<span style="color: #008080;">21</span> myP1();<span style="color: #008000;">//</span><span style="color: #008000;">"p1"</span>
+<span style="color: #008080;">22</span> myP2();<span style="color: #008000;">//</span><span style="color: #008000;">"p2"</span></pre>
+</div>
+<p>　　大型项目一般都是多人协同开发，每个人负责不同的模块，不可避免的，大家可能使用了相同的变量名，这将造成全局变量污染。使用闭包，即可解决这个问题题。了解了下一节的立即执行函数，这段代码还可以加以优化。</p>
+<p>&nbsp;</p>
+<p><span style="font-size: 16px;"><strong>二&nbsp;&nbsp;&nbsp;&nbsp; 立即执行函数</strong></span></p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 在认识立即执行函数之前，让我们先来了解<strong>执行符()的两个特点</strong>。</p>
+<p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>1）只有表达式才能被()执行。</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> test(){
+</span><span style="color: #008080;">2</span>     console.log(1<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> }();<span style="color: #008000;">//</span><span style="color: #008000;">error 这是函数声明</span>
+<span style="color: #008080;">4</span> <span style="color: #0000ff;">var</span> test = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (){
+</span><span style="color: #008080;">5</span>     console.log(1<span style="color: #000000;">);
+</span><span style="color: #008080;">6</span> }();<span style="color: #008000;">//</span><span style="color: #008000;">1 这是函数表达式</span></pre>
+</div>
+<p><strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 2）能被()执行的表达式会被系统忽略函数名称。</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">var</span> test = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (){
+</span><span style="color: #008080;">2</span>     console.log(1<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> }();<span style="color: #008000;">//</span><span style="color: #008000;">1</span>
+<span style="color: #008080;">4</span> console.log(test);<span style="color: #008000;">//</span><span style="color: #008000;">undefined</span>
+<span style="color: #008080;">5</span> <span style="color: #008000;">//</span><span style="color: #008000;">这是一个有趣的现象：我们声明了变量test，并把一个函数赋值给它，紧接着使用()执行了这个表达式，随即打印出了1。</span></pre>
+<pre><code><span style="color: #008000;">按理说，这时test的值应该是一个匿名函数的函数体才对，但实际上它是undefined，变量刚被声</span><span style="color: #008000;">明的状态，即系统放弃了变量test对函数的引用。</span></pre>
+</div>
+<p>　　这很好的印证了()执行符的第二个特点。</p>
+<p>　　<strong>1，立即执行函数的形式</strong></p>
+<p>　　我们知道"()"括号实际上也是一种数学运算符，表示运算优先级的。那么我们当然可以把函数声明用括号包起来，使它成为一个表达式。这样我们就可以使用()执行符马上执行它并得到函数执行的结果了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> (<span style="color: #0000ff;">function</span><span style="color: #000000;"> test(){
+</span><span style="color: #008080;">2</span>     console.log(1<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> });<span style="color: #008000;">//函数声明变成了表达式</span>
+<span style="color: #008080;">4</span> <span style="color: #008000;">//结合</span><span style="color: #008000;">()执行符的第二个特点，我们可以将它优化</span>
+<span style="color: #008080;">5</span> (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (){
+</span><span style="color: #008080;">6</span>     console.log(1<span style="color: #000000;">);
+</span><span style="color: #008080;">7</span> })();<span style="color: #008000;">//</span><span style="color: #008000;">1</span></pre>
+</div>
+<p>　　以上就是立即执行函数的最终形式。另外，把()执行符放在函数声明的括号里面其实也是可以的。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (){
+</span><span style="color: #008080;">2</span>     console.log(1<span style="color: #000000;">);
+</span><span style="color: #008080;">3</span> }());<span style="color: #008000;">//1</span></pre>
+</div>
+<p>　　<strong>2，立即执行函数的特点</strong></p>
+<p>　　知道了()执行符的特点，其实我们不难发现：</p>
+<p>　　　　1）立即执行函数被声明后会马上执行函数体内的代码。</p>
+<p>　　　　2）执行完毕后立即销毁，不会被一直保存在内存中。</p>
+<p>　　　　3）只能被执行一次，不能起到代码块复用的功能。</p>
+<p>　　除了上述特点外，立即执行函数和普通函数的功能完全一样。</p>
+<p>　　<strong>3，立即执行函数结合闭包的经典应用</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> fn(){
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">var</span> arr =<span style="color: #000000;"> [];
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; 10; i++<span style="color: #000000;">){
+</span><span style="color: #008080;"> 4</span>         arr[i] = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">            console.log(i);
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">        };
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> arr;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">10</span> <span style="color: #0000ff;">var</span> myArr =<span style="color: #000000;"> fn();
+</span><span style="color: #008080;">11</span> myArr.map(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (item){
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    item();
+</span><span style="color: #008080;">13</span> });<span style="color: #008000;">//</span><span style="color: #008000;">10 10 10 10 10 10 10 10 10 10 </span></pre>
+</div>
+<p>　　我们是想依次输出1--9啊！为什么跑出来10个10呢？</p>
+<p>　　仔细想一想，不难发现，这是因为所有子函数和fn形成的是同一个闭包，所以最后都打印了10，那么要怎样才能实现我们想要的功能呢？</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> fn(){
+</span><span style="color: #008080;"> 2</span>     <span style="color: #0000ff;">var</span> arr =<span style="color: #000000;"> [];
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">for</span>(<span style="color: #0000ff;">var</span> i = 0; i &lt; 10; i++<span style="color: #000000;">){
+</span><span style="color: #008080;"> 4</span>        (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (j){
+</span><span style="color: #008080;"> 5</span>             arr[j] = <span style="color: #0000ff;">function</span><span style="color: #000000;"> () {
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">                console.log(j);
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">       }(i));
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> arr;
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">12</span> <span style="color: #0000ff;">var</span> myArr =<span style="color: #000000;"> fn();
+</span><span style="color: #008080;">13</span> myArr.map(<span style="color: #0000ff;">function</span><span style="color: #000000;"> (item){
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">    item();
+</span><span style="color: #008080;">15</span> });<span style="color: #008000;">//</span><span style="color: #008000;">0 1 2 3 4 5 6 7 8 9    </span></pre>
+</div>
+<p>　　通过利用立即执行函数定义完即被执行的特点，每次循环的时候都把i的值当做立即执行函数的实参传递进去，使每个立即执行函数都和子函数形成单独的闭包，那么最终子函数在执行时访问到的其实都是各自闭包（立即执行函数的AO）里的i的值了。这样就得到了我们想要的结果了。</p>
+<p>&nbsp;</p>
+<p>　　<strong>虽然闭包能在很多地方发挥很大作用，但闭包也有它自身的缺陷：闭包将一直占用内存空间，严重时将导致内存泄漏，甚至系统崩溃。所以我们应该尽量避免使用闭包，如果别无他法，也应该在使用完后手动的解除它对内存的占用，比如把引用返回函数的变量赋值为null。</strong></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

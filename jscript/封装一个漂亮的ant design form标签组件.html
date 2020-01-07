@@ -1,0 +1,284 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修封装一个漂亮的ant design form标签组件' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>封装一个漂亮的ant design form标签组件</center></div><div class='banquan'>原文出处:本文由博客园博主不老梦提供。<br/>
+原文连接:https://www.cnblogs.com/chengpu/p/web4.html</div><br>
+    <p><strong>在ant design 的form组件中 能用于提交的组件比较少，所以我在这写了一个可以单选、多选标签提交的组件，调用非常简单。</strong></p>
+<p>代码：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">  1</span> import React,{Fragment} from 'react'<span style="color: #000000;">;
+</span><span style="color: #008080;">  2</span> import { Tag,Icon,Input } from 'antd'<span style="color: #000000;">;
+</span><span style="color: #008080;">  3</span> <span style="color: #000000;">export interface TagDataType{
+</span><span style="color: #008080;">  4</span> <span style="color: #000000;">    data:string,
+</span><span style="color: #008080;">  5</span> <span style="color: #000000;">    color:string,
+</span><span style="color: #008080;">  6</span> <span style="color: #000000;">    key:string
+</span><span style="color: #008080;">  7</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">  8</span> <span style="color: #000000;">export interface Props {
+</span><span style="color: #008080;">  9</span>     data:Array&lt;TagDataType&gt;<span style="color: #000000;">,
+</span><span style="color: #008080;"> 10</span>     click?:<span style="color: #0000ff;">boolean</span>,<span style="color: #008000;">//</span><span style="color: #008000;">是否可点击</span>
+<span style="color: #008080;"> 11</span>     defaultKey?:string | Array&lt;string&gt;,<span style="color: #008000;">//</span><span style="color: #008000;">默认选择tag的key</span>
+<span style="color: #008080;"> 12</span>     checkbox?:<span style="color: #0000ff;">boolean</span>,<span style="color: #008000;">//</span><span style="color: #008000;">多选</span>
+<span style="color: #008080;"> 13</span>     form?:any,<span style="color: #008000;">//</span><span style="color: #008000;">form表单</span>
+<span style="color: #008080;"> 14</span>     dataValidationName?:string,<span style="color: #008000;">//</span><span style="color: #008000;">设置提交名称，若用此参数提交则提交选中的data,用于菜单提交获取</span>
+<span style="color: #008080;"> 15</span>     keyValidationName?:string,<span style="color: #008000;">//</span><span style="color: #008000;">设置提交名称,若用此参数提交则提交选中的key,用于菜单提交获取</span>
+<span style="color: #008080;"> 16</span>     notNull?:<span style="color: #0000ff;">boolean</span>,<span style="color: #008000;">//</span><span style="color: #008000;">选项不能为空</span>
+<span style="color: #008080;"> 17</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 18</span>  
+<span style="color: #008080;"> 19</span> <span style="color: #000000;">export interface State {
+</span><span style="color: #008080;"> 20</span>     keys:string,<span style="color: #008000;">//</span><span style="color: #008000;">选中的标签的key，用','分割</span>
+<span style="color: #008080;"> 21</span>     datas:string,<span style="color: #008000;">//</span><span style="color: #008000;">选中的标签的data，用','分割</span>
+<span style="color: #008080;"> 22</span>     styleState:number | Array&lt;number&gt;,<span style="color: #008000;">//</span><span style="color: #008000;">选中的下标集</span>
+<span style="color: #008080;"> 23</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 24</span>  
+<span style="color: #008080;"> 25</span> class TagOpt extends React.Component&lt;Props, State&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 26</span> <span style="color: #000000;">    constructor(props: Props) {
+</span><span style="color: #008080;"> 27</span> <span style="color: #000000;">        super(props);
+</span><span style="color: #008080;"> 28</span>         <span style="color: #008000;">//</span><span style="color: #008000;">验证传入数据的合法性</span>
+<span style="color: #008080;"> 29</span>         <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.props.notNull &amp;&amp; !!!<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.defaultKey){
+</span><span style="color: #008080;"> 30</span>             <span style="color: #0000ff;">throw</span> Error('TagOpt选中项为空，设置defaultKey！'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 31</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 32</span>         <span style="color: #0000ff;">if</span>(!!<span style="color: #0000ff;">this</span>.props.form &amp;&amp; !!!<span style="color: #0000ff;">this</span>.props.keyValidationName &amp;&amp; !!!<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.dataValidationName){
+</span><span style="color: #008080;"> 33</span>             <span style="color: #0000ff;">throw</span> Error('若要使用form提交，请设置keyValidationName或dataValidationName！'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 34</span> <span style="color: #000000;">        } 
+</span><span style="color: #008080;"> 35</span>         <span style="color: #0000ff;">this</span>.state=<span style="color: #0000ff;">this</span><span style="color: #000000;">.setDefaultVal();      
+</span><span style="color: #008080;"> 36</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 37</span>     <span style="color: #008000;">//</span><span style="color: #008000;">鼠标点击标签事件</span>
+<span style="color: #008080;"> 38</span>     TagClick = (tagData:TagDataType,index:number) =&gt;<span style="color: #000000;">{
+</span><span style="color: #008080;"> 39</span>         <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.props.click !== undefined &amp;&amp; <span style="color: #0000ff;">this</span><span style="color: #000000;">.props.click){
+</span><span style="color: #008080;"> 40</span>             <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.checkbox){
+</span><span style="color: #008080;"> 41</span>                 const optIf = <span style="color: #0000ff;">this</span><span style="color: #000000;">.optIf(index);
+</span><span style="color: #008080;"> 42</span>                 let styleState:Array&lt;number&gt; = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Array();;
+</span><span style="color: #008080;"> 43</span>                 <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> <span style="color: #0000ff;">this</span>.state.styleState === 'object'<span style="color: #000000;">){
+</span><span style="color: #008080;"> 44</span>                     styleState = [...<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.styleState];
+</span><span style="color: #008080;"> 45</span>                 }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 46</span>                     styleState = [<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.styleState];
+</span><span style="color: #008080;"> 47</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 48</span>                 <span style="color: #0000ff;">if</span><span style="color: #000000;">(optIf.state){
+</span><span style="color: #008080;"> 49</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">点击已选择</span>
+<span style="color: #008080;"> 50</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">如果设置不为空且选中选项大于1或者没有设置不为空选项</span>
+<span style="color: #008080;"> 51</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">则清空</span>
+<span style="color: #008080;"> 52</span>                     <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.props.notNull &amp;&amp; styleState.length&gt;1 || !!!<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.notNull){
+</span><span style="color: #008080;"> 53</span>                         styleState.splice(optIf.index,1<span style="color: #000000;">);
+</span><span style="color: #008080;"> 54</span>                         <span style="color: #0000ff;">this</span><span style="color: #000000;">.setState({
+</span><span style="color: #008080;"> 55</span>                             keys:<span style="color: #0000ff;">this</span>.moveSubString(<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.keys,tagData.key),
+</span><span style="color: #008080;"> 56</span>                             datas:<span style="color: #0000ff;">this</span>.moveSubString(<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.datas,tagData.data),
+</span><span style="color: #008080;"> 57</span> <span style="color: #000000;">                            styleState
+</span><span style="color: #008080;"> 58</span>                         },()=&gt;{<span style="color: #0000ff;">this</span>.setVal(<span style="color: #0000ff;">this</span>.state.datas,'data');<span style="color: #0000ff;">this</span>.setVal(<span style="color: #0000ff;">this</span>.state.keys,'key'<span style="color: #000000;">)});
+</span><span style="color: #008080;"> 59</span> <span style="color: #000000;">                    } 
+</span><span style="color: #008080;"> 60</span>                 }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 61</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">点击未选择</span>
+<span style="color: #008080;"> 62</span>                     styleState.splice(styleState.length,0<span style="color: #000000;">,index);
+</span><span style="color: #008080;"> 63</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.setState({
+</span><span style="color: #008080;"> 64</span>                         keys:<span style="color: #0000ff;">this</span>.addSubString(<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.keys,tagData.key),
+</span><span style="color: #008080;"> 65</span>                         datas:<span style="color: #0000ff;">this</span>.addSubString(<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.datas,tagData.data),
+</span><span style="color: #008080;"> 66</span> <span style="color: #000000;">                        styleState
+</span><span style="color: #008080;"> 67</span>                     },()=&gt;{<span style="color: #0000ff;">this</span>.setVal(<span style="color: #0000ff;">this</span>.state.datas,'data');<span style="color: #0000ff;">this</span>.setVal(<span style="color: #0000ff;">this</span>.state.keys,'key'<span style="color: #000000;">)});
+</span><span style="color: #008080;"> 68</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 69</span>             }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 70</span>                 <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.state.styleState ===<span style="color: #000000;"> index){
+</span><span style="color: #008080;"> 71</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">点击已选择</span>
+<span style="color: #008080;"> 72</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">若设置可以为空</span>
+<span style="color: #008080;"> 73</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">则清空</span>
+<span style="color: #008080;"> 74</span>                     <span style="color: #0000ff;">if</span>(!!!<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.notNull){
+</span><span style="color: #008080;"> 75</span>                         <span style="color: #0000ff;">this</span>.setState({keys:'',datas:'',styleState:<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.data.length}
+</span><span style="color: #008080;"> 76</span>                         ,()=&gt;{<span style="color: #0000ff;">this</span>.setVal(<span style="color: #0000ff;">this</span>.state.datas,'data');<span style="color: #0000ff;">this</span>.setVal(<span style="color: #0000ff;">this</span>.state.keys,'key'<span style="color: #000000;">)});
+</span><span style="color: #008080;"> 77</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;"> 78</span>                 }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;"> 79</span>                     <span style="color: #008000;">//</span><span style="color: #008000;">点击未选择</span>
+<span style="color: #008080;"> 80</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.setState({keys:tagData.key,datas:tagData.data,styleState:index}
+</span><span style="color: #008080;"> 81</span>                     ,()=&gt;{<span style="color: #0000ff;">this</span>.setVal(<span style="color: #0000ff;">this</span>.state.datas,'data');<span style="color: #0000ff;">this</span>.setVal(<span style="color: #0000ff;">this</span>.state.keys,'key'<span style="color: #000000;">)});
+</span><span style="color: #008080;"> 82</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;"> 83</span> <span style="color: #000000;">            } 
+</span><span style="color: #008080;"> 84</span> <span style="color: #000000;">        }   
+</span><span style="color: #008080;"> 85</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 86</span>     <span style="color: #008000;">//</span><span style="color: #008000;">返回移出指定子串的字符串，移出所有重复子串</span>
+<span style="color: #008080;"> 87</span>     moveSubString = (str:string,subString:string):string =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;"> 88</span>         let array:Array&lt;string&gt; = str.split(','<span style="color: #000000;">);
+</span><span style="color: #008080;"> 89</span>         <span style="color: #0000ff;">for</span>(let i=0;i&lt;array.length;i++<span style="color: #000000;">){
+</span><span style="color: #008080;"> 90</span>             <span style="color: #0000ff;">if</span>(array[i] ===<span style="color: #000000;"> subString){
+</span><span style="color: #008080;"> 91</span>                 array.splice(i,1<span style="color: #000000;">);
+</span><span style="color: #008080;"> 92</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;"> 93</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;"> 94</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> array.toString();
+</span><span style="color: #008080;"> 95</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 96</span>     <span style="color: #008000;">//</span><span style="color: #008000;">返回增加子串的字符串，重复则不增加</span>
+<span style="color: #008080;"> 97</span>     addSubString = (str:string,subString:string|Array&lt;string&gt;) =&gt;<span style="color: #000000;">{
+</span><span style="color: #008080;"> 98</span>         <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> subString === 'string'<span style="color: #000000;">){
+</span><span style="color: #008080;"> 99</span>             let comma = str !==''?',':''<span style="color: #000000;">;
+</span><span style="color: #008080;">100</span>             <span style="color: #0000ff;">return</span> str +comma+<span style="color: #000000;">subString;
+</span><span style="color: #008080;">101</span>         }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">102</span>             let s:string =<span style="color: #000000;"> str;
+</span><span style="color: #008080;">103</span>             <span style="color: #0000ff;">for</span>(let i=0;i&lt;subString.length;i++<span style="color: #000000;">){
+</span><span style="color: #008080;">104</span>                 let comma = s !==''?',':''<span style="color: #000000;">;
+</span><span style="color: #008080;">105</span>                 s+=comma+<span style="color: #000000;">subString[i];
+</span><span style="color: #008080;">106</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">107</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> s;
+</span><span style="color: #008080;">108</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">109</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">110</span>     <span style="color: #008000;">//</span><span style="color: #008000;">选择判断</span>
+<span style="color: #008080;">111</span>     optIf = (index:number):{state:<span style="color: #0000ff;">boolean</span>,index:number} =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">112</span>         <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> <span style="color: #0000ff;">this</span>.state.styleState ==='number'<span style="color: #000000;">){
+</span><span style="color: #008080;">113</span>             <span style="color: #0000ff;">return</span> {state:<span style="color: #0000ff;">this</span>.state.styleState === index,index:0<span style="color: #000000;">};
+</span><span style="color: #008080;">114</span>         }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">115</span>             let falg:<span style="color: #0000ff;">boolean</span> = <span style="color: #0000ff;">false</span><span style="color: #000000;">;
+</span><span style="color: #008080;">116</span>             const styleState = <span style="color: #0000ff;">this</span><span style="color: #000000;">.state.styleState;
+</span><span style="color: #008080;">117</span>             let i=0<span style="color: #000000;">;
+</span><span style="color: #008080;">118</span>             <span style="color: #0000ff;">for</span>(;i&lt;styleState.length;i++<span style="color: #000000;">){
+</span><span style="color: #008080;">119</span>                 <span style="color: #0000ff;">if</span>(styleState[i] ===<span style="color: #000000;"> index){
+</span><span style="color: #008080;">120</span>                     falg = <span style="color: #0000ff;">true</span><span style="color: #000000;">;
+</span><span style="color: #008080;">121</span>                     <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">122</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">123</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">124</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> {state:falg,index:i};
+</span><span style="color: #008080;">125</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">126</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">127</span>     <span style="color: #008000;">//</span><span style="color: #008000;">写入表单</span>
+<span style="color: #008080;">128</span>     setVal = (data:string,type:string) =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">129</span>         <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.props.form !=<span style="color: #000000;"> undefined){
+</span><span style="color: #008080;">130</span>             let json:object =<span style="color: #000000;"> {}
+</span><span style="color: #008080;">131</span>             <span style="color: #0000ff;">if</span>(type === 'data'<span style="color: #000000;">){
+</span><span style="color: #008080;">132</span>                 <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.props.dataValidationName !==<span style="color: #000000;"> undefined){
+</span><span style="color: #008080;">133</span>                     json[<span style="color: #0000ff;">this</span>.props.dataValidationName] =<span style="color: #000000;"> data;
+</span><span style="color: #008080;">134</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.props.form.setFieldsValue(json);
+</span><span style="color: #008080;">135</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">136</span>             }<span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(type === 'key'<span style="color: #000000;">){
+</span><span style="color: #008080;">137</span>                 <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.props.keyValidationName !==<span style="color: #000000;"> undefined){
+</span><span style="color: #008080;">138</span>                     json[<span style="color: #0000ff;">this</span>.props.keyValidationName] =<span style="color: #000000;"> data;
+</span><span style="color: #008080;">139</span>                     <span style="color: #0000ff;">this</span><span style="color: #000000;">.props.form.setFieldsValue(json);
+</span><span style="color: #008080;">140</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">141</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">142</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">143</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">144</span>     <span style="color: #008000;">//</span><span style="color: #008000;">默认值转换</span>
+<span style="color: #008080;">145</span>     setDefaultVal=():State=&gt;<span style="color: #000000;">{
+</span><span style="color: #008080;">146</span>         <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.checkbox){
+</span><span style="color: #008080;">147</span>             <span style="color: #008000;">//</span><span style="color: #008000;">多选框，值为1个或数组</span>
+<span style="color: #008080;">148</span>             let styleState:Array&lt;number&gt; = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Array();
+</span><span style="color: #008080;">149</span>             let keys:Array&lt;string&gt; = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Array();
+</span><span style="color: #008080;">150</span>             let datas:Array&lt;string&gt; = <span style="color: #0000ff;">new</span><span style="color: #000000;"> Array();
+</span><span style="color: #008080;">151</span>             const {defaultKey,data} = <span style="color: #0000ff;">this</span><span style="color: #000000;">.props;
+</span><span style="color: #008080;">152</span>             <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">typeof</span> defaultKey === 'object'<span style="color: #000000;">){
+</span><span style="color: #008080;">153</span>                 <span style="color: #0000ff;">for</span>(let i=0;i&lt;defaultKey.length;i++<span style="color: #000000;">){
+</span><span style="color: #008080;">154</span>                     <span style="color: #0000ff;">for</span>(let j=0;j&lt;data.length;j++<span style="color: #000000;">){
+</span><span style="color: #008080;">155</span>                         <span style="color: #0000ff;">if</span>(defaultKey[i] ===<span style="color: #000000;"> data[j].key){
+</span><span style="color: #008080;">156</span> <span style="color: #000000;">                            styleState.push(i);
+</span><span style="color: #008080;">157</span> <span style="color: #000000;">                            keys.push(data[j].key);
+</span><span style="color: #008080;">158</span> <span style="color: #000000;">                            datas.push(data[j].data);
+</span><span style="color: #008080;">159</span> <span style="color: #000000;">                        }
+</span><span style="color: #008080;">160</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">161</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">162</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">163</span>                     keys:<span style="color: #0000ff;">this</span>.addSubString(''<span style="color: #000000;">,keys),
+</span><span style="color: #008080;">164</span>                     datas:<span style="color: #0000ff;">this</span>.addSubString(''<span style="color: #000000;">,datas),
+</span><span style="color: #008080;">165</span> <span style="color: #000000;">                    styleState 
+</span><span style="color: #008080;">166</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">167</span>             }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">168</span>                 let i:number = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">169</span>                 let key:string = ''<span style="color: #000000;">;
+</span><span style="color: #008080;">170</span>                 let dat:string = ''<span style="color: #000000;">;
+</span><span style="color: #008080;">171</span>                 <span style="color: #0000ff;">for</span>(;i&lt;data.length;i++<span style="color: #000000;">){
+</span><span style="color: #008080;">172</span>                     <span style="color: #0000ff;">if</span>(data[i].key ===<span style="color: #000000;"> defaultKey){
+</span><span style="color: #008080;">173</span>                         key=<span style="color: #000000;">data[i].key;
+</span><span style="color: #008080;">174</span>                         dat=<span style="color: #000000;">data[i].data;
+</span><span style="color: #008080;">175</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">176</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">177</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">178</span>                 <span style="color: #0000ff;">return</span><span style="color: #000000;"> { keys:key,datas:dat,styleState: i };
+</span><span style="color: #008080;">179</span> <span style="color: #000000;">            }  
+</span><span style="color: #008080;">180</span>         }<span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.props.checkbox === undefined &amp;&amp; <span style="color: #0000ff;">typeof</span> <span style="color: #0000ff;">this</span>.props.defaultKey ==='string' ||
+<span style="color: #008080;">181</span>             !<span style="color: #0000ff;">this</span>.props.checkbox &amp;&amp; <span style="color: #0000ff;">typeof</span> <span style="color: #0000ff;">this</span>.props.defaultKey ==='string'<span style="color: #000000;">){
+</span><span style="color: #008080;">182</span>             <span style="color: #008000;">//</span><span style="color: #008000;">多选未设置且默认值为1个或单选且默认值为一个</span>
+<span style="color: #008080;">183</span>             let i:number = 0<span style="color: #000000;">;
+</span><span style="color: #008080;">184</span>             let key:string = ''<span style="color: #000000;">;
+</span><span style="color: #008080;">185</span>             let dat:string = ''<span style="color: #000000;">;
+</span><span style="color: #008080;">186</span>             <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.props.defaultKey !==<span style="color: #000000;"> undefined){
+</span><span style="color: #008080;">187</span>                 const data = <span style="color: #0000ff;">this</span><span style="color: #000000;">.props.data;
+</span><span style="color: #008080;">188</span>                 <span style="color: #0000ff;">for</span>(;i&lt;data.length;i++<span style="color: #000000;">){
+</span><span style="color: #008080;">189</span>                     <span style="color: #0000ff;">if</span>(data[i].key === <span style="color: #0000ff;">this</span><span style="color: #000000;">.props.defaultKey){
+</span><span style="color: #008080;">190</span>                         key=<span style="color: #000000;">data[i].key;
+</span><span style="color: #008080;">191</span>                         dat=<span style="color: #000000;">data[i].data;
+</span><span style="color: #008080;">192</span>                         <span style="color: #0000ff;">break</span><span style="color: #000000;">;
+</span><span style="color: #008080;">193</span> <span style="color: #000000;">                    }
+</span><span style="color: #008080;">194</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">195</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">196</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;"> { keys:key,datas:dat,styleState: i };
+</span><span style="color: #008080;">197</span>         }<span style="color: #0000ff;">else</span> <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span>.props.defaultKey === undefined || <span style="color: #0000ff;">this</span>.props.defaultKey === '' || <span style="color: #0000ff;">this</span>.props.defaultKey ===<span style="color: #000000;"> []){
+</span><span style="color: #008080;">198</span>             <span style="color: #0000ff;">if</span>(<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.checkbox){
+</span><span style="color: #008080;">199</span>                 <span style="color: #0000ff;">return</span> { keys:'',datas:''<span style="color: #000000;">,styleState: [] };
+</span><span style="color: #008080;">200</span>             }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">201</span>                 <span style="color: #0000ff;">return</span> { keys:'',datas:'',styleState: <span style="color: #0000ff;">this</span><span style="color: #000000;">.props.data.length };
+</span><span style="color: #008080;">202</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">203</span>         }<span style="color: #0000ff;">else</span><span style="color: #000000;">{
+</span><span style="color: #008080;">204</span>             <span style="color: #0000ff;">return</span> {keys:'',datas:'',styleState: <span style="color: #0000ff;">this</span><span style="color: #000000;">.props.data.length};
+</span><span style="color: #008080;">205</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">206</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">207</span> <span style="color: #000000;">    render() {
+</span><span style="color: #008080;">208</span>         const content:any = <span style="color: #0000ff;">this</span>.props.data.map((tagData:TagDataType,index:number)=&gt;<span style="color: #000000;">{
+</span><span style="color: #008080;">209</span>             const cursor:any = <span style="color: #0000ff;">this</span>.props.click !== undefined &amp;&amp; <span style="color: #0000ff;">this</span>.props.click ?'pointer':'default'<span style="color: #000000;">;
+</span><span style="color: #008080;">210</span>             <span style="color: #0000ff;">return</span><span style="color: #000000;">(
+</span><span style="color: #008080;">211</span>                 &lt;Tag color={tagData.color} key={tagData.key} onClick={<span style="color: #0000ff;">this</span>.TagClick.bind(<span style="color: #0000ff;">this</span>,tagData,index)} style={{cursor}}&gt;
+<span style="color: #008080;">212</span> <span style="color: #000000;">                    {tagData.data}
+</span><span style="color: #008080;">213</span>                     {<span style="color: #0000ff;">this</span>.optIf(index).state?&lt;Icon type="check" /&gt;:undefined}
+<span style="color: #008080;">214</span>                 &lt;/Tag&gt;
+<span style="color: #008080;">215</span> <span style="color: #000000;">            )
+</span><span style="color: #008080;">216</span> <span style="color: #000000;">        });
+</span><span style="color: #008080;">217</span>         <span style="color: #0000ff;">return</span><span style="color: #000000;"> ( 
+</span><span style="color: #008080;">218</span>             &lt;Fragment&gt;
+<span style="color: #008080;">219</span> <span style="color: #000000;">                {content}
+</span><span style="color: #008080;">220</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">221</span>                     !!<span style="color: #0000ff;">this</span>.props.click &amp;&amp; !!<span style="color: #0000ff;">this</span>.props.form &amp;&amp; !!<span style="color: #0000ff;">this</span>.props.form.getFieldDecorator &amp;&amp; !!<span style="color: #0000ff;">this</span>.props.keyValidationName?
+<span style="color: #008080;">222</span>                     <span style="color: #0000ff;">this</span>.props.form.getFieldDecorator(<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.keyValidationName, {
+</span><span style="color: #008080;">223</span>                         initialValue:<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.keys,
+</span><span style="color: #008080;">224</span>                     })(&lt;Input type="hidden"/&gt;)
+<span style="color: #008080;">225</span> <span style="color: #000000;">                    :undefined
+</span><span style="color: #008080;">226</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">227</span> <span style="color: #000000;">                {
+</span><span style="color: #008080;">228</span>                     !!<span style="color: #0000ff;">this</span>.props.click &amp;&amp; !!<span style="color: #0000ff;">this</span>.props.form &amp;&amp;!!<span style="color: #0000ff;">this</span>.props.form.getFieldDecorator &amp;&amp; !!<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.dataValidationName
+</span><span style="color: #008080;">229</span>                     &amp;&amp; !!!<span style="color: #0000ff;">this</span>.props.keyValidationName?
+<span style="color: #008080;">230</span>                     <span style="color: #0000ff;">this</span>.props.form.getFieldDecorator(<span style="color: #0000ff;">this</span><span style="color: #000000;">.props.dataValidationName, {
+</span><span style="color: #008080;">231</span>                         initialValue:<span style="color: #0000ff;">this</span><span style="color: #000000;">.state.datas,
+</span><span style="color: #008080;">232</span>                     })(&lt;Input type="hidden"/&gt;)
+<span style="color: #008080;">233</span> <span style="color: #000000;">                    :undefined
+</span><span style="color: #008080;">234</span> <span style="color: #000000;">                }
+</span><span style="color: #008080;">235</span>             &lt;/Fragment&gt;
+<span style="color: #008080;">236</span> <span style="color: #000000;">         );
+</span><span style="color: #008080;">237</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">238</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">239</span> export <span style="color: #0000ff;">default</span> TagOpt;</pre>
+</div>
+<p>&nbsp;</p>
+<p><img src="./images/封装一个漂亮的ant design form标签组件0.png" alt="" /></p>
+<p>效果：</p>
+<p><img src="./images/封装一个漂亮的ant design form标签组件1.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/封装一个漂亮的ant design form标签组件2.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;<img src="./images/封装一个漂亮的ant design form标签组件3.png" alt="" /></p>
+<p>也可以在普通页面中调用：</p>
+<p><img src="./images/封装一个漂亮的ant design form标签组件4.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;获取值</p>
+<p><img src="./images/封装一个漂亮的ant design form标签组件5.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;效果：</p>
+<p><img src="./images/封装一个漂亮的ant design form标签组件6.png" alt="" /></p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

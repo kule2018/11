@@ -1,0 +1,126 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【译】JavaScript Source Maps浅析' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【译】JavaScript Source Maps浅析</center></div><div class='banquan'>原文出处:本文由博客园博主LINJIAJUN提供。<br/>
+原文连接:https://www.cnblogs.com/GeniusLyzh/p/11763149.html</div><br>
+    <blockquote>
+<p>Link： <a href="https://blog.teamtreehouse.com/introduction-source-maps">原文链接</a></p>
+</blockquote>
+<p>译文开始：</p>
+<p>对网站进行性能优化对一个最容易的方法就是把JS和CSS进行打包压缩。但是当你需要调试这些压缩文件中的代码的时候，会发生什么？可能会是一场噩梦。但是，不用害怕，即将有一个解决方案到来，它就是Source Maps。</p>
+<p>source maps提供一种将压缩文件中的代码映射回源文件中原始位置的方法。这意味着，借助一些软件的帮助，即使你的资源被压缩，你也可以轻易调试你的程序。Chrome和Firefox内置的开发者工具都支持source maps了。</p>
+<p>在这篇文章中，你将会学习到source maps的实现原理以及怎么去生成source maps。我们主要是关注JavaScript代码的source maps，但是这些原则同样适用于CSS的source maps。</p>
+<h3 id="source-maps实现原理">Source Maps实现原理</h3>
+<p>顾名思义，source map（源映射）就是包含一堆的信息，可以将压缩文件的代码映射回到源代码。你可以为每个压缩文件指定不同的source map。<br />
+通过在压缩文件底部添加特殊的注释，向浏览器表明souce map是可用的。</p>
+<pre><code><code>//# sourceMappingURL=/path/to/script.js.map</code></pre>
+<p>该注释通常会被用于生成source map的程序添加。仅当开发者工具支持source map启用了以及打开的时候，开发者工具才会加载这些文件。</p>
+<p>也可以在压缩的JavaScript文件的响应中通过设置X-SourceMap的HTTP响应头来开启source map。</p>
+<pre><code><code>X-SourceMap: /path/to/script.js.map</code></pre>
+<p>下面来看看source map文件的内容：一个JSON对象，包含文件说明以及JavaScript源文件。看个例子：</p>
+<pre><code><code>{
+    version: 3,
+    file: &quot;script.js.map&quot;,
+    sources: [
+        &quot;app.js&quot;,
+        &quot;content.js&quot;,
+        &quot;widget.js&quot;
+    ],
+    sourceRoot: &quot;/&quot;,
+    names: [&quot;slideUp&quot;, &quot;slideDown&quot;, &quot;save&quot;],
+    mappings: &quot;AAA0B,kBAAhBA,QAAOC,SACjBD,OAAOC,OAAO...&quot;
+}</code></pre>
+<p>具体每个属性的说明：</p>
+<ul>
+<li>version : 这个属性说明这个文件遵循source map规范的哪一个版本。具体可以查看<a href="https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.1ce2c87bpj24">规范</a></li>
+<li>file ：source map文件名</li>
+<li>sources： 源文件URL的一个数组</li>
+<li>sourceRoot: （可选）源文件数组URL指定的文件根路径</li>
+<li>names：包含源文件所有变量和函数名的数组。</li>
+<li>mappings：包含实际代码映射的<a href="https://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-base64vlq">Base64 VLQ</a>字符串。 （这就是魔术发生的地方）</li>
+</ul>
+<h3 id="使用uglifyjs-生成source-maps">使用UglifyJS 生成Source Maps</h3>
+<p><a href="https://github.com/mishoo/UglifyJS2">UglifyJS</a>是一个用于合并压缩JS文件的命令行工具。版本2支持很多有助于生成source map的命令行标识。</p>
+<ul>
+<li>--source-map：source map输出文件</li>
+<li>--source-map-root：（可选）source map源文件根路径</li>
+<li>--source-map-url ：（可选）服务器source map文件路径。用于压缩文件的注释中路径。</li>
+</ul>
+<pre><code><code>//# sourceMappingURL=/path/to/script.js.map</code></pre>
+<blockquote>
+<p>以上全部选项可查看<a href="https://github.com/mishoo/UglifyJS2">文档</a></p>
+</blockquote>
+<p>来看个试一下生成一个source map，在一个目录中创建一个JS文件test.js<br />
+test.js内容：</p>
+<pre><code><code>function test(){
+    console.log(&#39;test&#39;)
+}</code></pre>
+<pre><code><code>uglifyjs test.js -o test.min.js --source-map &quot;url=&#39;test.min.js.map&#39;&quot;</code></pre>
+<p>如果没有安装，需要先安装uglifyJs，执行命令后，生成三个文件。<br />
+<img src="./images/【译】JavaScript Source Maps浅析0.png" /></p>
+<blockquote>
+<p>以上没有用原文的例子，使用自己实现的例子。</p>
+</blockquote>
+<p>test.min.js输出后到代码:</p>
+<pre><code><code>function test(){console.log(&quot;test&quot;)}
+//# sourceMappingURL=test.min.js.map</code></pre>
+<p>还有以下其他工具也可以用于生成source maps：</p>
+<ul>
+<li><a href="http://coffeescript.org/#source-maps">coffeeScript Compiler</a></li>
+<li><a href="https://github.com/twolfson/grunt-jsmin-sourcemap">GruntJS Task for JSMin</a></li>
+</ul>
+<h3 id="chorome开发者工具调试source-maps">Chorome开发者工具调试Source Maps</h3>
+<blockquote>
+<p>为了方便演示，已经偏离原文的例子。</p>
+</blockquote>
+<p>之前生成的test.min.js文件，我们通过引入到html文件中进行调试。<br />
+html文件：</p>
+<pre><code><code>&lt;html&gt;
+    &lt;head&gt;
+        &lt;title&gt;test&lt;/title&gt;
+    &lt;/head&gt;
+    &lt;body&gt;
+        &lt;script src=&quot;./test.min.js&quot;&gt;&lt;/script&gt;
+        &lt;script&gt;
+        test()
+        &lt;/script&gt;
+    &lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p>先看看没开启source map的情况是如何：<br />
+<img src="./images/【译】JavaScript Source Maps浅析1.png" /></p>
+<p>没开启source map，只加载了test.min.js文件<br />
+<img src="./images/【译】JavaScript Source Maps浅析2.png" /><br />
+开启后再尝试：<br />
+<img src="./images/【译】JavaScript Source Maps浅析3.png" /></p>
+<p>发现会加载test.js源文件，以及在源文件进行调试。</p>
+<h3 id="小结">小结</h3>
+<p>使用source map可以使开发人员维护直接的调试环境，同时优化其站点的性能。</p>
+<h2 id="有用的链接">有用的链接</h2>
+<ul>
+<li><a href="http://www.ruanyifeng.com/blog/2013/01/javascript_source_map.html">Source Map 详解</a></li>
+<li><a href="https://www.html5rocks.com/en/tutorials/developertools/sourcemaps/#toc-base64vlq">JavaScript Source Map 介绍</a></li>
+<li><a href="https://github.com/mishoo/UglifyJS2">UglifyJS2</a></li>
+<li><a href="https://docs.google.com/document/d/1U1RGAehQwRypUTovF1KRlpiOFze0b-_2gc6fAH0KY0k/edit#heading=h.1ce2c87bpj24">Source Map 修订版提案</a></li>
+</ul>
+<p>（完）</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

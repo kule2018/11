@@ -1,0 +1,156 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修vue-商品管理案例改进' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>vue-商品管理案例改进</center></div><div class='banquan'>原文出处:本文由博客园博主跌倒的小黄瓜提供。<br/>
+原文连接:https://www.cnblogs.com/ygjzs/p/11802085.html</div><br>
+    <h2 id="案例改进">案例改进</h2>
+<p>vue-resource全局配置:<br />
+<code>Vue.http.options.root = 'http://vue.studyit.io/';</code><br />
+全局启用 emulateJSON 选项<br />
+<code>Vue.http.options.emulateJSON = true;</code></p>
+<pre><code><code>&lt;div id=&quot;app&quot;&gt;
+
+
+
+    &lt;div class=&quot;panel panel-primary&quot;&gt;
+      &lt;div class=&quot;panel-heading&quot;&gt;
+        &lt;h3 class=&quot;panel-title&quot;&gt;添加品牌&lt;/h3&gt;
+      &lt;/div&gt;
+      &lt;div class=&quot;panel-body form-inline&quot;&gt;
+
+        &lt;label&gt;
+          Name:
+          &lt;input type=&quot;text&quot; v-model=&quot;name&quot; class=&quot;form-control&quot;&gt;
+        &lt;/label&gt;
+
+        &lt;input type=&quot;button&quot; value=&quot;添加&quot; @click=&quot;add&quot; class=&quot;btn btn-primary&quot;&gt;
+      &lt;/div&gt;
+    &lt;/div&gt;
+
+
+
+    &lt;table class=&quot;table table-bordered table-hover table-striped&quot;&gt;
+      &lt;thead&gt;
+        &lt;tr&gt;
+          &lt;th&gt;Id&lt;/th&gt;
+          &lt;th&gt;Name&lt;/th&gt;
+          &lt;th&gt;Ctime&lt;/th&gt;
+          &lt;th&gt;Operation&lt;/th&gt;
+        &lt;/tr&gt;
+      &lt;/thead&gt;
+      &lt;tbody&gt;
+        &lt;tr v-for=&quot;item in list&quot; :key=&quot;item.id&quot;&gt;
+          &lt;td&gt;{{item.id}}&lt;/td&gt;
+          &lt;td&gt;{{item.name}}&lt;/td&gt;
+          &lt;td&gt;{{item.ctime}}&lt;/td&gt;
+          &lt;td&gt;
+            &lt;a href=&quot;&quot; @click.prevent=&quot;del(item.id)&quot;&gt;删除&lt;/a&gt;
+          &lt;/td&gt;
+        &lt;/tr&gt;
+      &lt;/tbody&gt;
+    &lt;/table&gt;</code></pre>
+<pre class="javascript"><code>// 如果我们通过全局配置了，请求的数据接口 根域名，则 ，在每次单独发起 http 请求的时候，请求的 url 路径，应该以相对路径开头，前面不能带 /  ，否则 不会启用根路径做拼接；
+    Vue.http.options.root = &#39;http://vue.studyit.io/&#39;;
+    // 全局启用 emulateJSON 选项
+    Vue.http.options.emulateJSON = true;
+
+    // 创建 Vue 实例，得到 ViewModel
+    var vm = new Vue({
+      el: &#39;#app&#39;,
+      data: {
+        name: &#39;&#39;,
+        list: [ // 存放所有品牌列表的数组
+        ]
+      },
+      created() { // 当 vm 实例 的 data 和 methods 初始化完毕后，vm实例会自动执行created 这个生命周期函数
+        this.getAllList()
+      },
+      methods: {
+        getAllList() { // 获取所有的品牌列表 
+          // 分析：
+          // 1. 由于已经导入了 Vue-resource这个包，所以 ，可以直接通过  this.$http 来发起数据请求
+          // 2. 根据接口API文档，知道，获取列表的时候，应该发起一个 get 请求
+          // 3. this.$http.get(&#39;url&#39;).then(function(result){})
+          // 4. 当通过 then 指定回调函数之后，在回调函数中，可以拿到数据服务器返回的 result
+          // 5. 先判断 result.status 是否等于0，如果等于0，就成功了，可以 把 result.message 赋值给 this.list ; 如果不等于0，可以弹框提醒，获取数据失败！
+
+          this.$http.get(&#39;api/getprodlist&#39;).then(result =&gt; {
+            // 注意： 通过 $http 获取到的数据，都在 result.body 中放着
+            var result = result.body
+            if (result.status === 0) {
+              // 成功了
+              this.list = result.message
+            } else {
+              // 失败了
+              alert(&#39;获取数据失败！&#39;)
+            }
+          })
+        },
+        add() {  // 添加品牌列表到后台服务器
+          // 分析：
+          // 1. 听过查看 数据API接口，发现，要发送一个 Post 请求，  this.$http.post
+          // 2. this.$http.post() 中接收三个参数：
+          //   2.1 第一个参数： 要请求的URL地址
+          //   2.2 第二个参数： 要提交给服务器的数据 ，要以对象形式提交给服务器 { name: this.name }
+          //   3.3 第三个参数： 是一个配置对象，要以哪种表单数据类型提交过去， { emulateJSON: true }, 以普通表单格式，将数据提交给服务器 application/x-www-form-urlencoded
+          // 3. 在 post 方法中，使用 .then 来设置成功的回调函数，如果想要拿到成功的结果，需要 result.body
+
+          /* this.$http.post(&#39;api/addproduct&#39;, { name: this.name }, { emulateJSON: true }).then(result =&gt; {
+            if (result.body.status === 0) {
+              // 成功了！
+              // 添加完成后，只需要手动，再调用一下 getAllList 就能刷新品牌列表了
+              this.getAllList()
+              // 清空 name 
+              this.name = &#39;&#39;
+            } else {
+              // 失败了
+              alert(&#39;添加失败！&#39;)
+            }
+          }) */
+
+          this.$http.post(&#39;api/addproduct&#39;, { name: this.name }).then(result =&gt; {
+            if (result.body.status === 0) {
+              // 成功了！
+              // 添加完成后，只需要手动，再调用一下 getAllList 就能刷新品牌列表了
+              this.getAllList()
+              // 清空 name 
+              this.name = &#39;&#39;
+            } else {
+              // 失败了
+              alert(&#39;添加失败！&#39;)
+            }
+          })
+        },
+        del(id) { // 删除品牌
+          this.$http.get(&#39;api/delproduct/&#39; + id).then(result =&gt; {
+            if (result.body.status === 0) {
+              // 删除成功
+              this.getAllList()
+            } else {
+              alert(&#39;删除失败！&#39;)
+            }
+          })
+        }
+      }
+    });</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

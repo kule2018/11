@@ -1,0 +1,199 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修如何编写 maptalks plugin' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>如何编写 maptalks plugin</center></div><div class='banquan'>原文出处:本文由博客园博主lifefriend_007提供。<br/>
+原文连接:https://www.cnblogs.com/lifefriend/p/11048318.html</div><br>
+    <p>前面写过 maptalks plugin ( ArcGISTileLayer )，有读者留言说文章写得太精简，根据文章给出的核心代码没办法写出一个完整的 plugin ( 文中有完整 demo 地址，可能太隐蔽 )，这篇文章具体地说下 plugin 如何编写，并实现一个 plugin ( WMTSTileLayer )。</p>
+<p>&nbsp;</p>
+<p>学习一个新东西，最好的方式就是找官方文档。这里介绍一种捷径( 个人认为 )，直接模仿已有的插件编写。打开官网 plugins 页面<sup>[1]</sup>，找一个 plugin，如 maptalks.e3.js，下面参考 maptalks.e3.js 写一个 <a href="https://lifefriend.github.io/data/maptalks/arcgis/index.html" target="_blank">WMTSTileLayer</a>。</p>
+<p>&nbsp;</p>
+<p><strong>1、基本结构</strong></p>
+<p>以 maptalks.e3.js 为基本版本，通过对比其他插件，去掉具体业务代码，得到一个 WMTSTileLayer 的基本框架如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">/*</span><span style="color: #008000;">!
+</span><span style="color: #008080;"> 2</span> <span style="color: #008000;"> * 版本申明
+</span><span style="color: #008080;"> 3</span> <span style="color: #008000;"> * maptalks.wmts v0.1.0
+</span><span style="color: #008080;"> 4</span> <span style="color: #008000;"> * LICENSE : MIT
+</span><span style="color: #008080;"> 5</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 6</span> <span style="color: #008000;">/*</span><span style="color: #008000;">!
+</span><span style="color: #008080;"> 7</span> <span style="color: #008000;"> * 依赖申明
+</span><span style="color: #008080;"> 8</span> <span style="color: #008000;"> * requires maptalks@^0.39.0 
+</span><span style="color: #008080;"> 9</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;">//</span><span style="color: #008000;"> UMD 固定写法</span>
+<span style="color: #008080;">11</span> (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (global, factory) {
+</span><span style="color: #008080;">12</span>   <span style="color: #0000ff;">typeof</span> exports === 'object' &amp;&amp; <span style="color: #0000ff;">typeof</span> module !== 'undefined' ? factory(exports, require('maptalks')) :<span style="color: #0000ff;">typeof</span> define === 'function' &amp;&amp; define.amd ? define(['exports', 'maptalks'], factory) :(factory((global.maptalks = global.maptalks || {}), global.maptalks));}(<span style="color: #0000ff;">this</span>, (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (exports, maptalks) {
+</span><span style="color: #008080;">13</span>   'use strict'<span style="color: #000000;">;
+</span><span style="color: #008080;">14</span>   
+<span style="color: #008080;">15</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 定义layer</span>
+<span style="color: #008080;">16</span>   <span style="color: #0000ff;">var</span> WMTSTileLayer = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (_TileLayer) {
+</span><span style="color: #008080;">17</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 构造函数</span>
+<span style="color: #008080;">18</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> WMTSTileLayer(id, options) {
+</span><span style="color: #008080;">19</span>       
+<span style="color: #008080;">20</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">21</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 图层导出为 JSON</span>
+<span style="color: #008080;">22</span>     WMTSTileLayer.prototype.toJSON = <span style="color: #0000ff;">function</span><span style="color: #000000;"> toJSON() {
+</span><span style="color: #008080;">23</span>       
+<span style="color: #008080;">24</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;">25</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 图层导入 </span>
+<span style="color: #008080;">26</span>     WMTSTileLayer.prototype.fromJSON = <span style="color: #0000ff;">function</span><span style="color: #000000;"> fromJSON(layerJSON) {
+</span><span style="color: #008080;">27</span>       
+<span style="color: #008080;">28</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;">29</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> WMTSTileLayer;
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">  }(maptalks.TileLayer);
+</span><span style="color: #008080;">31</span> 
+<span style="color: #008080;">32</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 注册图层</span>
+<span style="color: #008080;">33</span>   WMTSTileLayer.registerJSONType('WMTSTileLayer'<span style="color: #000000;">);
+</span><span style="color: #008080;">34</span>   
+<span style="color: #008080;">35</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 导出整个类，外界调用入口</span>
+<span style="color: #008080;">36</span>   exports.WMTSTileLayer =<span style="color: #000000;"> WMTSTileLayer;
+</span><span style="color: #008080;">37</span> 
+<span style="color: #008080;">38</span>   Object.defineProperty(exports, '__esModule', { value: <span style="color: #0000ff;">true</span><span style="color: #000000;"> });
+</span><span style="color: #008080;">39</span>     
+<span style="color: #008080;">40</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 一些打印信息</span>
+<span style="color: #008080;">41</span>   <span style="color: #0000ff;">typeof</span> console !== 'undefined' &amp;&amp; console.log('maptalks.wmts v0.1.0, requires maptalks@^0.39.0.'<span style="color: #000000;">);
+</span><span style="color: #008080;">42</span>     
+<span style="color: #008080;">43</span> })));</pre>
+</div>
+<p><strong>2、WMTS 服务</strong></p>
+<p>网上搜索 WMTS 服务接口说明<sup>[2]</sup>，得到参数说明如下：</p>
+<p><img src="./images/如何编写 maptalks plugin0.png" alt="" /></p>
+<p>拿到参数说明后，接下来就是具体代码实现。WMTS 服务是切片服务，相比 WMS 而言，牺牲定制地图的灵活性来提升性能，那么具体的代码实现可以参考官方的 WMTSTileLayer<sup>[3]</sup>，具体实现代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">/*</span><span style="color: #008000;">!
+</span><span style="color: #008080;"> 2</span> <span style="color: #008000;"> * 版本申明
+</span><span style="color: #008080;"> 3</span> <span style="color: #008000;"> * maptalks.wmts v0.1.0
+</span><span style="color: #008080;"> 4</span> <span style="color: #008000;"> * LICENSE : MIT
+</span><span style="color: #008080;"> 5</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;"> 6</span> <span style="color: #008000;">/*</span><span style="color: #008000;">!
+</span><span style="color: #008080;"> 7</span> <span style="color: #008000;"> * 依赖申明
+</span><span style="color: #008080;"> 8</span> <span style="color: #008000;"> * requires maptalks@^0.39.0 
+</span><span style="color: #008080;"> 9</span>  <span style="color: #008000;">*/</span>
+<span style="color: #008080;">10</span> <span style="color: #008000;">//</span><span style="color: #008000;"> UMD 固定写法</span>
+<span style="color: #008080;">11</span> (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (global, factory) {
+</span><span style="color: #008080;">12</span>   <span style="color: #0000ff;">typeof</span> exports === 'object' &amp;&amp; <span style="color: #0000ff;">typeof</span> module !== 'undefined' ? factory(exports, require('maptalks')) :<span style="color: #0000ff;">typeof</span> define === 'function' &amp;&amp; define.amd ? define(['exports', 'maptalks'], factory) :(factory((global.maptalks = global.maptalks || {}), global.maptalks));}(<span style="color: #0000ff;">this</span>, (<span style="color: #0000ff;">function</span><span style="color: #000000;"> (exports, maptalks) {
+</span><span style="color: #008080;">13</span>   'use strict'<span style="color: #000000;">;
+</span><span style="color: #008080;">14</span>   
+<span style="color: #008080;">15</span>  <span style="color: #008000;">//</span><span style="color: #008000;"> 参数大小写配置</span>
+<span style="color: #008080;">16</span>   <span style="color: #0000ff;">var</span> options$v2 =<span style="color: #000000;"> {
+</span><span style="color: #008080;">17</span>     uppercase: <span style="color: #0000ff;">false</span>
+<span style="color: #008080;">18</span> <span style="color: #000000;">  };
+</span><span style="color: #008080;">19</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 参数默认值</span>
+<span style="color: #008080;">20</span>   <span style="color: #0000ff;">var</span> defaultWmtsParams =<span style="color: #000000;"> {
+</span><span style="color: #008080;">21</span>     service: 'WMTS'<span style="color: #000000;">,
+</span><span style="color: #008080;">22</span>     request: 'GetTile'<span style="color: #000000;">,
+</span><span style="color: #008080;">23</span>     layer: ''<span style="color: #000000;">,
+</span><span style="color: #008080;">24</span>     tilematrixset: ''<span style="color: #000000;">,
+</span><span style="color: #008080;">25</span>     format: 'image/png'<span style="color: #000000;">,
+</span><span style="color: #008080;">26</span>     version: '1.0.0'
+<span style="color: #008080;">27</span> <span style="color: #000000;">  };
+</span><span style="color: #008080;">28</span>     
+<span style="color: #008080;">29</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 定义layer</span>
+<span style="color: #008080;">30</span>   <span style="color: #0000ff;">var</span> WMTSTileLayer = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (_TileLayer) {
+</span><span style="color: #008080;">31</span>      <span style="color: #008000;">//</span><span style="color: #008000;"> 继承</span>
+<span style="color: #008080;">32</span> <span style="color: #000000;">     _inherits(WMTSTileLayer, _TileLayer);
+</span><span style="color: #008080;">33</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 构造函数，mixins 参数</span>
+<span style="color: #008080;">34</span>     <span style="color: #0000ff;">function</span><span style="color: #000000;"> WMTSTileLayer(id, options) {
+</span><span style="color: #008080;">35</span>       <span style="color: #0000ff;">var</span><span style="color: #000000;"> _this;
+</span><span style="color: #008080;">36</span>       _this = _TileLayer.call(<span style="color: #0000ff;">this</span>, id) || <span style="color: #0000ff;">this</span><span style="color: #000000;">;
+</span><span style="color: #008080;">37</span>       <span style="color: #0000ff;">var</span> wmtsParams =<span style="color: #000000;"> extend({}, defaultWmtsParams);
+</span><span style="color: #008080;">38</span>       <span style="color: #0000ff;">for</span> (<span style="color: #0000ff;">var</span> p <span style="color: #0000ff;">in</span><span style="color: #000000;"> options) {
+</span><span style="color: #008080;">39</span>         <span style="color: #0000ff;">if</span> (!(p <span style="color: #0000ff;">in</span><span style="color: #000000;"> _this.options)) {
+</span><span style="color: #008080;">40</span>           wmtsParams[p] =<span style="color: #000000;"> options[p];
+</span><span style="color: #008080;">41</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">42</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">43</span>       <span style="color: #008000;">//</span><span style="color: #008000;"> 改写 url</span>
+<span style="color: #008080;">44</span>       <span style="color: #0000ff;">var</span> url =<span style="color: #000000;"> options.urlTemplate;
+</span><span style="color: #008080;">45</span>       options.urlTemplate = url + getParamString(wmtsParams, url, <span style="color: #0000ff;">this</span>.options.uppercase) + '&amp;tileMatrix={z}&amp;tileRow={y}&amp;tileCol={x}'<span style="color: #000000;">;
+</span><span style="color: #008080;">46</span>         
+<span style="color: #008080;">47</span> <span style="color: #000000;">      _this.setOptions(options);
+</span><span style="color: #008080;">48</span> <span style="color: #000000;">      _this.setZIndex(options.zIndex);
+</span><span style="color: #008080;">49</span>       <span style="color: #0000ff;">return</span><span style="color: #000000;"> _this;
+</span><span style="color: #008080;">50</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">51</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 图层导出为 JSON</span>
+<span style="color: #008080;">52</span>     WMTSTileLayer.prototype.toJSON = <span style="color: #0000ff;">function</span><span style="color: #000000;"> toJSON() {
+</span><span style="color: #008080;">53</span>       <span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+</span><span style="color: #008080;">54</span>         'type': 'WMTSTileLayer'<span style="color: #000000;">,
+</span><span style="color: #008080;">55</span>         'id': <span style="color: #0000ff;">this</span><span style="color: #000000;">.getId(),
+</span><span style="color: #008080;">56</span>         'options': <span style="color: #0000ff;">this</span><span style="color: #000000;">.config()
+</span><span style="color: #008080;">57</span> <span style="color: #000000;">      };
+</span><span style="color: #008080;">58</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;">59</span>     <span style="color: #008000;">//</span><span style="color: #008000;"> 图层导入 </span>
+<span style="color: #008080;">60</span>     WMTSTileLayer.prototype.fromJSON = <span style="color: #0000ff;">function</span><span style="color: #000000;"> fromJSON(layerJSON) {
+</span><span style="color: #008080;">61</span>       <span style="color: #0000ff;">if</span> (!layerJSON || layerJSON['type'] !== 'WMTSTileLayer'<span style="color: #000000;">) {
+</span><span style="color: #008080;">62</span>         <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">null</span><span style="color: #000000;">;
+</span><span style="color: #008080;">63</span> <span style="color: #000000;">      }
+</span><span style="color: #008080;">64</span>       <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> WMTSTileLayer(layerJSON['id'], layerJSON['options'<span style="color: #000000;">]);
+</span><span style="color: #008080;">65</span> <span style="color: #000000;">    };
+</span><span style="color: #008080;">66</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> WMTSTileLayer;
+</span><span style="color: #008080;">67</span> <span style="color: #000000;">  }(maptalks.TileLayer);
+</span><span style="color: #008080;">68</span> 
+<span style="color: #008080;">69</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 注册图层</span>
+<span style="color: #008080;">70</span>   WMTSTileLayer.registerJSONType('WMTSTileLayer'<span style="color: #000000;">);
+</span><span style="color: #008080;">71</span>   
+<span style="color: #008080;">72</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 导出整个类，外界调用入口</span>
+<span style="color: #008080;">73</span>   exports.WMTSTileLayer =<span style="color: #000000;"> WMTSTileLayer;
+</span><span style="color: #008080;">74</span> 
+<span style="color: #008080;">75</span>   Object.defineProperty(exports, '__esModule', { value: <span style="color: #0000ff;">true</span><span style="color: #000000;"> });
+</span><span style="color: #008080;">76</span>     
+<span style="color: #008080;">77</span>   <span style="color: #008000;">//</span><span style="color: #008000;"> 一些打印信息</span>
+<span style="color: #008080;">78</span>   <span style="color: #0000ff;">typeof</span> console !== 'undefined' &amp;&amp; console.log('maptalks.wmts v0.1.0, requires maptalks@^0.39.0.'<span style="color: #000000;">);
+</span><span style="color: #008080;">79</span>     
+<span style="color: #008080;">80</span> })));</pre>
+</div>
+<p><strong>3、试一试，加载天地图 WMTS 服务</strong><sup>[4]</sup></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #0000ff;">var</span> map = <span style="color: #0000ff;">new</span> maptalks.Map('map'<span style="color: #000000;">, {
+</span><span style="color: #008080;"> 2</span>     center: [105.08052356963802, 36.04231948670001<span style="color: #000000;">],
+</span><span style="color: #008080;"> 3</span>     zoom: 4<span style="color: #000000;">,
+</span><span style="color: #008080;"> 4</span>     minZoom:1<span style="color: #000000;">,
+</span><span style="color: #008080;"> 5</span>     maxZoom:18<span style="color: #000000;">,
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">    spatialReference:{
+</span><span style="color: #008080;"> 7</span>         projection:'EPSG:4326'
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">    },
+</span><span style="color: #008080;"> 9</span>     baseLayer: <span style="color: #0000ff;">new</span> maptalks.WMTSTileLayer('base'<span style="color: #000000;">, {
+</span><span style="color: #008080;">10</span>         tileSystem : [1, -1, -180, 90<span style="color: #000000;">],
+</span><span style="color: #008080;">11</span>         layer:'vec'<span style="color: #000000;">,
+</span><span style="color: #008080;">12</span>         tilematrixset:'c'<span style="color: #000000;">,
+</span><span style="color: #008080;">13</span>         format:'tiles'<span style="color: #000000;">,
+</span><span style="color: #008080;">14</span>         urlTemplate:'http://t{s}.tianditu.com/vec_c/wmts?tk=de0dc270a51aaca3dd4e64d4f8c81ff6'<span style="color: #000000;">,
+</span><span style="color: #008080;">15</span>         subdomains:['1', '2', '3', '4', '5'<span style="color: #000000;">],
+</span><span style="color: #008080;">16</span>         attribution : '&amp;copy; &lt;a target="_blank" href="http://www.tianditu.cn"&gt;Tianditu&lt;/a&gt;'
+<span style="color: #008080;">17</span> <span style="color: #000000;">    }),
+</span><span style="color: #008080;">18</span> <span style="color: #000000;">    layers : [
+</span><span style="color: #008080;">19</span>         <span style="color: #0000ff;">new</span> maptalks.WMTSTileLayer('road'<span style="color: #000000;">, {
+</span><span style="color: #008080;">20</span>             layer:'cva'<span style="color: #000000;">,
+</span><span style="color: #008080;">21</span>             tilematrixset:'c'<span style="color: #000000;">,
+</span><span style="color: #008080;">22</span>             format:'tiles'<span style="color: #000000;">,
+</span><span style="color: #008080;">23</span>             urlTemplate:'http://t{s}.tianditu.com/cva_c/wmts?tk=de0dc270a51aaca3dd4e64d4f8c81ff6'<span style="color: #000000;">,
+</span><span style="color: #008080;">24</span>             subdomains:['1', '2', '3', '4', '5'<span style="color: #000000;">],
+</span><span style="color: #008080;">25</span>             opacity:1
+<span style="color: #008080;">26</span> <span style="color: #000000;">        })
+</span><span style="color: #008080;">27</span> <span style="color: #000000;">    ]
+</span><span style="color: #008080;">28</span> });</pre>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">[1] http://maptalks.org/plugins.html
+[2] http://tdt.fuzhou.gov.cn/help/apipfs/3.htm
+[3] https://github.com/maptalks/maptalks.js/blob/master/src/layer/tile/WMSTileLayer.js
+[4] http://maptalks.org/examples/en/tilelayer-projection/wms/#tilelayer-projection_wms</span></pre>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

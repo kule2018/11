@@ -1,0 +1,388 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修node命令行工具之实现项目工程自动初始化的标准流程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>node命令行工具之实现项目工程自动初始化的标准流程</center></div><div class='banquan'>原文出处:本文由博客园博主我是leon提供。<br/>
+原文连接:https://www.cnblogs.com/walls/p/11337718.html</div><br>
+    <h2 id="一目的">一、目的</h2>
+<p>传统的前端项目初始流程一般是这样：</p>
+<p><img src="./images/node命令行工具之实现项目工程自动初始化的标准流程0.png" alt="传统流程" /></p>
+<p>可以看出，传统的初始化步骤，花费的时间并不少。而且，人工操作的情况下，<strong>总有改漏的情况出现</strong>。这个缺点有时很致命。<br />
+甚至有马大哈，没有更新项目仓库地址，导致提交代码到旧仓库，这就很尴尬了。。。<br />
+基于这些情况，编写命令行工具（CLI）的目的就很明确：</p>
+<ul>
+<li>用于新项目工程的初始化</li>
+<li>利用工具进行初始化，可以节省项目初期的准备时间</li>
+<li>避免出现改漏的情况</li>
+<li>杜绝未更新项目版本仓库地址的问题</li>
+</ul>
+<p>以下是新的流程示意图：</p>
+<p><img src="./images/node命令行工具之实现项目工程自动初始化的标准流程1.png" alt="新的流程" /></p>
+<h2 id="二自动化流程分析">二、自动化流程分析</h2>
+<p>以下是自动化流程图：</p>
+<p><img src="./images/node命令行工具之实现项目工程自动初始化的标准流程2.png" alt="自动化流程分析" /></p>
+<p>从流程图可以得出两个重要的信息：</p>
+<ul>
+<li>配置信息</li>
+<li>模板文件</li>
+</ul>
+<p>命令行工具的角色，是负责将两个信息进行融合，提供一个交互平台给用户。</p>
+<h2 id="三工具准备">三、工具准备</h2>
+<h3 id="配置信息工具">3.1 配置信息工具</h3>
+<p>配置信息的获得，需要靠和用户进行交互。由于程序员一般是用终端输入命令进行项目操作。所以，这里选择了两个工具进行支撑。</p>
+<ul>
+<li><strong>commander</strong></li>
+</ul>
+<blockquote>
+<p>借鉴Ruby commander理念实现的命令行执行补全解决方案</p>
+</blockquote>
+<p><code>commander</code>可以接收命令行传入的参数</p>
+<p>例子：</p>
+<pre><code><code>npg-cli --help
+
+♫ ♫♬♪♫  npm-package-cli ♫ ♫♬♪♫
+Usage: npg-cli [options]
+
+Options:
+  -V, --version  output the version number
+  -h, --help     output usage information
+  run testcli and edit the setting.</code></pre>
+<ul>
+<li><strong>inquirer</strong></li>
+</ul>
+<blockquote>
+<p>常用交互式命令行用户界面的集合。</p>
+</blockquote>
+<p><code>inquirer</code>用询问式的语句，与用户进行交互，接收参数</p>
+<p>例子：</p>
+<pre><code><code>npg-cli
+
+♫ ♫♬♪♫  npm-package-cli ♫ ♫♬♪♫
+Follow the prompts to complete the project configuration.
+
+? project name test
+? version 1.0.0
+? description</code></pre>
+<h3 id="模板信息工具">3.2 模板信息工具</h3>
+<p>前端的JavaScript 模板引擎，比如ejs，jade等。可以根据传入的参数，对模板标签进行替换，最终生成html。</p>
+<blockquote>
+<p>如果把所有项目文件，不管文件后缀名，都看成是ejs模板，则可以在文件内容中使用ejs语法。<br />
+再根据配置信息进行替换，最终生成新文件。</p>
+</blockquote>
+<p>其实，业界依据这个想法，已经有成熟的工具产生。</p>
+<ul>
+<li><strong>mem-fs</strong></li>
+</ul>
+<p><code>mem-fs</code>是对文件进行读取，存入内存中。</p>
+<ul>
+<li><strong>mem-fs-editor</strong></li>
+</ul>
+<p><code>mem-fs-editor</code>是对内存中的文件信息，使用ejs语法进行编译。最后调用<code>commit</code>方法输出最终文件。</p>
+<h3 id="提示信息工具">3.3 提示信息工具</h3>
+<p>提示信息，除了<code>console.log</code>，还可以使用色彩更丰富的<code>chalk</code>。<br />
+这样，可以输出更直观、友好的提示。</p>
+<h3 id="文件操作">3.4 文件操作</h3>
+<p>文件操作，有业界成熟的<code>shelljs</code>。<br />
+利用<code>shelljs</code>，可以在项目中简化以下步骤：</p>
+<ul>
+<li>一些项目文件，不需要修改，只用直接copy。可以使用<code>shelljs.copySync</code>同步方式生成。</li>
+<li>一些文件夹，需要提前构建，可以使用<code>shelljs.mkdir</code>进行创建</li>
+</ul>
+<h2 id="四实现">四、实现</h2>
+<p>以下按我做的开源项目——<code>npm-package-cli</code>的创作过程进行分拆、讲解。</p>
+<h3 id="初始化">4.1 初始化</h3>
+<p>新建项目文件夹<code>npm-package-cli</code>，并在该文件夹下运行<code>npm init</code>，生成<code>package.json</code>。<br />
+项目结构如下：</p>
+<pre class="text"><code> npm-package-cli
+        |-- package.json</code></pre>
+<h3 id="生成全局指令">4.2 生成全局指令</h3>
+<p>这里要生成的全局指令是<code>npg-cli</code>。</p>
+<h4 id="新建执行文件">4.2.1 新建执行文件</h4>
+<p>新建文件夹<code>bin</code>,并在文件夹下新建名称为<code>cli</code>的shell脚本文件（注意：不能有后缀名）。<br />
+<code>cli</code>shell脚本文件内容如下：</p>
+<pre class="shell"><code>#!/usr/bin/env node
+
+console.log(&#39;hello world&#39;);</code></pre>
+<p>其中，<code>#!/usr/bin/env node</code>是告诉编译器，以<code>node</code>的方式，运行代码。</p>
+<p>并在<code>package.json</code>加入以下内容：</p>
+<pre class="text"><code>&quot;bin&quot;: {
+    &quot;npg-cli&quot;: &quot;bin/cli&quot;
+}</code></pre>
+<p>此时，项目结构如下：</p>
+<pre class="text"><code> npm-package-cli
+        |-- bin
+            |-- cli
+        |-- package.json</code></pre>
+<h4 id="链接指令到全局">4.2.2 链接指令到全局</h4>
+<p>链接指令有两种方式：</p>
+<ul>
+<li><code>npm link</code></li>
+<li><code>npm install -g</code></li>
+</ul>
+<p>两种方式，都需要在<code>npm-package-cli</code>文件夹下运行，才能生效。<br />
+作用是把<code>npg-cli</code>指令，指向全局的<code>bin</code>文件下，实现软链。</p>
+<h4 id="运行">4.2.3 运行</h4>
+<p>在任意文件夹下运行命令：</p>
+<pre class="shell"><code>npg-cli
+
+# 输出
+hello world</code></pre>
+<p>到这里，一个基本的指令就算完成了，接下来是指令的工作内容细化。</p>
+<h3 id="初始化操作类creation">4.3 初始化操作类Creation</h3>
+<p><code>Creation</code>的作用是整合所有操作，并提供接口给指令文件<code>cli</code>。<br />
+<code>Creation</code>的结构如下:</p>
+<pre class="javascript"><code>class Creation{
+  constructor(){
+    // code
+  }
+  do(){
+      // code
+  }
+  // other function
+}</code></pre>
+<p>其中<code>do</code>方法暴露给脚本文件<code>cli</code>调用。</p>
+<p><code>Creation</code>类放在<code>src/index.js</code>中。</p>
+<p>此时，项目结构如下：</p>
+<pre class="text"><code> npm-package-cli
+        |-- bin
+            |-- cli
+        |-- src
+            |-- index.js
+        |-- package.json</code></pre>
+<h3 id="修改cli文件">4.4 修改<code>cli</code>文件</h3>
+<pre class="shell"><code>#!/usr/bin/env node
+
+const Creator = require(&#39;../src/index.js&#39;);
+
+const project = new Creator();
+
+project.do();
+</code></pre>
+<p>这样，只要实现好<code>do</code>方法，就可以完成<code>npg-cli</code>指令的运行了。</p>
+<h3 id="实现命令行参数读取">4.5 实现命令行参数读取</h3>
+<p>实现<code>npg-cli --help</code>，需要借助上文提到的工具<code>commander</code>。<br />
+新建<code>src/command.js</code>文件，文件内容如下：</p>
+<pre class="javascript"><code>const commander = require(&#39;commander&#39;);
+const chalk = require(&#39;chalk&#39;);
+
+const packageJson = require(&#39;../package.json&#39;);
+const log = console.log;
+
+function initCommand(){
+    commander.version(packageJson.version)
+        .on(&#39;--help&#39;, ()=&gt;{
+            log(chalk.green(&#39;  run testcli and edit the setting.&#39;));
+        })
+        .parse(process.argv);
+}
+
+module.exports = initCommand;</code></pre>
+<p>此时，项目结构如下：</p>
+<pre class="text"><code> npm-package-cli
+        |-- bin
+            |-- cli
+        |-- src
+            |-- command.js
+            |-- index.js
+        |-- package.json</code></pre>
+<p>然后在<code>Creation.do</code>方法内执行<code>initCommand()</code>即可生效。</p>
+<pre class="javascript"><code>// src/index.js Creation
+const initCommand = require(&#39;./command&#39;);
+
+class Creation{
+    // other code
+    do(){
+        initCommand();
+    }
+}</code></pre>
+<p>此时，运行<code>npg-cli --help</code>指令，就可以看到：</p>
+<pre class="shell"><code>Usage: npg-cli [options]
+
+Options:
+  -V, --version  output the version number
+  -h, --help     output usage information
+  run testcli and edit the setting.</code></pre>
+<h3 id="获取用户输入配置信息">4.6 获取用户输入配置信息</h3>
+<p>要获取用户输入的信息，需要借助工具<code>inquirer</code>。<br />
+新建<code>src/setting.js</code>文件，文件内容如下：</p>
+<pre class="javascript"><code>const inquirer = require(&#39;inquirer&#39;);
+const fse = require(&#39;fs-extra&#39;);
+
+function initSetting(){
+    let prompt = [
+        {
+            type: &#39;input&#39;,
+            name: &#39;projectName&#39;,
+            message: &#39;project name&#39;,
+            validate(input){
+                if(!input){
+                    return &#39;project name is required.&#39;
+                }
+                if(fse.existsSync(input)){
+                    return &#39;project name of folder is exist.&#39;
+                }
+                return true;
+            }
+        },
+        // other prompt
+    ];
+
+    return inquirer.prompt(prompt);
+}
+
+module.exports = initSetting;</code></pre>
+<p>此时，项目结构如下：</p>
+<pre class="text"><code> npm-package-cli
+        |-- bin
+            |-- cli
+        |-- src
+            |-- command.js
+            |-- index.js
+            |-- setting.js
+        |-- package.json</code></pre>
+<p>然后在<code>Creation.do</code>方法内执行<code>initSetting()</code>即可生效。</p>
+<pre class="javascript"><code>// src/index.js Creation
+const initCommand = require(&#39;./command&#39;);
+const initSetting = require(&#39;./setting&#39;);
+
+class Creation{
+    // other code
+    do(){
+        initCommand();
+        initSetting().then(setting =&gt; {
+            // 用户输入完成后，会得到全部输入信息的json数据 setting
+        });
+    }
+}</code></pre>
+<p>这里，<code>inquirer.prompt</code>方法装载好要收集的问题后，返回的是<code>Promise</code>对象。收集完成之后，要在<code>then</code>方法内拿到<strong>配置信息</strong>，以便进行下一步模板替换的操作。</p>
+<h3 id="模板文件替换输出">4.7 模板文件替换输出</h3>
+<p>模板文件替换，要用到工具<code>mem-fs</code>和<code>mem-fs-editor</code>。<br />
+文件操作，要用到工具<code>shelljs</code>。</p>
+<p>新建<code>src/output.js</code>文件，文件内容如下（删除了部分代码，以下只是示例，完整项目看最后分享链接）：</p>
+<pre class="javascript"><code>const chalk = require(&#39;chalk&#39;);
+const fse = require(&#39;fs-extra&#39;);
+const path = require(&#39;path&#39;);
+const log = console.log;
+
+function output(creation){
+    return new Promise((resolve, reject)=&gt;{
+        // 拿到配置信息
+        const setting = creation._setting;
+        const {
+            projectName
+        } = setting;
+        // 获取当前命令行执行环境所在文件夹
+        const cwd = process.cwd();
+
+        // 初始化文件夹path
+        const projectPath = path.join(cwd, projectName);
+        const projectResolve = getProjectResolve(projectPath);
+        
+        // 新建项目文件夹
+        fse.mkdirSync(projectPath);
+
+        // copy文件夹
+        creation.copy(&#39;src&#39;, projectResolve(&#39;src&#39;));
+        // 根据配置信息，替换文件内容
+        creation.copyTpl(&#39;package.json&#39;, projectResolve(&#39;package.json&#39;), setting);
+
+        // 将内存中的文件，输出到硬盘上
+        creation._mfs.commit(() =&gt; {
+            resolve(); 
+        });
+    });
+}
+
+module.exports = output;</code></pre>
+<p><code>output</code>方法的作用：</p>
+<ul>
+<li>新建项目文件夹</li>
+<li>把模板文件读取出来，根据配置信息，进行替换（调用的是<code>mem-fs-editor</code>的<code>copyTpl</code>方法）</li>
+<li>拷贝其他文件</li>
+<li>输出最终文件到硬盘上</li>
+</ul>
+<p>这里最重要的一步，是调用<code>mem-fs-editor</code>的方法后，要执行<code>mem-fs-editor</code>的<code>commit</code>方法，输出内存中的文件到硬盘上。</p>
+<p>在<code>Creation.do</code>方法中，调用<code>output</code>方法即可输出新项目文件。<br />
+打开<code>src/index.js</code>文件，文件内容增加如下方法：</p>
+<pre class="javascript"><code>// src/index.js Creation
+const initCommand = require(&#39;./command&#39;);
+const initSetting = require(&#39;./setting&#39;);
+const output = require(&#39;./output&#39;);
+
+class Creation{
+    // other code
+    do(){
+        initCommand();
+        initSetting().then(setting =&gt; {
+            // 用户输入完成后，会得到全部输入信息的json数据 setting
+            this._setting = Object.assign({}, this._setting, setting);
+            // 输出文件
+            output(this).then(res =&gt; {
+                // 项目输出完成
+            });
+        });
+    }
+}</code></pre>
+<h3 id="阶段小结">4.8 阶段小结</h3>
+<p>自动初始化一个项目的流程不外乎以下三点：</p>
+<ul>
+<li>读取用户配置</li>
+<li>读取模板文件</li>
+<li>根据配置，编译模板文件，输出最终文件</li>
+</ul>
+<p>命令行工具，是对这三点的有效整合，串连成一个规范的流程。</p>
+<h2 id="五发布npm包的注意点">五、发布npm包的注意点</h2>
+<h3 id="安装依赖包的方式">5.1 安装依赖包的方式</h3>
+<p>命令行工具中，使用的第三方工具包，都需要用<code>--save</code>的方式安装。<br />
+体现在<code>package.json</code>的表现是<code>dependencies</code>字段：</p>
+<pre class="javascript"><code>&quot;dependencies&quot;: {
+    &quot;chalk&quot;: &quot;^2.4.2&quot;,
+    &quot;commander&quot;: &quot;^3.0.0&quot;,
+    &quot;fs-extra&quot;: &quot;^8.1.0&quot;,
+    &quot;inquirer&quot;: &quot;^6.5.0&quot;,
+    &quot;mem-fs&quot;: &quot;^1.1.3&quot;,
+    &quot;mem-fs-editor&quot;: &quot;^6.0.0&quot;,
+    &quot;shelljs&quot;: &quot;^0.8.3&quot;
+},</code></pre>
+<p>这样，其他用户在安装你发布的CLI工具时，才会自动安装这些依赖。</p>
+<h3 id="gitignore文件">5.2 <code>.gitignore</code>文件</h3>
+<p>npm官方是默认去除.gitignore文件的，不管你用任何方式声明<code>.gitignore</code>文件需要<code>publish</code>。<br />
+解决方式是：将<code>.gitignore</code>改名称，比如改为<code>gitignore</code>。当使用CLI工具时，再将文件名改回来。<br />
+例子：</p>
+<pre class="javascript"><code>creation.copy(&#39;gitignore&#39;, projectResolve(&#39;.gitignore&#39;));</code></pre>
+<h2 id="六项目开源">六、项目开源</h2>
+<p>我创作的<code>npm-package-cli</code>，是专门用于生成个人<code>npm package</code>项目的CLI工具。<br />
+生成的项目，囊括以下功能点：</p>
+<ul>
+<li>支持TypeScrpt</li>
+<li>mocha+chai自动化测试，支持使用TypeScript编写测试用例</li>
+<li>支持测试覆盖率<code>coverage</code></li>
+<li>支持eslint，包括对TypeScript的lint检查</li>
+<li>Git commit规范提交</li>
+<li>Git版本自动打标签（standard-version），更新<code>CHANGELOG.md</code></li>
+<li>输出的npm包支持各种模块规范（AMD、CMD、CommonJS、ESModule）</li>
+</ul>
+<p>CLI工具安装方式：</p>
+<pre class="shell"><code>npm install -g npm-package-cli</code></pre>
+<p>开源仓库地址：<a href="https://github.com/wall-wxk/npm-package-cli" class="uri">https://github.com/wall-wxk/npm-package-cli</a><br />
+如果对你有所帮助，麻烦给个Star，你的肯定是我前进的动力～</p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

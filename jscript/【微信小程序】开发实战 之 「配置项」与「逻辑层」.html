@@ -1,0 +1,498 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修【微信小程序】开发实战 之 「配置项」与「逻辑层」' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>【微信小程序】开发实战 之 「配置项」与「逻辑层」</center></div><div class='banquan'>原文出处:本文由博客园博主DreamGo提供。<br/>
+原文连接:https://www.cnblogs.com/idreamo/p/10884568.html</div><br>
+    <p><span style="font-size: 14px;">微信小程序作为微信生态重要的一环，在实际生活、工作、商业中的应用越来越广泛。想学习微信小程序开发的朋友也越来越多，本文将在小程序框架的基础上就微信小程序项目开发所必需的基础知识及语法特点进行了详细总结和阐述，包括配置、函数、语法、事件及其处理、数据绑定、模块、样式等。想开发小程序，这些内容是必须掌握的。</span></p>
+<p><strong style="line-height: 1.5;">全文知识结构预览：</strong></p>
+<p><span style="font-size: 14px;">一、程序配置：</span><span style="font-size: 14px;"><br /></span></p>
+<p><span style="font-size: 14px;">&nbsp; &nbsp; 1、全局配置；2、页面配置</span></p>
+<p><span style="font-size: 14px;">二、逻辑层：</span></p>
+<p><span style="font-size: 14px;">&nbsp; &nbsp; 1、程序注册：App()方法；2、页面注册：Page()方法；3、模块与调用；4、微信原生API</span></p>
+<p><span style="font-size: 14px;">三、视图层（将在单独文章中阐述）</span></p>
+<hr />
+<h2>&nbsp;<span style="line-height: 1.5;">一、程序配置</span></h2>
+<h3>1、全局配置</h3>
+<p>先来看一个典型的全局配置app.jason文件内容：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    </span>"pages"<span style="color: #000000;">:[
+        </span>"pages/index/index"<span style="color: #000000;">,
+        </span>"pages/logs/logs"<span style="color: #000000;">
+    ],
+    </span>"window"<span style="color: #000000;">:{
+        </span>"navigationBarTitleText":"Demo"<span style="color: #000000;">,
+        </span>"navigationBarTextStyle": "black"<span style="color: #000000;">
+    },
+    </span>"tabBar"<span style="color: #000000;">:{
+        </span>"list"<span style="color: #000000;">:[{
+            </span>"pagePath":"pages/index/index"<span style="color: #000000;">,
+            </span>"text":"首页"<span style="color: #000000;">
+            },{
+            </span>"pagePath":"pages/logs/logs"<span style="color: #000000;">,
+            </span>"text":"日志"<span style="color: #000000;">
+            }]
+    },
+    </span>"networkTimeout"<span style="color: #000000;">:{
+        </span>"request":10000<span style="color: #000000;">,
+        </span>"downloadFile":"10000"<span style="color: #000000;">
+    },
+    </span>"debug":<span style="color: #0000ff;">true</span><span style="color: #000000;"> 
+}</span></pre>
+</div>
+<p>如上所示，小程序的全局配置是保存在app.jason文件中的。</p>
+<p>从文件内容可以看出小程序的全局配置局并不多，包括页面路径（page）、窗口表现（window）、切换页签（tabBar）、网络超时设定（networkTimeout）、调试模式（debug）。而且并不是每一项配置都是必需的。</p>
+<p>在详细介绍每一个配置项之前，先说一下小程序里JSON配置的一些注意事项。</p>
+<p>JSON文件都是被包裹在一个大括号中 {}，通过key-value的方式来表达数据。JSON的Key必须包裹在一个&ldquo;双引号&rdquo;中，在实践中，编写 JSON 的时候，忘了给 Key 值加双引号或者是把双引号写成单引号是常见错误。</p>
+<p>JSON的值只能是以下几种数据格式，其他任何格式都会触发报错，例如 JavaScript 中的 undefined。</p>
+<ol>
+<li>数字，包含浮点数和整数</li>
+<li>字符串，需要包裹在双引号中</li>
+<li>Bool值，true 或者 false</li>
+<li>数组，需要包裹在方括号中 []</li>
+<li>对象，需要包裹在大括号中 {}</li>
+<li>Null</li>
+</ol>
+<p>还需要注意的是 JSON 文件中无法使用注释，试图添加注释将会引发报错。</p>
+<p>下面我们详细说明一下app.jason中每个配置项的类型及注意事件：</p>
+<h4>1.1 pages配置项</h4>
+<p>pages是程序必需的配置项。pages接受一个数组（Array），用来指定小程序由哪些页面组成。数组的每一项都是字符串类型，代表对应页面的&ldquo;路径+文件名&rdquo;。</p>
+<p>pages配置时需要注意以下三点：</p>
+<p style="margin-left: 30px;">a）数组第一项即小程序的启动页，即首页；</p>
+<p style="margin-left: 30px;">b）小程序新增或减少页面，都需要修改pages数组；</p>
+<p style="margin-left: 30px;">c）文件名不需要加后缀，如"pages/index/index"，小程序框架会自动寻找路径下的四类文件（.js/.jason/.wxml/.wxss）进行整合。</p>
+<h4>1.2 window配置项</h4>
+<p>window不是必需的配置项。没有配置时系统将采用默认值。window接受对象值（Object），用来设置小程序的状态栏、导航栏、标题、窗口等对象的颜色、背景、内容属性。</p>
+<p>window的可配置的对象及其描述如下：</p>
+<p style="margin-left: 30px;">a）navigationBarBackgroundColor，设置导航栏背景颜色，value类型HexColor，默认值#000000；</p>
+<p style="margin-left: 30px;">b）navigationBarTextStyle，设置导航栏标题颜色，value类型String，仅支持black或white；</p>
+<p style="margin-left: 30px;">c）navigationBarTitleText，设置导航栏标题文字内容，value类型String；</p>
+<p style="margin-left: 30px;">d）backgroundColor，设置窗口的背景色，value类型HexColor，默认值#ffffff；</p>
+<p style="margin-left: 30px;">e）backgroundTextStyle，下拉背景字体、loading图的样式，value类型String，仅支持dark/light；</p>
+<p style="margin-left: 30px;">f）ebablePullDownRefresh，是否开启下拉刷新，value类型Boolean，默认值false。</p>
+<p>示例：我们在app.jason中设置如下的window配置：</p>
+<div class="cnblogs_code">
+<pre><code>  "window"<span style="color: #000000;">: {
+    </span>"navigationBarBackgroundColor": "#405f80"<span style="color: #000000;">,
+    </span>"navigationBarTextStyle": "white"<span style="color: #000000;">,
+    </span>"navigationBarTitleText": "光与影"<span style="color: #000000;">,
+    </span>"backgroundColor":"#eeeeee"<span style="color: #000000;">,
+    </span>"backgroundTextStyle":"light"<span style="color: #000000;">
+  }</span></pre>
+</div>
+<p>&nbsp;则小程序产生的界面效果如图：</p>
+<p><img src="./images/【微信小程序】开发实战 之 「配置项」与「逻辑层」0.png" alt="" /></p>
+<h4>1.3 tabBar配置项</h4>
+<p>&nbsp;tabBar配置项可以实现小程序多页签切换的功能。tabBar用来指定标签页的样式以及切换时对应的页面。</p>
+<p>tabBar配置项及其说明：</p>
+<p style="margin-left: 30px;">a）color，设置标签上的文字默认颜色，value类型HexColor，必填项；</p>
+<p style="margin-left: 30px;">b）selectedColor，设置标签上的文字选中时的颜色，value类型HexColor，必填项；</p>
+<p style="margin-left: 30px;">c）backgroundColor，标签页的背景色，value类型HexColor，必填项；</p>
+<p style="margin-left: 30px;">d）boderStyle，标签的框线颜色，value类型String，默认值black，仅支持black或white，选填；</p>
+<p style="margin-left: 30px;">e）position，标签栏的位置，value类型String，默认值bottom，可选值bottom或top，选填；</p>
+<p style="margin-left: 30px;">f）list，标签页列表，value类型Array，支持最少2个、最多5个标签页。</p>
+<p>需要注意的是，list接受的是一个数组值，数组元素的顺序就是标签页显示的顺序，数组中的每一项也都是一个对象，其类型、功能描述如下（均是必填项）：</p>
+<p style="margin-left: 30px;">a）pagePath，页面路径，需要在pages中预定义，value类型String；</p>
+<p style="margin-left: 30px;">b）text，标签上按钮文字，value类型String；</p>
+<p style="margin-left: 30px;">c）iconPath，标签上icon图标路径，图标大小不能超过40KB，value类型String；</p>
+<p style="margin-left: 30px;">d）selectedIconPath，标签被选中时显示的icon图标路径，图标大小不能超过40KB，value类型String；</p>
+<p>&nbsp;下面的示例设置了2个标签页&ldquo;阅读&rdquo;和&ldquo;电影&rdquo;，代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>  "tabBar"<span style="color: #000000;">: {
+    </span>"color":"#dddddd"<span style="color: #000000;">,
+    </span>"selectedColor":"#3cc51f"<span style="color: #000000;">,
+    </span>"borderStyle": "white"<span style="color: #000000;">,
+    </span>"backgroundColor":"#ffffff"<span style="color: #000000;">,
+    </span>"list"<span style="color: #000000;">: [
+      {
+        </span>"pagePath": "pages/posts/post"<span style="color: #000000;">,
+        </span>"text": "阅读"<span style="color: #000000;">,
+        </span>"iconPath": "/images/tab/yuedu.png"<span style="color: #000000;">,
+        </span>"selectedIconPath": "/images/tab/yuedu_hl.png"<span style="color: #000000;">
+      },
+      {
+        </span>"pagePath": "pages/movies/movies"<span style="color: #000000;">,
+        </span>"text": "电影"<span style="color: #000000;">,
+        </span>"iconPath": "/images/tab/dianying.png"<span style="color: #000000;">,
+        </span>"selectedIconPath": "/images/tab/dianying_hl.png"<span style="color: #000000;">
+      }
+    ]
+  }</span></pre>
+</div>
+<p>界面的实际效果如下图所示：</p>
+<p><img src="./images/【微信小程序】开发实战 之 「配置项」与「逻辑层」1.png" alt="" /></p>
+<h4>1.4 networkTimeout配置项</h4>
+<p>networkTimeout用于设置各种网络请求对象的超时时间，非必须配置项。可以设置网络请求超时的相关对象有request、connectSocket、uploadFile、downloadFile。时间单位均为毫秒。当然，这些超时若没有设置， 则默认使用操作系统内核或遵循服务器WebServer的设定值。</p>
+<h4>1.5 debug配置项</h4>
+<p>debug配置项用于是否开启开发者工具的调试模式。它的value类型是一个boolean值，默认是false。开启后，页面page的注册、页面路由、数据更新、事件触发等调试信息将以info的形式，输出在调试功能的console面板上。开启配置如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">{
+    </span>"debug":<span style="color: #0000ff;">true</span><span style="color: #000000;"> 
+}</span></pre>
+</div>
+<p><span style="line-height: 1.5;"><img src="./images/【微信小程序】开发实战 之 「配置项」与「逻辑层」2.png" alt="" /></span></p>
+<p><span style="line-height: 1.5;">显然开启后调试模式后，对开发者快速定位一些常见问题很有帮助，但在正式发布时应当关闭此配置项开关。</span>&nbsp;</p>
+<h3>2、页面配置&nbsp;</h3>
+<p>小程序中的页面配置page.jason，只能设置本页面的窗口表现，也就是只能设置window配置项的内容。页面.jason文件中的window配置值将覆盖app.jason中的配置值。</p>
+<p>因为页面.jason文件中只能设置window配置项，以决定本页面的窗口表现，所以文件中也无需写window这个键值，直接写window下的可配置项即可。window的可配置项已在本文（1.2）小节中说明。</p>
+<hr />
+<h2>&nbsp;二、逻辑层</h2>
+<p>关于小程序逻辑层的概念和特点，在<a href="https://www.cnblogs.com/idreamo/p/10867241.html" target="_blank">微信小程序开发框架（MINA）</a>中已做阐述，此处不再赘述。</p>
+<h3>1、注册程序的App()方法</h3>
+<p>&nbsp;先来看一下App()方法的代码示例：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">App({
+    onLaunch:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">程序启动时执行的初始化操作</span>
+<span style="color: #000000;">    },
+    onShow:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">程序进入前台时执行的操作</span>
+<span style="color: #000000;">    },
+    onHide:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">程序进入后台时执行的操作</span>
+<span style="color: #000000;">    },
+    onError:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(msg){
+        console.log(msg)
+    },
+    globalData:</span>'This is global data'<span style="color: #000000;">
+})</span></pre>
+</div>
+<p>PS:前台、后台：用户操作小程序的当前界面称之为前台，当点击关闭或按HOME键离开微信，小程序并没有直接销毁，而是进入后台；当再次进入微信或再次打开小程序，又会从后台进入前台了。</p>
+<p>App()方法用来注册一个程序，且只能注册一次，存在于app.js中。它接受的参数是object类型：</p>
+<p style="margin-left: 30px;">a）onLaunch，生命周期函数，监听小程序初始化，当小程序初始化完成时，会触发onLaunch，且全局只触发一次；</p>
+<p style="margin-left: 30px;">b）onShow，生命周期函数，监听小程序显示，小程序启动或从后台进入前台显示，会触发onShow；</p>
+<p style="margin-left: 30px;">c）onHide，生命周期函数，监听小程序隐藏，小程序从前台进入后台会触发onHide；</p>
+<p style="margin-left: 30px;">d）onError，错误监听函数，小程序发生脚本错误或API调用失败，会触发onError并带出错误信息；</p>
+<p style="margin-left: 30px;">e）开发者还可以添加任意object类型的参数，用this访问；</p>
+<p>可以使用全局函数getApp()获取小程序实例。使用示例如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">**.js</span>
+<span style="color: #0000ff;">var</span> app =<span style="color: #000000;"> getApp() 
+console.log(app.globalData) 
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">输出'This is global data'</span></pre>
+</div>
+<p>&nbsp;</p>
+<p>但是在App()函数中不要使用getApp()，使用this就可以拿到App()实例。</p>
+<h3>2、注册页面的page()方法</h3>
+<p>先来看一下page()方法的代码示例：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Page({
+    data：{
+        text:</span>"This is page data."<span style="color: #000000;">
+    },
+
+    onLoad:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">页面加载时执行的初始化操作</span>
+<span style="color: #000000;">    },
+    onReady:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">页面初次渲染时执行的操作</span>
+<span style="color: #000000;">    },
+    onShow:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">页面显示时执行的操作</span>
+<span style="color: #000000;">    },
+    onHide:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">页面隐藏时执行的操作</span>
+<span style="color: #000000;">    },
+    onUnload:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">页面卸载或关闭时执行的操作</span>
+<span style="color: #000000;">    },
+    onPullDownRefresh:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">页面被用户下拉时执行的操作</span>
+<span style="color: #000000;">    },
+    onReachBottom:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">页面到达底部时执行的操作</span>
+<span style="color: #000000;">    },
+    onShareAppMessage:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">用户分享时返回个性化的分享数据</span>
+<span style="color: #000000;">    },
+
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">响应wxml绑定事件处理</span>
+    viewTap:<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+        text:</span>'Set some data for update view'<span style="color: #000000;">
+    })
+    }
+})</span></pre>
+</div>
+<p>page()方法用来注册一个页面。它接受object类型参数，用来指定页面的初始数据、生命周期函数、事件处理函数等。每个页面有且仅有一个page()方法，存在于该页面的.js文件中。</p>
+<h4><strong>2.1 初始化数据</strong></h4>
+<p>data参数提供页面的初始化数据，作为页面的第一次渲染。对象 data 将会以 JASON 的形式由逻辑层传至视图层，所以其数据必须是可以转成 JASON 的格式：字符串、数字、布尔值、对象、数组。</p>
+<p>在视图层通过WXML对数据进行绑定。示例代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;!--wxml--&gt;
+<span style="color: #008000;">//</span><span style="color: #008000;">渲染page()的数据</span>
+&lt;view&gt;{{text}}&lt;/view&gt;</pre>
+</div>
+<h4><strong>2.2 页面生命周期函数</strong></h4>
+<p>页面的生命周期包括：onLoad、onShow、onReady、onHide、onUnload。</p>
+<p>onLoad是页面加载时执行的初始化操作。一个页面只会调用一次，参数可以获取wx.navigationTo和wx.redirectTo及&lt;navigator /&gt;中的query。</p>
+<p>onShow是页面显示时执行的操作。每次打开页面都会调用一次。</p>
+<p>onReady是页面渲染完成时执行的操作。一个页面只会调用一次，代表页面已经准备妥当，可以和视图层进行交互。对页面的设置（如wx.setNavigationBarTitle）应该在onReady之后。</p>
+<p>onHide是页面隐藏时执行的操作。当进行 navigateTo 或底部进行 tab 切换时调用。</p>
+<p>onUnload是页面卸载时执行的操作。当进行 redirectTo 或 navigateBack 操作时调用。</p>
+<h4><strong>2.3 页面相关事件处理函数</strong></h4>
+<p>onPullDownRefresh是下拉刷新时执行的操作，监听用户下拉刷新事件。需要在页面 .json 文件的window配置项中开启enablePullDownRefresh。当处理完数据刷新后，wx.stopPullDownRefresh可以停止当前页面的下拉刷新。</p>
+<p>onShareAppMessage是用户分享时返回定制的分享内容。只有定义了此事件处理函数，右上角菜单才会显示&ldquo;分享&rdquo;按钮。用户点击分享按钮的时候会调用。此事件需要return一个object对象，用于自定义分享内容。</p>
+<p style="margin-left: 30px;">title 是分享的标题，默认值是当前小程序的名称。</p>
+<p style="margin-left: 30px;">path 是分享路径，当前页面的 path，必须是以 / 开头的完整路径。</p>
+<p>onShareMessage示例代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">page({
+    onShareMessage:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #0000ff;">return</span><span style="color: #000000;">{
+            title:</span>'分享标题'<span style="color: #000000;">,
+            path:</span>'/page/url?id=5'<span style="color: #000000;">
+        }
+    }
+})</span></pre>
+</div>
+<h4>&nbsp;<strong>2.4 视图层绑定的事件处理函数&nbsp;</strong></h4>
+<p>page()方法除了初始化数据和生命周期函数，还可以定义一些特殊的事件处理函数。我们可以在视图层通过对组件加入事件绑定，当满足触发事件时，就会执行page()中定义的事件处理函数。</p>
+<p>示例代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;!--wxml 绑定tap事件到view组件上，函数名为viewTap--&gt;
+&lt;view bindtap = "viewTap"&gt; click me &lt;/view&gt;
+
+<span style="color: #008000;">//</span><span style="color: #008000;">page.js</span>
+<span style="color: #000000;">page({
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">定义 viewTap 事件处理函数</span>
+    viewTap:<span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        console.log(</span>'view tap'<span style="color: #000000;">)
+    }
+})</span></pre>
+</div>
+<h4>&nbsp;<strong>2.5 页面数据设置与展现</strong>&nbsp;</h4>
+<p>在page()中我们使用setData函数来设置数据。改变对应的this.data的值。</p>
+<p style="margin-left: 30px;">this是指包含它的函数作为方法被调用时所属的对象，在小程序中一般指调用页面。</p>
+<p style="margin-left: 30px;">不能直接修改this.data，这样无法改变页面的状态，还会造成数据不一致。</p>
+<p style="margin-left: 30px;">尽量避免一次设置过多的数据，单次不能超过1024KB。</p>
+<p>setData函数参数是对象类型。以key、value的形式表示，将this.data中的key对应的值改变成value。其中key无须在this.data中预定义。</p>
+<p>示例代码如下：</p>
+<div class="cnblogs_code">
+<pre><code>&lt;!--index.wxml--&gt;
+&lt;view&gt;{{text}}&lt;/view&gt;
+&lt;button bindtap = "changeText"&gt;Change normal data&lt;/button&gt;
+&lt;view&gt;{{array[0].text}}&lt;/view&gt;
+&lt;button bindtap = "changeItemInArray"&gt;Change Array data&lt;/button&gt;
+&lt;view&gt;{{object.text}}&lt;/view&gt;
+&lt;button bindtap = "changeItemInObject"&gt;Change Object data&lt;/button&gt;
+&lt;view&gt;{{newField.text}}&lt;/view&gt;
+&lt;button bindtap = "addNewField"&gt;Add <span style="color: #0000ff;">new</span> data&lt;/button&gt; 
+
+<span style="color: #008000;">//</span><span style="color: #008000;">index.js</span>
+<span style="color: #000000;">page({
+    data:{
+        texe:</span>'init data'<span style="color: #000000;">,
+        array:[{text:</span>'init data'<span style="color: #000000;">}],
+        object:{
+            text:</span>'init data'<span style="color: #000000;">
+        }
+    },
+    changeText:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+        </span><span style="color: #008000;">//</span><span style="color: #008000;">this.data.text = 'changed data'错误设置方法</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+            text:</span>'changed data'<span style="color: #000000;">
+        })
+    },
+    changeItemInArray:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">注意修改的key是数据路径的形式（有引号）</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+            </span>'array[0].text':'changed data'<span style="color: #000000;">
+        })
+    },
+    changeItemInObject:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">注意修改的key是数据路径的形式（有引号）</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+            </span>'object.text':'changed data'<span style="color: #000000;">
+        })
+    },
+    addNewField:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    </span><span style="color: #008000;">//</span><span style="color: #008000;">注意添加的key是数据路径的形式（有引号）</span>
+        <span style="color: #0000ff;">this</span><span style="color: #000000;">.setData({
+            </span>'newField.text':'new data'<span style="color: #000000;">
+        })
+    }
+})</span></pre>
+</div>
+<p>&nbsp;实际效果示例：</p>
+<p><img src="./images/【微信小程序】开发实战 之 「配置项」与「逻辑层」3.png" alt="" width="238" height="327" />&nbsp; &nbsp; &nbsp; &nbsp; &nbsp;&nbsp;<img src="./images/【微信小程序】开发实战 之 「配置项」与「逻辑层」4.png" alt="" width="222" height="328" /></p>
+<h4><strong>2.6 页面栈及其实例获取</strong></h4>
+<p>框架以栈的形式维护了程序的所有页面。当发生页面切换的时候，页面栈的表现如下：</p>
+<table style="height: 148px; width: 657px;" border="0" align="left">
+<tbody>
+<tr>
+<td><strong>路由方式　　</strong></td>
+<td><strong>页面栈表现</strong></td>
+</tr>
+<tr>
+<td>初始化</td>
+<td>新页面入栈。</td>
+</tr>
+<tr>
+<td>打开新页面</td>
+<td>新页面入栈。</td>
+</tr>
+<tr>
+<td>页面重定向</td>
+<td>当前页面出栈，新页面入栈。</td>
+</tr>
+<tr>
+<td>页面返回</td>
+<td>页面不断出栈，直到目标返回，新页面入栈。</td>
+</tr>
+<tr>
+<td>Tab 切换</td>
+<td>当前页面出栈，新页面入栈。</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+<p><span style="line-height: 1.5;">框架提供了获取当前页面栈实例的方法getCurrentPages()，页面以数组形式按栈的形式给出，第一个元素为首页，最后一个元素为当前页面。不要尝试修改页面栈，会导致路由及页面状态错误。</span></p>
+<h4><strong>2.7 页面路由</strong></h4>
+<p>小程序框架管理所有页面的路由。路由的触发方式以及页面的生命周期函数对应关系如下：</p>
+<table style="height: 316px; width: 787px;" border="1" cellpadding="1" align="left">
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>路由方式</strong></td>
+<td style="text-align: left;"><strong>触发时机</strong></td>
+<td style="text-align: left;"><strong>路由后页面</strong></td>
+<td style="text-align: left;"><strong>路由前页面</strong></td>
+</tr>
+<tr>
+<td>初始化　　</td>
+<td>小程序打开的第一个页面　　</td>
+<td>onLoad，onShow</td>
+<td>&nbsp;</td>
+</tr>
+<tr>
+<td>打开新页面　　</td>
+<td>
+<p>调用API wx.navigateTo 或</p>
+<p>使用组件&lt;navigator open-type="navigator"/&gt;</p>
+</td>
+<td>onLoad，onShow　　</td>
+<td>onHide　　</td>
+</tr>
+<tr>
+<td>页面重定向</td>
+<td>
+<p>调用API wx.navigateTo 或</p>
+<p>使用组件&lt;navigator open-type="navigator"/&gt;</p>
+</td>
+<td>onLoad，onShow</td>
+<td>onUnload</td>
+</tr>
+<tr>
+<td>页面返回</td>
+<td>
+<p>调用API wx.navigateTo 或</p>
+<p>用户按左上角返回按钮</p>
+</td>
+<td>onShow</td>
+<td>onUnload</td>
+</tr>
+<tr>
+<td>Tab 切换</td>
+<td>
+<p>调用API wx.switchTab 或使用组件&lt;navigator open-type="switchTab"/&gt;</p>
+<p>或多 Tab 模式下用户切换Tab</p>
+</td>
+<td>
+<p>第一次打开 onLoad，onShow；</p>
+<p>否则 onShow</p>
+</td>
+<td>onHide</td>
+</tr>
+</tbody>
+</table>
+<h3>&nbsp;</h3>
+<h3>&nbsp;</h3>
+<h3>&nbsp;</h3>
+<h3>&nbsp;</h3>
+<h3>&nbsp;</h3>
+<h3>&nbsp;</h3>
+<h3>&nbsp;</h3>
+<h3>&nbsp;</h3>
+<p>&nbsp;</p>
+<h3><strong>3、模块化与调用</strong></h3>
+<h4><strong>3.1 文件作用域</strong></h4>
+<p>在页面的JavaScript脚本文件（.js）中声明的变量和函数只在该文件中有效，不同的文件中可以声明相同名字的变量和函数，不会互相影响。</p>
+<p>通过全局函数getApp()可以获取全局的应用实例，如果需要全局的数据可以在App()方法中设置，例如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">app.js </span>
+<span style="color: #000000;">App（{
+    globalData:</span>1<span style="color: #000000;">
+}）
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">a.js </span><span style="color: #008000;">
+//</span><span style="color: #008000;">在a.js中定义变量localValue </span>
+<span style="color: #0000ff;">var</span> localValue = 'a' 
+<span style="color: #008000;">//</span><span style="color: #008000;">在a.js中获取App实例</span>
+<span style="color: #0000ff;">var</span> app =<span style="color: #000000;"> getApp() 
+</span><span style="color: #008000;">//</span><span style="color: #008000;">修改a.js中获取到的全局数据值</span>
+app.globalData++ 
+
+<span style="color: #008000;">//</span><span style="color: #008000;">b.js </span><span style="color: #008000;">
+//</span><span style="color: #008000;">在b.js中定义变量localValue，不影响a.js中的localValue </span>
+<span style="color: #0000ff;">var</span> localValue = 'b' 
+<span style="color: #008000;">//</span><span style="color: #008000;">假设a.js在b.js之前运行，那么下面的语句之后globalData就会是2 </span>
+console.log(getApp().globalData)</pre>
+</div>
+<h4>&nbsp;<strong>3.2 模块化</strong></h4>
+<p>我们可以将一些公共的代码抽离成为一个单独的.js脚本文件，作为一个模块。</p>
+<p>模块只有通过 module.exports 才能对外暴露接口以供其他.js文件引入使用。在需要使用公共模块的.js文件中，使用 require(path)将公共代码引入。</p>
+<p>示例代码如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;">common.js </span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> Hello(name) {
+    console.log(</span>'Hello' + name + '!'<span style="color: #000000;">) 
+}
+
+module.exports </span>=<span style="color: #000000;"> {
+    sayHello: Hello
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;">下面的call.js使用common.js模块</span><span style="color: #008000;">
+//</span><span style="color: #008000;">call.js </span>
+<span style="color: #0000ff;">var</span> common = require('common.js'<span style="color: #000000;">) 
+page({
+    helloMINA:</span><span style="color: #0000ff;">function</span><span style="color: #000000;">(){
+    common.sayHello(</span>'MINA'<span style="color: #000000;">)
+    }
+})</span></pre>
+</div>
+<h3>&nbsp;4、微信原生API</h3>
+<p>小程序开发框架提供了功能丰富的微信原生API，可以方便我们调取微信提供的能力，如获取用户信息、本地存储、支付等。</p>
+<p>微信原生的API共有八大类：界面API、文件API、数据缓存API、媒体API、网络API、位置API、设备API以及微信开放接口。</p>
+<p>微信API的共性特点：</p>
+<p style="margin-left: 30px;">wx.on开头的API是监听事件发生的API接口，接受一个回调函数（CALLBACK）作为参数。当事件发生时会调用该回调函数。</p>
+<p style="margin-left: 30px;">其他API接口都接受一个Object作为参数，除非有特殊约定。</p>
+<p style="margin-left: 30px;">Object中可以指定success、fail、complete方法来接收接口调用结果。success表示接口调用成功的回调函数，fail是接口调用失败的回调函数，complete是接口调用结束的回调函数且无论成功、失败都会执行。</p>
+<p>关于原生API的种类、名称、作用的详细说明可以参考<a href="https://developers.weixin.qq.com/miniprogram/dev/api/" target="_blank">微信小程序开发者文档中的API部分</a>。</p>
+<hr />
+<p>&nbsp;以上阐述的是小程序开发基础中的「配置」与「逻辑层」部分，为避免篇幅过长，「视图层」部分的讲解将在单独的文章中予以讲述。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,170 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-Time核心方法之win篇(1)' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-Time核心方法之win篇(1)</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10919451.html</div><br>
+    <p>　　上一篇的源码看得十分无趣，官方文档跟黑心棉一样渣。</p>
+<p>　　这一篇讲讲windows操作系统上的时间戳实现，由于类的声明，方法解释上一篇都贴过了，所以这次直接上对应版本的代码。</p>
+<p>&nbsp;</p>
+<p>　　windows与mac很不一样，实现了一个新的Clock类来管理时间，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> We implement time using the high-resolution timers so that we can get
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> timeouts which are smaller than 10-15ms. To avoid any drift, we
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> periodically resync the internal clock to the system clock.</span>
+<span style="color: #0000ff;">class</span><span style="color: #000000;"> Clock final {
+ </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+  Clock() : initial_ticks_(GetSystemTicks()), initial_time_(GetSystemTime()) {}
+
+  Time Now() { </span><span style="color: #008000;">/*</span> <span style="color: #008000;">*/</span><span style="color: #000000;"> }
+
+  Time NowFromSystemTime() { </span><span style="color: #008000;">/*</span> <span style="color: #008000;">*/</span><span style="color: #000000;"> }
+
+ </span><span style="color: #0000ff;">private</span><span style="color: #000000;">:
+  </span><span style="color: #0000ff;">static</span> TimeTicks GetSystemTicks() { <span style="color: #008000;">/*</span> <span style="color: #008000;">*/</span><span style="color: #000000;"> }
+
+  </span><span style="color: #0000ff;">static</span> Time GetSystemTime() { <span style="color: #008000;">/*</span> <span style="color: #008000;">*/</span><span style="color: #000000;"> }
+
+  TimeTicks initial_ticks_;
+  Time initial_time_;
+  Mutex mutex_;
+};</span></pre>
+</div>
+<p>　　从注释和方法名可以看出，windows完全用这个新类代替了老的Time、TimeTicks，因为这个方法拥有更好的性能，这个类同时会周期性的与系统时间同步数据。</p>
+<p>　　下面正式开始。</p>
+<p>&nbsp;</p>
+<p>　　先从Now方法看起，看windows系统是如何获取本地的时间戳。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">DEFINE_LAZY_LEAKY_OBJECT_GETTER(Clock, GetClock)
+
+</span><span style="color: #0000ff;">#define</span> DEFINE_LAZY_LEAKY_OBJECT_GETTER(T, FunctionName, ...) \<span style="color: #000000;">
+  T</span>*<span style="color: #000000;"> FunctionName() {                                         \
+    </span><span style="color: #0000ff;">static</span> ::v8::<span style="color: #0000ff;">base</span>::LeakyObject&lt;T&gt; <span style="color: #0000ff;">object</span><span style="color: #000000;">{__VA_ARGS__};    \
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">object</span>.<span style="color: #0000ff;">get</span><span style="color: #000000;">();                                      \
+  }
+
+Time Time::Now() { </span><span style="color: #0000ff;">return</span> GetClock()-&gt;Now(); }</pre>
+</div>
+<p>　　这个方法的定义也不一般，直接用了一个特殊宏，宏就不展开了，简单说就是懒加载，调用的时候会分配空间生成一个Clock类，初始化完后第二次调用就直接返回了，当成一个单例来理解。</p>
+<p>　　直接看宏的返回类型，刚好是上面的Clock，该类只有一个无参构造函数，初始化两个时间戳属性。</p>
+<p>　　先看后那个，也就是系统时间的时间戳。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">static</span><span style="color: #000000;"> Time GetSystemTime() {
+    FILETIME ft;
+    ::GetSystemTimeAsFileTime(</span>&amp;<span style="color: #000000;">ft);
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Time::FromFiletime(ft);
+  }</span></pre>
+</div>
+<p>　　这里的FILETIME和GetSystemTimeAsFileTime都是windowsAPI，可以获取当前系统的日期和时间，但是返回值很奇怪。</p>
+<div class="cnblogs_code">
+<pre><code>typedef <span style="color: #0000ff;">struct</span><span style="color: #000000;"> _FILETIME {
+  DWORD dwLowDateTime;
+  DWORD dwHighDateTime;
+} FILETIME, </span>*PFILETIME, *LPFILETIME;</pre>
+</div>
+<blockquote>
+<p>Contains a 64-bit value representing the number of 100-nanosecond intervals since January 1, 1601 (UTC).</p>
+</blockquote>
+<p>　　这是结构体的声明与解释，High、Low分别代表时间的高位与地位，而那个方法就是配合这个使用的。</p>
+<p>　　可以从上面看到，这个API返回的时间竟然是从1601年1月1日开始算的，不知道那一年发生了什么。</p>
+<p>　　下面写一个测试代码。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span><span style="color: #000000;"> main()
+{</span><span style="color: #000000;">
+    FILETIME ft;
+    LARGE_INTEGER t;
+    ::GetSystemTimeAsFileTime(</span>&amp;<span style="color: #000000;">ft);
+    t.LowPart </span>=<span style="color: #000000;"> ft.dwLowDateTime;
+    t.HighPart </span>=<span style="color: #000000;"> ft.dwHighDateTime;
+    cout </span>&lt;&lt; t.QuadPart &lt;&lt;<span style="color: #000000;"> endl;
+}</span></pre>
+</div>
+<p>　　得到的输出为132034487665022709，由于单位是100纳秒，所以这个数字乘以100的，然后换算一下。</p>
+<p><img src="./images/深入V8引擎-Time核心方法之win篇(1)0.png" alt="" /></p>
+<p>　　由于基准是1601年，而Date是从1970年开始算，所以年份上差了369年，刚好是2019，很合理。</p>
+<p>　　来看看V8的处理。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> Time between windows epoch and standard epoch.</span>
+<span style="color: #0000ff;">static</span> <span style="color: #0000ff;">const</span> int64_t kTimeToEpochInMicroseconds = int64_t{<span style="color: #800080;">11644473600000000</span><span style="color: #000000;">};
+
+Time Time::FromFiletime(FILETIME ft) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 特殊情况处理</span>
+  <span style="color: #0000ff;">if</span> (ft.dwLowDateTime == <span style="color: #800080;">0</span> &amp;&amp; ft.dwHighDateTime == <span style="color: #800080;">0</span><span style="color: #000000;">) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Time();
+  }
+  </span><span style="color: #0000ff;">if</span> (ft.dwLowDateTime == std::numeric_limits&lt;DWORD&gt;::max() &amp;&amp;<span style="color: #000000;">
+      ft.dwHighDateTime </span>== std::numeric_limits&lt;DWORD&gt;<span style="color: #000000;">::max()) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Max();
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 换算</span>
+  int64_t us = (static_cast&lt;uint64_t&gt;(ft.dwLowDateTime) +<span style="color: #000000;">
+                (static_cast</span>&lt;uint64_t&gt;(ft.dwHighDateTime) &lt;&lt; <span style="color: #800080;">32</span>)) / <span style="color: #800080;">10</span><span style="color: #000000;">;
+  </span><span style="color: #0000ff;">return</span> Time(us -<span style="color: #000000;"> kTimeToEpochInMicroseconds);
+}</span></pre>
+</div>
+<p>　　前面的特殊情况看看就行了，主要是换算这一步，就是简单的将高低位的数值拼到了一起，除以10之后，单位从100纳秒变成了微秒。</p>
+<p>　　最后的计算，也是为了平衡标准的时间戳和windows时间戳两者的差异，如下。</p>
+<p><img src="./images/深入V8引擎-Time核心方法之win篇(1)1.png" alt="" /></p>
+<p>　　为什么不是1970 - 1601 = 369年整呢？因为中间有闰年，很合理。</p>
+<p>　　最后得到微秒单位的标准时间戳，将该数值赋到类的属性上。</p>
+<p>&nbsp;</p>
+<p>　　回到最初的Now方法，初始化完后，会调用Clock自身的Now方法获取最终的时间戳，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Time Now() {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 一个误差临界值</span>
+  <span style="color: #0000ff;">const</span> TimeDelta kMaxElapsedTime = TimeDelta::FromMinutes(<span style="color: #800080;">1</span><span style="color: #000000;">);
+  
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 我目前不想解析所有关于锁的东西</span>
+  MutexGuard lock_guard(&amp;<span style="color: #000000;">mutex_);
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 再次获取当前的硬件时间戳与本地时间戳</span>
+  TimeTicks ticks =<span style="color: #000000;"> GetSystemTicks();
+  Time time </span>=<span style="color: #000000;"> GetSystemTime();
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里进行误差修正</span>
+  TimeDelta elapsed = ticks -<span style="color: #000000;"> initial_ticks_;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1.当前时间小于初始化时间 可参考上一篇中类方法的注释(the system might adjust its clock...)
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 2.硬件时间戳的时间差超过临界值 这种情况基本可以认定初始化的时间完全不可信了</span>
+  <span style="color: #0000ff;">if</span> (time &lt; initial_time_ || elapsed &gt;<span style="color: #000000;"> kMaxElapsedTime) {
+    initial_ticks_ </span>=<span style="color: #000000;"> ticks;
+    initial_time_ </span>=<span style="color: #000000;"> time;
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> time;
+  }
+
+  </span><span style="color: #0000ff;">return</span> initial_time_ +<span style="color: #000000;"> elapsed;
+}</span></pre>
+</div>
+<p>　　虽然在构造函数中获取了时间戳，但是V8考虑到由于函数调用、系统修正等原因导致的误差(比如第一次初始化)，再次进行了修正，具体操作和原因可以直接看注释，最后返回的时间戳是计算获得的理论本地时间戳加上硬件时间戳差值。</p>
+<p>　　至于NewFromSystemTime就比较简单了，在mac中这两个方法是一个，在windows里如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">Time NowFromSystemTime() {
+  MutexGuard lock_guard(</span>&amp;<span style="color: #000000;">mutex_);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 更新两个时间戳</span>
+  initial_ticks_ =<span style="color: #000000;"> GetSystemTicks();
+  initial_time_ </span>=<span style="color: #000000;"> GetSystemTime();
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 直接返回最新获得的时间戳</span>
+  <span style="color: #0000ff;">return</span><span style="color: #000000;"> initial_time_;
+}</span></pre>
+</div>
+<p>　　不计算任何东西，直接返回系统API的时间戳，可以配合注释来理解这两个方法。　　</p>
+<p>&nbsp;</p>
+<p>　　尴尬了，没想到V8在Time阶段把两个时间戳全用上了。稍微看了一下TimeTicks的实现，发现还有点意思，所以这一篇先这样了，太长了写的累。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

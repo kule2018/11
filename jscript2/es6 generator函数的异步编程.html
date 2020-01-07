@@ -1,0 +1,128 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修es6 generator函数的异步编程' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>es6 generator函数的异步编程</center></div><div class='banquan'>原文出处:本文由博客园博主waitklove提供。<br/>
+原文连接:https://www.cnblogs.com/czkolve/p/10902303.html</div><br>
+    <p>es6 generator函数，我们都知道asycn和await是generator函数的语法糖，那么genertaor怎么样才能实现asycn和await的功能呢？</p>
+<p>　　1.thunk函数&nbsp; &nbsp;&nbsp;将函数替换成一个只接受回调函数作为参数的单参数函数</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;"> Thunk 函数替换的不是表达式，而是多参数函数，将其替换成一个只接受回调函数作为参数的单参数函数。 </span><span style="color: #008000;">*/</span>
+<span style="color: #008000;">/*</span><span style="color: #008000;"> 
+    注 fn 传入的是一个函数，传入一个函数形成的方法，传入参数，最后传入callback
+    在经过两次函数调用后，该函数就换成一个只接受回调函数作为参数的单参数函数
+ </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">var</span> thunk = <span style="color: #0000ff;">function</span><span style="color: #000000;">(fn) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">() {
+        let args </span>=<span style="color: #000000;"> Array.prototype.slice.call(arguments);
+        </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> (callback) {
+            args.push(callback);
+            </span><span style="color: #0000ff;">return</span> fn.apply(<span style="color: #0000ff;">this</span><span style="color: #000000;">,args)
+        }
+    }
+}</span></pre>
+</div>
+<p>　　2.generator异步编程的示例</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;"> 异步执行方法 </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> timeout(ms,val) {
+    </span><span style="color: #0000ff;">return</span> <span style="color: #0000ff;">new</span> Promise((res)=&gt;<span style="color: #000000;">{
+        setTimeout(()</span>=&gt;<span style="color: #000000;">{
+            res(val)
+        },ms)
+    })
+}
+</span><span style="color: #0000ff;">function</span> *<span style="color: #000000;">fn(){
+    yield timeout(</span>2000,1<span style="color: #000000;">)
+    console.log(</span>'222'<span style="color: #000000;">)
+    yield timeout(</span>3000,2<span style="color: #000000;">)
+    yield timeout(</span>2000,3<span style="color: #000000;">)
+    </span><span style="color: #0000ff;">return</span> 2<span style="color: #000000;">;
+}</span></pre>
+</div>
+<p>　　使用while去让上面的generator函数自执行</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;"> res.value本身是个异步的promise方法，如果几个promise 有关联那么这样就不行了 </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">var</span> f =<span style="color: #000000;"> fn();
+</span><span style="color: #0000ff;">var</span> res =<span style="color: #000000;"> f.next();
+</span><span style="color: #0000ff;">while</span>(!<span style="color: #000000;">res.done) {
+    res.value.then((val)</span>=&gt;<span style="color: #000000;">{
+        console.log(val)
+    })
+    res </span>=<span style="color: #000000;"> f.next();
+}</span></pre>
+</div>
+<p>　　在浏览器可知打印的结果，并不是顺序的，1 3 是同以事件输出的，2是最后输出的</p>
+<p>　　我们也可以使用promise嵌套使其按顺序输出，但是这种并不好，因为可能不知道具体有几个yield，嵌套的方式写的不好看</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">var</span> f =<span style="color: #000000;"> fn();
+</span><span style="color: #0000ff;">var</span> res =<span style="color: #000000;"> f.next();
+res.value.then((val)</span>=&gt;<span style="color: #000000;">{
+    console.log(val)
+    </span><span style="color: #0000ff;">return</span> res =<span style="color: #000000;"> f.next().value
+}).then((val)</span>=&gt;<span style="color: #000000;">{
+    console.log(val)
+    </span><span style="color: #0000ff;">return</span> res =<span style="color: #000000;"> f.next().value
+}).then((val)</span>=&gt;<span style="color: #000000;">{
+    console.log(val)
+    </span><span style="color: #0000ff;">return</span> res =<span style="color: #000000;"> f.next().value
+})</span></pre>
+</div>
+<p>　　我们定义一个generator自执行器（注为什么要提thunk函数，timeout已经经过thunk类似的封装了）</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">/*</span><span style="color: #008000;"> 写一个适合generator的执行器 </span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">function</span> *<span style="color: #000000;">gn(){
+    let p1 </span>= yield timeout(2000,1<span style="color: #000000;">)
+    console.log(p1)
+    let p2 </span>= yield timeout(3000,2<span style="color: #000000;">)
+    console.log(p2)
+    let p3 </span>= yield timeout(2000,3<span style="color: #000000;">)
+    console.log(p3)
+    </span><span style="color: #0000ff;">return</span> 2<span style="color: #000000;">;
+}
+</span><span style="color: #008000;">//</span><span style="color: #008000;">  按顺序输出 1 2 3</span><span style="color: #008000;">
+/*</span><span style="color: #008000;"> 传入要执行的gen </span><span style="color: #008000;">*/</span>
+<span style="color: #008000;">/*</span><span style="color: #008000;"> 其实循环遍历所有的yeild (函数的递归)
+    根绝next返回值中的done判断是否执行到最后一个，
+    如果是最后一个则跳出去</span><span style="color: #008000;">*/</span>
+<span style="color: #0000ff;">function</span><span style="color: #000000;"> run(fn) {
+    </span><span style="color: #0000ff;">var</span> gen =<span style="color: #000000;"> fn();
+    </span><span style="color: #0000ff;">function</span><span style="color: #000000;"> next(data) {
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 执行gen.next 初始data为undefined </span><span style="color: #008000;">*/</span>
+        <span style="color: #0000ff;">var</span> result =<span style="color: #000000;"> gen.next(data)
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 如果result.done 为true 则代表执行到了gen的return,直接跳出去 </span><span style="color: #008000;">*/</span>
+        <span style="color: #0000ff;">if</span><span style="color: #000000;">(result.done) {
+            </span><span style="color: #0000ff;">return</span><span style="color: #000000;">;
+        }
+        </span><span style="color: #008000;">/*</span><span style="color: #008000;"> result.value 为promise </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+        result.value.then(val</span>=&gt;<span style="color: #000000;">{
+            next(val)
+        })
+    }
+    </span><span style="color: #008000;">/*</span><span style="color: #008000;"> 调用上一个next方法 </span><span style="color: #008000;">*/</span><span style="color: #000000;">
+    next();
+}
+run(gn)</span></pre>
+</div>
+<p>上述输出结构，分别是 1 2 3 ，间隔时间 2s 3s 2s</p>
+<p>　　虽然已经有async和await这样的generator的语法糖了，但是我们还是需了解以下他们的本质。相信您了解了本质，掌握asycn和await更不在话下</p>
+<p>　　文章参考地址，阮一峰老师的&nbsp;&nbsp;Generator 函数的异步应用&nbsp;http://es6.ruanyifeng.com/#docs/generator-async</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

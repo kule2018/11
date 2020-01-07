@@ -1,0 +1,271 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修EggJS接口开发' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>EggJS接口开发</center></div><div class='banquan'>原文出处:本文由博客园博主js-coder提供。<br/>
+原文连接:https://www.cnblogs.com/dahe1989/p/11246605.html</div><br>
+    <h1 class="heading" data-id="heading-0">需求</h1>
+<p>随着Nodejs的普及，前端开发的开发场景基本可以贯穿界面交互到数据存储，无缝实现全栈开发。最近在实现一个内部项目管理工具的时候，就尝试了一把接口和数据库开发。</p>
+<h1 class="heading" data-id="heading-1">什么是Egg.js</h1>
+<p>Egg.js是阿里开源的一套Nodejs开发框架。Egg.js官网的介绍是：</p>
+<blockquote>
+<p>Egg.js 为企业级框架和应用而生，我们希望由 Egg.js 孕育出更多上层框架，帮助开发团队和开发人员降低开发和维护成本。</p>
+</blockquote>
+<p>为什么选择了Egg.js，而不是Koa，Express呢，其实还是为了快速开发，减少搭建项目的时间，Egg.js已经为开发者设计了几乎最常用的目录结构，一切倾向于配置化，隐藏一些业务无关的技术细节。开发者可以更加着重考虑业务逻辑，然后在Egg.js和相关插件的支持下，开发功能即可。</p>
+<p>Egg.js还提倡『约定优于配置』，这一点我也是很赞同，一致的约定能够减少不必要的失误，同时保证了一致的开发体验，可以方便的维护不同的项目。</p>
+<h1 class="heading" data-id="heading-2">初始化项目</h1>
+<p>Egg.js提供了脚手架快速初始化项目，但是要求npm &gt;=6.1.0，这基本不是问题。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>$ mkdir egg-example &amp;&amp; cd egg-example
+$ npm init egg --type=simple
+$ npm i 
+</pre>
+</div>
+<p>然后启动项目</p>
+<div class="cnblogs_Highlighter">
+<pre><code>$ npm run dev
+$ open http://localhost:7001
+</pre>
+</div>
+<p>　　</p>
+<h1 class="heading" data-id="heading-3">目录设计</h1>
+<p>因为Egg.js已经做了太多事情，我只需要关注app和config。</p>
+<div class="cnblogs_Highlighter">
+<pre><code>├── app
+|   ├── router.js
+│   ├── controller
+│   |   └── home.js
+│   ├── service
+│   |   └── user.js     
+│   ├── model
+│   |   └── user.js     
+├── config
+|   ├── plugin.js 
+|   └── config.default.js
+</pre>
+</div>
+<p>　　</p>
+<p><strong>app/router.js</strong> 用于配置URL路由规则，也就是你访问的接口地址，对应的是哪个controller的逻辑。</p>
+<p><strong>app/controller/**</strong> 用于解析用户的输入，处理后返回相应的结果，这里其实可以写service和model的逻辑，但是按照单一职责的原则，我们会在controller主要放置参数解析和返回值，以及非数据库操作的逻辑。</p>
+<p><strong>app/service/**</strong> 用于编写业务逻辑层，可选，建议使用，你可以理解成对数据库操作的封装。</p>
+<p><strong>app/model/**</strong> 用于定义mongodb的schema，这部分很神奇的是Egg.js已经封装mongodb链接数据库，并将model绑定到了ctx上，方便调用。</p>
+<p><strong>config/config.default.js</strong> 用于编写配置文件，可以配置不同的开发环境，不同的变量，但是因为业务比较单一，内部使用，所以只使用了默认设置。我的项目中配置了跨域、mongoose、csrf，等等。</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">config.mongoose = {
+    url: "mongodb://127.0.0.1/*****",
+    options: {}
+};
+
+config.cors = {
+    origin: '*',  
+    allowMethods: 'GET,HEAD,PUT,POST,DELETE,PATCH'
+}
+
+config.security = {
+    csrf: {
+        enable: false,
+    },
+};
+</pre>
+</div>
+<p>　　</p>
+<p><strong>config/plugin.js</strong> 用于配置需要加载的插件，比如egg-mongoose，egg-cors。</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">module.exports = { 
+    mongoose: {
+        enable: true,
+        package: "egg-mongoose"
+    },
+    cors: {
+        enable: true,
+        package: "egg-cors"
+    }
+};
+</pre>
+</div>
+<p>　　</p>
+<p>这里需要注意的是，很多博客提供的代码都是ES6的代码，在我初始化的模板中是不可行的，如下：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">exports.cors = {
+  enable: true,
+  package: 'egg-cors',
+}
+</pre>
+</div>
+<p>　　</p>
+<h1 class="heading" data-id="heading-4">开发项目</h1>
+<p>基础搭建好了，开发就变得很简单了，我遵循的逻辑是：Model--&gt;路由--&gt;Contoller--&gt;Service，先设计数据库Schema，然后增加新的路由，支持对应的Controller，然后在Service中完成数据库操作。</p>
+<blockquote>
+<p>router.js</p>
+</blockquote>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">router.get("/api/task", controller.task.index);
+router.post("/api/task", controller.task.create);
+router.put("/api/task/:id", controller.task.update);
+router.delete("/api/task/:id", controller.task.destroy );
+
+// 也可以简写为 
+router.resources('topics', '/api/task', controller.task);
+</pre>
+</div>
+<p>&nbsp;</p>
+<p>controller中实现的方法具体可以参考下面的对应关系</p>
+<p>&nbsp;</p>
+<table>
+<thead>
+<tr><th>Method</th><th>Path</th><th>Route Name</th><th>Controller.Action</th></tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td>/posts</td>
+<td>posts</td>
+<td>app.controllers.posts.index</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/posts/new</td>
+<td>new_post</td>
+<td>app.controllers.posts.new</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/posts/:id</td>
+<td>post</td>
+<td>app.controllers.posts.show</td>
+</tr>
+<tr>
+<td>GET</td>
+<td>/posts/:id/edit</td>
+<td>edit_post</td>
+<td>app.controllers.posts.edit</td>
+</tr>
+<tr>
+<td>POST</td>
+<td>/posts</td>
+<td>posts</td>
+<td>app.controllers.posts.create</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td>/posts/:id</td>
+<td>post</td>
+<td>app.controllers.posts.update</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td>/posts/:id</td>
+<td>post</td>
+<td>app.controllers.posts.destroy</td>
+</tr>
+</tbody>
+</table>
+<p>&nbsp;</p>
+<blockquote><span style="background-color: initial;">controller/task.js</span></blockquote>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">exports.index = function*() {
+    // ...
+    const result = yield this.service.task.index(this.params); 
+    this.body = result;
+};
+
+exports.create = function*() { 
+    // ...
+    const result = yield this.service.task.create(this.request.body);
+    this.body = result;
+};
+
+exports.update = function*() { 
+    // ...
+    const result = yield this.service.task.update(this.params.id, this.request.body); 
+    this.body = result; 
+};
+
+exports.destroy = function*() {
+    // ...
+    const result = yield this.service.task.destroy(this.params); 
+    this.body = result; 
+};
+</pre>
+</div>
+<p>　　</p>
+<blockquote>
+<p>service/task.js</p>
+</blockquote>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">module.exports = app =&gt; {
+    class TaskService extends app.Service {
+        *index(params) {
+            let tasks = yield this.ctx.model.Task.find(params);
+            let result = {};
+            result.data = tasks;
+            return result;
+        }
+
+        *create(request) {  
+        }
+
+        *update(id, request) { 
+        }
+
+        *destroy(params) { 
+        }
+    }
+    return TaskService;
+};
+</pre>
+</div>
+<blockquote>
+<p>model/task.js</p>
+</blockquote>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;">module.exports = app =&gt; {
+    const mongoose = app.mongoose;
+    const Schema = mongoose.Schema;
+    const TaskSchema = new Schema({
+        id: {type: Number},
+        text: {type: String},
+        type: {type: String},
+        progress: {type: Number},
+        open: {type: Boolean},
+        start_date: {type: String},
+        owner_id: [{type: String}],
+        duration: {type: Number},
+        parent: {type: Number}
+    });
+    return mongoose.model("Task", TaskSchema);
+};
+</pre>
+</div>
+<p>&nbsp;</p>
+<h1 class="heading" data-id="heading-5">部署</h1>
+<p>Egg.js 框架内置了 egg-cluster 来启动 Master 进程，Master 有足够的稳定性，不再需要使用 pm2 等进程守护模块。只需要两个命令即可：</p>
+<div class="cnblogs_Highlighter">
+<pre class="brush:javascript;gutter:true;"># 启动服务
+npm start
+# 关闭服务
+npm run stop
+</pre>
+</div>
+<p>&nbsp;</p>
+<h1 class="heading" data-id="heading-6">结语</h1>
+<p>站在巨人的肩膀上，让我们的开发效率倍增，但是还是建议大家先从Koa2学起，对然后对比Egg.js，你就会了解它到底封装了哪些东西，为我们节省了多少工作量，后面还要继续对Egg.js的插件开发进行了解。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

@@ -1,0 +1,94 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-初始化之InitPlatform' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-初始化之InitPlatform</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10985501.html</div><br>
+    <p>上一篇其实想讲初始化的第二步，但是内容比较无聊，所以换了一个话题，谈了谈v8的命名空间和宏，稍微轻松一下。</p>
+<p>在这里还是接着说说初始化过程，毕竟写博客的初衷是对自己努力的记录，不是为了吸粉，这篇没图，对代码本身没有兴趣的可以跳过了。</p>
+<p>&nbsp;</p>
+<p>再多说几句，讲一下我怎么看的源码吧。源码的一些方法涉及很多类和文件，所以我都会统一标注在弄到一个文件里，这样后期复盘可以比较方便，就像图中这样。</p>
+<p><img src="./images/深入V8引擎-初始化之InitPlatform0.png" alt="" /></p>
+<p>文件名代表源码的方法、类别、逻辑等等，就像vue的源码也被分割为diff、virtual-dom、parse等等模块一样。不过v8可不会给你搞这些，所以就需要自己去整理了。内容里，每一个方法、类构造的跳转都会进行标记，前面贴代码也能看到，就是1-1、1-2这些，后期考虑有没有别的更好方法。</p>
+<p><img src="./images/深入V8引擎-初始化之InitPlatform1.png" alt="" /></p>
+<p>就像上面这样，基本上每一个小点也会进行注释，毕竟C++平时工作不会用上，语法什么的容易忘。而且C++的类型是真的很随意，到处都是using、typedef，有可能这只是一个整数类型，但是为了语义化类型搞得跟类一样，比较典型的就是win的DWORD，实际上就是unsigned long，第一次见还以为是个多复杂的结构体，标注之后会视觉上的复杂性会减少很多。</p>
+<p>目前先用这个来整理思路和学习，感觉还不错。最近是因为比较闲所以才写的多，如果比较繁忙，碎片时间看源码就会凸显一个很严重的问题，就是思路断档。之前尝试分析v8对JS代码的compile的时候就发现了，其过程十分的长，第一天看了一半，第二天忘了一部分后就接不上了。后面就暂时放弃过于繁琐的部分，并且开始寻找一个好方法可以整理源码。</p>
+<p>&nbsp;</p>
+<p>开始贴代码环节，上一篇说过第二步的嵌入，实际上只是命名空间的转移，也就是将生成的platform赋值到另一个namespace中。</p>
+<div class="cnblogs_code">
+<pre><code>v8::Platform* V8::platform_ =<span style="color: #000000;"> nullptr;
+</span>
+<span style="color: #0000ff;">void</span> V8::InitializePlatform(v8::Platform*<span style="color: #000000;"> platform) {
+  CHECK(</span>!<span style="color: #000000;">platform_);
+  CHECK(platform);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 将普通的platform对象转移到v8::platform命名空间下</span>
+  platform_ =<span style="color: #000000;"> platform;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1-1</span>
+  v8::<span style="color: #0000ff;">base</span>::SetPrintStackTrace(platform_-&gt;<span style="color: #000000;">GetStackTracePrinter());
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1-2</span>
+<span style="color: #000000;">  v8::tracing::TracingCategoryObserver::SetUp();
+}</span></pre>
+</div>
+<p>如上所示，v8::Platform的命名空间下声明了一个platform类型的变量，这里只是简单的进行赋值。但肯定不仅仅这么一点，后面还有两步内容，分别是设置调用栈打印方法和调用栈追踪类的初始化。</p>
+<p>第一个设置也是很简单的命名空间转移，函数已经在默认Platform上定义好了，如下。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> v8::platform
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> 预定义</span>
+<span style="color: #0000ff;">void</span><span style="color: #000000;"> PrintStackTrace() {
+  v8::</span><span style="color: #0000ff;">base</span><span style="color: #000000;">::debug::StackTrace trace;
+  trace.Print();
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Avoid dumping duplicate stack trace on abort signal.</span>
+  v8::<span style="color: #0000ff;">base</span><span style="color: #000000;">::debug::DisableSignalStackDump();
+}</span>
+<span style="color: #000000;">Platform::StackTracePrinter DefaultPlatform::GetStackTracePrinter() {
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> PrintStackTrace;
+}
+
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> v8::base</span>
+<span style="color: #0000ff;">void</span> (*g_print_stack_trace)() =<span style="color: #000000;"> nullptr;
+</span><span style="color: #0000ff;">void</span> SetPrintStackTrace(<span style="color: #0000ff;">void</span> (*<span style="color: #000000;">print_stack_trace)()) {
+  g_print_stack_trace </span>=<span style="color: #000000;"> print_stack_trace;
+}</span></pre>
+</div>
+<p>这个方法后面专门来讲，初始化时候只是赋值，并没有调用。</p>
+<p>第二步的初始化也比较简单。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> v8::tracing</span>
+TracingCategoryObserver* TracingCategoryObserver::instance_ =<span style="color: #000000;"> nullptr;
+</span><span style="color: #0000ff;">void</span><span style="color: #000000;"> TracingCategoryObserver::SetUp() {</span><span style="color: #008000;">//</span><span style="color: #008000;"> 生成一个新的Observer 这个类构造函数没什么特殊</span>
+  TracingCategoryObserver::instance_ = <span style="color: #0000ff;">new</span><span style="color: #000000;"> TracingCategoryObserver();</span><span style="color: #008000;">//</span><span style="color: #008000;"> v8::platform::tracing</span>
+  i::V8::GetCurrentPlatform()-&gt;GetTracingController()-&gt;<span style="color: #000000;">AddTraceStateObserver(TracingCategoryObserver::instance_);
+}
+</span>
+<span style="color: #0000ff;">void</span> TracingController::AddTraceStateObserver(v8::TracingController::TraceStateObserver*<span style="color: #000000;"> observer) {
+  {
+    </span><span style="color: #0000ff;">base</span>::MutexGuard <span style="color: #0000ff;">lock</span>(mutex_.<span style="color: #0000ff;">get</span><span style="color: #000000;">());
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> TracingController的属性std::unordered_set&lt;v8::TracingController::TraceStateObserver*&gt; observers_;
+    </span><span style="color: #008000;">//</span><span style="color: #008000;"> insert是unordered_set的插入方法</span>
+<span style="color: #000000;">    observers_.insert(observer);
+    </span><span style="color: #0000ff;">if</span> (!recording_.load(std::memory_order_acquire)) <span style="color: #0000ff;">return</span><span style="color: #000000;">;
+  }</span><span style="color: #008000;">//</span><span style="color: #008000;"> Fire the observer if recording is already in progress.</span>
+  observer-&gt;<span style="color: #000000;">OnTraceEnabled();
+}</span></pre>
+</div>
+<p>在前面的platform属性介绍里讲过，除了线程相关，还有两个工具类，一个就是这里的TracingController。这里生成了一个调用栈的观察者对象，并将其加入类的一个无序SET属性中。</p>
+<p>最后一步是根据默认参数来启动Observer对不同状态runtime的追踪，全是宏，太麻烦了，有兴趣的自己去研究吧。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

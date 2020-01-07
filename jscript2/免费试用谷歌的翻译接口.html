@@ -1,0 +1,189 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修免费试用谷歌的翻译接口' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>免费试用谷歌的翻译接口</center></div><div class='banquan'>原文出处:本文由博客园博主奔跑的Man提供。<br/>
+原文连接:https://www.cnblogs.com/iforever/p/10852406.html</div><br>
+    <h2 id="引言">引言</h2>
+<p>最近做个东西，需将各种语言翻译成中文，看了各家的翻译效果，还是谷歌的最好。</p>
+<p>但谷歌的未提供免费接口，研究了谷歌的<a href="https://translate.google.cn/">翻译页面</a>，输入内容后会触发ajax请求，请求参数中除了输入内容，还有个加密参数<code>tk</code>，该加密算法在压缩的js代码中，我也在网上找到了网友摘出来的代码，js格式，一大段，压缩代码翻译起来很吃力，遂未翻译，而另辟蹊径，在生产环境的docker中打包了node环境，业务代码通过shell调用这段js，得到加密参数后再模拟请求，获得翻译结果，用着还挺好。</p>
+<p>没过多久，发现失效了，请求返回403 Forbidden，禁止访问 🚫，估计加密参数算法又升级了。</p>
+<p>接口翻译固然好用，但隔断时间就要重新搞一次加密算法，这个就有点儿难以接受了，每次都要从大量压缩js代码中找出加密算法，还不一定能完全找对。</p>
+<p>至此，我们的主角无头浏览器<a href="https://github.com/GoogleChrome/puppeteer">puppeteer</a>就要登场了，puppeteer一个node类库，提供了简洁的API，可以让使用者操作chrome浏览器，基本可以完全模拟人的操作，比如打开页面、输入网址、等待页面指定内容加载、点击按钮、甚至滑动也可以，有了这个工具模拟用户翻译然后获取结果完全没问题。</p>
+<h2 id="获取翻译结果">获取翻译结果</h2>
+<h3 id="通过js获取">通过js获取</h3>
+<p>分析了谷歌翻译页面的元素，发现用户输入内容的时候会触发某些按钮变灰，等到翻译完成，按钮会再次变亮，这其实是通过添加去除<code>*-disabled</code>类来实现的，所以当我们模拟输入之后等待该类消失即可</p>
+<pre><code><code>await page.waitForSelector(&#39;selector-ele-disabled&#39;, {hidden: true});</code></pre>
+<p>待元素变亮（去除了<code>*-disabled</code>类），就可以从结果输入框中获取到结果了。</p>
+<p>但这样实现起来比较麻烦，也不够直接，还需要puppeteer调用chrome的js执行环境去获取，获取的也不是原始的接口返回数据。因此通过查阅文档找到了下面更好的方法👇。</p>
+<h3 id="通过拦截请求返回获取">通过拦截请求返回获取</h3>
+<p>前段时间研究了如何爬取手机app中的数据，里面用到了中间人代理攻击，中间人代理转发请求、返回，转发的时候就可以对请求进行拦截处理，我就想puppeteer应该也有，果然查到了<a href="https://github.com/GoogleChrome/puppeteer/blob/v1.15.0/docs/api.md#event-response">event-response</a>，他是<a href="https://github.com/GoogleChrome/puppeteer/blob/v1.15.0/docs/api.md#class-page">Page</a>实例的一个钩子，如果我们设置了<code>&quot;response&quot;: function callback(response){}</code>，当chrome发出的任何一个请求返回的时候，都会触发他，并将类<a href="https://github.com/GoogleChrome/puppeteer/blob/v1.15.0/docs/api.md#class-response">Response</a>的一个实例传给回调函数，里面包含请求url、请求结果、请求结果状态等信息，这样我们就可以检测我们的翻译接口了</p>
+<pre><code><code>let browser = await puppeteer.launch()
+
+let page = await browser.newPage()
+page.on(&#39;response&#39;, async response =&gt; {
+    const url = response.url()
+
+    if (url.indexOf(&quot;检测的接口地址&quot;) != -1) {
+        let text = await response.text()
+        // text就是接口返回的结果，拿到接口原始数据，接下来就任你处理了
+    }
+})</code></pre>
+<h2 id="设计">设计</h2>
+<p>大体流程如下图所示，初始化实例，等待请求，请求到达之后模拟输入，然后返回结果，再次进入等待请求状态。<br />
+<img src="./images/免费试用谷歌的翻译接口0.png" /></p>
+<p>此文的最终目的是可以为调用者提供一个简洁的接口，请求该接口返回，返回为中文的结果，接口的响应时间尽可能的短，可支持并发。</p>
+<p>响应时间没多少可以优化的地方，主要依赖网络环境，以及谷歌的接口响应时间，我们只能做到当谷歌接口返回的时候我们也第一时间返回给调用者。</p>
+<p>并发这里可以做优化，一个puppeteer同一时间只能处理一个翻译请求，如果做个实例池，维护多个puppeteer实例，这样就可以提升翻译接口的并发能力了。</p>
+<h3 id="实例池">实例池</h3>
+<p>如下图所示，虚线框内表示一个实例池，实例池中有多个puppeteer实例，他们之间互相独立，当请求来的时候，随机从池子中拿出一个实例，处理请求，等待请求处理完毕之后，再次将改实例放回池子中。</p>
+<p>为了减少意外情况，池子中的每个实例处理100个翻译之后推出，重新启动一个新的额实例补充进来，池子中的实例总量保持不变，如果需要甚至可以搞成动态的，像php-fpm一样，请求多的时候动态增加实例池中的实例，空闲的时候，清理推出一些实例。<br />
+<img src="./images/免费试用谷歌的翻译接口1.png" /></p>
+<h3 id="如何将请求和结果联系起来">如何将请求和结果联系起来</h3>
+<p>一个请求可以分为两个流程，一个<code>请求流程</code>，一个<code>ajax成功回调流程</code>，请求时候输入翻译原始内容，实例内部在请求谷歌ajax接口成功的时候调用预先注册好的回调函数，这两个流程没有办法直接联系起来，但他们都会接触到同一个实例，所以用这个实例将他们俩联系起来，ajax流程成功之后写入一个变量到实例对象上，请求流程中监测该实例上的变量，有数据说明请求成功，返回数据，清空该变量，原理可以看下面的简化代码</p>
+<pre><code><code>let obj = {}
+setTimeout(() =&gt; {
+    obj.result = &quot;this is async result&quot;
+}, 2000)
+
+async function sleep(duration) {
+    return new Promise(resolve =&gt; {
+        setTimeout(() =&gt; {
+            resolve()
+        }, duration)
+    })
+}
+
+async function getRet() {
+    let times = 1
+    while(times &lt;= 100) {
+        if (obj.result) {
+            return Promise.resolve(obj.result)
+        } else {
+            await sleep(200)
+        }
+        times++
+    }
+}
+
+(async () =&gt; {
+    let ret = await getRet()
+    console.log(ret)
+    console.log(&quot;now i can do something&quot;)
+})()</code></pre>
+<h2 id="实现">实现</h2>
+<p>我将这个功能包装成了一个类库，上传到了npm，<a href="https://www.npmjs.com/package/google-trans-api">google-trans-api</a>，顺便也熟悉了整个打包流程以及typescript的使用，不得不说typescript真是不错，可以防止很多误写的错误，还有自动提示的功能，用起来不要太爽。这里是源码地址<a href="https://github.com/aizuyan/google-trans-api">aizuyan/google-trans-api</a>。</p>
+<h2 id="使用">使用</h2>
+<h3 id="下载chromium">下载Chromium</h3>
+<p>linux、mac下面的Chromium是两个不同的包，如果网络可以翻墙，直接部署安装即可，否则需要手动下载，<a href="https://download-chromium.appspot.com/">传送门</a>，我的网络就不好，因此提前将两个版本的包放在项目根目录下的<code>Chromium</code>目录下，开发环境使用<code>darwin</code>目录下的包，生产环境使用linux下的包</p>
+<pre><code><code>.
+├── Chromium
+│   ├── darwin
+│   └── linux</code></pre>
+<p>配合下面的代码，可以自动根据环境选择使用的包路径，并传入实例的<code>executablePath</code>参数中</p>
+<pre><code><code>&quot;use strict&quot;
+const path = require(&quot;path&quot;)
+const os = require(&quot;os&quot;)
+
+const platform = os.platform()
+
+let ret = path.join(__dirname, &quot;..&quot;, &quot;Chromium&quot;, platform)
+
+switch (platform) {
+  case &quot;linux&quot;:
+    ret = path.join(ret, &quot;chrome&quot;)
+    break
+  case &quot;darwin&quot;:
+    ret = path.join(ret, &quot;Chromium.app/Contents/MacOS/Chromium&quot;)
+    break
+}
+
+module.exports = ret</code></pre>
+<h3 id="代理">代理</h3>
+<p>如果网路不好，可能需要安装代理，可以使用shadowsocks，支持所有环境，默认没有代理，如果需要，可以在初始化的时候传入<code>proxyServer: '--proxy-server=socks5://127.0.0.1:1080'</code>参数。</p>
+<h3 id="完整的试用版本">完整的试用版本</h3>
+<pre><code><code>const koa = require(&#39;koa&#39;)
+const app = new koa()
+const router = require(&#39;koa-router&#39;)();
+const GoogleTrans = require(&#39;google-trans-api&#39;).default
+// 调用的时候改为你自己的
+const chromePath = &#39;/path/to/puppeteer Chromium&#39;;
+
+(async () =&gt; {
+  let instance = new GoogleTrans({
+    handles: false,
+    worker:3,
+    executablePath: chromePath,
+    initPageTimeout: 0,
+    //proxyServer: &#39;--proxy-server=socks5://127.0.0.1:1080&#39;,
+    regExpIncludeUrl: url =&gt; {
+      const reg = new RegExp(&quot;translate.google.cn/translate_a/single.*?q=.*&quot;)
+      return reg.test(url)
+    },
+    responseCb: async response =&gt; {
+      const url = response.url()
+      console.log(url)
+      try {
+        const text = await response.text()
+        const status = response.status()
+
+        let ret = JSON.parse(text)
+        ret = ret[0]
+        let data = &quot;&quot;
+        for (let i = 0; i &lt; ret.length; i++) {
+          if (ret[i][0]) {
+            data += ret[i][0]
+          }
+        }
+        return Promise.resolve(data)
+      } catch (err) {
+        console.error(`Failed getting data from: ${url}`)
+        console.error(err);
+      }
+    }
+  })
+
+  let flag = await instance.init()
+
+  router.get(&#39;/trans-auto&#39;, async ctx =&gt; {
+    try {
+      let msg = decodeURIComponent(ctx.query.msg)
+      let ret = await instance.trans(msg)
+      ctx.response.body = ret
+    } catch (e) {
+      console.log(`[error] when trans ${e.message}`)
+      ctx.response.body = &quot;&quot;
+    }
+  })
+
+  app
+    .use(router.routes())
+    .use(router.allowedMethods())
+
+  app.listen(3000, () =&gt; {
+    console.log(&#39;server is running at http://localhost:3000&#39;)
+  })
+})()
+</code></pre>
+<p>下面是我打开GUI模式，看效果的图片<br />
+<img src="./images/免费试用谷歌的翻译接口2.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

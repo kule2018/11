@@ -1,0 +1,134 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修聊一聊看似简单的Promise.prototype.then()方法' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>聊一聊看似简单的Promise.prototype.then()方法</center></div><div class='banquan'>原文出处:本文由博客园博主happyCoding1024提供。<br/>
+原文连接:https://www.cnblogs.com/zhangguicheng/p/12081932.html</div><br>
+    <p>Proise实例的then方法是定义在原型对象Promise.prototype上的，它的作用是为Promise实例添加状态改变时的回调函数。</p>
+<p>该方法可以接收两个回调函数作为参数，其中第二个回调函数是可选的。第一个回调函数是 <code>Promise</code> 对象的状态变为 <code>Resolved</code> 时调用，第二个回调函数是 <code>Promise</code> 对象的状态变为 <code>Rejected</code> 时调用。</p>
+<p>下面从以下几点进行说明：</p>
+<ol>
+<li><p>then 方法返回的是一个Promise实例，但是需要注意的是并不是原来调用它的那个Promise实例而是一个新的Promise实例。</p>
+<p>下面用代码来说明：</p>
+<pre><code><code>let promise = new Promise( function (resolve, reject) {
+    resolve();
+    console.log(&quot;promise&quot;);
+});
+
+let promise_then = promise.then(function () {
+ console.log(&quot;promise_then&quot;);    
+});
+
+promise_then.then(function () {
+    console.log(&quot;promise_then_then&quot;)
+})
+
+// 运行结果：
+promise
+promise_then
+promise_then_then</code></pre>
+<p>最先打印出 <code>promise</code> 的原因是then方法的回调函数要在所有同步任务执行完后再执行，所以会先执行 <code>console.log(&quot;promise&quot;)</code> 然后再去执行下面then方法的回调函数。</p>
+<p>当程序执行到第6行结束时，<code>promise</code> 和 <code>promise_then</code> 的状态如下图所示：</p></li>
+</ol>
+<p><img src="./images/聊一聊看似简单的Promise.prototype.then()方法0.png" alt="在这里插入图片描述" /></p>
+<p>可见then方法返回的是一个新的promise实例，并且此时promise_then的状态为 <code>pending</code>。</p>
+<p>当执行完第8行时，<code>promise</code> 和 <code>promise_then</code> 的状态如下图所示：</p>
+<p><img src="./images/聊一聊看似简单的Promise.prototype.then()方法1.png" alt="在这里插入图片描述" /><br />
+可见此时 <code>promise_then</code> 的状态变为 <code>resolved</code>，也就是说只要then方法中的程序正常执行完不报错，返回实例的状态就变为 <code>resolved</code> (这个地方原因不是很清楚，如果有明白的，欢迎留言告知，谢谢哦)。</p>
+<p>这个时候再往下执行 <code>promise_then.then</code> 就会打印出 <code>promise_then_then</code> 。</p>
+<p>上面的代码等价于</p>
+<pre><code><code>// ES5写法
+let promise = new Promise( function (resolve, reject) {
+    resolve();
+    console.log(&quot;promise&quot;);
+});
+promise.then(function () {
+ console.log(&quot;promise_then&quot;);    
+}).then(function () {
+    console.log(&quot;promise_then_then&quot;)
+});
+
+// ES6写法
+let promise = new Promise( (resolve, reject) =&gt; {
+    resolve();
+    console.log(&quot;promise&quot;);
+});
+promise.then(
+    () =&gt; console.log(&quot;promise_then&quot;)    
+).then( 
+    () =&gt; console.log(&quot;promise_then_then&quot;)
+);</code></pre>
+<ol>
+<li><p>then 方法中前一个回调函数的返回值可以传递给下一个回调函数。</p>
+<ol>
+<li>前一个回调函数的返回值是一个非promise实例时，比较简单，看一下下面的代码就很容易理解。</li>
+</ol>
+<pre><code><code>let promise = new Promise( function (resolve, reject) {
+    resolve();
+});
+promise.then(function () {
+ return &quot;aaa&quot;; 
+}).then(function (data) {
+    console.log(data);
+});
+// 输出结果
+&quot;aaa&quot;</code></pre>
+<ol>
+<li><p>当前一个回调函数的返回值是一个promise实例时，下一个then方法的执行情况要根据这个promise实例的状态来执行。</p>
+<p>用下面的代码来解释一下：</p></li>
+</ol>
+<pre><code><code>// 如果形参是&#39;Resolved&#39; -&gt; 状态为‘Resolved’的promise实例
+// 如果形参是&#39;Rejected&#39; -&gt; 状态为‘Rejected’的promise实例
+function createPromise(status) { 
+    var p = new Promise(function (resolve, reject) {
+        if (status === &quot;Resolved&quot;) {
+            resolve()
+        } else {
+            reject();
+        }
+    });
+    return p;
+}
+
+createPromise(&quot;Resolved&quot;).then(function () {
+    return createPromise(&quot;Rejected&quot;); // 返回的promise实例的状态是“Rejected”
+}).then(function () {
+    console.log(&quot;前一个回调函数的返回值promise实例的状态是&#39;Resolved&#39;&quot;);
+}, function () {
+    console.log(&quot;前一个回调函数的返回值promise实例的状态是&#39;Rejected&#39;&quot;);
+});
+// 输出结果
+&quot;前一个回调函数的返回值promise实例的状态是&#39;Rejected&#39;&quot;
+
+createPromise(&quot;Resolved&quot;).then(function () {
+    return createPromise(&quot;Resolved&quot;); // 返回的promise实例的状态是“Resolved”
+}).then(function () {
+    console.log(&quot;前一个回调函数的返回值promise实例的状态是&#39;Resolved&#39;&quot;);
+}, function () {
+    console.log(&quot;前一个回调函数的返回值promise实例的状态是&#39;Rejected&#39;&quot;);
+});
+// 输出结果：
+&quot;前一个回调函数的返回值promise实例的状态是&#39;Resolved&#39;&quot;</code></pre>
+<p>根据上面代码的输出结果可以清晰地看到后一个回调函数的执行情况是根据前一个回调函数返回的promise的状态来执行的，如果返回的promise实例的状态为 <code>Resolved</code> ，那么就执行第一个函数，如果返回的promise实例的状态为 <code>Rejected</code> ，那么就执行第二个函数。</p>
+<p>完，如果不恰当之处，欢迎指正哦 。</p></li>
+</ol>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

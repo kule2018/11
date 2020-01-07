@@ -1,0 +1,396 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修使用node.js将xmind导出的excel转换为json树' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>使用node.js将xmind导出的excel转换为json树</center></div><div class='banquan'>原文出处:本文由博客园博主若水无痕提供。<br/>
+原文连接:https://www.cnblogs.com/zzh965390267/p/12028207.html</div><br>
+    <p style="text-align: left;">xmind文件如图所示，<img style="display: block; margin-left: auto; margin-right: auto;" src="./images/使用node.js将xmind导出的excel转换为json树0.png" alt="" /></p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;最终生成的数据结构如图：</p>
+<p style="text-align: left;"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/使用node.js将xmind导出的excel转换为json树1.png" alt="" /></p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">2,选择导出为excel文件，导出的excel文件打开如图<img src="./images/使用node.js将xmind导出的excel转换为json树2.png" alt="" /></p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">3，安装node读取excel模块 cnpm i&nbsp;&nbsp;node-xlsx --save</p>
+<p style="text-align: left;">4,使用node-xlsx模块读取excel文件，注意文件名不能为中文,</p>
+<p style="text-align: left;">使用示例</p>
+<div style="text-align: left;">
+<div>var&nbsp;xlsx2json&nbsp;=&nbsp;require("node-xlsx");</div>
+<div>var&nbsp;list&nbsp;=&nbsp;xlsx2json.parse("./test3.xlsx");</div>
+<div>读取出的excel数据如图<img style="display: block; margin-left: auto; margin-right: auto;" src="./images/使用node.js将xmind导出的excel转换为json树3.png" alt="" />
+<p>&nbsp;</p>
+<p>&nbsp;5，分析该数据结构和实际的excel可以发现，node模块读取是按excel一行一行的读取，未读取到的就是null，例如，第一行读取到的<img src="./images/使用node.js将xmind导出的excel转换为json树4.png" alt="" /></p>
+<p>&nbsp;</p>
+</div>
+</div>
+<p style="text-align: left;">因为第一行中一些单元格合并为了一个，所以node模块读取的时候是按照一行读取的，所以数组第二项读取的前四项都为空<img src="./images/使用node.js将xmind导出的excel转换为json树5.png" alt="" /></p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">&nbsp;</p>
+<p style="text-align: left;">&nbsp;接下来是实现将读取到的数组转换为json数据的核心部分，</p>
+<p style="text-align: left;"><span style="color: #ff6600;"><strong>主要由3个函数组成</strong></span></p>
+<div style="text-align: left;">
+<div>function&nbsp;arrToJson(arr,&nbsp;column)&nbsp;{&nbsp;//将数组转换为嵌套的json对象</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;MaxLength&nbsp;=&nbsp;arr.length&nbsp;-&nbsp;1;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;deep&nbsp;=&nbsp;{}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;(let&nbsp;index&nbsp;=&nbsp;MaxLength;&nbsp;index&nbsp;&gt;=&nbsp;0;&nbsp;index--)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(arr[index]&nbsp;===&nbsp;null)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;obj&nbsp;=&nbsp;{};</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(Object.keys(deep).length&nbsp;&gt;&nbsp;0)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;childArr&nbsp;=&nbsp;[]</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['id']&nbsp;=&nbsp;String(column)&nbsp;+&nbsp;'_'&nbsp;+&nbsp;String(index)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['text']&nbsp;=&nbsp;arr[index]</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;childArr.push(deep)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['children']&nbsp;=&nbsp;childArr;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deep&nbsp;=&nbsp;obj</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;else&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['id']&nbsp;=&nbsp;String(column)&nbsp;+&nbsp;'_'&nbsp;+&nbsp;String(index)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['text']&nbsp;=&nbsp;arr[index]</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deep&nbsp;=&nbsp;obj</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;deep;</div>
+<br />
+<div>}</div>
+
+
+
+
+
+</div>
+<div style="text-align: left;">改函数作用是将每一行中的有效数据转为具有层级的数形结构，对比node模块读取出的数据和excel的数据规律可以发现</div>
+<div style="text-align: left;"><img src="./images/使用node.js将xmind导出的excel转换为json树6.png" alt="" />
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+
+
+
+</div>
+<div style="text-align: left;"><img style="display: block; margin-left: auto; margin-right: auto;" src="./images/使用node.js将xmind导出的excel转换为json树7.png" alt="" />
+<p>&nbsp;</p>
+<p>&nbsp;每一行数据可以转化为如图<img style="display: block; margin-left: auto; margin-right: auto;" src="./images/使用node.js将xmind导出的excel转换为json树8.png" alt="" />嵌套的结构，数组的长度就是当前行的最大深度，</p>
+<p>将最初的数组的每一项都转为该结构如图<img src="./images/使用node.js将xmind导出的excel转换为json树9.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>6，再次分析node模块读取的数据和excel规律可以发现</p>
+<p>&nbsp;<img style="display: block; margin-left: auto; margin-right: auto;" src="./images/使用node.js将xmind导出的excel转换为json树10.png" alt="" /></p>
+<p>&nbsp;</p>
+<p>&nbsp;第二行为个null，代表第一行的前四个数据，因此，只需要将第二行生成的嵌套对象和第一行生成的嵌套对象合并，再将第二行数据和第三行数据合并3-&gt;4合并，后边以此类推即可得到完整的tree，</p>
+<p>但是有一个问题，假设同样有两个第三级的数据我怎么能知道后一项是插入第三级的哪一项中呢，其实观察数据的规律不难发现，每次插入的时候只需要获取当前数据所在项的深度，然后插入到比当前数据深度多一的父级的最后插入当前数据，即可保证插入的层级不会错误，</p>
+<p><span style="background-color: #ccffcc; color: #ff6600; font-size: 18px;"><strong>实现代码如下</strong></span></p>
+<div>
+<div>function&nbsp;createTree(arr)&nbsp;{&nbsp;//生成最终树</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;renderTree&nbsp;=&nbsp;{}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arr=JSON.parse(JSON.stringify(arr))</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;arr.forEach((element,&nbsp;index)&nbsp;=&gt;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;result&nbsp;=&nbsp;arrToJson(element,&nbsp;index);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(Object.keys(renderTree).length&nbsp;&gt;&nbsp;0)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;renderTree&nbsp;=&nbsp;getMergeTree(renderTree,&nbsp;result)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;else&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;renderTree&nbsp;=&nbsp;getMergeTree(result,&nbsp;null)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;});</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;writeJson(renderTree)</div>
+<div>}</div>
+
+
+
+
+
+</div>
+<div>
+<div>function&nbsp;getMergeTree(parentobj,&nbsp;currentobj)&nbsp;{&nbsp;//生成合并的树</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(currentobj&nbsp;==&nbsp;null)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;parentobj;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;resultObj&nbsp;=&nbsp;{}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;DFS(parentobj,&nbsp;currentobj);</div>
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;function&nbsp;DFS(parentobj,&nbsp;currentobj)&nbsp;{</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;idNumber;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;idNumber&nbsp;=&nbsp;Number(currentobj.id.split('_')[1])&nbsp;-&nbsp;1</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;catch&nbsp;(error)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;idNumber&nbsp;=&nbsp;-10;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;child&nbsp;=&nbsp;parentobj.children;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(child&nbsp;!==&nbsp;undefined&nbsp;&amp;&amp;&nbsp;child.length&nbsp;&gt;&nbsp;0)&nbsp;{</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;childrenLength&nbsp;=&nbsp;child.length&nbsp;-&nbsp;1</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;parentId&nbsp;=&nbsp;Number(parentobj.id.split('_')[1])</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(parentId&nbsp;==&nbsp;idNumber)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;child.push(currentobj)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DFS(child[childrenLength],&nbsp;currentobj)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;resultObj&nbsp;=&nbsp;parentobj</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;resultObj</div>
+<div>}</div>
+
+
+
+
+
+</div>
+<div>该函数是一个DFS搜索算法，搜索出比当前级大一级的父级对象树，并且在父级树的children数组的最后一项插入当前对象</div>
+<div>如图是前四项生成的json对象和第五项的合并</div>
+<p><img src="./images/使用node.js将xmind导出的excel转换为json树11.png" alt="" /></p>
+<p><img src="./images/使用node.js将xmind导出的excel转换为json树12.png" alt="" /></p>
+<p>&nbsp;</p>
+<p><span style="background-color: #ccffcc; color: #ff9900; font-size: 18pt;">&nbsp;完整代码如下：</span></p>
+<div>
+<div>var&nbsp;xlsx2json&nbsp;=&nbsp;require("node-xlsx");</div>
+<div>var&nbsp;list&nbsp;=&nbsp;xlsx2json.parse("./test3.xlsx");</div>
+<div>var&nbsp;fs&nbsp;=&nbsp;require("fs")</div>
+<div>let&nbsp;testarr&nbsp;=&nbsp;[</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;['教育心理学',&nbsp;'教育心理学概述',&nbsp;'教育心理学的基本内涵',&nbsp;'研究对象与研究内容',&nbsp;'概念'],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;null,&nbsp;'学科性质'],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;null,&nbsp;'研究内容',&nbsp;'五要素三过程'],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;'教育心理学与普通心理学的关系'],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;'教育心理学的作用',&nbsp;'描述'],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;null,&nbsp;'解释'],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;null,&nbsp;'预测'],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;null,&nbsp;'控制'],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;"教育心理学的发展史",&nbsp;"初创时期",&nbsp;"裴斯泰洛齐"],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;null,&nbsp;"赫尔巴特"],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;null,&nbsp;"桑代克"],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;"发展时期",&nbsp;"小原又一"],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;null,&nbsp;"廖世承"],</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;[null,&nbsp;null,&nbsp;null,&nbsp;"成熟时期",&nbsp;"布鲁纳"],</div>
+<div>]</div>
+
+
+
+
+<br />
+<div>createTree(list[0].data)//使用node读取的数组数据</div>
+<div>//&nbsp;createTree(testarr)//测试，使用testarr数据可直接查看生成的数据，测试数据采用真实的一部分数据</div>
+<div>//&nbsp;let&nbsp;totalobj={"id":"0_0","text":"教育心理学","children":[{"id":"0_1","text":"教育心理学概述","children":[{"id":"0_2","text":"教育心理学的基本内涵","children":[{"id":"0_3","text":"研究对象与研究内容","children":[{"id":"0_4","text":"概念"}]}]}]}]}</div>
+
+
+
+
+
+<br />
+<div>//&nbsp;let&nbsp;resultObj=&nbsp;getMergeTree(totalobj,{"id":"1_4","text":"学科性质"})</div>
+<div>//&nbsp;console.log(JSON.stringify(resultObj));</div>
+<div>function&nbsp;createTree(arr)&nbsp;{&nbsp;//生成最终树</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;renderTree&nbsp;=&nbsp;{}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;arr=JSON.parse(JSON.stringify(arr))</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;arr.forEach((element,&nbsp;index)&nbsp;=&gt;&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;result&nbsp;=&nbsp;arrToJson(element,&nbsp;index);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(Object.keys(renderTree).length&nbsp;&gt;&nbsp;0)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;renderTree&nbsp;=&nbsp;getMergeTree(renderTree,&nbsp;result)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;else&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;renderTree&nbsp;=&nbsp;getMergeTree(result,&nbsp;null)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;});</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;writeJson(renderTree)</div>
+<div>}</div>
+
+
+
+
+
+<br /><br />
+<div>function&nbsp;arrToJson(arr,&nbsp;column)&nbsp;{&nbsp;//将数组转换为嵌套的json对象</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;MaxLength&nbsp;=&nbsp;arr.length&nbsp;-&nbsp;1;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;deep&nbsp;=&nbsp;{}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;for&nbsp;(let&nbsp;index&nbsp;=&nbsp;MaxLength;&nbsp;index&nbsp;&gt;=&nbsp;0;&nbsp;index--)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(arr[index]&nbsp;===&nbsp;null)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;break;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;obj&nbsp;=&nbsp;{};</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(Object.keys(deep).length&nbsp;&gt;&nbsp;0)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;childArr&nbsp;=&nbsp;[]</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['id']&nbsp;=&nbsp;String(column)&nbsp;+&nbsp;'_'&nbsp;+&nbsp;String(index)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['text']&nbsp;=&nbsp;arr[index]</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;childArr.push(deep)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['children']&nbsp;=&nbsp;childArr;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deep&nbsp;=&nbsp;obj</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;else&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['id']&nbsp;=&nbsp;String(column)&nbsp;+&nbsp;'_'&nbsp;+&nbsp;String(index)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;obj['text']&nbsp;=&nbsp;arr[index]</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;deep&nbsp;=&nbsp;obj</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;deep;</div>
+
+
+
+
+
+<br />
+<div>}</div>
+
+
+
+
+
+<br /><br />
+<div>function&nbsp;getMergeTree(parentobj,&nbsp;currentobj)&nbsp;{&nbsp;//生成合并的树</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(currentobj&nbsp;==&nbsp;null)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;parentobj;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;resultObj&nbsp;=&nbsp;{}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;DFS(parentobj,&nbsp;currentobj);</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;function&nbsp;DFS(parentobj,&nbsp;currentobj)&nbsp;{</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;idNumber;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;try&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;idNumber&nbsp;=&nbsp;Number(currentobj.id.split('_')[1])&nbsp;-&nbsp;1</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}&nbsp;catch&nbsp;(error)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;idNumber&nbsp;=&nbsp;-10;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;child&nbsp;=&nbsp;parentobj.children;</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(child&nbsp;!==&nbsp;undefined&nbsp;&amp;&amp;&nbsp;child.length&nbsp;&gt;&nbsp;0)&nbsp;{</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;childrenLength&nbsp;=&nbsp;child.length&nbsp;-&nbsp;1</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let&nbsp;parentId&nbsp;=&nbsp;Number(parentobj.id.split('_')[1])</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(parentId&nbsp;==&nbsp;idNumber)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;child.push(currentobj)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;DFS(child[childrenLength],&nbsp;currentobj)</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;resultObj&nbsp;=&nbsp;parentobj</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+
+
+
+
+
+<br />
+<div>&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;return&nbsp;resultObj</div>
+<div>}</div>
+
+
+
+
+
+<br />
+<div>function&nbsp;writeJson(arrlist)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;fs.writeFile('person.json',&nbsp;JSON.stringify(arrlist),&nbsp;function&nbsp;(err)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;if&nbsp;(err)&nbsp;{</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.error(err);</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;console.log('----------新增成功-------------');</div>
+<div>&nbsp;&nbsp;&nbsp;&nbsp;})</div>
+<div>}</div>
+
+
+
+
+
+<br />
+<div>&nbsp;博客地址：https://www.cnblogs.com/zzh965390267</div>
+<div>&nbsp;</div>
+
+
+
+
+
+</div>
+
+
+
+
+</div>
+<p style="text-align: left;">&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

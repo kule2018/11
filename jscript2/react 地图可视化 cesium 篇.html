@@ -1,0 +1,154 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修react 地图可视化 cesium 篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>react 地图可视化 cesium 篇</center></div><div class='banquan'>原文出处:本文由博客园博主lifefriend_007提供。<br/>
+原文连接:https://www.cnblogs.com/lifefriend/p/11132789.html</div><br>
+    <div>Vue Function-based API RFC 一出来，感觉 vue 越来越像 react 了。新立项目，决定尝试下 react.js。下面是 react 集成 cesium，核心部分是 webpack 的配置。</div>
+<p>&nbsp;</p>
+<div><strong>一、安装 create-react-app</strong></div>
+<div>
+<div class="cnblogs_code">
+<pre><code>npm <span style="color: #0000ff;">install</span> -g create-react-app</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div><strong>二、react 工程创建</strong></div>
+<div class="cnblogs_code">
+<pre><code>create-react-app cesium-react</pre>
+</div>
+<p>&nbsp;</p>
+<div><strong>三、cesium 安装</strong></div>
+<div>
+<div class="cnblogs_code">
+<pre><code>npm <span style="color: #0000ff;">install</span> cesium --save</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<p><strong>四、copy-webpack-plugin 安装</strong></p>
+<div>
+<div class="cnblogs_code">
+<pre><code>npm <span style="color: #0000ff;">install</span> copy-webpack-plugin --save-dev</pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<div><strong>五、提取 webpack 配置文件</strong></div>
+<div>create-react-app 创建的项目，默认会隐藏 webpack 的配置项，所以需要将 webpack 配置文件提取出来。</div>
+<div>
+<div class="cnblogs_code">
+<pre><code>npm run <span style="color: #0000ff;">eject</span></pre>
+</div>
+</div>
+<div>成功后，项目根目录下会多出二个文件夹，config scripts，其中 webpack 的配置文件 webpack.config.js 位于 config 文件夹。</div>
+<p>&nbsp;</p>
+<div><strong>六、webpack 配置</strong></div>
+<div>&nbsp;</div>
+<div><strong>1、添加 Cesium module name</strong></div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> module.exports = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (webpackEnv) {
+</span><span style="color: #008080;"> 2</span> <span style="color: #000000;">    ...
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">        ...
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">        resolve: {
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">            alias: {
+</span><span style="color: #008080;"> 7</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> Cesium module name</span>
+<span style="color: #008080;"> 8</span>                 cesium: path.resolve(__dirname, '../node_modules/cesium/Source'<span style="color: #000000;">)
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">        }
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">12</span> }</pre>
+</div>
+</div>
+<p>&nbsp;</p>
+<div><strong>2、添加 static files 管理</strong></div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> const CopyWebpackPlugin = require('copy-webpack-plugin'<span style="color: #000000;">);
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> module.exports = <span style="color: #0000ff;">function</span><span style="color: #000000;"> (webpackEnv) {
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">    ...
+</span><span style="color: #008080;"> 5</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> {
+</span><span style="color: #008080;"> 6</span> <span style="color: #000000;">        ...
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">        resolve: {
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">            alias: {
+</span><span style="color: #008080;"> 9</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> Cesium module name</span>
+<span style="color: #008080;">10</span>                 cesium: path.resolve(__dirname, '../node_modules/cesium/Source'<span style="color: #000000;">)
+</span><span style="color: #008080;">11</span> <span style="color: #000000;">            }
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">        },
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">        plugins: [
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">            ...
+</span><span style="color: #008080;">15</span>             <span style="color: #008000;">//</span><span style="color: #008000;"> Copy Cesium Assets, Widgets, and Workers to a static directory</span>
+<span style="color: #008080;">16</span>             <span style="color: #0000ff;">new</span> CopyWebpackPlugin([ { from: path.join('node_modules/cesium/Source', '../Build/Cesium/Workers'), to: 'Workers'<span style="color: #000000;"> } ]),
+</span><span style="color: #008080;">17</span>             <span style="color: #0000ff;">new</span> CopyWebpackPlugin([ { from: path.join('node_modules/cesium/Source', 'Assets'), to: 'Assets'<span style="color: #000000;"> } ]),
+</span><span style="color: #008080;">18</span>             <span style="color: #0000ff;">new</span> CopyWebpackPlugin([ { from: path.join('node_modules/cesium/Source', 'Widgets'), to: 'Widgets'<span style="color: #000000;"> } ]),
+</span><span style="color: #008080;">19</span>             <span style="color: #0000ff;">new</span><span style="color: #000000;"> webpack.DefinePlugin({
+</span><span style="color: #008080;">20</span>                 <span style="color: #008000;">//</span><span style="color: #008000;"> Define relative base path in cesium for loading assets</span>
+<span style="color: #008080;">21</span>                 CESIUM_BASE_URL: JSON.stringify(''<span style="color: #000000;">)
+</span><span style="color: #008080;">22</span> <span style="color: #000000;">            })
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">        ]
+</span><span style="color: #008080;">24</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">25</span> }</pre>
+</div>
+</div>
+<p>&nbsp;</p>
+<div><strong>七、Hello World</strong></div>
+<p>&nbsp;</p>
+<div><strong>1、src/index.js 中引入样式</strong></div>
+<div>
+<div class="cnblogs_code">
+<pre><code>import 'cesium/Widgets/widgets.css'</pre>
+</div>
+</div>
+<p>&nbsp;</p>
+<div><strong>2、src/App.js 初始化地图</strong></div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> import React, { Component } from 'react'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 2</span> import Cesium from "cesium/Cesium"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span> 
+<span style="color: #008080;"> 4</span> <span style="color: #000000;">class App extends Component {
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">  componentDidMount() {
+</span><span style="color: #008080;"> 6</span>     Cesium.Ion.defaultAccessToken = 'your_access_token'<span style="color: #000000;">;
+</span><span style="color: #008080;"> 7</span>     const viewer = <span style="color: #0000ff;">new</span> Cesium.Viewer("cesiumContainer"<span style="color: #000000;">);
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">  render() {
+</span><span style="color: #008080;">10</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> (
+</span><span style="color: #008080;">11</span>       &lt;div id="cesiumContainer" /&gt;
+<span style="color: #008080;">12</span> <span style="color: #000000;">    );
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span> export <span style="color: #0000ff;">default</span> App;</pre>
+</div>
+</div>
+<div>&nbsp;</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #000000;">环境如下：
+node: v12.5.0
+npm: 6.9.0
+create-react-app: 3.0.1</span></pre>
+</div>
+<p>&nbsp;</p>
+</div>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

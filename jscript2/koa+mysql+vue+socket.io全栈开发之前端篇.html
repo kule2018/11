@@ -1,0 +1,730 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修koa+mysql+vue+socket.io全栈开发之前端篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>koa+mysql+vue+socket.io全栈开发之前端篇</center></div><div class='banquan'>原文出处:本文由博客园博主Jeff.Zhong提供。<br/>
+原文连接:https://www.cnblogs.com/edwardloveyou/p/10702471.html</div><br>
+    <p>原文地址：<a href="https://edwardzhong.github.io/2019/04/13/fullstack3/">koa+mysql+vue+socket.io全栈开发之前端篇</a></p>
+<p><strong>React</strong> 与 <strong>Vue</strong> 之间的对比，是前端的一大热门话题。</p>
+<ul>
+<li><p><strong>vue</strong> 简易上手的脚手架，以及官方提供必备的基础组件，比如 <strong>vuex</strong>，<strong>vue-router</strong>，对新手真的比较友好；<strong>react</strong> 则把这些都交给社区去做，虽然这壮大了 <strong>react</strong> 的生态链，但新手要弄出一套趁手的方案挺麻烦的，不过好在现在有很多类似 dva的方案了。</p></li>
+<li><p><strong>vue</strong> 比较讨喜的一点，就是它的数据双向流动在表单开发时特别方便，而 <strong>react</strong> 在这方面可就麻烦多了。</p></li>
+<li><p>但是 <strong>vue</strong> 复杂的 api ，简直让人头大，光是文档说明都几十页了。太多的语法，太多的魔法符号，对进化速度越来越快的前端届来说，就是入手这个框架的最大阻碍。</p></li>
+<li><p>而相反 <strong>react</strong> 的 api 数量简直可以忽略不计了，顶多花几小时就能看完官方文档。你只要理解 <strong>JavaScript</strong>，就能理解 <strong>react</strong> 的很多行为。<strong>react</strong> 的很多用法，它的 api 都是符合直觉的，你对它用法的猜测基本都是八九不离十的，这真是大大降低了心智负担。</p></li>
+<li><p>除此之外，<strong>react</strong> 的 <strong>jsx</strong> 语法表达能力更强，还有 <strong>hoc</strong> 和 <strong>hooks</strong> 使代码也更容易组织和复用。</p></li>
+</ul>
+<p>虽然我更喜欢 <strong>React</strong> ，但工作上的需求，还不是要你用什么你就得用什么😂，所以这个 demo 就当是探索 <strong>Vue</strong> 的前奏。</p>
+<!-- more -->
+<p>之前我还是有用过 <strong>vue</strong> 的，记得还是 1.0 版本，当时的潮流就是类似 <strong>angular</strong> 1.x 的 <strong>mvvm</strong> 方案，数据双向流动。那时的 <strong>vue</strong> 远没有现在的热度，组件也少，没有 <strong>vue-router</strong>，没有 <strong>vuex</strong>，组件之前的通信简直太痛苦了。现在 <strong>vue</strong> 2.x 比起之前，已经发生了天翻地覆的变化，<strong>vue</strong> 也在不断向 <strong>react</strong> 靠拢，而我也只能从头开始学起。</p>
+<p>闲话说得有点多，还是赶紧进入主题吧</p>
+<h2 id="项目配置">项目配置</h2>
+<p>选择 webpack 4 打包和管理，template 引擎使用 pug ，css 预编译是 scss。</p>
+<h4 id="webpack.common.js-的配置">webpack.common.js 的配置</h4>
+<pre><code><code>// webpack.common.js
+module.exports = {
+    entry: &#39;./src/main.js&#39;,
+    output: {
+        path: resolve(__dirname, &#39;dist&#39;),
+        filename: &#39;[name]-[hash].js&#39;//输出文件添加hash
+    },
+    optimization: { // 代替commonchunk, 代码分割
+        runtimeChunk: &#39;single&#39;,
+        splitChunks: {
+            cacheGroups: {
+                vendor: {
+                    test: /[\\/]node_modules[\\/]/,
+                    name: &#39;vendors&#39;,
+                    chunks: &#39;all&#39;
+                }
+            }
+        }
+    },
+    module: {
+        rules: [
+            {
+                test:/\.vue$/,
+                exclude: /node_modules/,
+                use:[&#39;vue-loader&#39;]
+            },
+            {
+                test: /\.js?$/,
+                exclude: /node_modules/,
+                use: [&#39;babel-loader&#39;]//&#39;eslint-loader&#39;
+            },
+            {
+                test: /\.pug$/,
+                use: [&#39;pug-plain-loader&#39;]
+            },
+            {
+                test: /\.css$/,
+                use: [&#39;style-loader&#39;, &#39;css-loader&#39;]
+            },
+            {
+                test: /\.scss$/,
+                use: [&#39;style-loader&#39;, &#39;css-loader&#39;, &#39;postcss-loader&#39;, &#39;sass-loader&#39;]
+            },
+            {   
+                test: /\.(png|jpg|jpeg|gif|eot|ttf|woff|woff2|svg|svgz)(\?.+)?$/,
+                use: [{
+                    loader: &#39;url-loader&#39;,
+                    options: {
+                        limit: 1000
+                    }
+                }]
+            }
+        ]
+    },
+    plugins: [
+        new VueLoaderPlugin(),
+        new CleanWebpackPlugin([resolve(__dirname, &#39;dist&#39;)]),//生成新文件时，清空生出目录
+        new HtmlWebpackPlugin({
+            template: &#39;./public/index.html&#39;,//模版路径
+            filename: &#39;index.html&#39;,//生成后的文件名,默认index.html
+            favicon: &#39;./public/favicon.ico&#39;,
+            minify: {
+                removeAttributeQuotes:true,
+                removeComments: true,
+                collapseWhitespace: true,
+                removeScriptTypeAttributes:true,
+                removeStyleLinkTypeAttributes:true
+             }
+        }),
+        new HotModuleReplacementPlugin()//HMR
+    ]
+};</code></pre>
+<h4 id="webpack.dev.js-的配置">webpack.dev.js 的配置</h4>
+<p>就是开发服务器 devServer的配置，监控代码变更。</p>
+<pre><code><code>// webpack.dev.js
+module.exports = merge(common, {
+    mode: &#39;development&#39;,
+    devtool: &#39;inline-source-map&#39;,
+    devServer: {
+        contentBase: &#39;./dist&#39;,
+        index:&#39;index.html&#39;,
+        port: 3002,
+        compress: true,
+        historyApiFallback: true,
+        hot: true
+    }
+});</code></pre>
+<h4 id="babel.config.js-的配置">babel.config.js 的配置</h4>
+<pre><code><code>module.exports = {
+  presets: [
+    [
+      &#39;@vue/app&#39;, {
+        &quot;useBuiltIns&quot;: &quot;entry&quot;
+      }
+    ]
+  ]
+}</code></pre>
+<h2 id="目录结构">目录结构</h2>
+<pre class="bash"><code>public #公共目录
+server #后端目录
+src    #前端目录
+├── assets #静态文件目录
+├── common #工具目录
+├── components #组件目录
+├── store   # vuex store目录
+├── App.vue # 根组件
+├── main.js # 入口文件
+└── router.js #路由    </code></pre>
+<h2 id="入口和路由">入口和路由</h2>
+<h4 id="路由文件">路由文件</h4>
+<p>下面使用了嵌套路由，使用的是基于 history 的路由，也可以选择基于 hashchange的路由。</p>
+<pre><code><code>import Vue from &#39;vue&#39;
+import Router from &#39;vue-router&#39;
+//...
+
+Vue.use(Router)
+
+//路由
+const routes = [{
+    path: &#39;/&#39;,
+    name: &#39;home&#39;,
+    component: Index
+},{
+    path: &#39;/sign&#39;,
+    name: &#39;sign&#39;,
+    component: Sign,
+    children: [ //嵌套路由
+        {
+            path: &quot;log&quot;,
+            name: &quot;login&quot;,
+            component: Login
+        },
+        {
+            path: &quot;reg&quot;,
+            name: &quot;register&quot;,
+            component: Register
+        },
+        { path: &#39;*&#39;, redirect: &#39;log&#39; }
+    ]
+}, { path: &#39;*&#39;, redirect: &#39;/&#39; }]
+
+export default new Router({
+    mode: &quot;history&quot;,
+    routes
+})</code></pre>
+<h4 id="入口文件">入口文件</h4>
+<p>把router，store 和根组件组合起来</p>
+<pre><code><code>import Vue from &#39;vue&#39;
+import App from &#39;./App.vue&#39;
+import router from &#39;./router&#39;
+import store from &#39;./store&#39;
+import &#39;../public/base.min.css&#39;
+import &#39;../public/fontello.css&#39;
+
+Vue.config.productionTip = false
+new Vue({
+    router,
+    store,
+    render: h =&gt; h(App),
+}).$mount(&#39;#app&#39;)</code></pre>
+<h2 id="模块的编写">模块的编写</h2>
+<p>模版，逻辑代码，样式合成到一个页面也是我欣赏 <strong>vue</strong> 的一个方面，因为这样你就不需要在多个文件之间反复的切换。</p>
+<h4 id="模版template">模版template</h4>
+<p><strong>pug</strong> 就是之前的 jade，它的简洁在复杂的页面下会让 <strong>template</strong> 清晰不少，最起码会让你少敲代码，这里以index 页面的部分代码为例。</p>
+<pre class="jade"><code>&lt;template lang=&quot;pug&quot;&gt;
+div.content
+    div.bar
+        header(v-drag)
+            div.avatar(v-on:click=&quot;profile(selfInfo)&quot;)
+                img(:src=&quot;selfInfo.avatar? selfInfo.avatar: aPic.src&quot;) 
+            div.name {{ selfInfo.nick }}
+                p {{ selfInfo.signature}}
+            i.icon-logout(v-on:click=&quot;logout&quot;)
+        div.body
+            div.main-panel(v-if=&quot;!isSearch&quot;)        
+                nav
+                    div(v-on:click=&quot;showTab(0)&quot; :class=&quot;{active:tabIndex==0}&quot;) 好友
+                    div(v-on:click=&quot;showTab(1)&quot; :class=&quot;{active:tabIndex==1}&quot;) 分组
+                    div(v-on:click=&quot;showTab(2)&quot; :class=&quot;{active:tabIndex==2}&quot;) 消息
+                        span(v-if=&quot;dealCount&quot;) {{dealCount}}    
+                ul.friends(v-if=&quot;tabIndex == 0&quot;)
+                    li(v-for=&quot;item in friends&quot; :key=&quot;item.id&quot;)
+                        div.avatar(v-on:click=&quot;profile(item)&quot;)
+                            img(:src=&quot;item.avatar? item.avatar: aPic.src&quot;) 
+                        p(v-on:click=&quot;chatWin(item)&quot;) {{item.nick}}
+                        span(v-if=&quot;item.reads &amp;&amp; item.reads &gt; 0&quot;) ({{item.reads}})
+        //动态创建组件
+    component(:is=&quot;item.component&quot;  v-for=&quot;(item,i) in wins&quot; :key=&quot;item.id&quot; 
+        :info=&quot;item.info&quot;
+        :sty=&quot;item.sty&quot;
+        :msgs=&quot;item.msgs&quot;
+        v-on:close=&quot;closeWin(i)&quot;
+        v-on:setZ=&quot;setZ(i)&quot;)
+&lt;/template&gt;</code></pre>
+<h4 id="动态创建组件">动态创建组件</h4>
+<p>上面用到了 vue 的 动态创建组件 的概念，什么意思呢？这个组件在当前页面中是不存在的，需要我们触发之后，才开始创建。比如，当你点击某个按钮，才开始加载创建组件，然后填充到页面中来。下面就是动态组件相关功能的编写。</p>
+<pre><code><code>data() {
+    return {
+       wins: [] //组件列表
+    }
+},
+methods: {  
+  addWin(info, com) { // 添加组件的方法
+      this.wins.push({
+          msgs: info.msgs || [],
+          info,
+          sty: {
+              left: l * 30 + 270,
+              top: l * 30 + 30,
+              z: 0
+          },
+          component: com
+      });
+  }
+}  
+
+//填充组件
+component(:is=&quot;item.component&quot;  v-for=&quot;(item,i) in wins&quot; :key=&quot;item.id&quot; 
+  :info=&quot;item.info&quot;
+  :sty=&quot;item.sty&quot;
+  :msgs=&quot;item.msgs&quot;
+  v-on:close=&quot;closeWin(i)&quot;
+  v-on:setZ=&quot;setZ(i)&quot;)</code></pre>
+<h4 id="javascript部分">javascript部分</h4>
+<p>这里就是业务逻辑的部分了，以部分代码为例, 具体的部分参考官方的文档</p>
+<pre class="vue"><code>&lt;script&gt;
+import { mapState, mapGetters } from &quot;vuex&quot;;
+import ChatMsg from &quot;./ChatMsg.vue&quot;;
+import Profile from &quot;./Profile.vue&quot;;
+import { get, post } from &quot;../common/request&quot;;
+
+export default {
+    name: &quot;index&quot;,
+    data() {
+        return {
+            tabIndex: 0,
+            wins: [],
+            aPic: {
+                src: require(&quot;../assets/avatar.jpg&quot;)
+            }
+        };
+    },
+    async created() {
+        //...
+    },
+    computed: {
+        ...mapState([&quot;selfInfo&quot;]),
+        ...mapGetters([
+            &quot;isLogin&quot;,
+            &quot;friends&quot;,
+            &quot;msgs&quot;
+        ])
+    },
+    watch: {
+        isLogin: {
+            //监听登录状态
+            handler: function(val, old) {
+                            //...
+            }
+            // ,immediate: true //进入组件立即执行一次
+        }
+    },
+    methods: {
+        addWin(info, com) {},
+      sendMsg(user,data){}
+      //...
+      }
+}
+&lt;/script&gt;</code></pre>
+<h4 id="style部分">style部分</h4>
+<p>使用了 <strong>vue</strong> 默认的 <strong>scoped</strong> ，当然最完善的方案是 <strong>css-module</strong>，配置要复杂一些，当然这要看你项目需求。预编译器使用的是 <strong>scss</strong>，个人认为比较强大和方便。</p>
+<pre class="vue"><code>&lt;style lang=&quot;scss&quot; scoped&gt;
+$blue: hsl(200, 100%, 45%);
+@mixin nowrap {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.content {
+    height: 100%;
+    width: 1000px;
+    margin: 0 auto;
+    position: relative;
+}
+.main-panel {
+    width: 100%;
+}
+.search-panel {
+    width: 100%;
+    min-height: 313px;
+    max-height: 513px;
+    li {
+        line-height: 2;
+    }
+}
+.bar {
+    position: absolute;
+    top: 30px;
+    width: 250px;
+    background-color: #fff;
+    user-select: none;
+    box-shadow: 0 6px 20px 0 hsla(0, 0%, 0%, 0.19),
+        0 8px 17px 0 hsla(0, 0%, 0%, 0.2);
+    header {
+        display: flex;
+        align-items: flex-start;
+        align-items: center;
+        background-color: $blue;
+        color: #fff;
+        .avatar {
+            width: 30px;
+            height: 30px;
+            margin: 10px;
+            border: 1px solid $blue;
+            border-radius: 50%;
+            overflow: hidden;
+            cursor: pointer;
+            &amp;:hover {
+                border-color: #fff;
+            }
+            img {
+                width: 100%;
+                height: 100%;
+            }
+        }
+    }
+}
+&lt;style&gt;</code></pre>
+<h2 id="vuex的使用">vuex的使用</h2>
+<p><strong>vuex</strong> 相比 <strong>react</strong> 中的 <strong>redux</strong>，使用起来也更加简单和方便，尽管相比 <strong>redux</strong> 可能没有那么 &quot;纯&quot;，但好用就行。 <strong>vuex</strong> 直接把异步的 action 封装进里面，使用module将不同组件的状态区分开来。可以说 <strong>vuex</strong> 的 store 集中了 项目大部分与 状态相关的业务逻辑，这也是 <strong>vue</strong> 项目的一大关键点。</p>
+<h4 id="store">store</h4>
+<p><strong>vuex</strong> 的 store 和 <strong>redux</strong> 的 store 一样。</p>
+<pre><code><code>import Vue from &#39;vue&#39;
+import Vuex from &#39;vuex&#39;
+import { state, mutations } from &#39;./mutations&#39;
+import * as getters from &#39;./getters&#39;
+import * as actions from &#39;./actions&#39;
+import friend from &#39;./modules/friend&#39;
+import msg from &#39;./modules/msg&#39;
+
+Vue.use(Vuex)
+
+export default new Vuex.Store({
+    actions,
+    getters,
+    state,
+    mutations,
+    modules: {
+        friend,
+        msg
+    }
+})</code></pre>
+<h4 id="全局-state-和-mutations">全局 state 和 mutations</h4>
+<p><strong>vuex</strong> 中的 <strong>state</strong> 对应 <strong>redux</strong> 的 <strong>state</strong>，<strong>mutations</strong> 则类似 <strong>redux</strong> 中的 <strong>action</strong>，其中mutations是同步的。</p>
+<pre><code><code>export const state = {
+    loginInfo: { token },
+    selfInfo: selfInfo,
+    dialog: { txt: &#39;content&#39;, cancal: false, callback: () =&gt; { }, show: false }
+}
+
+export const mutations = {
+    showDialog(state, payload) {
+        state.modal.visible = true;
+        state.dialog = Object.assign({}, state.dialog, payload);
+        state.dialog.show = true;
+    },
+    closeDialog(state) {
+        state.modal.visible = false;
+        state.dialog.show = false;
+    },
+    setLoginInfo(state) {
+        state.loginInfo = { token: localStorage.getItem(&quot;token&quot;) };
+    },
+    setSelfInfo(state, payload) {
+        state.selfInfo = payload;
+        localStorage.setItem(&quot;selfInfo&quot;, JSON.stringify(payload));
+    },
+    logout() {
+        state.loginInfo = {};
+        state.selfInfo = {};
+        localStorage.clear();
+    }
+}</code></pre>
+<h4 id="全局-action-和-getters">全局 action 和 getters</h4>
+<p><strong>vuex</strong> 的 <strong>aciton</strong> 就是将异步的动作封装起来。而<strong>redux</strong> 得通过 <strong>redux-saga</strong> 之类的中间件才能实现类似的效果。</p>
+<pre><code><code>import { get, post } from &quot;../common/request&quot;;
+
+export const getInfo = ({ commit }) =&gt; {
+    return  get(&quot;/getinfo&quot;).then(res =&gt; {
+        if (res.code == 0) {
+            commit(&quot;setSelfInfo&quot;, res.data.user);
+            commit(&quot;setFriends&quot;, res.data.friends);
+            commit(&quot;setGroup&quot;, res.data.groups);
+            commit(&quot;setMsgs&quot;, res.data.msgs);
+        } else if (res.code == 1) {
+            commit(&quot;logout&quot;);
+        } else {
+            commit(&#39;showDialog&#39;,{txt:res.message})
+        }
+    }).catch(err=&gt;{
+        commit(&#39;showDialog&#39;,{txt:err.message})
+    });
+}
+
+export const updateSelf=({commit},form)=&gt;{
+    post(&quot;/updateinfo&quot;, form).then(res =&gt; {
+        if (res.code == 0) {
+            commit(&quot;updateSelfInfo&quot;, form);
+        } else if (res.code == 1) {
+            commit(&quot;logout&quot;);
+        } else {
+            commit(&#39;showDialog&#39;,{txt:res.message})
+        }
+    }).catch(err=&gt;{
+        commit(&#39;showDialog&#39;,{txt:err.message})
+    });
+}
+</code></pre>
+<p>getters可以看成是对state 中某些字段的封装</p>
+<pre><code><code>export const visible = state =&gt; state.modal.visible
+export const isLogin = state =&gt; !!state.loginInfo.token</code></pre>
+<h4 id="modules">modules</h4>
+<p>随着项目规模的扩展，拆分和模块化都是一个必然。针对某个子模块而设置的store，它的结构和根store一样，module 的 store 最终会合并到根 store里面。msg为例的编写方式如下:</p>
+<pre><code><code>import { get, post } from &quot;../../common/request&quot;;
+
+export default {
+    state: {
+        msgs: []
+    },
+    getters: {
+        msgs: state =&gt; state.msgs,
+        dealCount: state =&gt; state.msgs.filter(i =&gt; i.status == 0).length
+    },
+    actions: {
+        accept({ commit }, form) {
+            return post(&quot;/accept&quot;, { id: form.id, friend_id: form.from_id }).then(res =&gt; {
+                if (res.code == 0) {
+                    commit(&quot;setMsgState&quot;, { id: form.id, status: 1 });
+                    commit(&quot;addFriend&quot;, Object.assign({}, form, { id: form.from_id }));
+                } else {
+                    commit(&#39;showDialog&#39;,{txt:res.message})
+                }
+            }).catch(err=&gt;{
+                commit(&#39;showDialog&#39;,{txt:err.message})
+            });
+        },
+        reject({ commit }, form) {
+            post(&quot;/reject&quot;, { id: form.id }).then(res =&gt; {
+                if (res.code == 0) {
+                    form.status = 2;
+                    commit(&quot;setMsgState&quot;, form);
+                } else {
+                    commit(&#39;showDialog&#39;,{txt:res.message})
+                }
+            }).catch(err=&gt;{
+                commit(&#39;showDialog&#39;,{txt:err.message})
+            });
+        }
+    },
+    mutations: {
+        setMsgs(state, payload) {
+            state.msgs = payload;
+        },
+        setMsgState(state, payload) {
+            state.msgs.forEach(i =&gt; {
+                if (i.id == payload.id) {
+                    i.status = payload.status;
+                }
+            })
+        },
+        addMsg(state, payload) {
+            state.msgs.unshift(payload);
+        }
+    }
+}</code></pre>
+<h2 id="socket.io的接入">socket.io的接入</h2>
+<p>接着将websocket使用起来，让我们实现 好友聊天和分组聊天的功能，socket.io 的介绍可以看我之前的文章 <em><a href="https://www.cnblogs.com/edwardloveyou/p/10625152.html">关于socket.io的使用</a></em>。</p>
+<h4 id="客户端">客户端</h4>
+<p>首先连接服务端的 socket，然后将自身的用户信息注册到 socket.io 服务，这样服务端才知道你是谁，也才能与其他人实行通信。</p>
+<pre><code><code>async created() {// vue 组件创建时建立socket连接
+  const token = localStorage.getItem(&quot;token&quot;) || &quot;&quot;;
+  if (!token) {
+        return this.$router.push(&quot;/sign/log&quot;);
+  }
+  await this.$store.dispatch(&quot;getInfo&quot;);
+  this.socket = io(&quot;http://localhost:3001?token=&quot; + token);
+
+  //注册用户信息后才开始与服务端通信
+  this.socket.emit(&quot;sign&quot;, { user: this.selfInfo, rooms }, res =&gt; {
+    // console.log(res);
+    this.$store.commit(&quot;friendStatus&quot;, res.data);
+    this.socket.on(&quot;userin&quot;, (map, user) =&gt; {
+      this.$store.commit(&quot;friendStatus&quot;, map);
+      showTip(user, &quot;上线了&quot;);
+    });
+    this.socket.on(&quot;userout&quot;, (map, user) =&gt; {
+      this.$store.commit(&quot;friendStatus&quot;, map);
+      showTip(user, &quot;下线了&quot;);
+    });
+
+    this.socket.on(&quot;auth&quot;, data =&gt; {
+      this.$store.commit(&#39;showDialog&#39;,{txt:data.message})
+      this.$store.commit(&quot;logout&quot;);
+    });
+
+    //接收申请好友和组群
+    this.socket.on(&quot;apply&quot;, data =&gt; {
+      this.$store.commit(&quot;addMsg&quot;, data);
+    });
+
+    //接收聊天信息
+    this.socket.on(&quot;reply&quot;, (user, data) =&gt; {
+      this.sendMsg(user, data);
+    });
+
+    //接收群组聊天信息
+    this.socket.on(&quot;groupReply&quot;, (info, data) =&gt; {
+      this.sendGroupMsg(info, data);
+    });
+  });
+},
+beforeDestroy() { //组件销毁之前，将socket 关闭
+    this.socket.close();
+},</code></pre>
+<h4 id="服务端">服务端</h4>
+<p>socket.io 对应的服务端部分，逻辑主要包括用户注册，两人聊天，群聊天，当然对应的信息需要保存到数据库。 这里的技巧就是使用变量记录当前所有登录用户的信息。</p>
+<pre><code><code>const auth = require(&#39;./auth.js&#39;)
+const { insertMsg, insertToUser } = require(&#39;../daos/message&#39;);
+const log = require(&#39;../common/logger&#39;)
+
+let MAP = {};//用户id和socket id
+let LIST = []; //用户信息
+let ROOMS = []; //房间
+
+const currTime = () =&gt; {
+    const d = new Date(), date = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    return (&#39;0&#39; + d.getHours()).slice(-2) + &#39;:&#39; + (&#39;0&#39; + d.getMinutes()).slice(-2) + &#39;:&#39; + (&#39;0&#39; + d.getSeconds()).slice(-2);
+};
+
+module.exports = io =&gt; {
+    // middleware
+    io.use(auth);
+    //namespace (/)
+    io.on(&#39;connection&#39;, socket =&gt; {
+        socket.emit(&#39;open&#39;, {
+            code: 0,
+            handshake: socket.handshake,
+            namespace: &#39;/&#39;,
+            message: &#39;welcome to main channel, please sign&#39;
+        });
+                
+        //用户注册
+        socket.on(&#39;sign&#39;, ({ user, rooms }, fn) =&gt; {
+            if (!user.id) {
+                return fn({ code: 2, message: &#39;id not exist&#39; });
+            }
+            MAP[user.id] = socket.id;
+            user.socketId = socket.id;
+            LIST.push(user);
+
+            socket.join(rooms);//加入自己所在的组
+            socket.emit(&#39;userin&#39;, MAP, user);
+            socket.broadcast.emit(&#39;userin&#39;, MAP, user);
+
+            fn({
+                code: 0,
+                message: &#39;sign success&#39;,
+                data: MAP
+            });
+        });
+
+        //两人聊天
+        socket.on(&#39;send&#39;, async (uid, msg) =&gt; {
+            const sid = MAP[uid];//接收用户socket.id
+            const cid = findUid(socket.id);//发送用户id
+
+            if (sid) { // 好友在线则发送
+                socket.to(sid).emit(&#39;reply&#39;, { id: cid, self: false }, { date: currTime(), msg });
+            }
+            // 给自己也发一份
+            socket.emit(&#39;reply&#39;, { id: uid, self: true }, { date: currTime(), msg });
+            // 保存数据库
+            try {
+                const ret = await insertMsg({ send_id: cid, receive_id: uid, content: msg });
+                insertToUser({ user_id: uid, send_id: cid, message_id: ret.insertId, is_read: sid ? 1 : 0 });
+            } catch (err) {
+                log.error(err);
+            }
+        });
+
+        //群组聊天
+        socket.on(&#39;groupSend&#39;, async ({gid,user}, msg) =&gt; {
+                    //...
+        });
+
+        socket.on(&#39;acceptFriend&#39;, (uid) =&gt; {
+                    //...
+        });
+
+        socket.on(&#39;sendApply&#39;, (uid, data) =&gt; {
+                    //...
+        });
+
+        socket.on(&#39;disconnect&#39;, () =&gt; {
+                    //...
+        });
+    });
+};
+</code></pre>
+<h2 id="客户端的启动">客户端的启动</h2>
+<p>首先得编写client.js，将前端服务启动起来，依然还是使用我们高效的koa框架。我这里图省事，和之前的服务端所在同一个根目录下，真正项目会将服务端部分和客户端部分 分离到不同目录或不同的服务器的。</p>
+<pre><code><code>const koa = require(&#39;koa&#39;)
+const app = new koa()
+const static = require(&#39;koa-static&#39;)
+const compress = require(&#39;koa-compress&#39;)
+const router = require(&#39;koa-router&#39;)()
+const { clientPort } = require(&#39;./server/config/app&#39;)
+const tpl = require(&#39;./server/middleware/tpl&#39;)
+const path = require(&#39;path&#39;)
+
+// gzip
+app.use(compress({
+    filter: function (content_type) {
+        return /text|javascript/i.test(content_type)
+    },
+    threshold: 2048,
+    flush: require(&#39;zlib&#39;).Z_SYNC_FLUSH
+}));
+
+// set static directiory
+app.use(static(path.join(__dirname, &#39;dist&#39;), { index: false }));
+
+// simple template engine
+app.use(tpl({
+    path: path.join(__dirname, &#39;dist&#39;)
+}));
+
+// add routers
+router
+    .get(&#39;/&#39;, ctx =&gt; {
+        ctx.render(&#39;index.html&#39;);
+    })
+    .get(&#39;/sign/*&#39;, ctx =&gt; {
+        ctx.redirect(&#39;/&#39;);
+    })
+
+app.use(router.routes())
+    .use(router.allowedMethods());
+
+// deal 404
+app.use(async (ctx, next) =&gt; {
+    ctx.status = 404;
+    ctx.body = { code: 404, message: &#39;404! not found !&#39; };
+});
+
+// koa already had event to deal with the error, just rigister it
+app.on(&#39;error&#39;, (err, ctx) =&gt; {
+    ctx.status = 500;
+    ctx.statusText = &#39;Internal Server Error&#39;;
+    if (ctx.app.env === &#39;development&#39;) { //throw the error to frontEnd when in the develop mode
+        ctx.res.end(err.stack); //finish the response
+    } else {
+        ctx.body = { code: -1, message: &#39;Server Error&#39; };
+    }
+});
+
+if (!module.parent) {
+    app.listen(clientPort);
+    console.log(&#39;app server running at: http://localhost:%d&#39;, clientPort);
+}</code></pre>
+<p>启动服务端和客户端，我们整个demo就能运行，主要实现如下功能点：</p>
+<ol>
+<li>主页面的所有的窗口都可以拖动，关闭</li>
+<li>可以编辑用户信息，群组信息，每个用户可以新建3个群组</li>
+<li>可以好友聊天，群组聊天</li>
+<li>搜索用户和群组</li>
+<li>好友申请和群组申请</li>
+<li>在线时，可以获得好友上线下线提醒，实时答复用户申请</li>
+<li>离线时，仍然可以给用户和群组留言，下次登录获得提醒</li>
+</ol>
+<p><img src="./images/koa+mysql+vue+socket.io全栈开发之前端篇0.png" alt="web QQ" /></p>
+<h2 id="后续">后续</h2>
+<p>接下来可以优化和增强的地方，我想到以下几点：</p>
+<ol>
+<li>使用 <strong>nuxt</strong> 将 vue 进行服务端渲染 ，进一步提高性能</li>
+<li>node 部分，使用 pm2 进行部署。</li>
+</ol>
+<p>源代码: <em><a href="https://github.com/edwardzhong/vue_qq">vue_qq</a></em></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

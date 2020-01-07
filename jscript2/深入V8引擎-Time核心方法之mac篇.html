@@ -1,0 +1,181 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修深入V8引擎-Time核心方法之mac篇' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>深入V8引擎-Time核心方法之mac篇</center></div><div class='banquan'>原文出处:本文由博客园博主书生小龙提供。<br/>
+原文连接:https://www.cnblogs.com/QH-Jimmy/p/10918818.html</div><br>
+    <p>　　由于底层逻辑实现不同操作系统区别很大，所以干脆分篇来说。</p>
+<p>　　主要讲一下Time、TimeTicks两个类里面对于时间戳的实现，其余的运算符重载、边缘工具方法就不看了，先是Time。</p>
+<p>&nbsp;</p>
+<p><strong>Time</strong></p>
+<p>　　类本身的说明在上一篇有，这里就去掉了。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span> V8_BASE_EXPORT Time final : <span style="color: #0000ff;">public</span> time_internal::TimeBase&lt;Time&gt;<span style="color: #000000;"> {
+ </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Contains the nullptr time. Use Time::Now() to get the current time.</span>
+  constexpr Time() : TimeBase(<span style="color: #800080;">0</span><span style="color: #000000;">) {}
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Returns the current time. Watch out, the system might adjust its clock
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> in which case time will actually go backwards. We don't guarantee that
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> times are increasing, or that two calls to Now() won't be the same.</span>
+  <span style="color: #0000ff;">static</span><span style="color: #000000;"> Time Now();
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Returns the current time. Same as Now() except that this function always
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> uses system time so that there are no discrepancies between the returned
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> time and system time even on virtual environments including our test bot.
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> For timing sensitive unittests, this function should be used.</span>
+  <span style="color: #0000ff;">static</span><span style="color: #000000;"> Time NowFromSystemTime();
+
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+};</pre>
+</div>
+<p>　　从注释可知，这里的Now是返回国际时间戳的通用方法，但是操作系统可能会对返回值做修正，所以是有一定风险的。第二个NowFromSystemTime使用的系统时间比较准确，求精确的情况下考虑使用这一个。</p>
+<p>　　但是在mac上，这两个方法是一样的。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">#elif</span> V8_OS_POSIX<span style="color: #000000;">
+
+Time Time::Now() {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> ...</span>
+<span style="color: #000000;">}
+
+Time Time::NowFromSystemTime() {
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Now();
+}</span></pre>
+</div>
+<p>　　这就很蠢了，可能是该操作系统不存在修正时间戳的情况，所以没必要分辨这两个方法了。</p>
+<p>　　所以对于两种方式的解析就变成了一个，集中来看Now的实现。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008000;">//</span><span style="color: #008000;"> #ifndef _STRUCT_TIMEVAL
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> #define _STRUCT_TIMEVAL         struct timeval
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> _STRUCT_TIMEVAL
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> {
+</span><span style="color: #008000;">//</span><span style="color: #008000;">     __darwin_time_t         tv_sec;         /* seconds */
+</span><span style="color: #008000;">//</span><span style="color: #008000;">     __darwin_suseconds_t    tv_usec;        /* and microseconds */
+</span><span style="color: #008000;">//</span><span style="color: #008000;"> };</span>
+<span style="color: #000000;">
+Time Time::Now() {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 内置结构体 见上面</span>
+  <span style="color: #0000ff;">struct</span><span style="color: #000000;"> timeval tv;
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Linux内置时间函数</span>
+  <span style="color: #0000ff;">int</span> result = gettimeofday(&amp;<span style="color: #000000;">tv, nullptr);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 返回值检测</span>
+  DCHECK_EQ(<span style="color: #800080;">0</span><span style="color: #000000;">, result);
+  USE(result);
+  </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> FromTimeval(tv);
+}</span></pre>
+</div>
+<p>　　这里的用的都是Linux内置的方法，timeval结构体专门用来获取返回的时间，可以精确到微秒，也就是秒/毫秒/微秒的精度。</p>
+<p>　　结构体两部分分别保存当前时间戳的秒部分、微秒部分，类型均为long，下面用一个简单例子来展示。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span><span style="color: #000000;"> main() {
+    </span><span style="color: #0000ff;">struct</span><span style="color: #000000;"> timeval tv;
+    gettimeofday(</span>&amp;<span style="color: #000000;">tv, nullptr);
+    cout </span>&lt;&lt; <span style="color: #800000;">"current </span><span style="color: #800000;">seconds is </span><span style="color: #800000;">"</span> &lt;&lt; tv.tv_sec &lt;&lt;<span style="color: #000000;"> endl;
+    cout </span>&lt;&lt; <span style="color: #800000;">"current </span><span style="color: #800000;">microseconds is </span><span style="color: #800000;">"</span> &lt;&lt;tv.tv_usec &lt;&lt;<span style="color: #000000;"> endl;
+}</span></pre>
+</div>
+<p>　　在浏览器下面同时用Date.now()做一个对比，由于还是有一定的时间差，所以微秒部分肯定对不上的。</p>
+<p>　　两者输出对比如下。</p>
+<p><img src="./images/深入V8引擎-Time核心方法之mac篇0.png" alt="" /><img src="./images/深入V8引擎-Time核心方法之mac篇1.png" alt="" /></p>
+<p>　　在秒的部分完全对上了，微秒那块就别在意了，我可没有神手速。</p>
+<p>　　这样，就通过系统API得到了当前时间戳，下面就是对两个部分做一个处理。</p>
+<div class="cnblogs_code">
+<pre><code>Time Time::FromTimeval(<span style="color: #0000ff;">struct</span><span style="color: #000000;"> timeval tv) {
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 1秒 = 1000 * 1000微秒 这里做的合法性检测</span>
+  DCHECK_GE(tv.tv_usec, <span style="color: #800080;">0</span><span style="color: #000000;">);
+  DCHECK(tv.tv_usec </span>&lt; static_cast&lt;suseconds_t&gt;<span style="color: #000000;">(kMicrosecondsPerSecond));
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 当秒、微秒都返回0 返回默认构造类 如下
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> constexpr Time() : TimeBase(0) {}</span>
+  <span style="color: #0000ff;">if</span> (tv.tv_usec == <span style="color: #800080;">0</span> &amp;&amp; tv.tv_sec == <span style="color: #800080;">0</span><span style="color: #000000;">) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Time();
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 如果返回值达到了最大值 则返回最大值 max也是内置方法</span>
+  <span style="color: #0000ff;">if</span> (tv.tv_usec == static_cast&lt;suseconds_t&gt;(kMicrosecondsPerSecond - <span style="color: #800080;">1</span>) &amp;&amp;<span style="color: #000000;">
+      tv.tv_sec </span>== std::numeric_limits&lt;time_t&gt;<span style="color: #000000;">::max()) {
+    </span><span style="color: #0000ff;">return</span><span style="color: #000000;"> Max();
+  }
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 这里返回微秒单位的数值</span>
+  <span style="color: #0000ff;">return</span> Time(tv.tv_sec * kMicrosecondsPerSecond +<span style="color: #000000;"> tv.tv_usec);
+}</span></pre>
+</div>
+<p>　　比较简单，看一下注释就懂了，最后返回的是以微秒为单位的一个长整数，而JS中的Date.now()返回的则是毫秒单位，略有不同。</p>
+<p>&nbsp;</p>
+<p><strong>TimeTicks</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">class</span> V8_BASE_EXPORT TimeTicks final : <span style="color: #0000ff;">public</span> time_internal::TimeBase&lt;TimeTicks&gt;<span style="color: #000000;"> {
+ </span><span style="color: #0000ff;">public</span><span style="color: #000000;">:
+  constexpr TimeTicks() : TimeBase(</span><span style="color: #800080;">0</span><span style="color: #000000;">) {}
+  </span><span style="color: #0000ff;">static</span><span style="color: #000000;"> TimeTicks Now();
+  </span><span style="color: #0000ff;">static</span><span style="color: #000000;"> TimeTicks HighResolutionNow();
+  </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">bool</span><span style="color: #000000;"> IsHighResolution();
+
+ </span><span style="color: #0000ff;">private</span><span style="color: #000000;">:
+  friend </span><span style="color: #0000ff;">class</span> time_internal::TimeBase&lt;TimeTicks&gt;<span style="color: #000000;">;
+
+  </span><span style="color: #0000ff;">explicit</span><span style="color: #000000;"> constexpr TimeTicks(int64_t ticks) : TimeBase(ticks) {}
+};</span></pre>
+</div>
+<p>　　这个类看看就好了，跟上面那个类似，也有两个方法，一个是更精确的。</p>
+<p>　　然而，两个方法也是一个，在mac上不存在精细度(windows上都有区别，下篇搞)，V8在内部直接写了如下注释。</p>
+<blockquote>
+<div>#error platform does not implement TimeTicks::HighResolutionNow.</div>
+</blockquote>
+<p>　　所以，只看Now的实现。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">struct</span><span style="color: #000000;"> mach_timebase_info {
+    uint32_t        numer;  </span><span style="color: #008000;">//</span><span style="color: #008000;"> 分子</span>
+    uint32_t        denom;  <span style="color: #008000;">//</span><span style="color: #008000;"> 分母</span>
+<span style="color: #000000;">};
+
+TimeTicks TimeTicks::Now() {
+  int64_t ticks;
+  </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> mach_timebase_info info;
+  </span><span style="color: #0000ff;">if</span> (info.denom == <span style="color: #800080;">0</span><span style="color: #000000;">) {
+    kern_return_t result </span>= mach_timebase_info(&amp;<span style="color: #000000;">info);
+  }
+  ticks </span>= (mach_absolute_time() / Time::kNanosecondsPerMicrosecond * info.numer /<span style="color: #000000;"> info.denom);
+  </span><span style="color: #008000;">//</span><span style="color: #008000;"> Make sure we never return 0 here.</span>
+  <span style="color: #0000ff;">return</span> TimeTicks(ticks + <span style="color: #800080;">1</span><span style="color: #000000;">);
+}</span></pre>
+</div>
+<p>　　这里涉及2个内置方法和1个内置结构体，挨个介绍一下。</p>
+<ul>
+<li>mach_timebase_info结构体作为参数传入同名函数</li>
+<li>mach_timebase_info方法返回两个因子，将返回的分子除以分母可以得到一个基准参数(找不到Linux的官方API文档，还是windows好啊)，具体解释有兴趣可以去查看</li>
+<li>mach_absolute_time方法返回一个系统从启动开始保持运行的一个绝对时间，参考windows的QPC，单位为纳秒</li>
+</ul>
+<p>　　唯一有价值的就是那个单位，由于返回的绝对时间单位是纳秒，所以需要除以TimeConstants里面的常数，最后与基准参数相乘，最终得到一个硬件时间戳。</p>
+<p>　　本地做一个实验。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #0000ff;">int</span><span style="color: #000000;"> main() {
+    </span><span style="color: #0000ff;">static</span> <span style="color: #0000ff;">struct</span><span style="color: #000000;"> mach_timebase_info info;
+    mach_timebase_info(</span>&amp;<span style="color: #000000;">info);
+    cout </span>&lt;&lt; <span style="color: #800000;">"</span><span style="color: #800000;">numer is </span><span style="color: #800000;">"</span> &lt;&lt; info.numer &lt;&lt;<span style="color: #000000;"> endl;
+    cout </span>&lt;&lt; <span style="color: #800000;">"</span><span style="color: #800000;">denom is </span><span style="color: #800000;">"</span> &lt;&lt; info.denom &lt;&lt;<span style="color: #000000;"> endl;
+    cout </span>&lt;&lt; <span style="color: #800000;">"</span><span style="color: #800000;">absolute time is </span><span style="color: #800000;">"</span> &lt;&lt; mach_absolute_time() &lt;&lt;<span style="color: #000000;"> endl;
+    cout </span>&lt;&lt; <span style="color: #800000;">"</span><span style="color: #800000;">current timestamp is </span><span style="color: #800000;">"</span> &lt;&lt; (info.numer / info.denom) * (mach_absolute_time() * 1e-<span style="color: #800080;">9</span>) &lt;&lt;<span style="color: #000000;"> endl;
+}</span></pre>
+</div>
+<p>　　这样得到最终的结果理论上就是我mac电脑的活跃秒数。</p>
+<p><img src="./images/深入V8引擎-Time核心方法之mac篇2.png" alt="" /></p>
+<p>　　7000秒，也就是大约2个小时吧，看来还是很准确的，有兴趣的可以自行实验。</p>
+<p>　　下一篇换windows，apple的<a href="https://developer.apple.com/documentation/kernel/1462446-mach_absolute_time" target="_blank">apidoc</a>真是一坨屎，根本跟微软没法比。</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

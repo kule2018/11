@@ -1,0 +1,196 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修NodeJS概述2-事件插件-简易爬虫' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>NodeJS概述2-事件插件-简易爬虫</center></div><div class='banquan'>原文出处:本文由博客园博主兰生提供。<br/>
+原文连接:https://www.cnblogs.com/lilansheng/p/12093869.html</div><br>
+    <p>事件 events 模块<br />
+原生事件写法</p>
+<pre><code><code>  /* 
+    * 1. 事件分类
+      * DOM0级 事件  - on + eventType
+      * DOM2级 事件  - 事件监听
+    * 2. 事件构成部分有哪些？    dom.onclick = function () {}
+      * 事件源
+      * 事件类型  click change ... 
+      * 事件处理程序
+    * 3. 事件绑定形式有哪些？
+      *  dom.onclick = function () {}
+      * 事件监听   dom.addEventListener(&#39;click&#39;,function(){},false)
+      * 元素绑定 &lt;div onclick = &quot;load()&quot;&gt;&lt;/div&gt;
+  */</code></pre>
+<p>Node.js 事件驱动</p>
+<ol>
+<li>问题： Node.js中有DOM吗？
+<ul>
+<li>没有</li>
+<li>结论： 原生js DOM 事件都不能用</li>
+</ul></li>
+<li>创建了一个叫做 events 内置模块来解决这个问题</li>
+</ol>
+<pre><code><code>const events= require(&#39;events&#39;);
+//events.EventEmitter//构造函数
+console.log(events.EventEmitter.prototype)//原型链
+/* 
+ EventEmitter {
+    _events: undefined,
+    _eventsCount: 0,
+    _maxListeners: undefined,
+    setMaxListeners: [Function: setMaxListeners],
+    getMaxListeners: [Function: getMaxListeners],
+    emit: [Function: emit],
+    addListener: [Function: addListener],
+    on: [Function: addListener],
+    prependListener: [Function: prependListener],
+    once: [Function: once],
+    prependOnceListener: [Function: prependOnceListener],
+    removeListener: [Function: removeListener],
+    off: [Function: removeListener],
+    removeAllListeners: [Function: removeAllListeners],
+    listeners: [Function: listeners],
+    rawListeners: [Function: rawListeners],
+    listenerCount: [Function: listenerCount],
+    eventNames: [Function: eventNames]
+  }
+*/
+const archetype=events.EventEmitter.prototype;
+// archetype.on(事件，事件处理函数)  作用发布
+// archetype.emit(事件名，实际参数)     作用订阅
+archetype.on(&#39;handler&#39;,(val)=&gt;{
+console.log(&#39;事件触发&#39;,val);
+})
+archetype.emit(&#39;handler&#39;,111)</code></pre>
+<p>Readline模块逐行读取文本内容<br />
+readline 模块提供了一个接口，用于一次一行地读取可读流（例如 process.stdin）中的数据。</p>
+<pre><code><code>const readline = require(&#39;readline&#39;);
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+rl.question(&#39;你如何看待 Node.js 中文网？&#39;, (answer) =&gt; {
+  // TODO：将答案记录在数据库中。
+  console.log(`感谢您的宝贵意见：${answer}`);
+
+  rl.close();
+});</code></pre>
+<pre><code><code>const readline = require(&#39;readline&#39;);
+const fs = require(&#39;fs&#39;);
+
+const rl = readline.createInterface({
+  input: fs.createReadStream(&#39;sample.txt&#39;)
+});
+
+rl.on(&#39;line&#39;, (line) =&gt; {
+  console.log(&#39;Line from file:&#39;, line);
+});</code></pre>
+<p>简易爬虫</p>
+<pre><code><code>/* 
+  * 爬虫
+    * 1. 进行数据请求，获取网页内容       http
+    * 2. 进行数据分析、数据清洗 
+    * 3. 发送给我们自己的网页
+*/</code></pre>
+<pre><code><code>const http=require(&#39;http&#39;)
+//获取 JSON 的示例：
+http.get(&#39;http://jsonplaceholder.typicode.com/albums&#39;, (res) =&gt; {
+     /* res就是我得到的返回值 */
+  const { statusCode } = res;//状态码
+  const contentType = res.headers[&#39;content-type&#39;];//得到的文件类型
+// 错误代码处理
+  let error;
+  if (statusCode !== 200) {
+    error = new Error(&#39;请求失败\n&#39; +
+                      `状态码: ${statusCode}`);
+  } else if (!/^application\/json/.test(contentType)) {
+    error = new Error(&#39;无效的 content-type.\n&#39; +
+                      `期望的是 application/json 但接收到的是 ${contentType}`);
+  }
+  if (error) {
+    console.error(error.message);
+    // 消费响应数据来释放内存。
+    res.resume();//重新发起数据
+    return;
+  }
+
+  res.setEncoding(&#39;utf8&#39;);//中文编码
+  let rawData = &#39;&#39;;//真实数据
+  res.on(&#39;data&#39;, (chunk) =&gt; { rawData += chunk; });// 通过data事件将数据分片，然后逐片添加到rawData身上，好处就是当我们执行每一个分片的小任务时，至少给其他任务提供了可执行的机会
+  res.on(&#39;end&#39;, () =&gt; {//结束
+    try {// 高级编程 错误捕获
+      const parsedData = JSON.parse(rawData);
+      console.log(parsedData);
+    } catch (e) {
+      console.error(e.message);
+    }
+  });
+}).on(&#39;error&#39;, (e) =&gt; {
+  console.error(`出现错误: ${e.message}`);
+});</code></pre>
+<pre><code><code>const http=require(&#39;http&#39;);
+const cheerio=require(&#39;cheerio&#39;)
+const options={
+    hostname: &#39;jx.1000phone.net&#39;,
+  port: 80,
+  path: &#39;/teacher.php/Class/classDetail/param/rqiWlsefmajGmqJhXXWhl3ZiZ2Zn&#39;,
+  method: &#39;GET&#39;,
+  headers: {
+    Accept: &#39;text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9&#39;,
+    &#39;Accept-Encoding&#39;: &#39;gzip, deflate&#39;,
+    &#39;Accept-Language&#39;: &#39;zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7&#39;,
+    &#39;Cache-Control&#39;: &#39;no-cache&#39;,
+    Connection: &#39;keep-alive&#39;,
+    Cookie: &#39;PHPSESSID=ST-117984-IVZSfYMlr9YXvRfFRm-A1TimOeA-izm5ejd5j1npj2pjc7i3v4z&#39;,
+    Host: &#39;jx.1000phone.net&#39;,
+    Pragma: &#39;no-cache&#39;,
+    Referer: &#39;http://jx.1000phone.net/teacher.php/Class/index&#39;,
+    &#39;Upgrade-Insecure-Requests&#39;: 1,
+    &#39;User-Agent&#39;: &#39;Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36&#39;,
+    &#39;Content-Type&#39;: &#39;application/x-www-form-urlencoded&#39;,
+    &#39;Content-Length&#39;: 0
+  }}
+
+http.get(options, (res) =&gt; {
+  const { statusCode } = res;
+  const contentType = res.headers[&#39;content-type&#39;];
+
+
+  res.setEncoding(&#39;utf8&#39;);
+  let rawData = &#39;&#39;;
+  res.on(&#39;data&#39;, (chunk) =&gt; { rawData += chunk; });
+  res.on(&#39;end&#39;, () =&gt; {
+    try {
+const $=cheerio.load(rawData);
+$(&#39;.student a&#39;).each(function(item,index){
+    console.log($(this).text());
+    
+})
+      
+    } catch (e) {
+      console.error(e.message);
+    }
+  });
+}).on(&#39;error&#39;, (e) =&gt; {
+  console.error(`出现错误: ${e.message}`);
+});</code></pre>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

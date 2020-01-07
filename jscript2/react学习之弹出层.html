@@ -1,0 +1,156 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修react学习之弹出层' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>react学习之弹出层</center></div><div class='banquan'>原文出处:本文由博客园博主c_y_yuan提供。<br/>
+原文连接:https://www.cnblogs.com/yuyuan-bb/p/10980834.html</div><br>
+    <p>react的弹出层不同于以往的DOM编程，我们知道，在DOM中，弹出层事件绑定在对应的节点上即可，但是在react中，往往只能实现父子之间的传递控制，显然，弹出层的层级不符合此关系。<br />
+在这里我们需要使用React官方的<a href="https://reactjs.org/docs/portals.html">portals</a></p>
+<p>portals可以帮助我们将子节点插入到父节点层级之外的地方<br />
+注：官方文档使用的是class，我在这里使用的是<a href="https://reactjs.org/docs/hooks-intro.html" >react hook</a><br />
+在react</p>
+<h2 id="前置知识">前置知识</h2>
+<p>react hook<br />
+<code>useEffect</code>是了react生命周期中的<code>componentDidMount</code>、<code>componentDidUpdate</code>以及<code>componentWillUnMount</code>三个钩子函数的组合。</p>
+<ul>
+<li><code>useEffect</code>有两个参数</li>
+<li><code>useEffect</code>第二个参数为空数组相当于在<code>componentDidMount</code>周期执行一次</li>
+<li><code>useEffect</code>第二个参数为含有某种state的数组相当于只有在这个state发生改变的时候才执行</li>
+<li><code>useEffect</code>返回一个函数相当于在<code>componentWillUnMount</code>周期执行一次</li>
+</ul>
+<h2 id="实现步骤">实现步骤</h2>
+<p>1.首先，选择要插入弹出层的DOM节点，在这里我参照官方文档将整个项目分成了<code>app-root</code>和<code>model-root</code>两层，我将把弹出层插入到<code>model-root</code>节点中</p>
+<pre><code><code>function App(){
+    return(
+        &lt;React.Fragment&gt;
+            &lt;div id={&quot;app-root&quot;}&gt;
+                &lt;Router/&gt;
+
+            &lt;/div&gt;
+            
+            &lt;div id={&quot;model-root&quot;}&gt;&lt;/div&gt;
+        &lt;/React.Fragment&gt;
+    )
+}
+export default App;</code></pre>
+<p>2.实现弹出层<br />
+我们按照官方文档，先生成一个节点el作为存放我们子节点的容器，并执行<code>ReactDOM.createPortal</code></p>
+<pre><code><code>ReactDOM.createPortal(child, container)</code></pre>
+<p>我们需要先将我们的el节点插入选定的DOM节点，然后再将portal元素插入DOM树中，故我们先用hook在<code>componentDidMount</code>阶段将el插入DOM</p>
+<p>（1）首先获取我们要插入的DOM节点id=model-root</p>
+<pre><code><code> const modelRoot = document.getElementById(&#39;model-root&#39;);</code></pre>
+<p>（2）创建一个存放子节点的元素el</p>
+<pre><code><code>const [el,changEl] = useState(document.createElement(&#39;div&#39;));</code></pre>
+<p>（3）在<code>componentDidMount</code>阶段将el节点插入model-root</p>
+<pre><code><code>    //初始化工作
+    useEffect(()=&gt;{
+
+        modelRoot.appendChild(el);
+
+    },[])</code></pre>
+<p>（4）渲染组件，执行createPortal方法</p>
+<pre><code><code>    return ReactDOM.createPortal((
+        &lt;Content closeModel={props.closeModel}/&gt;
+    ), el);</code></pre>
+<p>（5）在<code>componentWillUnMount</code>阶段移除我们的el节点</p>
+<pre><code><code>    //清理工作
+    useEffect(()=&gt;{
+        return ()=&gt;{
+            modelRoot.innerHTML=&quot;&quot;;
+
+        }
+    })</code></pre>
+<p>完整代码如下：</p>
+<pre><code><code>import React,{useState,useEffect} from &#39;react&#39;;
+import &#39;./Model.css&#39;;
+import ReactDOM from &quot;react-dom&quot;;
+import ExcelUtil from &#39;../../utils/excelUtil&#39;;
+
+
+function Content(props) {
+    return(
+        &lt;div className={&#39;cover&#39;}&gt;
+            &lt;button onClick={props.closeModel}&gt;关闭&lt;/button&gt;
+            &lt;input type=&#39;file&#39; accept=&#39;.xlsx, .xls&#39; onChange={(e)=&gt;{ExcelUtil.importExcel(e)} }/&gt;
+
+        &lt;/div&gt;
+    )
+}
+
+function Model(props){
+    const appRoot = document.getElementById(&#39;app-root&#39;);
+    const modelRoot = document.getElementById(&#39;model-root&#39;);
+    const [el,changEl] = useState(document.createElement(&#39;div&#39;));
+
+    //初始化工作
+    useEffect(()=&gt;{
+
+        modelRoot.appendChild(el);
+
+    },[])
+    //清理工作
+    useEffect(()=&gt;{
+        return ()=&gt;{
+            modelRoot.innerHTML=&quot;&quot;;
+
+        }
+    })
+    return ReactDOM.createPortal((
+        &lt;Content closeModel={props.closeModel}/&gt;
+    ), el);
+}
+
+export default Model;</code></pre>
+<p>这样子子元素就出现在了我们想要的DOM层级中</p>
+<p>3.在调用页中引入我们的Model并定义相关触发事件，这些与子节点向父节点的方式传值无异</p>
+<pre><code><code>  {(isShowPop == true)?&lt;Model isShow={isShowPop} closeModel={handleInClick}/&gt;:null}</code></pre>
+<pre><code><code>
+function RegisterInUser() {
+    const [isShowPop,changeShowPop] = useState(false);
+    function handleInClick(){
+        changeShowPop(!isShowPop);
+    }
+    return(
+        &lt;React.Fragment&gt;
+//这里是使用的地方
+            {(isShowPop == true)?&lt;Model isShow={isShowPop} closeModel={handleInClick}/&gt;:null}
+
+
+            &lt;button className=&quot;ui-button ui-button-primary&quot;  onClick={handleInClick}&gt;导入人员&lt;/button&gt;
+            &lt;button
+                className=&quot;ui-button ui-button-primary outExcelBtn&quot;
+                type=&quot;primary&quot;
+                onClick={() =&gt; {ExcelUtil.exportExcel(initColumn, attendanceInfoList,&quot;人员名单.xlsx&quot;)}}&gt;
+                导出表格
+            &lt;/button&gt;
+
+
+        &lt;/React.Fragment&gt;
+    )
+}
+
+export default RegisterInUser;
+</code></pre>
+<h2 id="最终的丑陋效果">最终的丑陋效果</h2>
+<p><img src="./images/react学习之弹出层0.png" /></p>
+<p><img src="./images/react学习之弹出层1.png" /></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

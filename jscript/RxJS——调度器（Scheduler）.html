@@ -1,0 +1,168 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修RxJS——调度器（Scheduler）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>RxJS——调度器（Scheduler）</center></div><div class='banquan'>原文出处:本文由博客园博主沉睡的木木夕提供。<br/>
+原文连接:https://www.cnblogs.com/ms27946/p/RxJS-Scheduler.html</div><br>
+    <h1 id="调度器">调度器</h1>
+<p>什么是调度器？调度器是当开始订阅时，控制通知推送的。它由三个部分组成。</p>
+<ul>
+<li>调度是数据结构。它知道怎样在优先级或其他标准去存储和排队运行的任务</li>
+<li>调度器是一个执行上下文。它表示任务在何时何地执行（例如，立即或是在回调机制中如 setTimeout 或 process.nextTick，又或是动画框架）</li>
+<li>调度器有一个（虚拟）计时器。它提供一个 “时间” 的概念，通过在调度器的方法 <code>now()</code> 。在特定的调度程序上调度，它只遵循计时器表示的时间。</li>
+</ul>
+<blockquote>
+<p>调度器能让你在执行上下文定义 Observable 推送的通知给观察者</p>
+</blockquote>
+<p>下面是一个例子，我们用一个简单的 Observable 来同步推送值 1，2，3，并且为了使用这些值，使用操作符 <code>observeOn</code> 到特定的 <code>async</code> 调度程序。</p>
+<pre><code><code>import { Observable, asyncScheduler } from &#39;rxjs&#39;;
+import { observeOn } from &#39;rxjs/operators&#39;;
+
+const observable = new Observable((observer) =&gt; {
+    observer.next(1);
+    observer.next(2);
+    observer.next(3);
+    observer.complete();
+}).pipe(
+    observeOn(asyncScheduler)
+);
+
+console.log(&#39;just before subscribe&#39;);
+observable.subscribe({
+    next(x) {
+        console.log(&#39;got value &#39; + x)
+    },
+    error(err) {
+        console.log(&#39;something wrong occurred: &#39; + err);
+    },
+    complete() {
+        console.log(&#39;done&#39;);
+    }
+});
+console.log(&#39;just after subscribe&#39;);</code></pre>
+<p>执行的输出：</p>
+<pre><code><code>just before subscribe
+just after subscribe
+got value 1
+got value 2
+got value 3
+done</code></pre>
+<p>注意是如何通知 <code>got value...</code> 是在 <code>just after subscribe</code> 之后被推送的，它跟我们之前的默认的行为很相差很远的。这是因为 <code>observeOn(asyncScheduler)</code> 在 <code>new Observable</code> 和最终的观察者之间引入了一个代理观察者。我们来把之前的代码重命名一些标识再来看下：</p>
+<pre><code><code>import { Observable, asyncScheduler } from &#39;rxjs&#39;;
+import { observeOn } from &#39;rxjs/operators&#39;;
+
+var observable = new Observable((proxyObserver) =&gt; {
+    proxyObserver.next(1);
+    proxyObserver.next(2);
+    proxyObserver.next(3);
+    proxyObserver.complete();
+}).pipe(
+    observeOn(asyncScheduler)
+);
+
+var finalObserver = {
+    next(x) {
+        console.log(&#39;got value &#39; + x)
+    },
+    error(err) {
+        console.error(&#39;something wrong occurred: &#39; + err);
+    },
+    complete() {
+        console.log(&#39;done&#39;);
+    }
+};
+
+console.log(&#39;just before subscribe&#39;);
+observable.subscribe(finalObserver);
+console.log(&#39;just after subscribe&#39;);</code></pre>
+<p><code>proxyObserver</code> 在 <code>observeOn(asyncScheduler)</code> 中创建的，这个代理观察者里的 <code>next(value)</code> 函数大概像下面这样：</p>
+<pre><code><code>const proxyObserver = {
+    next(val) {
+        asyncScheduler.schedule(
+            (x) =&gt; finalObserver.next(x),
+            0,  //延迟参数
+            val //这个值是从上面的 x 传过来的
+        );
+    },
+    // ...
+}</code></pre>
+<p>the <code>async</code> 调度程序操作能还使用 <code>setTimeout</code> 或 <code>setInterval</code>，即使如果给定了 <code>delay</code> 的值是 0。通常，在 Javascript 中，<code>setTimeout(fn, 0)</code> 知道如何在下一个事件循环迭代最早运行函数 <code>fn</code> 。</p>
+<p>调度器的方法 <code>schedule()</code> 有一个参数 <code>delay</code>，它指的是相对于调度器自己内部时钟的一个时间数字量。一个调度器的时间不需要有任何相关的实际时间。这个是一个暂时的操作像 <code>delay</code> 操作符一样而不是值实际的时间，但是时间是由调度器的时钟决定的。在测试中这特别有用，它这个虚拟的时间调度器也许用在伪装的真实时间，当在真正同步运行调度任务的时候。</p>
+<h1 id="调度器类型">调度器类型</h1>
+<p><code>async</code> 调度器是 RsJS 众多调度器中内置的一个调度器。他们每一个都能被创建和返回，通过使用 <code>Scheduler</code> 对象的静态属性。</p>
+<table>
+<thead>
+<tr class="header">
+<th>SCHEDULER</th>
+<th>PURPOSE</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>null</code></td>
+<td>不传递任何调度器，通知以同步和递归的方式传递。这个将用于常量时间操作符或尾递归操作符。</td>
+</tr>
+<tr class="even">
+<td><code>queueScheduler</code></td>
+<td>对当前的事件框架队列调度（蹦床调度器）。迭代操作用这个</td>
+</tr>
+<tr class="odd">
+<td><code>asapScheduler</code></td>
+<td>在微任务队列调度，它与 promises 的队列使用相同。基本上在当前 job 之后，但是在下一个 job 之前。异步约束使用这个</td>
+</tr>
+<tr class="even">
+<td><code>asyncScheduler</code></td>
+<td>用 <code>setInterval</code> 调度工作。在以时间为基础的操作用这个</td>
+</tr>
+<tr class="odd">
+<td><code>animationFrameScheduler</code></td>
+<td>调度任务将会发生在下个浏览器内容重绘之前。能使用在平滑的创建浏览器动画</td>
+</tr>
+</tbody>
+</table>
+<h1 id="使用调度器">使用调度器</h1>
+<p>你也许早就在你的代码中使用 RsJS 的调度器，没有显式的说明使用的调度器类型。这是因为所有的处理并发的 Observable 操作符都有可选的调度器。如果你不提供调度器，RxJS 通过使用最小并发原则将会选择一个默认的调度器。这就是说最少并发的调度器需要安全的选择操作符。例如，返回一个有限和少量的 Observable 的操作符，RxJS 不使用调度器，例如 <code>null</code> 或 <code>undefined</code>。对于返回一个可能很大的或者无限的消息，那么就会使用 <code>queue</code> 调度器。对于使用时间的的操作符，那么就会用 <code>async</code>。</p>
+<p>因为 RxJS 使用最少并发调度器，你可以选择一个不同的调度器，如果你想以性能为目的来引入并发。为了指定一个特定的调度器，你可以送那些操作符方法传递调度器，例如 <code>from([10, 20, 30], asyncShceduler)</code></p>
+<p>静态创建操作符通常将一个调度器作为参数传递。例如，<code>from([10, 20, 30])</code> 允许你当推送每一个从 <code>array</code> 转化的通知时指定一个调度器。它通常是操作符上的最后一个参数。下面的静态创建操作符都会传递一个调度器参数：</p>
+<ul>
+<li><code>bindCallback</code></li>
+<li><code>bindNodeCallback</code></li>
+<li><code>combineLatest</code></li>
+<li><code>concat</code></li>
+<li><code>empty</code></li>
+<li><code>from</code></li>
+<li><code>fromPromise</code></li>
+<li><code>interval</code></li>
+<li><code>merge</code></li>
+<li><code>of</code></li>
+<li><code>range</code></li>
+<li><code>throw</code></li>
+<li><code>timer</code></li>
+</ul>
+<p>上下文将会调用 subscribe() 来用 <code>subscribeOn</code> 调度。<code>subscribe</code> 默认会在 Observable 调用，它将会同步和立即的方式调用。然而，你也许要延迟或在给定的调度器调度实际的订阅，使用操作符的 subscribeOn(scheduler) 的实例，里面的 <code>scheduler</code> 就是你要提供的参数。</p>
+<p>使用 <code>observeOn</code> 来调度上下文将推送的通知。就像我们看到的一样，实例操作符 <code>observeOn(scheduler)</code> 在源 Observable 和 目标观察者之间引入 Observer 中间者，这个中介者调度器通过你给定的 <code>shceduler</code> 对目标观察者调用。</p>
+<p>实例操作符传递一个调度器作为参数。</p>
+<p>时间相关操作符像 <code>bufferTime</code>，<code>debounceTime</code>，<code>delay</code>，<code>sampleTime</code>，<code>throttleTime</code>，<code>timeInterval</code>，<code>timeout</code>，<code>timeoutWith</code>，<code>windowTime</code> 最后一个参数全都带一个调度器参数，以及其他操作符默认都会在 <code>asyncScheduler</code> 。</p>
+<p>其他实例传调度器作为参数的操作符：<code>cache</code>，<code>combineLatest</code>，<code>concat</code>，<code>merge</code>，<code>expand</code>，<code>publishReplay</code>，<code>startWith</code>。</p>
+<p>注意到 <code>cache</code> 和 <code>publishReplay</code> 这两个都接受一个调取器，因为他们都使用 ReplaySubject。ReplaySubject 构造函数传递一个可选的调度器作为最后一个参数，因为 ReplaySubject 能处理时间，它只有在调度器的上下文中才会有意义。ReplaySubject 默认使用 <code>queue</code> 调度器提供一个时钟。</p>
+<p>PS：RxJS 系列文章同步至 <a href="https://github.com/MarsonShine/JavascriptStudy/tree/master/src/rxjs/docs" class="uri">https://github.com/MarsonShine/JavascriptStudy/tree/master/src/rxjs/docs</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

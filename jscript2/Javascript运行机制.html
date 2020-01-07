@@ -1,0 +1,97 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Javascript运行机制' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Javascript运行机制</center></div><div class='banquan'>原文出处:本文由博客园博主zhongmeizhi提供。<br/>
+原文连接:https://www.cnblogs.com/zhongmeizhi/p/10634818.html</div><br>
+    <blockquote>
+<p>Javascript是一种单线程开发语言。理解Javascript的运行机制是日常编码必须要掌握的技能。</p>
+</blockquote>
+<h3 id="为什么是单线程">为什么是单线程？</h3>
+<p>JavaScript的主要用途是与用户交互，以及操作DOM。这决定了它只能是单线程，否则会带来很复杂的同步问题。</p>
+<ul>
+<li>假设：如果JavaScript支持多线程，一个线程在某个DOM节点上添加内容，另外一个线程删除了这个节点，那么浏览器该以哪个线程为准呢？</li>
+</ul>
+<h3 id="单线程的缺点">单线程的缺点</h3>
+<p>单线程就意味着容易发生线程等待资源，cpu空闲，而其他任务一直等待的问题。</p>
+<h3 id="什么是event-loop事件循环">什么是Event Loop（事件循环）</h3>
+<p>为了协调事件、用户交互、脚本、UI 渲染和网络处理等行为，防止主线程阻塞。于是Javascript设计者将所有任务分为两种，一种是同步任务，一种是异步任务</p>
+<ul>
+<li>同步任务指的是，在<code>主线程</code>上排队执行的任务
+<ul>
+<li>同步任务只有前一个任务执行完毕，才能执行下一个任务。</li>
+<li>同步任务都在主线程上执行，形成一个<code>执行栈</code>
+<ul>
+<li>每次执行栈执行的代码就是一个宏任务</li>
+</ul></li>
+</ul></li>
+<li>异步任务指的是，不进入主线程，而进入<code>任务队列</code>的任务。
+<ul>
+<li>只要指定过回调函数，这些事件发生时就会进入&quot;任务队列&quot;（比如鼠标点击...等）</li>
+<li>一旦<code>执行栈中的所有同步任务执行完毕</code>，系统就会读取“任务队列”。</li>
+<li>任务队列是一个先进先出的数据结构，排在前面的事件，优先被主线程读取。</li>
+</ul></li>
+</ul>
+<p>&quot;主线程&quot;从&quot;任务队列&quot;中读取事件，这个过程是循环不断的，所以整个的这种运行机制又称为Event Loop（事件循环）。</p>
+<h3 id="宏任务和微任务">宏任务和微任务</h3>
+<p>根据规范：每个任务都有一个任务源(task source)，源自同一个任务源的 task 必须放到同一个任务队列，从不同源来的则被添加到不同队列，所以有了宏任务(macro)task和微任务(micro)task。</p>
+<p>浏览器为了能够使得JS内部(macro)task与DOM任务能够有序的执行，会在一个task执行结束后，在下一个(macro)task 执行开始前，对页面进行重新渲染，</p>
+<p>每次执行完一个宏任务之后，会去检查是否存在微任务；如果有，则执行微任务直至清空微任务队列，如果在微任务执行期间微任务队列加入了新的微任务，会将新的微任务加入队列尾部，之后也会被执行。</p>
+<p>根据上述总结流程为：</p>
+<p><img src="/img/event_loop.jpg" alt="流程图" /></p>
+<p>附（宏/微任务清单）：</p>
+<ul>
+<li>宏任务(macro)task主要有： script(整体代码)、setTimeout、setInterval、I/O、UI交互事件、postMessage、MessageChannel、setImmediate(Node.js 环境)</li>
+<li>微任务(micro)task主要有： Promise.then、MutaionObserver、process.nextTick(Node.js 环境)</li>
+<li>requestAnimationFrame 既不属于宏任务, 也不属于微任务</li>
+</ul>
+<p><del>目前宏任务和微任务在各浏览器执行都有差异，最后提议promise为微任务</del></p>
+<h3 id="实例分析">实例分析</h3>
+<pre><code><code>    setTimeout(function(){
+        console.log(&#39;1&#39;);
+    });
+
+    new Promise(function(resolve){
+        console.log(&#39;2&#39;);
+        resolve();
+    }).then(function(){
+        console.log(&#39;3&#39;);
+    });
+
+    console.log(&#39;4&#39;);
+</code></pre>
+<p>以上案例会输出 <code>2 4 3 1</code></p>
+<p>结果解析：</p>
+<ol>
+<li>JavaScript执行主线程任务：<code>输出 2 4</code>
+<ul>
+<li>附：Promise构造器内部是同步任务</li>
+</ul></li>
+<li>执行微任务队列：<code>输入 3</code></li>
+<li>第一个宏任务结束，进入setTimeout回调：<code>输出 1</code></li>
+</ol>
+<h2 id="end">End</h2>
+<blockquote>
+<p>持续更新中 <a href="https://github.com/zhongmeizhi/">来Github 点颗⭐吧</a></p>
+</blockquote>
+<h3 id="返回主页"><a href="/README.md">返回主页</a></h3>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

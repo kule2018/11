@@ -1,0 +1,276 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修简述JavaScript模块化编程（二）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>简述JavaScript模块化编程（二）</center></div><div class='banquan'>原文出处:本文由博客园博主名刀涛提供。<br/>
+原文连接:https://www.cnblogs.com/mingdao/p/11290240.html</div><br>
+    <p>前置阅读：<a href="https://www.jianshu.com/p/3fbaa3ae70e6/" target="_blank">简述JavaScript模块化（一）</a></p>
+<div>
+<p>在前面一文中，我们对前端模块化所经历的三个阶段进行了了解：</p>
+<ol>
+<li>CommonJs,由于是同步的，所以主要应用于服务器端，以Node.js为代表。</li>
+<li>AMD，异步模块定义，预加载，推荐依赖前置。以require.js为代表。</li>
+<li>CMD，通用模块加载，懒加载，推荐依赖就近。以Sea.js为代表。</li>
+</ol>
+<p>而在ES6已经大行其道的今天，ES6中所提供的模块化的方法也自然而然成了我们进行JavaScript模块化编程的标准，因此ES6模块的语法虽然在一些较为老的浏览器上不能直出，需要进行转译，但却代表着未来的JavaScript发展趋势。</p>
+<h4>ES6模块特性</h4>
+<p>在ES6中将模块认为是自动运行在严格模式下并且没有办法退出运行的JavaScript代码。在一个模块中定义的变量不会自动被添加到全局共享的作用域之中，这个变量只能作用在这个作用域中。此外模块还必须导出一些外部文件可以访问的元素，以供其他模块或代码使用。</p>
+<p>除了这个基本特性，ES6模块还有两大特性也十分重要，需要额外注意：</p>
+<ul>
+<li>首先是在模块的顶部this值是undefined，这是由于在ES6中的模块的代码是在严格模式下执行的。（如果对this不是很熟悉的可以去看我的这篇文章<a href="https://www.jianshu.com/p/8d6cc7ad9c58/" target="_blank">：深入浅出this关键字</a>）</li>
+<li>其次，模块不支持HTML风格的代码注释，这是早期浏览器所遗留下的JavaScript特性，在ES6的语法里不予支持。</li>
+</ul>
+<h2>基本用法-模块加载</h2>
+<p>首先我们来看浏览器是如何加载模块的。其实在ES6规范出来之前，web浏览器就规定了三种方式来引入JavaScript文件：</p>
+<ul>
+<li>在没有src属性的&lt;script&gt;元素中直接内嵌JavaScript代码</li>
+<li>在&lt;script&gt;元素中通过src属性指定一个地址来加载JavaScript代码文件</li>
+<li>通过Web Worker或Service Worker的方法加载并执行JavaScript代码</li>
+</ul>
+<p>而在浏览器中，默认的行为就是将JavaScript作为脚本来进行加载，而非模块。所以我们要告诉浏览器我们加载的是模块，方法就是在&lt;script&gt;元素中，将type属性指定为"module"。具体看下面的示例：</p>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 第一种方式</span>
+<span style="color: #008080;">2</span> &lt;script type=""module&gt;
+<span style="color: #008080;">3</span>     import { add } from "./example"<span style="color: #000000;">;
+</span><span style="color: #008080;">4</span>     let num = add(1, 1<span style="color: #000000;">);
+</span><span style="color: #008080;">5</span> &lt;/script&gt;
+<span style="color: #008080;">6</span> <span style="color: #008000;">//</span><span style="color: #008000;">  第二种方式</span>
+<span style="color: #008080;">7</span> &lt;script type="module" src="example.js"&gt;
+<span style="color: #008080;">8</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 第三种方式，以脚本的方式加载example.js</span>
+<span style="color: #008080;">9</span> let worker = <span style="color: #0000ff;">new</span> Worker("example.js");</pre>
+</div>
+<div>
+<p>当HTML解析器遇到&lt;script&gt;元素的type="module"的时候，模块文件就开始下载，直到文件被完全解析完成才会去执行模块内的代码。模块文件是按照他们出现在HTML文件中顺序执行的，也就是说无论用何种方式引入模块，第一个&lt;script type=""module&gt;总是在第二个&lt;script type=""module&gt;之前执行。</p>
+<h2>基本用法-导出</h2>
+<p>在ES6中我们可以使用export关键字将一部分代码暴露给其他模块，以供其他模块或代码使用。先让我们来看看export关键字在MDN的定义吧：</p>
+<blockquote>
+<p>export语句用于在创建JavaScript模块时，从模块中导出函数、对象或原始值，以便其他程序可以通过 import 语句使用它们。（<br />
+此特性目前仅在 Safari 和 Chrome 原生实现。它在许多转换器中实现，如Traceur Compiler，Babel或Rollup。）</p>
+
+
+</blockquote>
+<p>通过MDN的定义我们可以知道：export关键字可以将其放在任何函数、对象或原始值前面，从而将它们从模块中导出。示例如下：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;">   ./example.js</span>
+<span style="color: #008080;"> 2</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 导出变量</span>
+<span style="color: #008080;"> 3</span> export <span style="color: #0000ff;">var</span> a = 1<span style="color: #000000;">;
+</span><span style="color: #008080;"> 4</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 导出函数</span>
+<span style="color: #008080;"> 5</span> export <span style="color: #0000ff;">function</span><span style="color: #000000;"> addA(value) {
+</span><span style="color: #008080;"> 6</span>     <span style="color: #0000ff;">return</span> value +<span style="color: #000000;"> a;
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 8</span> <span style="color: #008000;">//</span><span style="color: #008000;">导出类</span>
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">export class add1 {
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    constructor(value) {
+</span><span style="color: #008080;">11</span>         <span style="color: #0000ff;">this</span>.value = value +<span style="color: #000000;"> a;
+</span><span style="color: #008080;">12</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">13</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">14</span> <span style="color: #008000;">//</span><span style="color: #008000;">这个函数就是这个模块所私有的，在外部不能访问它</span>
+<span style="color: #008080;">15</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> say1() {
+</span><span style="color: #008080;">16</span>     console.log('我是不是很帅'<span style="color: #000000;">);
+</span><span style="color: #008080;">17</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">18</span> <span style="color: #008000;">//</span><span style="color: #008000;">这又是个函数</span>
+<span style="color: #008080;">19</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> say2() {
+</span><span style="color: #008080;">20</span>     console.log('没错我就是很帅'<span style="color: #000000;">);
+</span><span style="color: #008080;">21</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">22</span> <span style="color: #008000;">//</span><span style="color: #008000;">在后面对函数进行导出,它就不是私有的了</span>
+<span style="color: #008080;">23</span> export say2;</pre>
+</div>
+<p>需要注意的是：使用export导出的函数和类都需要一个名称，除非使用default关键字，否则就不能用这个方法导出匿名函数或类。所以当我们需要导出匿名的函数或者类时，我们可以这么做：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;">   ./example.js</span>
+<span style="color: #008080;"> 2</span> <span style="color: #008000;">//</span><span style="color: #008000;">导出匿名函数</span>
+<span style="color: #008080;"> 3</span> export <span style="color: #0000ff;">default</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(a, b) {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">return</span> a +<span style="color: #000000;"> b；
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;">或者导出匿名的类</span>
+<span style="color: #008080;"> 7</span> export <span style="color: #0000ff;">default</span><span style="color: #000000;"> class {
+</span><span style="color: #008080;"> 8</span> <span style="color: #000000;">consturctor(value) {
+</span><span style="color: #008080;"> 9</span>     <span style="color: #0000ff;">this</span>.value = value + 1<span style="color: #000000;">;
+</span><span style="color: #008080;">10</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;">11</span> }</pre>
+</div>
+<div>
+<div>
+<p>具体关于default关键字的用法我会在后面做具体介绍，现在只需记住：当我们需要导出匿名的函数或者类时要使用export default语法。</p>
+<h2>基本语法-导入</h2>
+<p>在ES6中，从模块中导入的功能可以通过import关键字。import语句由两部分组成：要导入元素的标识符和元素应当从哪个模块导入。</p>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;">  ./say.js</span>
+<span style="color: #008080;">2</span> import { say2 } from "./example.js"<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span> console.log(say2()); <span style="color: #008000;">//</span><span style="color: #008000;"> '没错我就是很帅'</span></pre>
+</div>
+<div>
+<div>
+<p>import 后面的大括号中的say2表示从规定模块导入的元素的名称。关键字from后面的字符串则表示要导入的模块的路径，这通常是包含模块的.js文件的相对或绝对路径名，需要注意的是只允许使用单引号和双引号的字符串来包裹路径，浏览器使用的路径格式与传给&lt;script&gt;元素的相同，所以必须把文件的扩展名也加上。</p>
+<blockquote>
+<p>（注：由于Node.js遵循基于文件系统前缀以区分本地文件个包的惯例，即example是一个包，而./exampple.js是一个本地文件。为了更好的兼容多个浏览器Node.js环境，我们一定要在路径前包含./或../来表示要导入的文件。）</p>
+</blockquote>
+<p>除此之外，我们还可以导入多个元素或者直接导入整个模块：</p>
+</div>
+</div>
+<div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 导入多个元素</span>
+<span style="color: #008080;"> 2</span> improt { a, addA, say2 } from "./example.js"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 3</span> console.log(a); <span style="color: #008000;">//</span><span style="color: #008000;"> 1</span>
+<span style="color: #008080;"> 4</span> sonsole.log(addA(1); <span style="color: #008000;">//</span><span style="color: #008000;"> 2</span>
+<span style="color: #008080;"> 5</span> 
+<span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 导入整个模块</span>
+<span style="color: #008080;"> 7</span> import * as example from "./example.js"
+<span style="color: #008080;"> 8</span> console.log(example.a); <span style="color: #008000;">//</span><span style="color: #008000;"> 1</span>
+<span style="color: #008080;"> 9</span> sonsole.log(example.addA(1); <span style="color: #008000;">//</span><span style="color: #008000;"> 2</span>
+<span style="color: #008080;">10</span> console.log(example.say2()); <span style="color: #008000;">//</span><span style="color: #008000;"> '没错我就是很帅'</span></pre>
+</div>
+<div>
+<div>
+<p>上面的导入整个模块就是把example.js中导出的所有元素全部加载到一个叫做example的对象中，而所导出的元素就会作为example的属性被访问。因为example对象是作为example.js中所导出成员的命名空间对象而被创建的，所以这种导入方式被称为命名空间导入（name space import)。</p>
+<p>还有一点要注意的是，不管import语句把一个模块写了多少次，该模块只执行一次。意思就是，在首次执行导入模块后，实例化的模块就会被保存在内存中，只要使用import语句引用它就可以重复使用它：</p>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 首次导入需要加载模块example.js</span>
+<span style="color: #008080;">2</span> import { a } from "./example.js"
+<span style="color: #008080;">3</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 下面的两个import将无需加载example.js了</span>
+<span style="color: #008080;">4</span> import { addA } from "./example.js"
+<span style="color: #008080;">5</span> import { say2 } from "./example.js"</pre>
+</div>
+<p>当从模块中导入一个元素时，它与const是一样无法定义另一个同名变量和导入一个同名元素，也无法在import语句前使用元素或者改变导出的元素的值：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;">接上面的代码</span>
+<span style="color: #008080;">2</span> 
+<span style="color: #008080;">3</span> say2 = 1 ;  <span style="color: #008000;">//</span><span style="color: #008000;">会抛出一个错误</span></pre>
+</div>
+<p>这是由于ES6的import语句为导入的元素创建的是只读绑定的标识符，而不是原始绑定。因此元素只有在被导出的模块中才可以被修改，即使是将该模块的全部导入也无法修改其中的元素。</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;">   ./example.js</span>
+<span style="color: #008080;"> 2</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 这是一个函数</span>
+<span style="color: #008080;"> 3</span> export <span style="color: #0000ff;">function</span><span style="color: #000000;"> setA(newA) {
+</span><span style="color: #008080;"> 4</span>     a =<span style="color: #000000;"> newA;
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;">  ./say.js</span>
+<span style="color: #008080;"> 7</span> import { a, setA } from "./example"<span style="color: #000000;">;
+</span><span style="color: #008080;"> 8</span> console.log(a);  <span style="color: #008000;">//</span><span style="color: #008000;"> 1</span>
+<span style="color: #008080;"> 9</span> a = 2;   <span style="color: #008000;">//</span><span style="color: #008000;">抛出错误</span>
+<span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 所以我们得这么做</span>
+<span style="color: #008080;">12</span> setA(2<span style="color: #000000;">); 
+</span><span style="color: #008080;">13</span> console.log(a);  <span style="color: #008000;">//</span><span style="color: #008000;"> 2</span></pre>
+</div>
+<p>调用setA(2)时会返回到example.js中去执行，将a设置为2。由于say.js导入的只是a的只读绑定的标识符而已，因此会自动进行更改。</p>
+<h2>其他基本语法</h2>
+<h3>1.语法限制</h3>
+<p>export和import在语法上还有一个重要的限制，那就是他们必须在条件语句和函数之外使用，例如：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #0000ff;">if</span><span style="color: #000000;"> (ture) {
+</span><span style="color: #008080;">2</span>     export <span style="color: #0000ff;">var</span> a = 1;      <span style="color: #008000;">//</span><span style="color: #008000;">语法错误</span>
+<span style="color: #008080;">3</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">4</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> imp() {
+</span><span style="color: #008080;">5</span>     import a from "./example.js"; <span style="color: #008000;">//</span><span style="color: #008000;">语法错误</span>
+<span style="color: #008080;">6</span> }</pre>
+</div>
+<div>
+<div>
+<p>由于模块语法存在的其中一个原因是让JavaScript引擎可以静态地确定哪些代码是可以导出的，因此export和import语句被设计成静态的，不能进行任何形式的动态导出或导入。</p>
+<h2>2.重命名解决</h2>
+<p>有时在开发中，我们在导入一些元素后不想使用它们的原始名称了，我们就可以在导出过程或者导入过程中去改变导出元素的名称：</p>
+</div>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 导出过程</span>
+<span style="color: #008080;"> 2</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> add(a, b) {
+</span><span style="color: #008080;"> 3</span>     <span style="color: #0000ff;">return</span> a +<span style="color: #000000;"> b;
+</span><span style="color: #008080;"> 4</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 5</span> export { add as add1 };  <span style="color: #008000;">//</span><span style="color: #008000;">在导入过程中必须使用add1作为名称 </span>
+<span style="color: #008080;"> 6</span> 
+<span style="color: #008080;"> 7</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 导入过程</span>
+<span style="color: #008080;"> 8</span> import {add as add1 } from "./example"
+<span style="color: #008080;"> 9</span> console.log(add1(1,1));  <span style="color: #008000;">//</span><span style="color: #008000;"> 2</span>
+<span style="color: #008080;">10</span> console.log(<span style="color: #0000ff;">typeof</span> add); <span style="color: #008000;">//</span><span style="color: #008000;">undefined</span></pre>
+</div>
+<h2>3.模块的默认值</h2>
+<p>在CommonJS等其他的模块化规范中，从模块中导出或导入默认值是一个常见的用法，因此在ES6中也延用了这种用法并进行了优化。在ES6中我们可以使用default关键字来指定默认值，并且一个模块只能默认一个导出值：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;"> ./example.js</span>
+<span style="color: #008080;"> 2</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 第一种默认导出语法</span>
+<span style="color: #008080;"> 3</span> export <span style="color: #0000ff;">default</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(a, b) {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">return</span> a +<span style="color: #000000;"> b;
+</span><span style="color: #008080;"> 5</span> <span style="color: #000000;">}
+</span><span style="color: #008080;"> 6</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 第二种默认导出语法</span>
+<span style="color: #008080;"> 7</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> add(a, b) {
+</span><span style="color: #008080;"> 8</span>     <span style="color: #0000ff;">return</span> a +<span style="color: #000000;"> b;
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">10</span> export <span style="color: #0000ff;">default</span><span style="color: #000000;"> add;
+</span><span style="color: #008080;">11</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 第三种默认导出语法</span>
+<span style="color: #008080;">12</span> <span style="color: #0000ff;">function</span><span style="color: #000000;"> add(a, b) {
+</span><span style="color: #008080;">13</span>     <span style="color: #0000ff;">return</span> a +<span style="color: #000000;"> b;
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">15</span> export { add as <span style="color: #0000ff;">default</span> };</pre>
+</div>
+<p>需要注意的是第三种语法，default关键字虽然不能作为元素的名称，但可以作为元素的属性名称，因此可以使用as语法将add函数的属性设置为default。</p>
+<p>导入默认值的语法则是这样的：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;">  第一种语法</span>
+<span style="color: #008080;">2</span> import add from "./example"<span style="color: #000000;">;
+</span><span style="color: #008080;">3</span> <span style="color: #008000;">//</span><span style="color: #008000;">  第二种语法</span>
+<span style="color: #008080;">4</span> import { <span style="color: #0000ff;">default</span> as add } from "./example";</pre>
+</div>
+<div>
+<div>
+<p>看到这里有些朋友可能会发现，我们的第一种语法中import关键字后面并没有加大括号，认为这是错误的。其实这是导入默认值的独特语法，在这的本地名称add用于表示模块导出的任何默认函数，这种语法是最纯净的，ES6标准创建团队的大佬们也希望这种语法能成为web主流的模块导入形式。</p>
+<p>我们前面说的导入匿名函数也同样使用这种语法：</p>
+</div>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #008000;">//</span><span style="color: #008000;">   ./example.js</span>
+<span style="color: #008080;">2</span> <span style="color: #008000;">//</span><span style="color: #008000;">导出匿名函数</span>
+<span style="color: #008080;">3</span> export <span style="color: #0000ff;">default</span> <span style="color: #0000ff;">function</span><span style="color: #000000;">(a, b) {
+</span><span style="color: #008080;">4</span>     <span style="color: #0000ff;">return</span> a +<span style="color: #000000;"> b；
+</span><span style="color: #008080;">5</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">6</span> <span style="color: #008000;">//</span><span style="color: #008000;"> ./say.js</span>
+<span style="color: #008080;">7</span> import add from "./example"<span style="color: #000000;">;
+</span><span style="color: #008080;">8</span> console.log(add(1,1));  <span style="color: #008000;">//</span><span style="color: #008000;"> 2</span></pre>
+</div>
+<p>在这里本地名称add就是用于表示上面的匿名函数的。</p>
+<h5>4.导出已导入的元素</h5>
+<p>我们同样可以在本模块内导出我们在本模块内导入的元素，有以下几种语法：</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #008000;">//</span><span style="color: #008000;">  第一种语法</span>
+<span style="color: #008080;"> 2</span> import { add } from ./example.js;
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">export { add };
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #008000;">//</span><span style="color: #008000;">  第二种语法</span>
+<span style="color: #008080;"> 6</span> export { add } from ./example.js;
+<span style="color: #008080;"> 7</span> 
+<span style="color: #008080;"> 8</span> <span style="color: #008000;">//</span><span style="color: #008000;">换一个名称导出</span>
+<span style="color: #008080;"> 9</span> export { add as add1 } from ./example.js; //以add这个名称导入，再以add1的名称导出
+<span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #008000;">//</span><span style="color: #008000;"> 导出整个模块</span>
+<span style="color: #008080;">12</span> export *  from ./example.js;</pre>
+</div>
+<p>// 最后预祝自己8月份面试成功offer满天飞-_-||</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

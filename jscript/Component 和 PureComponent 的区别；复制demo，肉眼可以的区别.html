@@ -1,0 +1,95 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Component 和 PureComponent 的区别；复制demo，肉眼可以的区别' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Component 和 PureComponent 的区别；复制demo，肉眼可以的区别</center></div><div class='banquan'>原文出处:本文由博客园博主蒋大忙提供。<br/>
+原文连接:https://www.cnblogs.com/ly0612/p/11954414.html</div><br>
+    <p><code>React.PureComponent</code>它用当前与之前 props 和 state 的浅比较覆写了&nbsp;<code>shouldComponentUpdate()</code>&nbsp;的实现。<br /><strong>简单来说，就是PureComponent简单实现了shouldComponentUpdate()的功能</strong><br />当然，如果你的数据结构比较复杂就不行了</p>
+<p>首先看看第一段代码</p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> import React from 'react'
+<span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">class Child extends React.Component {
+</span><span style="color: #008080;"> 4</span> 
+<span style="color: #008080;"> 5</span> <span style="color: #000000;">  render() {
+</span><span style="color: #008080;"> 6</span>     console.log('child render'<span style="color: #000000;">)
+</span><span style="color: #008080;"> 7</span>     <span style="color: #0000ff;">return</span> &lt;div&gt;child&lt;/div&gt;;
+<span style="color: #008080;"> 8</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;"> 9</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">10</span> 
+<span style="color: #008080;">11</span> <span style="color: #000000;">class App extends React.Component {
+</span><span style="color: #008080;">12</span>   state =<span style="color: #000000;"> {
+</span><span style="color: #008080;">13</span>     a: 1<span style="color: #000000;">,
+</span><span style="color: #008080;">14</span> <span style="color: #000000;">  };
+</span><span style="color: #008080;">15</span> 
+<span style="color: #008080;">16</span> <span style="color: #000000;">  render() {
+</span><span style="color: #008080;">17</span>     console.log('render'<span style="color: #000000;">);
+</span><span style="color: #008080;">18</span>     <span style="color: #0000ff;">return</span><span style="color: #000000;"> (
+</span><span style="color: #008080;">19</span>       &lt;&gt;
+<span style="color: #008080;">20</span>         &lt;<span style="color: #000000;">button
+</span><span style="color: #008080;">21</span>           onClick={() =&gt;<span style="color: #000000;"> {
+</span><span style="color: #008080;">22</span>             <span style="color: #0000ff;">this</span>.setState({ a: 2<span style="color: #000000;"> });
+</span><span style="color: #008080;">23</span> <span style="color: #000000;">          }}
+</span><span style="color: #008080;">24</span>         &gt;
+<span style="color: #008080;">25</span> <span style="color: #000000;">          Click me
+</span><span style="color: #008080;">26</span>         &lt;/button&gt;
+<span style="color: #008080;">27</span>         <strong>&lt;Child color={'red'}/&gt;</strong>
+<span style="color: #008080;">28</span>       &lt;/&gt;
+<span style="color: #008080;">29</span> <span style="color: #000000;">    );
+</span><span style="color: #008080;">30</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">31</span> <span style="color: #000000;">}
+</span><span style="color: #008080;">32</span> 
+<span style="color: #008080;">33</span> export <span style="color: #0000ff;">default</span> App</pre>
+</div>
+<p>当我们点击按钮更新了父组件的状态，那么子组件也会重新render，那么这个时候输出的是：</p>
+<p><strong>parent render</strong><br /><strong>child render</strong></p>
+<p>当我们想优化组件render的时候，我们会使用shouldComponentUpdate() 。那么我现在把上面的<strong> Child 组件替换为如下：</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;"> 1</span> <span style="color: #000000;">class Child extends React.Component {
+</span><span style="color: #008080;"> 2</span> 
+<span style="color: #008080;"> 3</span> <span style="color: #000000;">  shouldComponentUpdate(nextProps, nextState) {
+</span><span style="color: #008080;"> 4</span>     <span style="color: #0000ff;">if</span> (<span style="color: #0000ff;">this</span>.props.color !==<span style="color: #000000;"> nextProps.color) {
+</span><span style="color: #008080;"> 5</span>       <span style="color: #0000ff;">return</span> <span style="color: #0000ff;">true</span>
+<span style="color: #008080;"> 6</span> <span style="color: #000000;">    }
+</span><span style="color: #008080;"> 7</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;"> 8</span> 
+<span style="color: #008080;"> 9</span> <span style="color: #000000;">  render() {
+</span><span style="color: #008080;">10</span>     console.log('child render'<span style="color: #000000;">)
+</span><span style="color: #008080;">11</span>     <span style="color: #0000ff;">return</span> &lt;div&gt;child&lt;/div&gt;;
+<span style="color: #008080;">12</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">13</span> }</pre>
+</div>
+<p>这个时候，我们点击按钮更新父组件状态的时候，子组件的是不会render的，输入的是：</p>
+<p><strong>parent&nbsp;render</strong></p>
+<p>&nbsp;</p>
+<p><strong>最后，我们在把child组件替换为如下：</strong></p>
+<div class="cnblogs_code">
+<pre><code><span style="color: #008080;">1</span> <span style="color: #000000;">class Child extends React.PureComponent {
+</span><span style="color: #008080;">2</span> <span style="color: #000000;">  render() {
+</span><span style="color: #008080;">3</span>     console.log('child render'<span style="color: #000000;">)
+</span><span style="color: #008080;">4</span>     <span style="color: #0000ff;">return</span> &lt;div&gt;child&lt;/div&gt;;
+<span style="color: #008080;">5</span> <span style="color: #000000;">  }
+</span><span style="color: #008080;">6</span> }</pre>
+</div>
+<p>你会发现它和上图的Child组件是一样的效果，同样只输出了：</p>
+<p><strong>parent&nbsp;render</strong></p>
+<p>&nbsp;</p>
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>

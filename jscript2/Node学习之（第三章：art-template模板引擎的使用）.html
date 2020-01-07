@@ -1,0 +1,111 @@
+<html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'>
+<meta name='applicable-device' content='pc'><meta name='keywords' content='电脑,电脑讲解,电脑技术,编程,电脑故障维修Node学习之（第三章：art-template模板引擎的使用）' />
+<script src='../../highlight/highlight.pack.js'></script>
+<link rel='stylesheet' type='text/css' href='../../highlight/styles/monokai.css'/>
+
+<link rel='stylesheet' href='../../fenxiang/dist/css/share.min.css'>
+<script src='../../fenxiang/src/js/social-share.js'></script>
+<script src='../../fenxiang/src/js/qrcode.js'></script>
+
+</head><body><script>hljs.initHighlightingOnLoad();</script><script>
+var system ={};  
+var p = navigator.platform;       
+system.win = p.indexOf('Win') == 0;  
+system.mac = p.indexOf('Mac') == 0;  
+system.x11 = (p == 'X11') || (p.indexOf('Linux') == 0);     
+if(system.win||system.mac||system.xll){
+document.write("<link href='../css/3.css' rel='stylesheet' type='text/css'>");}else{ document.write("<link href='../css/3wap.css' rel='stylesheet' type='text/css'>");}</script><script src='../../js/3.js'></script><div class='div2'><div class='heading_nav'><ul><div><li><a href='../../index.html'>首页</a></li>
+</div><div onclick='hidden1()' >分享</div>
+</ul></div></div>
+<div id='heading_nav2'> 
+<li class='row' >
+<div class='social-share' data-mode='prepend'><a href='javascript:' class='social-share-icon icon-heart'></a></div></li></div><script charset='utf-8' src='../../3/js/hengfu.js'></script><script charset='utf-8' src='../../3/js/hengfu2.js'></script><hr><div class='div1'><div class='biaoti'><center>Node学习之（第三章：art-template模板引擎的使用）</center></div><div class='banquan'>原文出处:本文由博客园博主pubdreamcc提供。<br/>
+原文连接:https://www.cnblogs.com/dreamcc/p/10822821.html</div><br>
+    <h2 id="前言">前言</h2>
+<p>大家之前都有使用过浏览器中js模板引擎，其实在Node.js中也可以使用模板引擎，最早使用模板引擎的概念是在服务端新起的。</p>
+<h2 id="art-template">art-template</h2>
+<p><code>art-template</code>是一款高性能的JavaScript 模板引擎，不仅可以在浏览器（前端）使用，同时也可以在Node中使用。</p>
+<blockquote>
+<p>GitHub地址：<a href="https://github.com/aui/art-template">art-template</a></p>
+</blockquote>
+<blockquote>
+<p>文档：<a href="https://aui.github.io/art-template/zh-cn/docs/index.html">官方中文</a></p>
+</blockquote>
+<p><strong>本章节我们来探讨下Node中使用art-template模板引擎生成一个标准的HTML文档。</strong></p>
+<h2 id="主体">主体</h2>
+<ol>
+<li><p><code>art-template</code>原理就是将一个字符串数据按照模板引擎的语法替换掉其中的某些特定格式数据，然后产出我们所需的HTML文档。<code>art-template</code>支持两种语法：标准语法，原始语法，标准语法多以<code>{{}}</code>常见，原始语法多以<code>&lt;% %&gt;</code>常见。对于不清楚<code>art-template</code>语法的同学可以去官方文档看下，这里不做详细叙述。</p></li>
+<li><p>安装<code>art-template</code>第三方包</p></li>
+</ol>
+<p>在项目当前目录<code>npm install art-template</code>，默认会安装在项目当前<code>node_modules</code>文件夹下。</p>
+<ol>
+<li>在项目中创建<code>template.html</code>文件，这里用来编写我们的模板html文档。具体代码如下：</li>
+</ol>
+<pre><code><code>&lt;!DOCTYPE html&gt;
+&lt;html lang=&quot;zh&quot;&gt;
+&lt;head&gt;
+  &lt;meta charset=&quot;UTF-8&quot;&gt;
+  &lt;title&gt;{{Title}}&lt;/title&gt;  
+&lt;/head&gt;
+&lt;body&gt;
+  &lt;h1&gt;{{main}}&lt;/h1&gt;
+  &lt;p&gt;我的名字是{{name}},我今年{{age}}了，我的爱好有：{{each hobbies}}{{$value}}，{{/each}}&lt;/p&gt;
+&lt;/body&gt;
+&lt;/html&gt;</code></pre>
+<p><strong>这里使用<code>art-template</code>的标准语法</strong>，编写的时候一定按照正确的模板语法，否则会导致结果有误。</p>
+<ol>
+<li>项目中创建<code>server.js</code>，用来创建服务器，并且引入<code>art-template</code>包。</li>
+</ol>
+<pre><code><code>let http = require(&#39;http&#39;)
+let fs = require(&#39;fs&#39;)
+let template = require(&#39;art-template&#39;)
+
+let server = http.createServer()
+
+server.on(&#39;request&#39;, (req, res) =&gt; {
+  let url = req.url
+  if (url === &#39;/&#39;) {
+    // 读取template.html中的内容，并且转换成字符串格式
+    fs.readFile(&#39;./template.html&#39;, (error, data) =&gt; {
+      if (error) {
+        return res.end(&#39;can not find template.html&#39;)
+      }
+      let dataStr = data.toString()
+      let htmlStr = template.render(dataStr, {
+        name: &#39;pubdreamcc&#39;,
+        Title: &#39;首页&#39;,
+        main: &#39;个人信息&#39;,
+        age: 24,
+        hobbies: [&#39;写代码&#39;, &#39;读书&#39;, &#39;篮球&#39;]
+      })  // template.render()方法编译模板文档并返回渲染结果。
+      res.end(htmlStr)
+    })
+  } else {
+    res.end(&#39;404 NOT found&#39;)
+  }
+})
+
+// 绑定端口号，开启服务器
+server.listen(3000, () =&gt; {
+  console.log(&#39;服务器已经启动，可以访问。。。&#39;)
+})
+</code></pre>
+<ol>
+<li>启动服务器后，浏览器访问后，效果如下：</li>
+</ol>
+<p><img src="./images/Node学习之（第三章：art-template模板引擎的使用）0.png" /></p>
+<p><strong>到这里就已经实现了我们起初的效果，应该比较简单吧，哈哈。如果喜欢的话，希望小伙伴们给个star哟，你们的点赞是我持续更新的动力。</strong></p>
+<h2 id="说明">说明</h2>
+<p>本仓库是自己Node.js学习过程的真实记录，以后会每天更新一些新的知识点，希望可以对想要学Node.js的同学有一些帮助，欢迎star，你们的点赞是我更新的持久动力。同时如果你觉得本仓库中的一些知识点有错误也可以issue我，方便后期我订正！</p>
+<blockquote>
+<p>本仓库同时在博客园和掘金更新，欢迎写博客的朋友一起学习交流。</p>
+</blockquote>
+<p><strong>博客园</strong></p>
+<p><a href="https://www.cnblogs.com/dreamcc/">找我</a></p>
+<p><strong>掘金</strong></p>
+<p><a href="https://juejin.im/user/5ca1d53451882543f252db97/posts">找我</a></p>
+<p><strong>GitHub</strong></p>
+<p><a href="https://github.com/pubdreamcc/Node.js">找我</a></p>
+
+</div>
+</div><hr><script charset='utf-8' src='../../js/sming.js'></script></body></html>
